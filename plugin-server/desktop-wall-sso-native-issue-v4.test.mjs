@@ -223,9 +223,11 @@ test('T04b7 private Unix-socket issue validates request, returns ticket only',as
   assert.equal('accessToken' in body,false);
   assert.equal(JSON.stringify(body).includes(ACCESS),false);
 });
-test('T04b7 internal path is not mounted in Plugin or Operator',()=>{
+test('T04b7b internal route is registered only behind explicit issue callback',()=>{
   const plugin=fs.readFileSync(new URL('./server.mjs',import.meta.url),'utf8');
   const operator=fs.readFileSync(new URL('../operator-host/executor-routes-device-channel.mjs',import.meta.url),'utf8');
-  assert.equal(plugin.includes("registerDesktopWallSsoNativeIssueV4("),false);
-  assert.equal(operator.includes("/v1/internal/desktop-wall-sso/issue"),false);
+  assert.ok(plugin.includes("registerDesktopWallSsoNativeIssuerV4(app,"));
+  assert.ok(operator.includes("url.pathname==='/v1/internal/desktop-wall-sso/issue'"));
+  const host=fs.readFileSync(new URL('../operator-host/executor.mjs',import.meta.url),'utf8');
+  assert.ok(host.includes('desktopWallSsoInternalIssue:desktopWallSsoOperatorGate.internalIssue'));
 });

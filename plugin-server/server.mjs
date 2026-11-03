@@ -9,6 +9,11 @@ import { registerPublicDeviceRoutes, prunePublicRateState, initializePublicRateR
 import { registerAccountPortal } from './account-portal.mjs';
 import { registerDesktopOwnerV4Authorization } from './desktop-auth-v4-server.mjs';
 import { registerDesktopOwnerTokenRoutes } from './desktop-owner-token-v4.mjs';
+import { callOperatorJson } from './operator-client.mjs';
+import { registerDesktopWallSsoNativeIssuerV4,
+  desktopWallSsoIssuerEnabledV4,DESKTOP_WALL_SSO_TICKET_PATH_V4,
+  DESKTOP_WALL_SSO_MAX_BODY_BYTES_V4
+} from './desktop-wall-sso-native-router-v4.mjs';
 import { initializeGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
@@ -78,6 +83,13 @@ app.use(hostHeaderValidation(PUBLIC_ALLOWED_HOSTS));
 app.disable('x-powered-by');
 app.set('trust proxy','loopback, linklocal, uniquelocal');
 registerPaddleWebhook(app,express.raw({type:'application/json',limit:'512kb'}));
+// T04b7b: when explicitly opted in, parse the native issuer request with
+// a 2-KiB ceiling BEFORE the product-wide 12-MiB JSON parser. By default
+// this path is neither parsed specially nor registered as an endpoint.
+if(desktopWallSsoIssuerEnabledV4(process.env)){
+  app.use(DESKTOP_WALL_SSO_TICKET_PATH_V4,
+    express.json({limit:DESKTOP_WALL_SSO_MAX_BODY_BYTES_V4,strict:true}));
+}
 app.use(express.json({limit:'12mb'}));
 app.use(express.urlencoded({extended:false,limit:'128kb'}));
 const PUBLIC_INDEXABLE_PATHS=new Set(['/','/downloads','/downloads/','/support','/privacy','/terms','/cookies','/robots.txt','/sitemap.xml','/site.webmanifest','/favicon.ico']);
@@ -112,6 +124,14 @@ registerDesktopOwnerTokenRoutes(app,{
   redis:goldStorage.redis,
   prefix:goldStorage.prefix,
   consumeCode:desktopOwnerAuthV4.consumeCode
+});
+// Independent opt-in: Desktop Login / Token API flags alone never enable SSO.
+// The actual transport is the existing private Operator Unix socket only.
+registerDesktopWallSsoNativeIssuerV4(app,{
+  env:process.env,publicOrigin:PUBLIC_ORIGIN,
+  proxyPeers:process.env.LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4
+    ?process.env.LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4.split(','):[],
+  operatorCall:callOperatorJson
 });
 registerSupportBackoffice(app,{outbox:supportOutbox});
 registerDistributionPortal(app);

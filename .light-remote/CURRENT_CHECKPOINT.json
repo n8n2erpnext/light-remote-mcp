@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T04b7a_native_HTTPS_issue_BOUNDARY_source_ONLY_Gold_CI4of4_PASS_103of103_no_live_routes",
+  "status": "goldabv2_T04b7b_SIX_FLAG_NATIVE_TICKET_Plugin_Operator_UNIX_SOURCE_122of122_PASS_CI_PENDING_DEFAULT_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b7a source commit 0f0a002d65cc3958ada84ecbe4510fbc95d2918d has GitHub Gold Source Gate 41668319985 4/4 SUCCESS and Docs 41668319987 PASS, selected security source tests 103/103 PASS and actual local Wall loopback HTTP revoke PASS. Plugin native HTTPS Owner ticket handler and Operator Unix-only internal issue handler are deliberately UNMOUNTED / default OFF. No Plugin server/Operator dispatcher route registration, no Tauri change, no Agent/Wall SSO, no running service updates. Future T04b7b: explicit independently gated internal issue callback with real Gold Redis/Owner/Enrollment proof, pre-Express parser size and rate guards, peer-pinned trusted HTTPS terminator, signed enrolled device relay and native Rust secure bootstrap. A clock-injection edit to unmounted Operator source was blocked by safety; not retried nor bypassed. Gold UAT/prod/ChatGPT MCP/Agent A/B unchanged. Owner native Login/Signout/Welcome physical Windows PASS; sustained >10m proactive refresh and independent server revocation E2E OPEN.",
+  "nextAction": "2026-11-03 T04b7b SOURCE ONLY. Plugin HTTPS Native Owner ticket issuer is wired to existing Operator Unix socket with six independent EXACT string-1 flags: original B6 five plus LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4. Default OFF: no public route; Operator internal issuer 404 before body read. Plugin server conditional 2KiB JSON parser BEFORE general 12MiB parser, protected Owner Authorization Bearer and exact {device_id}, explicit LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4 exact reverse proxy allowlist, generic errors and 45s opaque one-use Redis ticket. Per 60s in-process bounded hashed access limiter max5/token max100/global, max512 keys; evaluate performance and distributed throttling before high scale. Actual Node HTTP loopback to real temporary Unix socket transport tests are PASS, but trusted proxy/TLS and pre-Express parser are simulated in native Node due to VPS worktree lacking Express dependencies; NOT actual HTTPS or full deployed Express proof. 12 new router tests, 5 real local HTTP/Unix socket tests, 2 operator flag tests: selected T04 122/122 Node PASS and Wall HTTP loopback revoke regression PASS. Gold Source Gate CI pending. No Lab/UAT/prod runtime deployment, six flags all OFF. NEXT T04b8: physical Lab proxy + real Redis Owner-family/Enrollment cross-process acceptance under snapshot/auto-OFF, Tauri native private transfer and signed Agent relay, secure HTTPS/loopback Wall session cookie and Windows E2E. T03 Owner Login/Logout/Welcome Windows physical PASS, sustained >10min refresh and independent server-side family revoke E2E still OPEN. Earlier tool safety block clock injection was not revisited, no bypass. Gold production, ChatGPT MCP, Agent A/B unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "babf92eba365cf91fb1eb089367d038e840dde81a2a70652c8bd1053e84ba4e3",
-    "trackedFiles": 1185,
+    "treeDigest": "7dfdee8d48049c5f3a79afaa7adf9e844a0758e575f2dd7629ba8156b42db73f",
+    "trackedFiles": 1188,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T15:52:09.343Z"
+    "recordedAt": "2026-11-03T16:12:29.743Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1050,5 +1050,24 @@
     "security": "Only native scoped Bearer via trusted HTTPS, strict Host/cookie/Origin/query/content checks and generic errors, Unix-only internal seam",
     "safetyBlock": "Internal issue handler clock injection edit blocked; no retry or bypass",
     "blocking": "actual feature-gated route binding, body-limit before Express parser, rate limit, private Operator issue, signed device relay, eligible Wall HTTPS/loopback, real Windows E2E"
+  },
+  "t04b7bPluginOperatorNativeTicket": {
+    "source": [
+      "plugin-server/desktop-wall-sso-native-router-v4.mjs",
+      "plugin-server/server.mjs",
+      "operator-host/desktop-wall-sso-operator-gate-v4.mjs",
+      "operator-host/executor-routes-device-channel.mjs",
+      "operator-host/executor.mjs"
+    ],
+    "requiredAdditionalFlag": "LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4",
+    "proxyPeerFlag": "LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4",
+    "defaultEnabled": false,
+    "deployed": false,
+    "physicalWindowsE2E": false,
+    "tests": "12 router +5 Node HTTP-real Unix socket transport +2 Operator issuer gates; selected T04 122/122 PASS, Wall HTTP loopback revoke PASS",
+    "testLimit": "Proxy, HTTPS and Express parser simulated in Node. No real NGINX/physical HTTPS or real Redis multi-process E2E",
+    "rate": "max5 per hashed token per 60s; max100 global per 60s; max512 token hashes per Plugin process; production scale review required",
+    "ci": "PENDING",
+    "blocking": "Production-grade proxy/TLS acceptance, real cross-process Redis and Enrollment checks, native Tauri secure transfer and signed Agent Wall bootstrap"
   }
 }

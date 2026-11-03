@@ -34,7 +34,7 @@ test('T04b6 default environment does not enable any T04 redemption callback',()=
   assert.equal(desktopWallSsoOperatorEnabledV4({}),false);
   const result=createDesktopWallSsoOperatorGateV4();
   assert.deepEqual(result,{
-    enabled:false,signedRedeem:undefined,authority:null
+    enabled:false,signedRedeem:undefined,internalIssue:undefined,authority:null
   });
 });
 
@@ -161,4 +161,32 @@ test('T04b6 Operator startup is explicitly gated and does not mount native issue
     new URL('../plugin-server/server.mjs',import.meta.url),'utf8'
   );
   assert.ok(!plugin.includes('desktop-wall-sso-issue'));
+});
+
+test('T04b7b a sixth exact issuer flag is required in addition to redemption',()=>{
+  const env=allFlags(),deps=fakeDependencies();
+  let gate=createDesktopWallSsoOperatorGateV4({env,...deps});
+  assert.equal(gate.enabled,true);
+  assert.equal(typeof gate.signedRedeem,'function');
+  assert.equal(gate.internalIssue,undefined);
+  for(const bad of ['true','yes','01','1 ',true,1]){
+    const badEnv={...env,LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4:bad};
+    gate=createDesktopWallSsoOperatorGateV4({env:badEnv,...deps});
+    assert.equal(gate.internalIssue,undefined);
+  }
+  gate=createDesktopWallSsoOperatorGateV4({
+    env:{...env,LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4:'1'},...deps
+  });
+  assert.equal(gate.enabled,true);
+  assert.equal(typeof gate.signedRedeem,'function');
+  assert.equal(typeof gate.internalIssue,'function');
+  assert.equal(deps.activity(),0);
+});
+test('T04b7b enabling only issuer flag cannot activate Operator or read Redis',()=>{
+  const deps=fakeDependencies(),env={LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4:'1'};
+  const gate=createDesktopWallSsoOperatorGateV4({env,...deps});
+  assert.equal(gate.enabled,false);
+  assert.equal(gate.internalIssue,undefined);
+  assert.equal(gate.signedRedeem,undefined);
+  assert.equal(deps.activity(),0);
 });

@@ -1667,6 +1667,7 @@ const desktopWallSsoOperatorGate=createDesktopWallSsoOperatorGateV4({
 
 const routeDeps=()=>({
   desktopWallSsoSignedRedeem:desktopWallSsoOperatorGate.signedRedeem,
+  desktopWallSsoInternalIssue:desktopWallSsoOperatorGate.internalIssue,
   ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,
   DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,DevicePairingRegistryError,EnrollmentError,
   FleetAuthorityError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,

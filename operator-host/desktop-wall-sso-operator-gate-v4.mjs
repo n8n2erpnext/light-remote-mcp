@@ -20,6 +20,8 @@ export const DESKTOP_WALL_SSO_OPERATOR_REQUIRED_FLAGS=Object.freeze([
   'LR_GOLD_ABV2_DESKTOP_WALL_SSO_OPERATOR_V4'
 ]);
 
+export const DESKTOP_WALL_SSO_ISSUER_FLAG_V4='LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4';
+
 export function desktopWallSsoOperatorEnabledV4(env={}){
   if(!env||typeof env!=='object'||Array.isArray(env))return false;
   // Exact opt-in. Incomplete, empty, mixed, or truthy-but-not-1 flags are OFF.
@@ -33,7 +35,8 @@ export function createDesktopWallSsoOperatorGateV4({
 }={}){
   if(!desktopWallSsoOperatorEnabledV4(env))
     return Object.freeze({
-      enabled:false, signedRedeem:undefined, authority:null
+      enabled:false, signedRedeem:undefined, internalIssue:undefined,
+      authority:null
     });
   const service=createDesktopWallSsoTrustedOperatorV4({
     enabled:true,redis:storage?.redis,prefix:storage?.prefix,
@@ -45,6 +48,8 @@ export function createDesktopWallSsoOperatorGateV4({
   // Ticket issue and Wall session assertion are intentionally NOT routed.
   return Object.freeze({
     enabled:true,signedRedeem:service.redeem,
+    internalIssue:env[DESKTOP_WALL_SSO_ISSUER_FLAG_V4]==='1'
+      ?service.issue:undefined,
     authority:service
   });
 }

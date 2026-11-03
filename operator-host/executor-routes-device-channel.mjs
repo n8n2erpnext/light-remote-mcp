@@ -9,6 +9,7 @@ import { goldAbV2LabV1Disabled } from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import { closeOwnerSessionAndGrant } from './owner-session-close-abv2.mjs';
 import { scanOwnerStaleClaims } from '../lib/gold-stale-claim-detector.mjs';
 import { handleDesktopWallSsoSignedRedeemV4 } from './desktop-wall-sso-signed-route-v4.mjs';
+import { handleDesktopWallSsoInternalIssueV4 } from './desktop-wall-sso-internal-issue-v4.mjs';
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
@@ -26,6 +27,14 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         status:'error',reason:'boot_store_unavailable'});
     }
   };
+  // T04b7b: Plugin talks to Operator using its existing mode-0660 Unix
+  // socket. This private issuer needs SIX exact flags; it is not a browser,
+  // Agent A/B grant or a public certificate bypass.
+  if(req.method==='POST'&&url.pathname==='/v1/internal/desktop-wall-sso/issue'){
+    return handleDesktopWallSsoInternalIssueV4(req,res,{
+      readJson,sendJson,issueTrusted:deps.desktopWallSsoInternalIssue
+    });
+  }
   // T04b4: Operator signed channel SSO ticket redemption is DEFAULT OFF.
   // Do NOT invoke verifiedChannelContext here: the T04 enrolled Ed25519
   // signedRedeem verifier consumes its anti-replay nonce exactly once.
