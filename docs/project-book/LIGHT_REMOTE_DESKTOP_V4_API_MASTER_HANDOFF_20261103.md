@@ -45,7 +45,7 @@ E. OS App Lock applies only after verified account session; unlock cannot overri
 |---|---|---|
 | T00 | Write master handoff + checkpoint, verify canonical ARM SSH Git and baseline | DONE |
 | T01 | One-icon Light/Dark appearance switch, fix restored-window edge collision; targeted UI test | SOURCE DONE, CI PENDING |
-| T02 | Inventory exact Account Portal / Operator OAuth / Local Wall signed API contracts and auth security | OPEN |
+| T02 | Inventory exact Account Portal / Operator OAuth / Local Wall signed API contracts and auth security | SOURCE AUDIT COMPLETE |
 | T03 | Native Owner login PKCE + callback + secure OS vault + logout/refresh | BLOCKED ON T02 |
 | T04 | Signed one-way App -> Local Wall SSO, replay prevention and logout link | BLOCKED ON T03 |
 | T05 | Overview/Devices/Link/Relink with actual enrolled ShortID and signed status | OPEN |
@@ -79,3 +79,9 @@ Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4
 - Changed App.test.tsx: verifies one button, correct light/dark state and local preference, no Owner API or route bypass.
 - Exact commit, GitHub CI and native Windows screenshot: PENDING; do not mark accepted before proof.
 - Next: stage + push this source change through VPS-ARM SSH; inspect CI. No standalone cosmetic-only build request.
+
+### T02 ? SOURCE AUDIT COMPLETE; dedicated Desktop Login still OPEN
+- Contract: docs/project-book/LIGHT_REMOTE_DESKTOP_V4_OWNER_AUTH_CONTRACT_AUDIT_20261103.md.
+- Source evidence: Account Portal /account/api me/devices/usage/logout needs separate Portal Owner session cookie. /oauth/authorize and /oauth/token are strictly bound to MCP_RESOURCE and use Redis one-time code/refresh replay protection.
+- Local Wall /api/status requires its own Owner session. /api/abv2/approve additionally requires B code, request/attempt and independent Owner consent with CSRF. Native Tauri port reachability is NOT Owner proof.
+- Read-only source audit only; no new server route, no production/Wall mutation. Next: T03 purpose-specific Desktop login behind default-OFF controls, then T04 one-way Wall SSO. T01 native CI pending.

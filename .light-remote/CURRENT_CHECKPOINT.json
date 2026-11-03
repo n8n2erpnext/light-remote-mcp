@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T00_done_T01_single_icon_source_ci_pending",
+  "status": "desktop_v4_T00_done_T01_web_ci_pass_native_pending_T02_contract_audited",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -95,7 +95,8 @@
     "2026-11-03 6 Moryqa Login-first Figma frames corrected to editable Google Sans Flex; Gold Windows Figma visual checked; isolated V4 auth UI source staged, CI pending.",
     "2026-11-03 Desktop V4 Login-first UI isolated CI run 41569151264 Web/Windows/macOS/Linux 4/4 SUCCESS; Chromium 30/30; Figma Google Sans Flex editable; actual Owner login/SSO remains OPEN.",
     "2026-11-03 T00 master handoff drafted before API integration on canonical VPS-ARM Git SSH worktree; 13 atomic tasks, OS security and CI constraints.",
-    "2026-11-03 T00 complete: master handoff and task ledger committed/pushed on VPS-ARM SHA 8004a074; T01 single-icon source and accessibility test staged for CI."
+    "2026-11-03 T00 complete: master handoff and task ledger committed/pushed on VPS-ARM SHA 8004a074; T01 single-icon source and accessibility test staged for CI.",
+    "2026-11-03 T02 source audit complete: Portal Owner cookie, dedicated Local Wall Owner cookie, strict MCP_RESOURCE OAuth, separate A/B consent. Native Desktop SSO still unimplemented."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -144,7 +145,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Push T01 one-icon login theme source + negative test from VPS-ARM; run GitHub UI CI on exact SHA; then T02 precise API contract audit.",
+  "nextAction": "Await run 41571945654 native CI for T01; then start T03 purpose-specific Desktop Owner login, OS vault and secure callback. T04 signed App-to-Wall SSO later.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -160,7 +161,7 @@
     "treeDigest": "d0f4c3276075885afedc85d6e34077669166425151f532b8010ffc2653c11c64",
     "trackedFiles": 1169,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T03:23:30.385Z"
+    "recordedAt": "2026-11-03T03:30:15.163Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -665,8 +666,8 @@
     "masterHandoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md",
     "tasks": {
       "T00": "DONE 8004a074ac427c2bc33b8cbde263a6ecfc1e809c; staged guard PASS",
-      "T01": "source authored; CI and physical UI screenshot pending",
-      "T02": "open",
+      "T01": "source commit 9f89a63a6aeb0ad2f4483c9fd4fc30018f59fe1a; Web CI run 41571945654 passed; native pending",
+      "T02": "source audit COMPLETE; docs/project-book/LIGHT_REMOTE_DESKTOP_V4_OWNER_AUTH_CONTRACT_AUDIT_20261103.md",
       "T03": "blocked-on-T02",
       "T04": "blocked-on-T03",
       "T05": "open",
@@ -683,6 +684,9 @@
     "appToWallSSO": false,
     "productionChanged": false,
     "buildOnARM": false,
-    "t00Commit": "8004a074ac427c2bc33b8cbde263a6ecfc1e809c"
+    "t00Commit": "8004a074ac427c2bc33b8cbde263a6ecfc1e809c",
+    "t01SourceCommit": "9f89a63a6aeb0ad2f4483c9fd4fc30018f59fe1a",
+    "t01CiRun": "41571945654 web PASS, native pending",
+    "t02Contract": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_OWNER_AUTH_CONTRACT_AUDIT_20261103.md"
   }
 }

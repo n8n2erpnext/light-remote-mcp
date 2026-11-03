@@ -482,3 +482,9 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - client/desktop-v4/src/auth-entry.css: restored-window top clearance and 44x44 icon with responsive placement; no old screen visual changes.
 - client/desktop-v4/src/App.test.tsx: no three-button mode group; toggles theme only, no privileged calls.
 - Master task status and exact test evidence: docs/project-book/LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md, T01.
+
+## Desktop V4 T02 Owner API and MCP OAuth source audit (2026-11-03)
+- Account source: plugin-server/account-portal.mjs; Owner cookie + me/devices/usage/logout/notifications, server-scoped account routes.
+- OAuth source: plugin-server/oauth.mjs; PKCE grant and token resource is MCP_RESOURCE only; NO Desktop Owner token bridge.
+- Wall source: device-agent/local-wall.mjs; own Owner cookie required for /api/status and CSRF + separate Owner B/consent for /api/abv2/approve.
+- Contract / negative tests and missing Desktop/Wall SSO: docs/project-book/LIGHT_REMOTE_DESKTOP_V4_OWNER_AUTH_CONTRACT_AUDIT_20261103.md.

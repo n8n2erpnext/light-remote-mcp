@@ -603,3 +603,6 @@ Owner reviewed Login-first Windows pilot and requested the titlebar-colliding 3-
 
 ## 2026-11-03 - T00 completed and T01 login theme switch source
 T00 master handoff pushed to GitHub SSH from VPS-ARM at 8004a074. T01 login-first theme picker changed from Light/Dark/Auto trio to single 44x44 Light/Dark mode icon to avoid Windows restored-window edge collisions; accessible next-mode label, existing System mode remains selectable in Settings. Unit test added. Not yet claimed CI or native Windows acceptance. Gold UAT/production unchanged.
+
+## 2026-11-03 - Desktop V4 T02 exact Owner/OAuth/Wall source audit
+Read-only source audit of Account Portal and Operator account routes, strict MCP_RESOURCE OAuth PKCE, Local Wall Owner /api/status 401 and independent /api/abv2/approve B/consent CSRF. No real Desktop Owner auth/SSO exists yet. Documented separate purpose-specific Desktop exchange requirement. T01 Web CI success, native jobs pending. Production unchanged.
