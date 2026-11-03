@@ -1008,3 +1008,6 @@ Operator startup now binds T04b5 shared Owner Redis signed ticket redemption ONL
 
 ## 2026-11-03 — T04b6 Gold Source Gate 4/4 accepted
 Source `fa1f75bf` five-flag default-OFF Operator SSO startup integration Gold Source Gate `41665190911` 4/4 PASS, Docs `41665190879` PASS, 89/89 T04 Node + HTTP loopback PASS. Still NOT deployed and no native Ticket/Agent/Wall SSO integration.
+
+## 2026-11-03 — T04b7a native HTTPS one-use ticket issue source-only
+Created two unmounted security handlers: Plugin native HTTPS ticket request with exactly one `device_id` and Owner access Authorization Bearer (never browser cookies or Agent/B fields), plus Operator Unix-socket-only trusted issue handler. Explicit HTTPS peer pinning blocks spoofed forwarded TLS; default disabled; sanitized 45s ticket response only. One edit to Operator handler clock injection was safety-blocked and not retried; no bypass. Removed an unused Operator dispatcher import to preserve runtime unchanged. Fourteen new regression cases, selected T04 Node 103/103 PASS and Wall loopback HTTP PASS. CI pending. NO native Windows App→Wall SSO, service deployment, public issuer endpoint or A/B grant was created.

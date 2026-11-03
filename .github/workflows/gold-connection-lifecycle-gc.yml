@@ -16,6 +16,7 @@ on:
       - 'plugin-server/desktop-auth-v4-*.mjs'
       - 'plugin-server/desktop-owner-token-v4*.mjs'
       - 'plugin-server/desktop-wall-sso-v4*.mjs'
+      - 'plugin-server/desktop-wall-sso-native-issue-v4*.mjs'
       - 'lib/gold-registry-persistence.mjs'
       - 'lib/gold-native-account-aux.mjs'
       - 'platform-v2/sql/045_gold_single_owner_authority.sql'
@@ -58,6 +59,7 @@ on:
       - 'operator-host/desktop-wall-sso-signed-route-v4*.mjs'
       - 'operator-host/desktop-wall-sso-trusted-authority-v4*.mjs'
       - 'operator-host/desktop-wall-sso-operator-gate-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-internal-issue-v4*.mjs'
       - 'operator-host/executor.mjs'
       - 'operator-host/executor-routes-device-channel.mjs'
       - 'operator-host/device-registry.mjs'
@@ -257,6 +259,7 @@ on:
       - 'operator-host/desktop-wall-sso-signed-route-v4*.mjs'
       - 'operator-host/desktop-wall-sso-trusted-authority-v4*.mjs'
       - 'operator-host/desktop-wall-sso-operator-gate-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-internal-issue-v4*.mjs'
       - 'operator-host/executor.mjs'
       - 'operator-host/executor-routes-device-channel.mjs'
       - 'operator-host/device-registry.mjs'
@@ -319,6 +322,10 @@ jobs:
           node --check plugin-server/desktop-owner-token-v4.mjs
           node --check plugin-server/desktop-wall-sso-v4.mjs
           node --check plugin-server/desktop-wall-sso-v4.test.mjs
+          node --check plugin-server/desktop-wall-sso-native-issue-v4.mjs
+          node --check plugin-server/desktop-wall-sso-native-issue-v4.test.mjs
+          node --check operator-host/desktop-wall-sso-internal-issue-v4.mjs
+          node --test plugin-server/desktop-wall-sso-native-issue-v4.test.mjs
           node --check operator-host/desktop-wall-sso-device-proof-v4.mjs
           node --check operator-host/desktop-wall-sso-device-proof-v4.test.mjs
           node --check operator-host/desktop-wall-sso-signed-route-v4.mjs

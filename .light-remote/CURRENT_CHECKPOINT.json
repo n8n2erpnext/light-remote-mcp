@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T04b6_exact_Operator_gate_default_OFF_89of89_Gold_CI4of4_PASS_source_only",
+  "status": "goldabv2_T04b7a_native_HTTPS_issued_ticket_source_ONLY_103of103_LOCAL_PASS_Gold_CI_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b6 SOURCE accepted: commit fa1f75bfbdf35cc8cec10443d891b7301f7a4274, GitHub Gold Source Gate 41665190911 4/4 PASS, Docs 41665190879 PASS, 89/89 selected T04 Node and local Wall HTTP loopback PASS. Operator executor.mjs instantiates a startup gate requiring all FIVE exact string-1 flags (Gold independent, Owner Auth, Token, Wall SSO, Operator SSO). Default OFF => no callback and redeem HTTP 404 before body parse. Full opt-in with missing Redis/Account/Enrollment fails startup. Actual running Lab, UAT and prod NOT updated; do not turn flags on until entire HTTPS issuer/native Ed25519/Wall TLS path is ready. NEXT T04b7: secure native-only HTTPS ticket issue endpoint, independent scoped device identity, no bearer/refresh into local Wall, anti-CSRF, backpressure and tests. T03 Owner Login/Logout/Welcome physical Windows PASS, sustained >10min refresh and remote family revocation E2E OPEN. Gold UAT/prod, ChatGPT MCP, Agent A/B unchanged.",
+  "nextAction": "T04b7a 2026-11-03 SOURCE-ONLY. Added unmounted plugin-server/desktop-wall-sso-native-issue-v4.mjs native HTTPS Owner ticket request handler default OFF: accept ONLY Authorization Bearer scoped 43char Desktop Owner access + JSON {device_id}; pin public HTTPS origin, direct TLS or exact trusted proxy peer + trusted forwarded proto; reject spoof XFP, browser Origin/cookie/Fetch metadata, URL queries, Agent/B/grant fields, oversized/chunked request; response is ONLY opaque 45s ticket+expiry+deviceId with no bearer/family/refresh. Added unmounted operator-host/desktop-wall-sso-internal-issue-v4.mjs: default 404 before body read; reject TCP/browser; sanitized issue response for Unix-socket-only future wiring. 14 new tests, total selected T04 Node 103/103 PASS plus actual local Wall loopback HTTP revoke PASS. Gold Source Gate CI pending. Attempt to edit internal issue handler clock injection was blocked by safety; not retried, no workaround; remain unmounted. Existing Operator dispatcher was restored unchanged, plugin-server/server.mjs unchanged, no route registration, no rate limiting/pre-parser body limit yet, no live SSO. NEXT T04b7b after permitted work: controlled Plugin/Operator route registration, exact proxy peers, pre-parser limit, rate limit, actual Redis+Ed25519 and native Rust ticket transport with HTTPS/loopback Wall bootstrap; need source/CI and physical E2E. T03 Owner Windows Login/Logout/Welcome PASS but >10min proactive refresh and server-side family revocation E2E OPEN. Lab Owner Auth flags OFF, production/UAT/Agent A/B unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "42555032e9b4ba3894b844fceb8d84684d010c1d142833efd2f4d79042eab349",
-    "trackedFiles": 1182,
+    "treeDigest": "babf92eba365cf91fb1eb089367d038e840dde81a2a70652c8bd1053e84ba4e3",
+    "trackedFiles": 1185,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T15:33:49.204Z"
+    "recordedAt": "2026-11-03T15:52:09.343Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1035,5 +1035,20 @@
     "deployed": false,
     "nativeIntegrated": false,
     "blocking": "native issue endpoint with correct security, signed device delivery, HTTPS/loopback Wall bootstrap, full Windows E2E"
+  },
+  "t04b7aNativeHttpsIssueSource": {
+    "plugin": "plugin-server/desktop-wall-sso-native-issue-v4.mjs",
+    "operator": "operator-host/desktop-wall-sso-internal-issue-v4.mjs",
+    "tests": "plugin-server/desktop-wall-sso-native-issue-v4.test.mjs",
+    "sourceTests": "14 new + selected T04 Node 103/103 PASS, local Wall loopback HTTP regression PASS",
+    "githubCI": "PENDING",
+    "defaultEnabled": false,
+    "pluginRegistered": false,
+    "operatorRouteMounted": false,
+    "deployed": false,
+    "nativeTauriImplemented": false,
+    "security": "Only native scoped Bearer via trusted HTTPS, strict Host/cookie/Origin/query/content checks and generic errors, Unix-only internal seam",
+    "safetyBlock": "Internal issue handler clock injection edit blocked; no retry or bypass",
+    "blocking": "actual feature-gated route binding, body-limit before Express parser, rate limit, private Operator issue, signed device relay, eligible Wall HTTPS/loopback, real Windows E2E"
   }
 }
