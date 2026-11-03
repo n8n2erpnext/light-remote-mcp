@@ -540,3 +540,10 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - Source 9de0b41d, workflow 41582835723 4/4 SUCCESS with 51/51 Web tests and 7/7 Rust tests on EACH of Windows, macOS and Linux. Rust candidate opt-in feature, UI pilot unchanged.
 - Docs library integrity 41582835735 SUCCESS. Status: source/CI PASS, real browser+OS-vault+backend E2E OPEN. GoldABV2 flags OFF and no deployment.
 - Task trace: LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md T03c2b.
+
+## Desktop V4 T03c2c session transfer audit
+- Native source client/desktop-v4/src-tauri/src/owner_login.rs: fix proactive access refresh, since refresh_from_vault currently called only at restore; respect Keyring generation/expiry/logout and server revalidation.
+- Native client/desktop-v4/src-tauri/src/owner_vault.rs: keep secrets in OS Keyring; no React IPC or plaintext fallback.
+- Plugin source plugin-server/desktop-auth-v4-server.mjs, desktop-owner-token-v4.mjs, server.mjs: Desktop auth default OFF; deployed Lab plugin older source-f228c2bb, endpoint HTTP404 before rollout.
+- Workflow .github/workflows/desktop-v4-native-ci.yml: current UI-only artifact preserved; feature-enabled isolated candidate NOT yet produced (prior write safety-blocked).
+- Current Master Handoff transfer checkpoint is source of truth for next session, including E2E acceptance/rollback and T04 boundaries.

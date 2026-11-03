@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T03c2b_source_CI4of4_PASS_live_login_E2E_OPEN_default_OFF",
+  "status": "desktop_v4_T03c2b_CI_PASS_T03c2c_OPEN_runtime_routes404_active_token_refresh_bug_session_transfer",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -108,7 +108,8 @@
     "2026-11-03 T03c2a native OS keyring CI 41579644386 4/4 PASS. T03c2b Rust localhost PKCE/HTTPS, secured vault session and React owner login candidate source, test CI pending, runtime OFF.",
     "2026-11-03 T03c2b initial CI 41582176494 identified three UI static/assertion mismatches; source corrections staged for rerun, native unverified.",
     "2026-11-03 T03c2b Web CI run41582409955 PASS. Windows/macOS/Linux native build script E0597 failure diagnosed from CI logs and static command lifetime fix staged; runtime OFF.",
-    "2026-11-03 T03c2b source SHA 9de0b41d completed GitHub CI run41582835723 4/4 PASS Web+Windows+macOS+Linux; 51 Web tests and 7 Rust tests/OS. Real Owner login E2E and Lab rollout remain open, flags OFF."
+    "2026-11-03 T03c2b source SHA 9de0b41d completed GitHub CI run41582835723 4/4 PASS Web+Windows+macOS+Linux; 51 Web tests and 7 Rust tests/OS. Real Owner login E2E and Lab rollout remain open, flags OFF.",
+    "2026-11-03 Owner-requested transfer: authorized VPS-ARM source checked clean, appended full T03c2c blocker/next-task handoff, no candidate/runtime deployment."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -157,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T03c2c: compile separate isolated feature-enabled native Owner login test binary and verify authorized GoldABV2 Lab browser PKCE callback/OS vault/refresh/logout end-to-end after controlled feature flag deployment with rollback. Then T04 signed one-use App-to-Wall SSO. Do NOT use custom ChatGPT /mcp as desktop auth or HTTP Wall for refresh secrets.",
+  "nextAction": "T03c2c FIRST fix native Rust proactive access refresh/rotation across 10min and tests, all OS GitHub CI. NEXT separately build approved feature-enabled Owner candidate; Lab current source-f228c2bb auth endpoints 404, so deploy compatible source only after snapshot/rollback with both flags OFF, then enable controlled Lab E2E. Then T04 signed App->Wall SSO. Do not use MCP /mcp as app auth.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -695,7 +696,7 @@
       "T03c1": "DONE source e20d699e, GitHub CI 41579145997 4/4 PASS and docs CI 41579145894 PASS, runtime OFF.",
       "T03c2a": "DONE keyring source d30d534b; CI41579644386 4/4 PASS.",
       "T03c2b": "SOURCE + CI DONE 9de0b41d; GitHub 41582835723 4/4 PASS Web 51/51 + each native Rust 7/7; NO live E2E and NO runtime feature flags.",
-      "T03c2c": "OPEN: feature-enabled candidate binary + controlled GoldABV2 Lab E2E, keyring persistence/Owner verify/refresh/logout/revocation."
+      "T03c2c": "NOT DONE. Refresh bug owner_login.rs (only restore, not active >10m); no candidate artifact; older Lab source auth routes HTTP404; no live Owner E2E. See Master TRANSFER CHECKPOINT."
     },
     "themeDecision": "Remove all appearance toggle controls from Login (owner supersedes 1-icon T01); Settings retains Light/Dark/System.",
     "realOwnerAuth": false,
@@ -742,6 +743,13 @@
     "t03c2bFeature": "Cargo desktop-owner-login (default OFF), VITE_LR_V4_OWNER_LOGIN=1 (OFF in UI-only build)",
     "t03c2bCi": "41582835723 SUCCESS 4/4; Web 51/51; Rust Windows macOS Linux 7/7 each",
     "t03c2bSourceSha": "9de0b41ddaa1db1bc914fc3bc36f9b42a3d3a4be",
-    "t03c2bDocsCi": "41582835735 PASS"
+    "t03c2bDocsCi": "41582835735 PASS",
+    "transferHandoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md :: TRANSFER CHECKPOINT — 2026-11-03 — T03c2c LIVE E2E STILL OPEN",
+    "transferStartingSha": "a421d0df21d65991d3d78be3d6e9f4464864e9be",
+    "t03c2cLabReality": "LXD light-remote-abv2-lab-20261101 plugin source /opt/light-remote-abv2-lab/source-f228c2bb, Desktop authorize/token routes HTTP404; Account Portal HTTPS login 200; services active.",
+    "t03c2cRefreshBug": "owner_login.rs refresh_from_vault called at restore only; ongoing verified access expires <=10m, no proactive auto refresh.",
+    "t03c2cCandidateArtifact": "NOT CREATED; prior CI workflow edit safety-blocked. No feature-enabled executable built/installed.",
+    "t03c2cCi": "NOT RUN. T03c2b prior CI 41582835723 4/4 PASS is not live E2E.",
+    "t03c2cLabDeployment": false
   }
 }

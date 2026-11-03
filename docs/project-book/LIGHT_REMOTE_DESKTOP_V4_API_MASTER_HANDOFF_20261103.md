@@ -198,3 +198,45 @@ Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4
 - Fixed compile issue: Tauri manifest command lists are static at build-time. Removed UI old assertions, preserved exact Design Preview typography and no-SyntheticEvent native callback. Native Sign out prefers rotating refresh token and rejects an overlapping new Owner login; cancel generation fences late browser callbacks.
 - Backend T03b/T03c1 default-OFF flags LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 and LR_GOLD_ABV2_DESKTOP_TOKEN_V4 have NOT been enabled or deployed. GoldABV2 Lab at http://100.94.184.141:15591 and ChatGPT custom /mcp unchanged. Installed Windows V4 pilot unchanged.
 - NEXT: T03c2c authorized Lab end-to-end plan/build: compile separate native Owner test artifact with both Cargo feature and non-preview frontend flag, controlled GoldABV2 Lab-only Account Portal auth rollout with rollback; verify Owner accountId, browser callback state/issuer/PKCE, OS keyring persistence, restart restore/refresh rotation, server logout revocation and wrong account cases. Then T04 App-to-Wall one-time signed SSO and downstream read APIs. No claim of live login until these pass.
+
+## TRANSFER CHECKPOINT — 2026-11-03 — T03c2c LIVE E2E STILL OPEN
+
+This is the newest Owner-requested handoff to a new ChatGPT session. Follow this checkpoint rather than older chronological sections saying CI is still pending.
+
+### Canonical source and device
+- GitHub repository: n8n2erpnext/light-remote-mcp, branch feat/desktop-v4-api-integration-20261103.
+- Main Git SSH worktree on VPS-ARM: /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4-shared-ui-20261101. Verified clean at base SHA a421d0df21d65991d3d78be3d6e9f4464864e9be; this handoff commit comes after it. Use git rev-parse HEAD for current state.
+- Official @Light Remote helper successfully recovered an A/B-authorized VPS-ARM Main session this turn. No A/B code, B code, token, or transient session identifier goes into source/handoff. Never silently switch devices.
+- VPS-ARM owns Git/SSH, not Windows. Heavy npm/cargo builds belong in GitHub CI, not on the ARM SSD.
+
+### Endpoints and deployed reality
+- GoldABV2 Lab device Wall UI/API: http://100.94.184.141:15591 (authorized NetBird overlay).
+- GoldABV2 Account Portal HTTPS browser login: https://goldabv2.light-remote.thaiduy.digital/account/login; direct audit returned HTTP 200 and valid TLS.
+- Custom ChatGPT MCP: https://goldabv2.light-remote.thaiduy.digital/mcp. This is NOT Desktop Login / Token / SSO.
+- Isolated LXD Lab: light-remote-abv2-lab-20261101. Read-only audit found Operator, Plugin and Wall active. Plugin runtime source was /opt/light-remote-abv2-lab/source-f228c2bb, older than new Desktop Owner code. Anonymous GET /account/desktop/v4/authorize and /account/desktop/v4/token returned 404. Therefore new routes are NOT deployed; changing the flags alone cannot make login work. Verify actual runtime/source before any change.
+- Do not touch Gold UAT, production, installed Windows client, or ChatGPT custom MCP while preparing E2E; stage in isolated Lab only with backup/rollback.
+
+### What is proven by source + CI
+- Owner-approved V4 UI design uses Google Sans Flex in Figma and Google Sans in app. Login must be first gate; no Light/Dark switch on Login (removed after overlap screenshot); Appearance stays in Settings. Open Wall and Activity Log UI exist, but real data/SSO wiring is separate.
+- T01b Login theme removal: source b22f75fe, GitHub CI 41574241626 4/4 PASS.
+- T02b Lab Wall target profile: source 294aefba, CI 41575414419 4/4 PASS; ordinary installed client default local Wall still 127.0.0.1:5491.
+- T03a/T03b separate Desktop-only PKCE and Owner Account Portal consent: T03b source 376cb8ff, CI 41576488187 4/4 PASS; OFF at runtime.
+- T03c1 revocable server Owner Desktop session, 10m access, rotating refresh <=7d and bound to exact Portal session: source e20d699e, CI 41579145997 4/4 PASS, 25/25 Node security tests. Server feature gates LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 and LR_GOLD_ABV2_DESKTOP_TOKEN_V4 both require literal 1; currently OFF.
+- T03c2a private Rust OS Keyring vault (Windows Credential Manager, macOS Keychain, Linux Secret Service): source d30d534b, CI 41579644386 4/4 PASS; no plaintext fallback or token in React.
+- T03c2b native browser, random localhost callback, state/issuer/PKCE, HTTPS exchange/restore/logout, Owner UI gate: source 9de0b41d, CI 41582835723 4/4 PASS. Web 51/51 tests PASS, native Rust 7/7 tests PASS on EACH Windows/macOS/Linux; docs CI 41582835735 PASS.
+- These tests prove source and compile only, NOT actual login, installed feature-enabled candidate binary, OS Keyring real-world persistence, or Lab API availability.
+
+### T03c2c is NOT DONE — immediate blockers
+1) Native refresh defect: client/desktop-v4/src-tauri/src/owner_login.rs defines refresh_from_vault() but calls it only from desktop_owner_restore(). While the app remains open, access_deadline reaches <=10 minutes and Owner workspace locks instead of proactively renewing. First fix automatic native token rotation before expiry, including 15s Owner server verification, generation-safe updates, mutex safety, revocation and offline/sleep-resume; keep refresh/access tokens entirely in Rust/Keyring. Test idle >10min, concurrent polls, logout during in-flight refresh, server revocation, reconnect and locked vault. The existing status revalidation is not token renewal.
+2) Feature-enabled Owner native candidate artifact: NOT built. The previous attempt to write the candidate GitHub workflow was blocked by an OpenAI safety check; no bypass attempted and worktree remained clean. Need a permitted isolated CI path for a SEPARATELY LABELED unsigned/non-production Windows/macOS/Linux candidate built with BOTH Cargo feature desktop-owner-login and frontend VITE_LR_V4_OWNER_LOGIN=1, VITE_LR_V4_UI_TEST=0. Keep UI-only release artifact unchanged. Record source SHA, build job, SHA256 and explicitly mark not installed/not signed.
+3) GoldABV2 Lab server source/deployment: present runtime routes are 404. Inspect active plugin+Operator service source, valid public origin, Redis atomics, local Operator session-check and rollback state. Prepare snapshot/rollback, stage compatible auth source only in isolated Lab with both flags OFF initially, run regressions, then authorize only controlled Lab E2E. Do not change unrelated production/UAT/MCP.
+4) Real Windows end-to-end acceptance: Owner browser signin and explicit consent -> bounded 127.0.0.1 callback -> issuer/state/PKCE -> HTTPS native token -> OS vault -> verified Owner workspace; restart/restore, 10m auto-refresh, logout/revocation, wrong account, cancel, replay, locked vault, network failure/recovery. Do not expose token to Webview, command logs or handoff.
+5) T04 AFTER T03c2c: signed one-time App -> Wall Owner SSO with expiry/replay/identity/device scope, independent from Agent A/B consent. Do not post Desktop bearer/refresh to the HTTP Lab Wall, and do not reuse Account Portal cookie. Then connect the actual V4 data/screens and Settings/Log/Open Wall workflows.
+
+### New session exact first actions
+- Read THIS handoff and .light-remote/CURRENT_CHECKPOINT.json; run git status -sb and inspect HEAD on VPS-ARM with authorized official Light Remote.
+- Review client/desktop-v4/src-tauri/src/owner_login.rs, owner_vault.rs, client/desktop-v4/src/App.tsx, plugin-server/desktop-auth-v4-server.mjs, desktop-owner-token-v4.mjs, plugin-server/server.mjs and current Lab service source.
+- First commit should fix native proactive refresh and tests while feature flags stay OFF. Use GitHub CI on all platforms, not ARM cargo/npm build; fix failures before calling PASS.
+- Next prepare separate Owner candidate via authorized CI, isolate Lab server deployment with backup/rollback, then manual approved Windows login E2E. Only after that begin T04.
+- After EACH task update this Master, docs/project-book/LIGHT_REMOTE_WORKLOG.md, docs/project-book/LIGHT_REMOTE_CODE_MAP.md, .light-remote/CURRENT_CHECKPOINT.json. Run Project Truth --staged, git diff --cached --check, commit/push from VPS-ARM.
+- Never claim T03c2c or T04 complete based only on existing 4/4 T03c2b CI, a Wall HTTP 401, or a running Plugin service. No current Lab auth enabled or installed Windows candidate.
