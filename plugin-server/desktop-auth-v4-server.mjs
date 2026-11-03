@@ -65,12 +65,19 @@ function intentFromQuery(q) {
   };
 }
 function strictBrowserPost(req, origin) {
-  const site = String(req.headers?.['sec-fetch-site'] || '');
-  const requestOrigin = String(req.headers?.origin || '');
+  const site = String(req.headers?.['sec-fetch-site'] || '').toLowerCase();
+  const requestOrigin = String(req.headers?.origin || '').trim();
   const type = String(req.headers?.['content-type'] || '').split(';')[0].trim();
-  return type === 'application/x-www-form-urlencoded' &&
-    (requestOrigin === origin || (!requestOrigin && site === 'same-origin')) &&
-    site !== 'cross-site';
+  if (type !== 'application/x-www-form-urlencoded' ||
+      site === 'cross-site' || site === 'same-site') return false;
+  // A provided Origin must match exactly, regardless of Sec-Fetch-Site.
+  if (requestOrigin) return requestOrigin === origin;
+  if (site === 'same-origin') return true;
+  // Chrome/browser proxy may omit BOTH provenance headers for a form POST.
+  // Fail closed unless the form carries an unguessable one-use CSRF; the
+  // subsequent verifyOwner() checks the Secure SameSite=Strict Portal cookie
+  // against the CURRENT single Gold Owner before atomic CSRF consumption.
+  return site === '' && TOKEN_PATTERN.test(String(req.body?.csrf || ''));
 }
 function setPrivate(res) {
   res.set('Cache-Control','no-store');

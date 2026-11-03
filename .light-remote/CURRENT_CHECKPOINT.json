@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_desktop_owner_T03c2c5_Windows_UI_RENDER_PASS_Lab_auth_TEMP_ON_autooff_1113UTC_callback_PENDING",
+  "status": "goldabv2_T03c2c6_Desktop_Consent_POST_403_RCA_Source_Fix_27of27_CI_PENDING_E2E_OPEN",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T03c2c5 Windows screenshot confirmed corrected native Tauri Login-first UI RENDER PASS, browser authorize HTTP404 because GoldABV2 Lab Desktop flags were OFF. Isolated Lab Plugin flags TEMP ENABLED 2026-11-03 10:33 UTC; anonymous authorize HTTP303, token missing creds401, HTTPS health200; systemd timer lr-desktop-owner-lab-autooff-20261103.timer auto-OFF at 11:13 UTC / 18:13 HCM. Owner should Cancel sign-in and start a NEW native PKCE flow in Windows system browser. Verify Account Portal Owner consent, localhost callback, Windows Credential Manager, >10min refresh, logout/revocation; NO E2E PASS yet. After auto-OFF recheck real runtime; don't assume flags stay ON. Gold UAT/prod/MCP/Long Memory untouched; no Windows device paired to MCP. T04 App-to-Wall SSO remains OPEN.",
+  "nextAction": "T03c2c6 NEW: Owner Windows screenshots confirm REAL browser consent GET 200, but form POST returned desktop_origin_required 403 before Owner CSRF/PKCE callback. Source strictBrowserPost changed to accept missing Origin+Sec-Fetch-Site only when 43-char one-use CSRF present; explicitly wrong Origin, cross-site and same-site requests remain denied; real Owner cookie and atomic CSRF still required. Node 27/27, Gold Owner Transfer PASS; commit/CI/source staging PENDING. First obtain Gold Source Gate 4/4 then stage exact changed Plugin files, verify gated Lab HTTP POST response. Original bounded Lab auto-OFF timer due 2026-11-03 11:13 UTC/18:13 HCM; always check and re-arm separately before further native tests. Old login CSRF may be expired; Owner should start a NEW sign-in only after hotfix reaches Lab. Native callback/Windows OS vault/10m refresh/logout/T04 SSO remain OPEN. Production/UAT unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "e06e06ea8b7e3b49c82f2001b10223e6d29441f78090a2e3323452f115edec74",
+    "treeDigest": "045c526b5a8f6c9b9483df77e4684c1c6381045d71ec9e3ab2d92ea1aba94974",
     "trackedFiles": 1169,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T09:22:30.789Z"
+    "recordedAt": "2026-11-03T11:12:29.337Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

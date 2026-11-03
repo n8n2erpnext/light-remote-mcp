@@ -697,3 +697,7 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 ## Desktop Owner T03c2c3 backend response correction (2026-11-03)
 - plugin-server/desktop-owner-token-v4.mjs error(res,e): normalize desktop_consent_missing, desktop_consent_invalid and desktop_code_invalid from the one-time PKCE issuer to desktop_owner_verification_required (HTTP401), not a misleading infrastructure HTTP503. Keep storage failure 503 and strict native-only Origin/cookie denial 403.
 - plugin-server/desktop-owner-token-v4.test.mjs: public handler negative test cases assert the three authorization-code errors share 401/generic body and mint no token or Redis family. Runtime Lab flag activation rollback stays separate from source/CI acceptance.
+
+## T03c2c6 Desktop Owner Consent POST headerless browser navigation (2026-11-03)
+- plugin-server/desktop-auth-v4-server.mjs strictBrowserPost: exact Origin HTTPS when present, reject explicit cross-site/same-site, allow missing Origin+Fetch-Site only with syntactically correct opaque csrf field; postConsent still checks Current Owner Account cookie and atomically consumes CSRF. No relaxed cross-origin allowance.
+- plugin-server/desktop-auth-v4-server.test.mjs: regression for missing Origin/Sec-Fetch-Site, invalid token, no Owner, bad Origin even if same-origin fetch-site, cross-/same-site denial, legitimate 303 callback and replay 410.
