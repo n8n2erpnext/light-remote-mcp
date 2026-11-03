@@ -49,8 +49,8 @@ E. OS App Lock applies only after verified account session; unlock cannot overri
 | T02b | GoldABV2 Lab Wall target / custom ChatGPT MCP separation | SOURCE + CI 4/4 PASS, installed E2E OPEN |
 | T03 | Native Owner login PKCE + callback + secure OS vault + logout/refresh | IN PROGRESS: T03a validator/test only; no live auth |
 | T03b | Account Portal Owner browser consent + one-use Redis authorization code; default OFF | SOURCE + CI 4/4 PASS, runtime OFF |
-| T03c1 | Revocable Owner access/refresh on server, bound to exact Portal session | SOURCE DONE; CI PENDING; runtime OFF |
-| T03c2a | Native OS credential vault with feature default OFF | SOURCE DONE, CI PENDING |
+| T03c1 | Revocable Owner access/refresh on server, bound to exact Portal session | SOURCE + CI 4/4 PASS; runtime OFF |
+| T03c2a | Native OS credential vault with feature default OFF | SOURCE SHA d30d534b; 3-OS CI PENDING |
 | T04 | Signed one-way App -> Local Wall SSO, replay prevention and logout link | BLOCKED ON T03 |
 | T05 | Overview/Devices/Link/Relink with actual enrolled ShortID and signed status | OPEN |
 | T06 | Sessions / AI Access (per-Agent leases/nicknames, B and consent, Owner close) | OPEN |
@@ -161,3 +161,8 @@ Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4
 - Credentials fail closed on unavailable or locked OS keystore. Linux libdbus-1-dev installed on CI runner only, not VPS-ARM. GitHub CI runs cargo test --features desktop-owner-login on all three OS runners without modifying existing UI-only native binary defaults.
 - Tests in Rust validate opaque token syntax, namespace. Web static test checks private-only keyring boundary. Cross-OS GitHub CI PENDING.
 - Next: T03c2b native loopback PKCE callback, OS-only HTTPS exchange, restore/revoke and verified native Owner UI gate. Real login and App-to-Wall SSO NOT implemented. GoldABV2 Lab unchanged.
+
+### T03c1 / T03c2a ? exact GitHub CI receipts and next gate
+- T03c1 source SHA e20d699e65aeb4d2a80e1b1b46f3aa660c042a27, GitHub V4 CI run 41579145997 SUCCESS 4/4 Web/Chromium, Windows, macOS, Linux. Documentation integrity run 41579145894 SUCCESS. 25/25 offline security tests PASS. These tests do NOT imply live Owner login or server feature flags enabled.
+- T03c2a vault source SHA d30d534b0d79bdfaefba2e23bb0b814bb4445568, GitHub V4 CI run 41579644386 in progress at this receipt. Rust feature desktop-owner-login default OFF. OS vault candidate compilability/credential interaction NOT YET VERIFIED; installed Windows runtime unchanged.
+- Next: read GitHub run 41579644386, fix any Windows/macOS/Linux keyring CI build errors, update this same handoff, then implement T03c2b localhost callback and native login. Separate T04 signed App->Wall SSO remains OPEN.
