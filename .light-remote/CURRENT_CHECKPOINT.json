@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_desktop_owner_T03c2c3_Lab_auth_negative_PASS_26of26_CI4of4_flags_OFF_Windows_E2E_OPEN",
+  "status": "goldabv2_desktop_owner_T03c2c5_Windows_UI_RENDER_PASS_Lab_auth_TEMP_ON_autooff_1113UTC_callback_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Owner must FIRST test corrected standalone Desktop V4 Windows Owner LAB binary from GitHub run 41613182472 (prior 41605694255 BROKEN WebView2 ERR_CONNECTION_REFUSED due raw Cargo). Confirm Login-first UI loads without a Vite/localhost dev server. Only then pair Windows through its own Local Wall A/B; run Owner-consented Browser/PKCE/Windows Credential Manager/10min refresh/logout/revoke E2E with isolated GoldABV2 Lab temporary Auth flags and code-only rollback. Both flags remain OFF now; Gold UAT/prod/custom MCP/Long Memory unchanged. T04 App-to-Wall SSO pending.",
+  "nextAction": "T03c2c5 Windows screenshot confirmed corrected native Tauri Login-first UI RENDER PASS, browser authorize HTTP404 because GoldABV2 Lab Desktop flags were OFF. Isolated Lab Plugin flags TEMP ENABLED 2026-11-03 10:33 UTC; anonymous authorize HTTP303, token missing creds401, HTTPS health200; systemd timer lr-desktop-owner-lab-autooff-20261103.timer auto-OFF at 11:13 UTC / 18:13 HCM. Owner should Cancel sign-in and start a NEW native PKCE flow in Windows system browser. Verify Account Portal Owner consent, localhost callback, Windows Credential Manager, >10min refresh, logout/revocation; NO E2E PASS yet. After auto-OFF recheck real runtime; don't assume flags stay ON. Gold UAT/prod/MCP/Long Memory untouched; no Windows device paired to MCP. T04 App-to-Wall SSO remains OPEN.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -927,7 +927,9 @@
     "lxdRollbackSnapshot": "pre-desktop-owner-9d996956-20261103 (disaster backup only; do not rewind grants)",
     "sourceOnlyRollback": "/var/backups/light-remote-abv2-lab-desktop-owner-9d996956-20261103/{plugin,operator}.{original.conf,path}",
     "desktopOwnerFlags": "both explicitly OFF (0) in final Lab systemd override after two controlled smoke probes; no valid login or tokens issued",
-    "ownerCandidateCI": "Previous 41605694255 7/7 PASS built BAD standalone Owner binary (Windows WebView2 localhost refused). Corrected Desktop source 4d1f0c22, GitHub 41613182472 7/7 PASS standalone Tauri CLI Owner candidates; Windows executable SHA256 96A9C44B7EEAC3A36BCF3E72945939BDE98DC0CBBF7FFBC2460C93BF03B92AB2; physical UI acceptance not done",
+    "ownerCandidateCI": "Corrected Desktop source 4d1f0c22, GitHub 41613182472 7/7 PASS standalone Tauri CLI Owner candidates, Windows executable SHA256 96A9C44B7EEAC3A36BCF3E72945939BDE98DC0CBBF7FFBC2460C93BF03B92AB2. Owner Windows screenshot CONFIRMS native Login-first and Awaiting secure sign-in render; browser authorize initially 404 while backend flags OFF; callback and keyring NOT tested.",
+    "ownerConsentLabTemporaryWindow": "Isolated Lab ONLY: Plugin both Desktop auth flags switched to 1 at 2026-11-03 10:33:04 UTC; systemd-run auto-OFF timer lr-desktop-owner-lab-autooff-20261103.timer due 11:13:01 UTC (18:13:01 HCM), backup /var/backups/light-remote-abv2-lab-desktop-owner-9d996956-20261103/plugin.flags-off-owner-e2e-20261103.conf; anonymous authorize 303, missing token 401, health200. Status expires at timer; always re-check flags live before next step.",
+    "ownerConsentVerifiedE2E": false,
     "ownerCandidateCorrectedRun": "41613182472 7/7 SUCCESS; corrected Windows artifact id13220640812; no install or Owner login E2E",
     "t03c2c3AuthCodeHotfix": "c2bb754be3eff11cdb25b724ba517f36b5409b98: code maps to generic HTTP401, not 503. GitHub CI 41610511239 4/4 PASS; copied into LXD staged active Plugin with SHA parity, Node 26/26 PASS",
     "t03c2c3LabSmoke": "Controlled temp ON loopback suite PASS: consent anonymous 303; cross-origin consent and native issue/refresh/logout 403; invalid or missing native creds for issue/refresh/logout/session 401; cookie native 403; Account Login 200. Guarded rollback restored both flags OFF; final Plugin/Operator/Wall/Supervisor 4/4 active, public HTTPS200, authorize/session 404, active A/B grants0. Windows E2E not run.",
