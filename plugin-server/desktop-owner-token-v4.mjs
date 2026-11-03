@@ -138,7 +138,13 @@ export function createDesktopOwnerTokenService({
     return {ok:true,revoked:true};
   }
   function error(res,e){
-    const reason=String(e?.code||'');
+    // The authorization-code issuer and token exchange are separate modules.
+    // Expired, absent and malformed one-time codes all mean invalid
+    // credentials, not a service outage. Do not reveal which check failed.
+    const raw=String(e?.code||'');
+    const reason=['desktop_consent_missing','desktop_consent_invalid',
+      'desktop_code_invalid'].includes(raw)
+      ?'desktop_owner_verification_required':raw;
     const allowed=new Set([
       'desktop_token_invalid','desktop_session_revoked',
       'desktop_session_invalid','desktop_session_expired',

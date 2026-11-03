@@ -693,3 +693,7 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - operator-host/executor-routes-account.mjs: internal POST /v1/accounts/desktop-session-check, no public Owner token/secret.
 - .github/workflows/gold-connection-lifecycle-gc.yml: Gold branch allowlist and 25 Node Desktop security tests in existing source gate.
 - Full runbook: docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_OWNER_AUTH_LAB_20261103.md; NO runtime deployment yet.
+
+## Desktop Owner T03c2c3 backend response correction (2026-11-03)
+- plugin-server/desktop-owner-token-v4.mjs error(res,e): normalize desktop_consent_missing, desktop_consent_invalid and desktop_code_invalid from the one-time PKCE issuer to desktop_owner_verification_required (HTTP401), not a misleading infrastructure HTTP503. Keep storage failure 503 and strict native-only Origin/cookie denial 403.
+- plugin-server/desktop-owner-token-v4.test.mjs: public handler negative test cases assert the three authorization-code errors share 401/generic body and mint no token or Redis family. Runtime Lab flag activation rollback stays separate from source/CI acceptance.

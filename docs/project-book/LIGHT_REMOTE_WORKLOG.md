@@ -937,3 +937,6 @@ Gold source 9d996956 GitHub 41606865066 4/4 PASS; docs 41606865012 PASS. Live Pl
 
 ## 2026-11-03 — GoldABV2 Lab Desktop Owner source cutover flags OFF
 Snapshot pre-desktop-owner-9d996956-20261103 and restricted backup of exact two final systemd overrides created. Source 9d996956 imported into separate LXD Plugin/Operator paths with staged SHA parity and Node syntax PASS; guarded source switch with both Desktop flags OFF succeeded, rollback trap not triggered. 4/4 services active, HTTPS200, Account login200, custom MCP GET405, Desktop auth endpoints HTTP404, AB grants0, Activity JSONL mode0600, Plugin/Operator recent err logs0. Real Owner login/Keyring/App->Wall E2E NOT done, production unchanged.
+
+## 2026-11-03 — Desktop Owner Lab T03c2c3 negative HTTP smoke / authorization error classification
+Controlled flags-ON Lab probe rolled back to OFF after transient public HTTPS timeout; repeat on 127.0.0.1 confirmed unauthorized redirect 303 and cross-origin denial 403, then exposed invalid code incorrectly mapped to 503. Fixed native token error handler to normalize missing/invalid/expired authorization code to generic HTTP401; added three negative regression variants. Node Desktop Auth 26/26 PASS and Gold Single Owner Transfer PASS; CI pending. No actual Owner login, token issuance, App→Wall SSO, production or Windows install.

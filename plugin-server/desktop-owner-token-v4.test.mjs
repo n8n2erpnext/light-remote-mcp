@@ -156,6 +156,27 @@ test('native HTTPS routes reject Origin, cookies and cross-site browser submissi
     assert.equal(res.body.error,'desktop_native_client_required');
   }
 });
+test('invalid or already-used authorization code maps to 401, never false 503',async()=>{
+  for(const code of ['desktop_consent_missing','desktop_consent_invalid',
+    'desktop_code_invalid']){
+    const x=setup();
+    const service=createDesktopOwnerTokenService({
+      redis:x.redis,prefix:PREFIX,
+      consumeCode:async()=>{throw Object.assign(new Error(code),{code});},
+      verifyPortalSession:async()=>true
+    });
+    const res=response();
+    await service.routeExchange({
+      method:'POST',headers:{'content-type':'application/json'},
+      body:{code:'Q'.repeat(43),code_verifier:'V'.repeat(43),
+        redirect_uri:x.input.redirectUri,install_nonce:x.input.installNonce,
+        state:x.input.state}
+    },res);
+    assert.equal(res.code,401,code);
+    assert.equal(res.body.error,'desktop_owner_verification_required',code);
+    assert.equal(x.data.size,0,code);
+  }
+});
 test('Account Registry verifies exact active Owner browser session by id, logout and disable deny',()=>{
   const registry=new AccountRegistry({bootstrapAccountId:'owner_v4_42',stateFile:null});
   registry.accounts.set(ACCOUNT,{accountId:ACCOUNT,status:'active'});

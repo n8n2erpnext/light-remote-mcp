@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_desktop_owner_Lab_service_cutover_PASS_4of4_auth_FLAGS_OFF_E2E_PENDING",
+  "status": "goldabv2_desktop_owner_T03c2c3_invalid_code_401_hotfix_source_26of26_CI_PENDING_Lab_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Lab Plugin/Operator source cutover with flags OFF passed, rollback snapshot/overrides held. NEXT controlled Owner-authorized Windows Desktop V4 candidate PKCE browser+OS Keyring+refresh/logout E2E, enable both flags only on isolated Lab with Owner consent and rollback, then T04 signed App->Wall SSO. Never touch main Gold UAT/production/MCP or Legacy Long Memory.",
+  "nextAction": "T03c2c3 SOURCE: run Gold GitHub Source Gate for invalid/expired authorization-code 401 hotfix (offline 26/26 PASS); only after CI copy exactly changed Plugin module to isolated Lab and repeat guarded temporary feature-ON negative routes over loopback, force both flags OFF again. No paired Windows device available to this MCP client: real Owner-consented Windows Credential Manager/PKCE/10-min refresh E2E remains OPEN; then T04 signed App-to-Wall SSO. Gold UAT/production/MCP/Long Memory unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "c5467de32a7e7ae527947009ea8ee45a7a37275cdfbf2344314ddf1c7d83d8de",
+    "treeDigest": "e06e06ea8b7e3b49c82f2001b10223e6d29441f78090a2e3323452f115edec74",
     "trackedFiles": 1169,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T08:54:50.678Z"
+    "recordedAt": "2026-11-03T09:22:30.789Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -915,7 +915,7 @@
     "strictOwner": "Account Portal isOwner true, current ownerAccountId exact match, no pending Owner transfer",
     "flags": "LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 and LR_GOLD_ABV2_DESKTOP_TOKEN_V4 default OFF",
     "nodeSyntax": "PASS",
-    "desktopAuthSecurityTests": "25/25 PASS",
+    "desktopAuthSecurityTests": "26/26 PASS offline after invalid-code 401 fix; GitHub CI pending",
     "goldOwnerTransferSynthetic": "PASS with feature flags only in test process",
     "gitSourceSha": "9d996956cc45bc38b03a95eb2c7faae0a54af6fb",
     "goldSourceGateCi": "41606865066 4/4 SUCCESS; documentation CI 41606865012 SUCCESS",
@@ -926,8 +926,11 @@
     "labServiceCutover": "PASS: 4/4 active, HTTPS 200, Account Login 200, auth endpoints still 404, active AB grants 0, Activity Log 0600, recent service err counts 0",
     "lxdRollbackSnapshot": "pre-desktop-owner-9d996956-20261103 (disaster backup only; do not rewind grants)",
     "sourceOnlyRollback": "/var/backups/light-remote-abv2-lab-desktop-owner-9d996956-20261103/{plugin,operator}.{original.conf,path}",
-    "desktopOwnerFlags": "both explicitly OFF (0) in the final Lab systemd override",
+    "desktopOwnerFlags": "both explicitly OFF (0) in final Lab systemd override after two controlled smoke probes; no valid login or tokens issued",
     "ownerCandidateCI": "41605694255 7/7 PASS; three unsigned non-production LAB binaries, not installed",
+    "t03c2c3AuthCodeHotfix": "plugin-server/desktop-owner-token-v4.mjs: missing, invalid or expired one-time consent code maps to generic HTTP401, not 503; regression 26/26 PASS; new GitHub CI pending",
+    "t03c2c3LabSmoke": "Guarded temporary flag activation: no-cookie authorize 303, cross-origin POST 403; invalid code exposed 503 mapping before source fix. Both flags returned OFF; current services active and HTTPS200. Live hotfix staging pending.",
+    "pairedWindowsMcpDevice": false,
     "desktopOwnerLiveE2E": false,
     "appToWallSSO": false,
     "handoff": "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_OWNER_AUTH_LAB_20261103.md"
