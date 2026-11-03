@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T04b6_exact_five_flag_Operator_authority_wiring_default_OFF_89of89_local_PASS_CI_pending",
+  "status": "goldabv2_T04b6_exact_Operator_gate_default_OFF_89of89_Gold_CI4of4_PASS_source_only",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-03 T04b6 source-only: Operator executor.mjs now instantiates createDesktopWallSsoOperatorGateV4 after shared Gold Redis, AccountRegistry and EnrollmentRegistry. All 5 exact string 1 flags required: LIGHT_REMOTE_GOLD_INDEPENDENT, LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4, LR_GOLD_ABV2_DESKTOP_TOKEN_V4, LR_GOLD_ABV2_DESKTOP_WALL_SSO_V4, LR_GOLD_ABV2_DESKTOP_WALL_SSO_OPERATOR_V4. Default/partial/mistyped OFF => no signedRedeem and signed device route HTTP 404 before reading caller input. Full-on with invalid storage/enrollment fails startup; with valid storage it delegates only T04b5 redeem protected by current Owner session, Redis family and Ed25519 enrolled device signature, no A/B grant. New 10 tests, selected T04 suite 89/89 Node PASS and local Wall HTTP loopback revoke PASS; Gold Source Gate CI pending. No Lab, UAT or production deployment; Plugin ticket issue not mounted, native Rust transfer and Agent signed device channel/HTTPS Wall remain OPEN. T03 Owner native login/logout Welcome Windows LIVE PASS, >10m refresh and backend family revocation E2E OPEN. Last Lab flags Auth and Token OFF at 2026-11-03 15:11 UTC, no reactivation this task.",
+  "nextAction": "T04b6 SOURCE accepted: commit fa1f75bfbdf35cc8cec10443d891b7301f7a4274, GitHub Gold Source Gate 41665190911 4/4 PASS, Docs 41665190879 PASS, 89/89 selected T04 Node and local Wall HTTP loopback PASS. Operator executor.mjs instantiates a startup gate requiring all FIVE exact string-1 flags (Gold independent, Owner Auth, Token, Wall SSO, Operator SSO). Default OFF => no callback and redeem HTTP 404 before body parse. Full opt-in with missing Redis/Account/Enrollment fails startup. Actual running Lab, UAT and prod NOT updated; do not turn flags on until entire HTTPS issuer/native Ed25519/Wall TLS path is ready. NEXT T04b7: secure native-only HTTPS ticket issue endpoint, independent scoped device identity, no bearer/refresh into local Wall, anti-CSRF, backpressure and tests. T03 Owner Login/Logout/Welcome physical Windows PASS, sustained >10min refresh and remote family revocation E2E OPEN. Gold UAT/prod, ChatGPT MCP, Agent A/B unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1031,7 +1031,7 @@
     ],
     "defaultEnabled": false,
     "sourceTests": "10 new, selected T04 89/89 PASS and local loopback HTTP regression PASS",
-    "goldCI": "PENDING",
+    "goldCI": "Gold Source Gate 41665190911 4/4 SUCCESS; Documentation Integrity 41665190879 SUCCESS",
     "deployed": false,
     "nativeIntegrated": false,
     "blocking": "native issue endpoint with correct security, signed device delivery, HTTPS/loopback Wall bootstrap, full Windows E2E"
