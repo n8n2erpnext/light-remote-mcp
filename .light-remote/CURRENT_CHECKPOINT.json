@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T03c2c7_referrer_policy_origin_CI4of4_Lab_auth_TEMP_ON_until_1240UTC_Owner_E2E_OPEN",
+  "status": "goldabv2_T03c2c7_REAL_Windows_Owner_Portal_Callback_Workspace_PASS_vault_refresh_logout_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-03 12:10 UTC: Owner-authorized retry via official Light Remote on VPS-ARM SUCCEEDED. Isolated Lab Plugin both Desktop Owner Auth flags temporarily ON, exact source fix 9c7d5582 Referrer-Policy:origin (source CI 41629686136 4/4, LXD tests 27/27 PASS). New guarded timer lr-desktop-owner-lab-autooff-20261103-refpol.timer will restore OFF at 2026-11-03 12:40:39 UTC / 19:40:39 HCM. Live anonymous authorize303 health200 4/4 services active, cross-site consent403, native no credentials401, active A/B grants0. Owner needs cancel prior Windows Desktop V4 sign-in, start NEW native PKCE sign-in, click Continue to Desktop and report outcome with URL/query redacted. Real callback, Windows Credential Manager, 10-minute refresh/restart/logout T03c2c E2E and T04 App-to-Wall SSO remain OPEN. No Gold UAT/prod/custom MCP change. Do NOT assume window active after deadline; verify live flags before further work.",
+  "nextAction": "Owner screenshot LIVE PASS: Chrome loopback /desktop/v4/callback displayed Sign-in result received, native Desktop V4 entered Overview with OWNER VERIFIED · WALL UNVERIFIED. Accept real Windows Owner Consent/PKCE loopback/workspace unlock only, NOT full T03c2c. Next independently verify Windows Credential Manager persistence, restart/restore, >10min token refresh, logout/revocation; then T04 signed App->Wall SSO. Lab Auth flags TEMP ON with auto-OFF due 2026-11-03 12:40:39 UTC / 19:40:39 HCM; must recheck live flags after expiration, do not auto-renew; 4/4 services active HTTPS200. Prod/Gold UAT unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -941,6 +941,7 @@
     "appToWallSSO": false,
     "handoff": "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_OWNER_AUTH_LAB_20261103.md",
     "t03c2c7Source": "9c7d5582f10e4ce6a9f4b03e6c65ceb5bb8f58c4 (consent HTML only Referrer-Policy: origin); GitHub CI 41629686136 4/4 SUCCESS",
-    "t03c2c7LiveStatus": "Source staged in Lab SHA matched and removed temporary diagnostics, tests 27/27 PASS, guarded Lab Owner auth enable retry SUCCESS but REAL Windows browser callback/OS vault E2E still UNVERIFIED."
+    "t03c2c7LiveStatus": "Source staged in Lab SHA matched and removed temporary diagnostics, tests 27/27 PASS, guarded Lab Owner auth enable retry SUCCESS but REAL Windows browser callback/OS vault E2E still UNVERIFIED.",
+    "ownerLoginWindowsVisualAcceptance": "PASS on 2026-11-03: native loopback callback receipt, Chrome sign-in result, desktop Overview OWNER VERIFIED · WALL UNVERIFIED. Actual OS keyring, restart/refresh/revoke NOT yet checked."
   }
 }
