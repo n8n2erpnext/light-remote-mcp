@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T03c2c7_GoldLab_Auth_ON_BOUNDED_1940HCM_Windows_real_callback_OPEN",
+  "status": "desktop_v4_T03c2c7_LIVE_Windows_Browser_Portal_Callback_Owner_UI_PASS_Wall_UNVERIFIED",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Gold backend source 9c7d5582 Referrer-Policy:origin CI41629686136 4/4 PASS, isolated LXD27/27 PASS. Official Light Remote retried blocked operation SUCCESS at 2026-11-03 12:10 UTC, isolated Gold Lab Desktop Auth/Token flags ON with 30-minute auto-OFF timer lr-desktop-owner-lab-autooff-20261103-refpol.timer due 12:40:39 UTC/19:40:39 HCM. 4/4 services active HTTPS200, anonymous authorize303, cross-site403, native missing creds401, A/B grants0. OWNER: cancel old Desktop V4 sign-in, initiate NEW PKCE browser request, click Continue to Desktop, report result with query redacted. Windows callback/OS Credential Manager/10m refresh/logout and T04 App-to-Wall SSO NOT VERIFIED. Production and Gold main UAT unaffected. Verify flags after expiry.",
+  "nextAction": "Owner screenshots demonstrate REAL corrected Windows Owner LAB candidate 41613182472: Chrome localhost callback received login result and native Tauri Overview displayed OWNER VERIFIED · WALL UNVERIFIED. Owner accepted this milestone. Browser PKCE consent/callback/native Owner UI verified. Still OPEN native Windows Credential Manager vault evidence, restart restore, >10-minute proactive refresh, logout/revocation, and T04 signed App-to-Wall SSO; do not mark whole T03c2c PASS. Isolated Gold Lab Auth TEMP ON until auto-OFF 2026-11-03 12:40:39 UTC / 19:40:39 HCM; check flags after timer; production unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -771,5 +771,6 @@
     "t04AppWallSSO": false
   },
   "desktopOwnerLabReferrerPolicyFix": "Source 9c7d5582 GitHub Source Gate 41629686136 4/4 SUCCESS; real Chrome consent POST failure traced to Origin mismatch with no-referrer; consent-only Referrer-Policy:origin staged in Lab, diagnostics removed. E2E NOT YET VERIFIED.",
-  "desktopOwnerLabAutoff": "2026-11-03 12:40:39 UTC / 19:40:39 Asia/Ho_Chi_Minh, systemd timer lr-desktop-owner-lab-autooff-20261103-refpol.timer; flags TEMP ON from 12:10 UTC; must live-check after deadline."
+  "desktopOwnerLabAutoff": "2026-11-03 12:40:39 UTC / 19:40:39 Asia/Ho_Chi_Minh, systemd timer lr-desktop-owner-lab-autooff-20261103-refpol.timer; flags TEMP ON from 12:10 UTC; must live-check after deadline.",
+  "t03c2c7PhysicalWindowsOwnerLogin": "PASS: Owner supplied Chrome localhost callback sign-in result and native authenticated Overview OWNER VERIFIED · WALL UNVERIFIED"
 }
