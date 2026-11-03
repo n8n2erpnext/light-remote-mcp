@@ -139,3 +139,76 @@ jobs:
             client/desktop-v4/src-tauri/target/release/light-remote-desktop-v4-pilot.exe
           if-no-files-found: error
           retention-days: 7
+
+  owner-login-lab-candidate:
+    # Explicitly isolated unsigned QA artifacts. This does not replace the
+    # default UI-only executable and never publishes an installer or release.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/desktop-v4-api-integration-20261103'
+    name: Owner Login LAB candidate (unsigned) / ${{ matrix.os }}
+    needs: web-test-visual
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-24.04]
+    env:
+      VITE_LR_V4_UI_TEST: '0'
+      VITE_LR_V4_OWNER_LOGIN: '1'
+      LR_V4_WALL_PROFILE: 'goldabv2-lab'
+    defaults:
+      run:
+        working-directory: client/desktop-v4
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: client/desktop-v4/package-lock.json
+      - name: Linux Tauri and OS-vault dependencies (GitHub runner only)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config libdbus-1-dev libwebkit2gtk-4.1-dev \
+            libgtk-3-dev libssl-dev libxdo-dev librsvg2-dev \
+            libayatana-appindicator3-dev patchelf
+      - name: Rust stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache isolated Rust compilation
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: client/desktop-v4/src-tauri -> target
+          cache-on-failure: false
+      - name: Install JS dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build real Owner Login frontend (NO design preview)
+        run: npm run build
+      - name: Compile feature-enabled native candidate (NO installer)
+        run: cargo build --manifest-path src-tauri/Cargo.toml --release --features desktop-owner-login --bin light-remote-desktop-v4-pilot
+      - name: Verify candidate SHA256 Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $f = 'src-tauri/target/release/light-remote-desktop-v4-pilot.exe'
+          if (-not (Test-Path $f)) { throw 'Owner LAB candidate missing' }
+          Get-FileHash -Algorithm SHA256 $f | Format-List
+      - name: Verify candidate SHA256 macOS or Linux
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          f='src-tauri/target/release/light-remote-desktop-v4-pilot'
+          test -s "$f"
+          shasum -a 256 "$f"
+      - name: Upload separately labeled UNSIGNED NON-PRODUCTION candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-v4-owner-login-LAB-UNSIGNED-NO-PRODUCTION-${{ matrix.os }}-${{ github.run_id }}
+          path: |
+            client/desktop-v4/src-tauri/target/release/light-remote-desktop-v4-pilot
+            client/desktop-v4/src-tauri/target/release/light-remote-desktop-v4-pilot.exe
+          if-no-files-found: error
+          retention-days: 3

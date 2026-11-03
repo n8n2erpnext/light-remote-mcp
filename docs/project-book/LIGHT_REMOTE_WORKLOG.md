@@ -648,3 +648,6 @@ Official Light Remote recovered A/B-authorized VPS-ARM Main; canonical Desktop V
 
 ## 2026-11-03 — Desktop V4 T03c2c1 proactive Owner refresh source
 Continued from T03c2c transfer checkpoint on feat/desktop-v4-api-integration-20261103. Added bounded 90s pre-expiry native token refresh (including sleep-resume), 15s server checks, single-flight, Keyring-only rotation under native mutex, generation-fenced logout, fail-closed status and Rust unit regressions. Changes scoped to owner_login.rs. Source SHA / GitHub CI pending; actual Account Portal routes still 404 on Lab until separately staged. No Gold UAT/production change, Windows app replacement or real Owner login E2E; T03c2c remains OPEN.
+
+## 2026-11-03 — Desktop V4 T03c2c2 independent feature-enabled Owner candidate CI
+Added a separate GitHub-only 3-OS unsigned Owner Login LAB candidate job, preserving the existing UI-only executable/job; Cargo feature and React Owner flag are both opt-in, design preview off, no installers/release. Workflow YAML parse and static feature gate PASS. Exact candidate CI/builds are pending. Previous refresh source be91bf70 completed GitHub Actions 41604858829 4/4 SUCCESS; Windows/macOS/Linux 12/12 Rust tests each. Lab runtime is unchanged and Desktop authorize/token paths remain 404.
