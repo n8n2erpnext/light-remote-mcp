@@ -222,7 +222,7 @@ fn auth_url(redirect:&str, verifier:&str, state:&str, install_nonce:&str)
         .append_pair("redirect_uri",redirect)
         .append_pair("state",state)
         .append_pair("install_nonce",install_nonce);
-    Ok(url.into())
+    Ok(url.to_string())
 }
 fn system_browser(url:&str) -> Result<(),String> {
     if !url.starts_with(AUTHORIZE) {return Err("owner_url_invalid".into());}

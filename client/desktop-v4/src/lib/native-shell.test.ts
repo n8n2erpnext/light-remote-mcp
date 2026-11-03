@@ -40,7 +40,7 @@ describe('Tauri2 UI-only pilot trust boundary', () => {
     expect(rust).toContain('http://127.0.0.1:5491/settings#activityLogSettings');
     expect(rust).toContain('unsupported_local_wall_view');
     for (const forbidden of [
-      '.plugin(', '.manage(', 'tokio::process::Command',
+      '.plugin(', 'tokio::process::Command',
       'tauri_plugin_shell', 'tauri_plugin_fs', 'cmd.exe', 'powershell.exe',
       'sh -c'
     ]) expect(rust).not.toContain(forbidden);

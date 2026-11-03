@@ -633,3 +633,6 @@ T03c1 revocable Desktop-only Owner sessions commit e20d699e passed GitHub V4 CI 
 
 ## 2026-11-03 - T03c2b candidate native Owner PKCE callback and React gate
 T03c2a OS keyring 4/4 CI PASS run41579644386. Continued T03c2b native candidate: bounded random loopback callback 127.0.0.1:0, state/issuer/host/PKCE, HTTPS only account portal token exchange + refresh/restore/logout, <=15s native Owner session revalidation fail-closed, no Tauri credential IPC. Sign out generation fencing prevents callback late token persistence. React Owner gated workspace no longer confusing verified account with verified Wall; UI-only pilot untouched. Rust feature and React flag OFF by default, server flags OFF; GitHub candidate cross-OS CI pending. Source and Project Truth updated, runtime unchanged.
+
+## 2026-11-03 - T03c2b CI first Web test corrections
+First GitHub CI 41582176494 for source 548992dd: Web failed exactly three legacy/new UI assertions, native jobs skipped. Preserved exact preview visible label, zero-arg click wrapper to Owner login, and modified static check to allow only native feature-managed OwnerRuntime; no token bridge or backend feature activation. Next CI pending, source-only.

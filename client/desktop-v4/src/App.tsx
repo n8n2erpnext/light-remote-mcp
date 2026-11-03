@@ -497,7 +497,7 @@ export function App() {
               onClick={() => setReload(i => i + 1)} disabled={status.phase === 'loading'}>
               <RefreshCcw size={18} aria-hidden="true" />
             </Button>
-            <span className="preview-pill"><span className="status-dot" aria-hidden="true" />{inDesignPreview ? 'DESIGN PREVIEW - NOT SIGNED IN' : 'OWNER VERIFIED - WALL UNVERIFIED'}</span>
+            <span className="preview-pill"><span className="status-dot" aria-hidden="true" />{inDesignPreview ? 'DESIGN PREVIEW · NOT SIGNED IN' : 'OWNER VERIFIED · WALL UNVERIFIED'}</span>
           </div>
         </header>
         {wallOpenError && <div className="open-wall-error" role="alert">{wallOpenError}</div>}
@@ -507,7 +507,7 @@ export function App() {
               : <FeatureScreen route={route} status={status.result} />}
         <footer className="page-footer">
           <CircleHelp size={14} aria-hidden="true" />
-          {inDesignPreview ? 'Desktop V4 UI preview - not authenticated - no Owner grants' : 'Desktop Owner verified - Local Wall and Agent A/B authorization remain separate'}
+          {inDesignPreview ? 'Desktop V4 UI preview · not authenticated · no Owner grants or Agent mutations' : 'Desktop Owner verified - Local Wall and Agent A/B authorization remain separate'}
         </footer>
       </main>
     </div>

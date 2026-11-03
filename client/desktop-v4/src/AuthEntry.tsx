@@ -114,7 +114,7 @@ export function AuthEntry({ allowDesignPreview, onPreviewWorkspace,
               <button type="button" className="auth-primary" disabled={!nativeLogin}
                 title={nativeLogin ? 'Open the verified Light Remote Account Portal in your system browser'
                   : 'Owner login callback is not connected in this UI-only pilot'}
-                onClick={onBrowserSignIn}>
+                onClick={() => onBrowserSignIn?.()}>
                 <ExternalLink size={18} aria-hidden="true" /> Continue in browser
               </button>
               <p className="auth-disabled-note">{nativeLogin
