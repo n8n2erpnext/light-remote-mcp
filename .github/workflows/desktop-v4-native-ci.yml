@@ -64,6 +64,11 @@ jobs:
           path: ${{ runner.temp }}/light-remote-v4-ui-evidence/
           if-no-files-found: warn
           retention-days: 7
+      - name: Verify feature-gated Owner Login React bundle (no native release)
+        run: npm run build
+        env:
+          VITE_LR_V4_UI_TEST: '0'
+          VITE_LR_V4_OWNER_LOGIN: '1'
 
   native-shell:
     env:

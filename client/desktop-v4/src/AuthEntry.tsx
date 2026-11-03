@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, CheckCircle2, Fingerprint, LockKeyhole, ShieldCheck, ExternalLink, RotateCcw } from 'lucide-react';
+import type { NativeOwnerPhase } from './lib/native-owner';
 import './auth-entry.css';
 
 export type AuthEntryMode =
@@ -9,6 +10,10 @@ export type AuthEntryMode =
 type Props = {
   allowDesignPreview: boolean;
   onPreviewWorkspace: () => void;
+  // Native candidate only; the ordinary pilot never supplies these callbacks.
+  nativePhase?: NativeOwnerPhase;
+  onBrowserSignIn?: () => void;
+  onCancelSignIn?: () => void;
 };
 
 const states: Record<Exclude<AuthEntryMode, 'signed-out'>, {
@@ -61,8 +66,15 @@ const previews: { key: Exclude<AuthEntryMode, 'signed-out'>; label: string }[] =
   { key: 'sign-out', label: 'Sign out' }
 ];
 
-export function AuthEntry({ allowDesignPreview, onPreviewWorkspace }: Props) {
-  const [mode, setMode] = useState<AuthEntryMode>('signed-out');
+export function AuthEntry({ allowDesignPreview, onPreviewWorkspace,
+  nativePhase, onBrowserSignIn, onCancelSignIn }: Props) {
+  const [previewMode, setPreviewMode] = useState<AuthEntryMode>('signed-out');
+  const nativeLogin = typeof onBrowserSignIn === 'function';
+  const mode: AuthEntryMode = nativeLogin
+    ? nativePhase === 'browser_pending' ? 'browser-pending'
+      : nativePhase === 'restoring' ? 'restoring'
+      : nativePhase === 'expired' ? 'expired' : 'signed-out'
+    : previewMode;
   const detail = mode === 'signed-out' ? null : states[mode];
   return (
     <div className="auth-shell" aria-label="Light Remote account sign-in">
@@ -99,10 +111,15 @@ export function AuthEntry({ allowDesignPreview, onPreviewWorkspace }: Props) {
                   <p>No password or access token is entered in the app.</p>
                 </div>
               </div>
-              <button type="button" className="auth-primary" disabled title="Owner login callback is not connected in this UI-only pilot">
+              <button type="button" className="auth-primary" disabled={!nativeLogin}
+                title={nativeLogin ? 'Open the verified Light Remote Account Portal in your system browser'
+                  : 'Owner login callback is not connected in this UI-only pilot'}
+                onClick={onBrowserSignIn}>
                 <ExternalLink size={18} aria-hidden="true" /> Continue in browser
               </button>
-              <p className="auth-disabled-note">Account verification is not connected in this test build.</p>
+              <p className="auth-disabled-note">{nativeLogin
+                ? 'Owner sign-in requires browser confirmation. Agent A/B access stays separate.'
+                : 'Account verification is not connected in this test build.'}</p>
               <div className="auth-session-hint">
                 <Fingerprint size={21} aria-hidden="true" />
                 <div><strong>Stay signed in securely on this device</strong>
@@ -115,9 +132,20 @@ export function AuthEntry({ allowDesignPreview, onPreviewWorkspace }: Props) {
               {mode === 'app-lock' ? <Fingerprint size={30} aria-hidden="true" /> :
                 mode === 'restoring' ? <RotateCcw size={30} aria-hidden="true" /> :
                 <LockKeyhole size={30} aria-hidden="true" />}
-              <strong>{mode === 'app-lock' ? 'OS unlock required' : mode === 'browser-pending' ? 'No verified callback yet' : 'Access stays locked'}</strong>
-              <p>{detail?.note ?? ""}</p>
-              <button type="button" className="auth-back" onClick={() => setMode('signed-out')}>Back to sign in</button>
+              <strong>{mode === 'app-lock' ? 'OS unlock required'
+                : mode === 'browser-pending' ? (nativeLogin ? 'Waiting for verified browser callback' : 'No verified callback yet')
+                : 'Access stays locked'}</strong>
+              <p>{nativeLogin
+                ? mode === 'browser-pending' ? 'Approve this sign-in in your system browser. No Agent authorization is created.'
+                  : mode === 'restoring' ? 'Verifying the protected OS credential with the Owner server.'
+                  : 'The prior Owner session is unavailable or expired. Start a fresh browser sign-in.'
+                : detail?.note ?? ""}</p>
+              <button type="button" className="auth-back"
+                onClick={nativeLogin
+                  ? (mode === 'expired' ? onBrowserSignIn : onCancelSignIn)
+                  : () => setPreviewMode('signed-out')}>
+                {nativeLogin ? (mode === 'expired' ? 'Sign in again' : 'Cancel sign-in') : 'Back to sign in'}
+              </button>
             </div>
           )}
           {allowDesignPreview && (
@@ -130,14 +158,16 @@ export function AuthEntry({ allowDesignPreview, onPreviewWorkspace }: Props) {
               <div className="auth-preview-states">
                 {previews.map(item => (
                   <button type="button" key={item.key}
-                    aria-pressed={mode === item.key}
-                    onClick={() => setMode(item.key)}>{item.label}</button>
+                    aria-pressed={previewMode === item.key}
+                    onClick={() => setPreviewMode(item.key)}>{item.label}</button>
                 ))}
               </div>
             </div>
           )}
           {!allowDesignPreview && <p className="auth-preview-disclaimer">
-            Account sign-in is required. This build has no Owner authorization bridge and cannot enter the workspace.
+            {nativeLogin
+              ? 'Account verification does not approve Agent access or Local Wall SSO.'
+              : 'Account sign-in is required. This build has no Owner authorization bridge and cannot enter the workspace.'}
           </p>}
         </section>
         <div className="auth-footer"><ShieldCheck size={16} aria-hidden="true" />

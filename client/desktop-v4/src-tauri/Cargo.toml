@@ -14,12 +14,21 @@ tauri-build = { version = "2", features = [] }
 [features]
 default = []
 # Candidate native Owner bridge. The installed UI pilot does not enable this.
-desktop-owner-login = ["dep:keyring"]
+desktop-owner-login = ["dep:keyring", "dep:base64", "dep:rand", "dep:sha2", "dep:reqwest", "dep:url", "dep:serde", "dep:serde_json"]
 
 [dependencies]
 tauri = { version = "2", features = [] }
 # Platform native OS credential stores, never a Webview/localStorage credential.
 keyring = { version = "=3.6.3", default-features = false, features = ["apple-native", "windows-native", "sync-secret-service"], optional = true }
+# Native-only OAuth authorization-code flow; never included in the UI-only pilot.
+base64 = { version = "0.22.1", optional = true }
+rand = { version = "0.8.5", optional = true }
+sha2 = { version = "0.10.9", optional = true }
+url = { version = "2.5.7", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+reqwest = { version = "0.12.24", default-features = false, features = ["blocking", "json", "rustls-tls"], optional = true }
+
 
 [profile.dev]
 incremental = true

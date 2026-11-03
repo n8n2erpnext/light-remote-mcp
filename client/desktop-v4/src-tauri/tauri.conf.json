@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Light Remote V4 — Pilot",
+        "title": "Light Remote V4 \u2014 Pilot",
         "width": 1280,
         "height": 800,
         "minWidth": 860,
@@ -35,7 +35,8 @@
             "main"
           ],
           "permissions": [
-            "allow-open-local-wall"
+            "allow-open-local-wall",
+            "allow-desktop-owner"
           ]
         }
       ],

@@ -630,3 +630,6 @@ After T03c1 server source e20d699e with 25/25 Node security tests, implemented s
 
 ## 2026-11-03 ? T03c1 4-platform CI receipt and T03c2a native feature CI link
 T03c1 revocable Desktop-only Owner sessions commit e20d699e passed GitHub V4 CI 41579145997 4/4 plus docs integrity 41579145894 SUCCESS; Node 25/25 PASS. T03c2a OS vault candidate source d30d534b, workflow 41579644386 in progress. Feature OFF, no actual login or App-Wall SSO; next native callback T03c2b.
+
+## 2026-11-03 - T03c2b candidate native Owner PKCE callback and React gate
+T03c2a OS keyring 4/4 CI PASS run41579644386. Continued T03c2b native candidate: bounded random loopback callback 127.0.0.1:0, state/issuer/host/PKCE, HTTPS only account portal token exchange + refresh/restore/logout, <=15s native Owner session revalidation fail-closed, no Tauri credential IPC. Sign out generation fencing prevents callback late token persistence. React Owner gated workspace no longer confusing verified account with verified Wall; UI-only pilot untouched. Rust feature and React flag OFF by default, server flags OFF; GitHub candidate cross-OS CI pending. Source and Project Truth updated, runtime unchanged.

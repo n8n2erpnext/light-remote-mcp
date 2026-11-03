@@ -7,6 +7,8 @@
 // All credential use will stay in Rust, never React JS or Local Wall cookies.
 #[cfg(feature = "desktop-owner-login")]
 mod owner_vault;
+#[cfg(feature = "desktop-owner-login")]
+mod owner_login;
 
 // Only preapproved build-time profiles may open a Wall.
 // An isolated GoldABV2 Lab V4 pilot targets a NetBird overlay address.
@@ -88,9 +90,27 @@ async fn probe_local_wall() -> &'static str {
         .unwrap_or("unavailable")
 }
 
+// UI-only Pilot retains exactly two commands. No login token, browser
+// callback, Owner authorization or vault use is compiled into this binary.
+#[cfg(not(feature = "desktop-owner-login"))]
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![open_local_wall, probe_local_wall])
         .run(tauri::generate_context!())
         .expect("Light Remote V4 shell startup failed");
+}
+
+// Opt-in isolated Owner Login candidate. Native commands return ONLY a
+// sanitized account/phase projection; credentials remain Rust+OS Keyring.
+#[cfg(feature = "desktop-owner-login")]
+fn main() {
+    tauri::Builder::default()
+        .manage(owner_login::OwnerRuntime::default())
+        .invoke_handler(tauri::generate_handler![
+            open_local_wall, probe_local_wall,
+            owner_login::desktop_owner_begin, owner_login::desktop_owner_status,
+            owner_login::desktop_owner_restore, owner_login::desktop_owner_logout
+        ])
+        .run(tauri::generate_context!())
+        .expect("Light Remote V4 Owner Login candidate startup failed");
 }

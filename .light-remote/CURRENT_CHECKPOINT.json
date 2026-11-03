@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T03c1_CI4of4_PASS_T03c2a_native_vault_source_d30d534b_CI_pending",
+  "status": "desktop_v4_T03c2a_keyring_CI4of4_PASS_T03c2b_native_login_candidate_source_CI_pending_default_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -104,7 +104,8 @@
     "2026-11-03 T03b source SHA 376cb8ff exact GitHub CI 41576488187 SUCCESS 4/4 Web+Windows+macOS+Linux; docs CI 41576488180 PASS. Browser Owner consent remains default OFF, no native token/session.",
     "2026-11-03 T03c1 SOURCE: Operator exact Account Portal session checked on access/refresh, 10m opaque desktop access/7d rotating refresh, family logout and 25 Node negative tests PASS; defaults OFF.",
     "2026-11-03 T03c1 revocable Owner token backend source e20d699e, 25/25 Node security tests; T03c2a private OS keyring vault source, feature OFF, native CI pending.",
-    "2026-11-03 T03c1 commit e20d699e confirmed GitHub CI 41579145997 4/4 PASS and documentation integrity. T03c2a candidate source d30d534b CI run 41579644386 pending; no runtime deployment."
+    "2026-11-03 T03c1 commit e20d699e confirmed GitHub CI 41579145997 4/4 PASS and documentation integrity. T03c2a candidate source d30d534b CI run 41579644386 pending; no runtime deployment.",
+    "2026-11-03 T03c2a native OS keyring CI 41579644386 4/4 PASS. T03c2b Rust localhost PKCE/HTTPS, secured vault session and React owner login candidate source, test CI pending, runtime OFF."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -153,7 +154,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Validate native vault 3-OS GitHub CI run 41579644386 and fix if needed; next implement T03c2b native PKCE callback, HTTPS token exchange and verified Owner session. Continue to keep GoldABV2 runtime flags OFF.",
+  "nextAction": "Review T03c2b Web/Windows/macOS/Linux GitHub CI, fix code/permission/rust feature compile errors. Then authorized Lab E2E with separate default-OFF server flags; never use ChatGPT /mcp for Desktop Owner Login or send bearer over HTTP NetBird Wall. T04 App-to-Wall SSO afterward.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -166,10 +167,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "64de674a60b99bc6e3089122141a883ff81380611572fadba64b33853e98b6e6",
-    "trackedFiles": 1176,
+    "treeDigest": "81727339e3715d1c4e2f493eafa0a68718af7cfb5ce1627cbb93b8efd45cee01",
+    "trackedFiles": 1181,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T04:41:52.281Z"
+    "recordedAt": "2026-11-03T05:08:38.671Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -689,7 +690,8 @@
       "T02b": "Source 294aefba, CI 41575414419 4/4 PASS; NetBird Lab HTTP401; physical installed App E2E open.",
       "T03b": "Source 376cb8ff, CI 41576488187 4/4 PASS; default OFF, native token/session/callback not implemented.",
       "T03c1": "DONE source e20d699e, GitHub CI 41579145997 4/4 PASS and docs CI 41579145894 PASS, runtime OFF.",
-      "T03c2a": "Source SHA d30d534b0d79bdfaefba2e23bb0b814bb4445568, keyring OS vault feature OFF, CI run41579644386 pending."
+      "T03c2a": "DONE: source d30d534b; run41579644386 4/4 PASS Web+Windows+macOS+Linux keyring native feature tests.",
+      "T03c2b": "SOURCE CANDIDATE: Rust ephemeral loopback PKCE, native HTTPS token exchange + vault generation gate, status revalidate, React verified Owner gate; CI pending, all features OFF."
     },
     "themeDecision": "Remove all appearance toggle controls from Login (owner supersedes 1-icon T01); Settings retains Light/Dark/System.",
     "realOwnerAuth": false,
@@ -731,7 +733,9 @@
     "t03c1Tests": "25/25 Node security tests PASS (T03a+b+c1)",
     "t03c1Ci": "41579145997 4/4 SUCCESS (Web+Windows+macOS+Linux)",
     "t03c2aVault": "client/desktop-v4/src-tauri/src/owner_vault.rs; keyring 3.6.3 optional",
-    "t03c2aCi": "41579644386 pending",
-    "t03c2aSourceSha": "d30d534b0d79bdfaefba2e23bb0b814bb4445568"
+    "t03c2aCi": "41579644386 4/4 PASS",
+    "t03c2aSourceSha": "d30d534b0d79bdfaefba2e23bb0b814bb4445568",
+    "t03c2bFeature": "Cargo desktop-owner-login (default OFF), VITE_LR_V4_OWNER_LOGIN=1 (OFF in UI-only build)",
+    "t03c2bCi": "pending"
   }
 }

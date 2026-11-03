@@ -527,3 +527,11 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - Cargo.toml: pinned keyring 3.6.3 with apple-native/windows-native/sync-secret-service, optional desktop-owner-login feature.
 - main.rs only includes vault with feature. Existing native IPC unchanged.
 - client/desktop-v4/src/lib/native-shell.test.ts and GitHub V4 CI: source boundary and native Rust compile/unit tests on Windows/macOS/Linux runners.
+
+## Desktop V4 T03c2b native Owner login bridge (default OFF)
+- client/desktop-v4/src-tauri/src/owner_login.rs: Rust-only system browser Account Portal PKCE, ephemeral localhost callback, HTTPS token exchange/refresh/revalidate/logout; sanitized phase/accountId state. No token IPC.
+- client/desktop-v4/src-tauri/src/owner_vault.rs: native OS keyring refresh store and deletion, no plaintext fallback. Late callback generation invalidation revokes family.
+- client/desktop-v4/src-tauri/src/main.rs and build.rs: extra native commands registered only with Cargo desktop-owner-login feature, default OFF. permissions/desktop-owner.toml exact commands; tauri.conf.json scoped capability only.
+- client/desktop-v4/src/lib/native-owner.ts, .test.ts: exact invoke-only bridge, candidate flag VITE_LR_V4_OWNER_LOGIN, strict phase/accountId projection; secrets discarded if accidentally returned.
+- client/desktop-v4/src/AuthEntry.tsx, .test.tsx: real browser begin/pending/expired/cancel while UI-only pilot behavior unchanged. App.tsx unlocks only native Owner verified; still no Wall/A-B authorization.
+- CI: native Rust tests with opt-in feature on 3 OS runners, Web UI/security tests and feature-gated React build after visual smoke. NO VPS-ARM build.
