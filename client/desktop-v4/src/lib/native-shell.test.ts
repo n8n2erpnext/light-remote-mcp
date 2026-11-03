@@ -26,10 +26,17 @@ describe('Tauri2 UI-only pilot trust boundary', () => {
     expect(conf.app.windows[0]?.label).toBe('main');
     expect(conf.bundle.active).toBe(false);
   });
-  it('allows the OS browser only for two hardcoded local Wall addresses', () => {
+  it('permits only exact GoldABV2 Lab or local-device Wall URLs by build profile', () => {
     expect(rust).toContain('tauri::Builder::default()');
     expect(rust).toContain('tauri::generate_handler![open_local_wall, probe_local_wall]');
     expect(rust).toContain('http://127.0.0.1:5491/');
+    expect(rust).toContain('option_env!("LR_V4_WALL_PROFILE")');
+    expect(rust).toContain('"goldabv2-lab"');
+    expect(rust).toContain('http://100.94.184.141:15591/');
+    expect(rust).toContain('http://100.94.184.141:15591/settings#activityLogSettings');
+    expect(rust).toContain('Ipv4Addr::new(100, 94, 184, 141)');
+    expect(rust).not.toContain('goldabv2.light-remote.thaiduy.digital/mcp');
+
     expect(rust).toContain('http://127.0.0.1:5491/settings#activityLogSettings');
     expect(rust).toContain('unsupported_local_wall_view');
     for (const forbidden of [

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T01b_login_theme_removed_source_ready_CI_pending_T03a_pkce_only",
+  "status": "desktop_v4_T02b_lab_wall_profile_source_ci_pending_T03a_pkce_only",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -98,7 +98,8 @@
     "2026-11-03 T00 complete: master handoff and task ledger committed/pushed on VPS-ARM SHA 8004a074; T01 single-icon source and accessibility test staged for CI.",
     "2026-11-03 T02 source audit complete: Portal Owner cookie, dedicated Local Wall Owner cookie, strict MCP_RESOURCE OAuth, separate A/B consent. Native Desktop SSO still unimplemented.",
     "2026-11-03 T01 CI 4/4 PASS run41571945654; T03a candidate strict Desktop PKCE/loopback validator + 5 negative Node tests pass; no live Owner endpoint mounted.",
-    "2026-11-03 T01b source correction: remove Login theme toggle/overlapping top-right control, retain Settings appearance; unit and visual no-control checks added; GitHub CI pending."
+    "2026-11-03 T01b source correction: remove Login theme toggle/overlapping top-right control, retain Settings appearance; unit and visual no-control checks added; GitHub CI pending.",
+    "2026-11-03 T02b source: GoldABV2 Lab Wall port 15591 separated from ChatGPT MCP; fixed compile-time native URL+anonymous probe, preserve local default, CI pending"
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -147,7 +148,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "After run 41574241626 verifies T01b, update CI status. Main API task remains T03b separate Desktop Owner auth grant; do not use MCP resource or install UI-only pilot as production.",
+  "nextAction": "Run CI of native exact GoldABV2 Lab Wall profile. Then T03b source-only default-OFF Desktop Owner auth endpoints; never use /mcp or open an Owner session from anonymous Wall status.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -160,10 +161,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "4f60f4ff53fb1755e7c32d89c58a2d5b698cbbafc72a533c2d9aeb0bf7c32f53",
+    "treeDigest": "7d0185f83f0d3d7072de590e829a55f4b1655b1f317b973677910af980076c78",
     "trackedFiles": 1171,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T03:46:45.852Z"
+    "recordedAt": "2026-11-03T03:59:07.794Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -679,7 +680,8 @@
       "T09": "open",
       "T10": "open",
       "T11": "open",
-      "T12": "open"
+      "T12": "open",
+      "T02b": "fixed Lab Wall profile implemented; CI pending"
     },
     "themeDecision": "Remove all appearance toggle controls from Login (owner supersedes 1-icon T01); Settings retains Light/Dark/System.",
     "realOwnerAuth": false,
@@ -695,6 +697,11 @@
     "t03aUnitTests": "plugin-server/desktop-auth-v4-contract.test.mjs 5/5 offline node --test PASS",
     "t01bSourceSha": "b22f75fe463552d77e31005419f48bcec928a2df",
     "t01bCiRun": "41574241626 pending verification",
-    "ownerUiAcceptancePending": true
+    "ownerUiAcceptancePending": true,
+    "goldAbv2LabWall": "http://100.94.184.141:15591",
+    "goldAbv2Mcp": "https://goldabv2.light-remote.thaiduy.digital/mcp (custom ChatGPT MCP only)",
+    "goldAbv2AccountPortal": "https://goldabv2.light-remote.thaiduy.digital/account",
+    "wallProfile": "compile-time LR_V4_WALL_PROFILE=goldabv2-lab in native CI; fallback localhost",
+    "t02bCi": "pending"
   }
 }

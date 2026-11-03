@@ -612,3 +612,6 @@ T01 single-icon theme source SHA 9f89a63a now GitHub V4 CI run 41571945654 4/4 P
 
 ## 2026-11-03 ? T01b Login theme collision final removal
 Owner showed a new Windows restored-window screenshot confirming the single Light/Dark icon still contacts the Login card. Removed icon entirely from Login JSX and CSS as specifically permitted, rather than moving it again. Settings keeps Light/Dark/System. Added unit and Chromium visual negative assertions; independent Login/Owner APIs unaffected. Source commit and CI pending; production/installed clients unchanged.
+
+## 2026-11-03 ? T02b NetBird Lab Wall exact target (custom MCP separate)
+Owner established new Wall endpoint http://100.94.184.141:15591 and custom ChatGPT MCP https://goldabv2.light-remote.thaiduy.digital/mcp. Windows/ARM read-only probes confirmed Wall /api/status 401, GoldABV2 Account Portal 200, MCP HEAD 405. Native build-only Lab Wall target added to browser opener and anonymous probe, default local 127.0.0.1 preserved. No Owner SSO or native token access. CI pending; installed Agent unchanged.

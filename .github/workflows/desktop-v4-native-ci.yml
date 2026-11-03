@@ -68,6 +68,7 @@ jobs:
   native-shell:
     env:
       VITE_LR_V4_UI_TEST: '1' # UI-only test artifact; no Owner credential bridge
+      LR_V4_WALL_PROFILE: 'goldabv2-lab' # exact NetBird Lab Wall, never ChatGPT MCP
     name: Tauri 2 UI-only native build / ${{ matrix.os }}
     needs: web-test-visual
     runs-on: ${{ matrix.os }}
@@ -124,7 +125,7 @@ jobs:
       - name: Upload unsigned UI-only binary for isolated QA
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-v4-tauri-pilot-${{ matrix.os }}-${{ github.run_id }}
+          name: desktop-v4-tauri-pilot-goldabv2-lab-${{ matrix.os }}-${{ github.run_id }}
           path: |
             client/desktop-v4/src-tauri/target/release/light-remote-desktop-v4-pilot
             client/desktop-v4/src-tauri/target/release/light-remote-desktop-v4-pilot.exe

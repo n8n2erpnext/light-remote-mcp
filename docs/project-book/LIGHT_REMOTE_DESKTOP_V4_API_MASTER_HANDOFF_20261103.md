@@ -46,6 +46,7 @@ E. OS App Lock applies only after verified account session; unlock cannot overri
 | T00 | Write master handoff + checkpoint, verify canonical ARM SSH Git and baseline | DONE |
 | T01 | Login theme collision: owner superseded single-icon approach; remove Login toggle entirely (Settings retains Appearance) | T01b SOURCE FIXED, CI PENDING |
 | T02 | Inventory exact Account Portal / Operator OAuth / Local Wall signed API contracts and auth security | SOURCE AUDIT COMPLETE |
+| T02b | GoldABV2 Lab Wall target / custom ChatGPT MCP separation | SOURCE DONE; CI PENDING |
 | T03 | Native Owner login PKCE + callback + secure OS vault + logout/refresh | IN PROGRESS: T03a validator/test only; no live auth |
 | T04 | Signed one-way App -> Local Wall SSO, replay prevention and logout link | BLOCKED ON T03 |
 | T05 | Overview/Devices/Link/Relink with actual enrolled ShortID and signed status | OPEN |
@@ -115,3 +116,11 @@ Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4
 - Native/Login Owner API and permissions unaffected. No standalone UI test build or production deployment requested. GitHub CI on next source commit is automated; actual physical Windows acceptance remains separate.
 - Source commit: b22f75fe463552d77e31005419f48bcec928a2df. GitHub CI: https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41574241626; pending complete verification. Production app unchanged.
 - Continue T03b Desktop Owner authentication after T01b checkpoint, without faking account authority.
+
+### T02b ? GoldABV2 Lab Wall and ChatGPT MCP endpoint split
+- Owner endpoint mapping: NetBird Lab Wall UI/API http://100.94.184.141:15591, distinct from custom ChatGPT MCP https://goldabv2.light-remote.thaiduy.digital/mcp.
+- Read-only runtime checks: Windows GET Lab /api/status HTTP 401 unauthenticated; ARM Wall root HTTP 303; GoldABV2 Account Portal /account HTTP 200; MCP HEAD HTTP 405. Authenticated device status remains UNVERIFIED.
+- Exact Rust native opener and bounded anonymous status probe: compile-time LR_V4_WALL_PROFILE=goldabv2-lab chooses Wall Home or Activity Logs under 100.94.184.141:15591; ordinary builds default to 127.0.0.1:5491. No caller-provided URL, no /mcp in launcher, no credentials/Owner cookie in probe. HTTP Lab transport is NetBird-overlay-only, NOT an authenticated SSO mechanism.
+- GitHub V4 native pilot workflow sets the compile-time Lab profile and artifact names include goldabv2-lab. Webview CSP remains self-only; no browser fetch to Lab data from React.
+- Source unit/static contract: client/desktop-v4/src/lib/native-shell.test.ts checks both literal profiles and prohibits MCP in opener. Exact CI proof pending; no runtime production deployment or installed Agent change.
+- Next after profile CI: T03b dedicated Desktop Owner authorization, distinct from MCP RESOURCE and account cookie sharing.

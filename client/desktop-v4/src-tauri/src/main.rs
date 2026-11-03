@@ -3,17 +3,25 @@
 //! Owner credentials, changes a grant or takes a user-supplied URL/path.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+// Only preapproved build-time profiles may open a Wall.
+// An isolated GoldABV2 Lab V4 pilot targets a NetBird overlay address.
+fn use_goldabv2_lab_wall() -> bool {
+    option_env!("LR_V4_WALL_PROFILE") == Some("goldabv2-lab")
+}
+fn exact_wall_view(view: &str) -> Result<&'static str, String> {
+    match (use_goldabv2_lab_wall(), view) {
+        (true, "home") => Ok("http://100.94.184.141:15591/"),
+        (true, "logs") => Ok("http://100.94.184.141:15591/settings#activityLogSettings"),
+        (false, "home") => Ok("http://127.0.0.1:5491/"),
+        (false, "logs") => Ok("http://127.0.0.1:5491/settings#activityLogSettings"),
+        _ => Err("unsupported_local_wall_view".into()),
+    }
+}
+
 #[tauri::command]
 fn open_local_wall(view: &str) -> Result<(), String> {
-    const WALL: &str = "http://127.0.0.1:5491/";
-    const LOGS: &str = "http://127.0.0.1:5491/settings#activityLogSettings";
-    let url = match view {
-        "home" => WALL,
-        "logs" => LOGS,
-        _ => return Err("unsupported_local_wall_view".into()),
-    };
-    // No shell interpreter or untrusted arguments. Only the two literal local
-    // URLs above can be passed to the platform's default-browser launcher.
+    let url = exact_wall_view(view)?;
+    // Exact literal URL only. No Owner credentials or MCP endpoint.
     #[cfg(target_os = "windows")]
     let result = std::process::Command::new("rundll32.exe")
         .arg("url.dll,FileProtocolHandler").arg(url).spawn();
@@ -27,11 +35,17 @@ fn open_local_wall(view: &str) -> Result<(), String> {
 // The Owner cookie belongs to the system browser. Native gets ONLY a bounded
 // anonymous local service probe, NEVER the /api/status body or any credential.
 // This classifies a lock screen, NOT an authenticated Agent/device connection.
-fn probe_loopback_wall() -> &'static str {
+fn probe_wall_presence() -> &'static str {
     use std::io::{Read, Write};
     use std::net::{SocketAddrV4, TcpStream, Ipv4Addr};
     use std::time::Duration;
-    let addr = SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5491);
+    let (addr, request): (SocketAddrV4, &[u8]) = if use_goldabv2_lab_wall() {
+        (SocketAddrV4::new(Ipv4Addr::new(100, 94, 184, 141), 15591),
+         b"GET /api/status HTTP/1.1\r\nHost: 100.94.184.141:15591\r\nConnection: close\r\nAccept: application/json\r\n\r\n")
+    } else {
+        (SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5491),
+         b"GET /api/status HTTP/1.1\r\nHost: 127.0.0.1:5491\r\nConnection: close\r\nAccept: application/json\r\n\r\n")
+    };
     let Ok(mut socket) = TcpStream::connect_timeout(&addr.into(), Duration::from_millis(500)) else {
         return "unavailable";
     };
@@ -39,7 +53,7 @@ fn probe_loopback_wall() -> &'static str {
         socket.set_write_timeout(Some(Duration::from_millis(500))).is_err() {
         return "unavailable";
     }
-    if socket.write_all(b"GET /api/status HTTP/1.1\r\nHost: 127.0.0.1:5491\r\nConnection: close\r\nAccept: application/json\r\n\r\n").is_err() {
+    if socket.write_all(request).is_err() {
         return "unavailable";
     }
     // Strict upper bound: 4KiB, no redirects, no user URL, no reading tokens.
@@ -64,7 +78,7 @@ fn probe_loopback_wall() -> &'static str {
 
 #[tauri::command]
 async fn probe_local_wall() -> &'static str {
-    tauri::async_runtime::spawn_blocking(probe_loopback_wall)
+    tauri::async_runtime::spawn_blocking(probe_wall_presence)
         .await
         .unwrap_or("unavailable")
 }

@@ -501,3 +501,9 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - client/desktop-v4/src/auth-entry.css: remove auth-theme styles entirely; client/desktop-v4/src/App.tsx no longer passes them.
 - client/desktop-v4/src/App.test.tsx + e2e/visual-smoke.mjs: absence assertion plus original Settings-only theme test, no arbitrary Owner authority.
 - Master handoff T01b tracks source SHA and CI; do not relabel the prior one-icon UI build as Owner acceptance.
+
+## Desktop V4 T02b NetBird Lab Wall target
+- client/desktop-v4/src-tauri/src/main.rs: exact native compile-time GoldABV2 Lab target 100.94.184.141:15591 for Open Wall and anonymous /api/status probe; default 127.0.0.1:5491. No MCP URL and no user-supplied target.
+- client/desktop-v4/src/lib/native-shell.test.ts: static target boundary tests.
+- .github/workflows/desktop-v4-native-ci.yml: LR_V4_WALL_PROFILE=goldabv2-lab for isolated UI native build; artifacts tagged accordingly.
+- Master handoff T02b records runtime proof and separate ChatGPT custom MCP path.
