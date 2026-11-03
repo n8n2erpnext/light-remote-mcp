@@ -993,3 +993,6 @@ Commit d4702af3 source-only genuine enrolled Ed25519 signed device ticket proof:
 
 ## 2026-11-03 — T04b4 signed Operator SSO gateway source
 A default-disabled device-channel handler was added for one-use Desktop-to-Wall sign-in tickets. It validates request shape, delegates signature and replay checks to the existing enrollment-backed ticket authority, and declines requests when no trusted server adapter is configured. Thirteen new tests passed, with prior T04 tests 53/53 passing. Source review and CI remain; there is no live SSO deployment or change to Agent approvals.
+
+## 2026-11-03 ~14:55 UTC — T04b4 source gate 4/4 accepted
+Default-OFF Operator signed one-use Wall ticket gateway commit 8a2d49da, GitHub Source Gate 41658255479 4/4 SUCCESS and Docs Integrity 41658254452 PASS, 66/66 selected local Node tests. No adapter mounted and no service or Agent A/B runtime changed. Next: cross-process trusted Owner family/Redis authority, enrolled Agent signed transport, native Rust ticket bootstrap and HTTPS/loopback Wall target, then physical E2E.

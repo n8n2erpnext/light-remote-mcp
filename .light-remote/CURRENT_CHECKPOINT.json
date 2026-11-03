@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T04b4_Operator_signed_Device_SSO_route_DEFAULT_OFF_66of66_LOCAL_PASS_CI_PENDING",
+  "status": "goldabv2_T04b4_DEFAULT_OFF_Enrolled_Ed25519_Signed_Redeem_GATE_CI4of4_PASS_E2E_OPEN",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-03 14:52 UTC: T04b4 source ONLY. Implemented operator-host/desktop-wall-sso-signed-route-v4.mjs with guarded /v1/device-channel/desktop-wall-sso-redeem in executor-routes-device-channel.mjs. Runtime callback deps.desktopWallSsoSignedRedeem is NOT configured by Operator, route returns 404 before parsing caller body. Verified ticket + enrolled Ed25519 envelope delegated exactly ONCE to T04a/T04b3 authority (double verification would consume replay nonce). 13 new tests use REAL EnrollmentRegistry and real Operator dispatcher with default OFF 404, trusted Ed25519 success, replay, parallel one winner, forged proof, digest swap, schema spoof, revoked Owner; selected T04 66/66 Node PASS plus Wall loopback HTTP PASS. Gold Source Gate CI pending; source NOT deployed; Agent A/B never approved by SSO. Remaining: private server-to-server Redis/Owner family binding, actual Agent signed transport, native Rust secure ticket request, Local Wall HTTPS or strict loopback, end-to-end Windows test. T03c2c Owner browser login/logout welcome and vault cold restore LIVE PASS; >10 minute sustained proactive refresh and server family revocation independent E2E unverified. Lab Auth automatic 60-min timer due 2026-11-03 15:00:37 UTC/22:00:37 HCM, recheck flags; Gold production/UAT/custom MCP unchanged.",
+  "nextAction": "T04b4 source commit 8a2d49da070e14a79c22001eaa79048c90bc13d4 GitHub Gold Source Gate 41658255479 4/4 PASS, Documentation Integrity 41658254452 PASS. Added default-OFF Operator POST /v1/device-channel/desktop-wall-sso-redeem; absent deps.desktopWallSsoSignedRedeem yields 404 before parsing, no running Operator adapter supplied. Enrolled Ed25519 proof checked EXACTLY ONCE inside T04a/T04b3 one-use Redis ticket authority, avoiding double-consumption of replay nonce; 13 new route/dispatcher tests and selected T04a/b suite 66/66 PASS, loopback Wall HTTP revoke PASS. Still SOURCE ONLY, NOT deployed to Gold Lab or production. T04 full E2E next requires server-to-server Owner family and Redis authority, device-signed Operator delivery, native Rust private ticket issue, real HTTPS or loopback Wall bootstrap, live Windows acceptance. User Owner Login/Logout Welcome and OS vault cold restore LIVE PASS; >10minute proactive refresh and independent server-side Owner logout family revoke E2E OPEN. Earlier Lab Auth 60min auto-OFF scheduled at 2026-11-03 15:00:37 UTC/22:00:37 HCM; CHECK LIVE FLAGS before testing or calling service ready. Gold UAT/prod/custom MCP, Agent A/B unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1001,7 +1001,7 @@
     "deploymentEnabled": false,
     "security": "only verified enrolled Ed25519 device signed request and one-use ticket; no duplicate replay check; strict exact body and generic 403",
     "tests": "13 new real dispatcher + enrolled Ed25519 tests; all T04 66/66 PASS, Wall loopback HTTP PASS",
-    "ci": "PENDING",
+    "ci": "Gold Source Gate 41658255479 4/4 SUCCESS, Documentation Integrity 41658254452 SUCCESS",
     "blocking": "Operator private family/Redis authority wiring, native Rust secure transport, TLS/loopback Wall"
   }
 }
