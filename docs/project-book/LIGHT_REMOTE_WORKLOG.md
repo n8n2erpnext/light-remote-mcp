@@ -708,3 +708,6 @@ T04b4 backend source on Gold commit 8a2d49da: new default-OFF Operator POST /v1/
 
 ## 2026-11-03 15:24 UTC — Gold T04b5 trusted Owner Redis source accepted
 Gold commit 931b86ad source-only shared hashed Owner access/family and current AccountRegistry single-Owner Portal session verification, default disabled, 13 new tests and 79/79 total, Gold CI41662764438 4/4 PASS, docs41662764452 PASS, Gold checkpoint7ed843d1. No running Operator adapter, physical Redis E2E, Rust ticket, device Agent signed relay, HTTPS Wall SSO or production cutover. Desktop Owner Login/Logout/Welcome remains physical Windows PASS; prolonged refresh and remote family revoke still need separate E2E. Lab Auth auto-OFF confirmed flags OFF.
+
+## 2026-11-03 — Gold T04b6 Operator gated signed SSO callback CI4/4
+Source fa1f75bf, Gold acceptance checkpoint 646f0dc2: require all 5 exact string-1 independent Operator/Owner/Token/Wall flags to expose T04b5 signed-redeem callback; default stays 404 and no Redis/device enrollment touched. Selected T04 89/89 and local Wall HTTP PASS; GitHub Source Gate41665190911 4/4 PASS, Docs41665190879 PASS. Still source-only, no real native Desktop ticket issuance, device signed relay or secure Wall SSO; no live deployment. Desktop Windows Owner Login/Logout Welcome PASS, >10m refresh and backend revocation E2E open.
