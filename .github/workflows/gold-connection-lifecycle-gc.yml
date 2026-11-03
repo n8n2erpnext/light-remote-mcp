@@ -56,6 +56,7 @@ on:
       - 'operator-host/enrollment-registry.mjs'
       - 'operator-host/desktop-wall-sso-device-proof-v4*.mjs'
       - 'operator-host/desktop-wall-sso-signed-route-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-trusted-authority-v4*.mjs'
       - 'operator-host/executor-routes-device-channel.mjs'
       - 'operator-host/device-registry.mjs'
       - 'deploy/scripts/selftest-linux-server-relink.mjs'
@@ -252,6 +253,7 @@ on:
       - 'operator-host/enrollment-registry.mjs'
       - 'operator-host/desktop-wall-sso-device-proof-v4*.mjs'
       - 'operator-host/desktop-wall-sso-signed-route-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-trusted-authority-v4*.mjs'
       - 'operator-host/executor-routes-device-channel.mjs'
       - 'operator-host/device-registry.mjs'
       - 'deploy/scripts/selftest-linux-server-relink.mjs'
@@ -318,7 +320,9 @@ jobs:
           node --check operator-host/desktop-wall-sso-signed-route-v4.mjs
           node --check operator-host/desktop-wall-sso-signed-route-v4.test.mjs
           node --check operator-host/executor-routes-device-channel.mjs
-          node --test operator-host/desktop-wall-sso-device-proof-v4.test.mjs operator-host/desktop-wall-sso-signed-route-v4.test.mjs
+          node --check operator-host/desktop-wall-sso-trusted-authority-v4.mjs
+          node --check operator-host/desktop-wall-sso-trusted-authority-v4.test.mjs
+          node --test operator-host/desktop-wall-sso-device-proof-v4.test.mjs operator-host/desktop-wall-sso-signed-route-v4.test.mjs operator-host/desktop-wall-sso-trusted-authority-v4.test.mjs
           node --test plugin-server/desktop-auth-v4-contract.test.mjs plugin-server/desktop-auth-v4-server.test.mjs plugin-server/desktop-owner-token-v4.test.mjs plugin-server/desktop-wall-sso-v4.test.mjs
           node deploy/scripts/selftest-gold-site-native.mjs
           node deploy/scripts/selftest-gold-wall-account-notifications.mjs

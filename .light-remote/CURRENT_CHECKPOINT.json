@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T04b4_DEFAULT_OFF_Enrolled_Ed25519_Signed_Redeem_GATE_CI4of4_PASS_E2E_OPEN",
+  "status": "goldabv2_T04b5_SHARED_OWNER_REDIS_proof_current_AccountRegistry_79of79_LOCAL_PASS_CI_PENDING_DEFAULT_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b4 source commit 8a2d49da070e14a79c22001eaa79048c90bc13d4 GitHub Gold Source Gate 41658255479 4/4 PASS, Documentation Integrity 41658254452 PASS. Added default-OFF Operator POST /v1/device-channel/desktop-wall-sso-redeem; absent deps.desktopWallSsoSignedRedeem yields 404 before parsing, no running Operator adapter supplied. Enrolled Ed25519 proof checked EXACTLY ONCE inside T04a/T04b3 one-use Redis ticket authority, avoiding double-consumption of replay nonce; 13 new route/dispatcher tests and selected T04a/b suite 66/66 PASS, loopback Wall HTTP revoke PASS. Still SOURCE ONLY, NOT deployed to Gold Lab or production. T04 full E2E next requires server-to-server Owner family and Redis authority, device-signed Operator delivery, native Rust private ticket issue, real HTTPS or loopback Wall bootstrap, live Windows acceptance. User Owner Login/Logout Welcome and OS vault cold restore LIVE PASS; >10minute proactive refresh and independent server-side Owner logout family revoke E2E OPEN. Earlier Lab Auth 60min auto-OFF scheduled at 2026-11-03 15:00:37 UTC/22:00:37 HCM; CHECK LIVE FLAGS before testing or calling service ready. Gold UAT/prod/custom MCP, Agent A/B unchanged.",
+  "nextAction": "2026-11-03 15:19 UTC: T04b5 SOURCE ONLY. Added operator-host/desktop-wall-sso-trusted-authority-v4.mjs, default-off createDesktopWallSsoTrustedOperatorV4. Actual Plugin and Operator share goldStorage.redis/prefix; Operator can inspect hashed Desktop access and family records, verify exact family/expiry, and current AccountRegistry.desktopOwnerSessionActive single Owner Portal session with no new public/Unix HTTP route or leaked access/refresh. Enrolled Ed25519 device and SHA256(ticket) verified via T04b3 and 45s Redis GETDEL ticket via T04a. 13 new tests cover real AccountRegistry, EnrollmentRegistry, Plugin token service, Operator dispatcher, Logout family delete, Portal logout, Owner transfer, disabled account, revoked device, Redis offline, 10min expired access, cross-prefix, malformed records and default OFF. Selected T04 79/79 Node PASS + Wall HTTP loopback revocation PASS; CI pending. IMPORTANT: actual operator-host/executor.mjs does NOT instantiate factory, signed route remains 404, no running Lab/prod services were updated. T04 full E2E still requires explicit feature-gated Operator startup, native Rust ticket issue, real signed Agent transport and loopback/HTTPS Wall target. Owner Windows Login/Sign out/Welcome and cold OS vault restore LIVE PASS; sustained >10min proactive refresh and backend family revocation E2E remain OPEN. Isolated Lab Desktop Auth flags automatically OFF after 2026-11-03 15:00:37 UTC/22:00:37 HCM, verified both OFF. Gold main UAT/prod, ChatGPT MCP and A/B grants unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "24189bf03706ecf028fa2b15a0ea2a6cbe39266ce0291c11d547310a47c84549",
-    "trackedFiles": 1178,
+    "treeDigest": "f3687445c81bd814f1f291b205450a23523537de81192514d18ae88245334d83",
+    "trackedFiles": 1180,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T14:53:54.066Z"
+    "recordedAt": "2026-11-03T15:19:50.221Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1003,5 +1003,17 @@
     "tests": "13 new real dispatcher + enrolled Ed25519 tests; all T04 66/66 PASS, Wall loopback HTTP PASS",
     "ci": "Gold Source Gate 41658255479 4/4 SUCCESS, Documentation Integrity 41658254452 SUCCESS",
     "blocking": "Operator private family/Redis authority wiring, native Rust secure transport, TLS/loopback Wall"
+  },
+  "t04b5SharedOwnerRedisAuthority": {
+    "source": "operator-host/desktop-wall-sso-trusted-authority-v4.mjs",
+    "tests": "operator-host/desktop-wall-sso-trusted-authority-v4.test.mjs",
+    "defaultEnabled": false,
+    "realRuntimeInstantiated": false,
+    "ownerVerification": "Shared hashed Gold Redis access/family plus AccountRegistry.desktopOwnerSessionActive",
+    "deviceVerification": "EnrollmentRegistry Ed25519 signed channel, one-use Redis ticket",
+    "localTests": "13 new plus existing T04 79/79 PASS and actual Wall loopback HTTP regression PASS",
+    "ci": "PENDING",
+    "securityLimits": "No new HTTP endpoints; no bearer/refresh to Wall; no A/B grant side effect",
+    "blocking": "Explicit Operator trusted authority startup, native secure ticket issue and signed device delivery, Wall TLS/loopback, real Windows E2E"
   }
 }
