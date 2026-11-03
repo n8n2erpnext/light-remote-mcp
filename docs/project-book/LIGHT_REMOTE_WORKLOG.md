@@ -990,3 +990,6 @@ Source-only operator-host/desktop-wall-sso-device-proof-v4.mjs now validates rea
 
 ## 2026-11-03 — T04b3 GitHub CI 4/4 PASS
 Commit d4702af3 source-only genuine enrolled Ed25519 signed device ticket proof: GitHub Source Gate 41650301752 4/4 PASS; Docs Integrity 41650301797 PASS; local 53/53 Node and Wall loopback HTTP PASS. No runtime T04 route, no deployed signed SSO/native Tauri integration. Lab Owner Login independently reopened until 22:00:37 HCM.
+
+## 2026-11-03 — T04b4 signed Operator SSO gateway source
+A default-disabled device-channel handler was added for one-use Desktop-to-Wall sign-in tickets. It validates request shape, delegates signature and replay checks to the existing enrollment-backed ticket authority, and declines requests when no trusted server adapter is configured. Thirteen new tests passed, with prior T04 tests 53/53 passing. Source review and CI remain; there is no live SSO deployment or change to Agent approvals.

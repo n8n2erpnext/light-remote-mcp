@@ -8,6 +8,7 @@ import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.
 import { goldAbV2LabV1Disabled } from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import { closeOwnerSessionAndGrant } from './owner-session-close-abv2.mjs';
 import { scanOwnerStaleClaims } from '../lib/gold-stale-claim-detector.mjs';
+import { handleDesktopWallSsoSignedRedeemV4 } from './desktop-wall-sso-signed-route-v4.mjs';
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
@@ -25,6 +26,14 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         status:'error',reason:'boot_store_unavailable'});
     }
   };
+  // T04b4: Operator signed channel SSO ticket redemption is DEFAULT OFF.
+  // Do NOT invoke verifiedChannelContext here: the T04 enrolled Ed25519
+  // signedRedeem verifier consumes its anti-replay nonce exactly once.
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/desktop-wall-sso-redeem'){
+    return handleDesktopWallSsoSignedRedeemV4(req,res,{
+      readJson,sendJson,signedRedeem:deps.desktopWallSsoSignedRedeem
+    });
+  }
   // Enrolled-Agent signed, owner-scoped, READ-ONLY V2 preview.
   // No account cookie or unverified deviceId, no B plaintext, no approve.
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/abv2-pending-preview'){

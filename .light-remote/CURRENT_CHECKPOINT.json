@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T04b3_real_Enrollment_Ed25519_SSO_source_Gold_CI4of4_PASS_Lab_Login_TEMP_ON",
+  "status": "goldabv2_T04b4_Operator_signed_Device_SSO_route_DEFAULT_OFF_66of66_LOCAL_PASS_CI_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-03 14:00 UTC: owner screenshot reported Desktop V4 login inaccessible because prior Lab auto-OFF timer finished, confirmed Lab health200 auth/Token both OFF and authorize404. New 60-minute isolated Lab Owner Auth+Token window ARMED AND ENABLED; timer lr-desktop-owner-lab-autooff-20261103-relogin.timer due 15:00:37 UTC / 22:00:37 Asia/Ho_Chi_Minh; external health200 authorize303, cross-site403 and empty token401; owner can restart NEW native app sign-in. T04b3 SOURCE ONLY new operator-host/desktop-wall-sso-device-proof-v4.mjs genuine EnrollmentRegistry.verifyChannel Ed25519 signed action desktop-wall-sso-redeem, ticket SHA256, enrollment-derived device/account, timestamp/nonce replay checks, plus 10 tests including native ticket issue -> signed one-use redeem. Selected T04a/b suite 53/53 PASS and loopback Wall HTTP PASS; Gold Source Gate CI 41650301752 4/4 SUCCESS. No actual HTTP route, no credential transport to Wall, no native Rust SSO and no Agent B grant. Remaining: bind real Operator signed channel, Gold ticket issuer, native Rust secure bootstrap with eligible TLS/loopback target, all E2E. Proactive refresh/Logout T03c2c Windows tests remain NOT verified; must run before current timer ends. Gold main UAT/prod unchanged.",
+  "nextAction": "2026-11-03 14:52 UTC: T04b4 source ONLY. Implemented operator-host/desktop-wall-sso-signed-route-v4.mjs with guarded /v1/device-channel/desktop-wall-sso-redeem in executor-routes-device-channel.mjs. Runtime callback deps.desktopWallSsoSignedRedeem is NOT configured by Operator, route returns 404 before parsing caller body. Verified ticket + enrolled Ed25519 envelope delegated exactly ONCE to T04a/T04b3 authority (double verification would consume replay nonce). 13 new tests use REAL EnrollmentRegistry and real Operator dispatcher with default OFF 404, trusted Ed25519 success, replay, parallel one winner, forged proof, digest swap, schema spoof, revoked Owner; selected T04 66/66 Node PASS plus Wall loopback HTTP PASS. Gold Source Gate CI pending; source NOT deployed; Agent A/B never approved by SSO. Remaining: private server-to-server Redis/Owner family binding, actual Agent signed transport, native Rust secure ticket request, Local Wall HTTPS or strict loopback, end-to-end Windows test. T03c2c Owner browser login/logout welcome and vault cold restore LIVE PASS; >10 minute sustained proactive refresh and server family revocation independent E2E unverified. Lab Auth automatic 60-min timer due 2026-11-03 15:00:37 UTC/22:00:37 HCM, recheck flags; Gold production/UAT/custom MCP unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "e5687c3f6b8ff477da10c5235ed5da260c685ffafb9fb0a73dcc888c21780b2a",
-    "trackedFiles": 1176,
+    "treeDigest": "24189bf03706ecf028fa2b15a0ea2a6cbe39266ce0291c11d547310a47c84549",
+    "trackedFiles": 1178,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T14:05:31.872Z"
+    "recordedAt": "2026-11-03T14:53:54.066Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -989,5 +989,19 @@
     "nativeAppIntegrated": false,
     "blocking": "trusted signed device-channel route binding, private native ticket transport, Wall eligible TLS/loopback, Windows E2E"
   },
-  "labOwnerReloginWindow": "isolated GoldABV2 Lab Auth+Token TEMP ON, independent systemd timer lr-desktop-owner-lab-autooff-20261103-relogin.timer due 2026-11-03 15:00:37 UTC /22:00:37 HCM, HTTPS health200 authorize303, same app binary; no production change"
+  "labOwnerReloginWindow": "isolated GoldABV2 Lab Auth+Token TEMP ON, independent systemd timer lr-desktop-owner-lab-autooff-20261103-relogin.timer due 2026-11-03 15:00:37 UTC /22:00:37 HCM, HTTPS health200 authorize303, same app binary; no production change",
+  "t04b4SignedOperatorRoute": {
+    "route": "POST /v1/device-channel/desktop-wall-sso-redeem",
+    "source": [
+      "operator-host/desktop-wall-sso-signed-route-v4.mjs",
+      "operator-host/executor-routes-device-channel.mjs",
+      "operator-host/desktop-wall-sso-signed-route-v4.test.mjs"
+    ],
+    "operatorAdapterConfigured": false,
+    "deploymentEnabled": false,
+    "security": "only verified enrolled Ed25519 device signed request and one-use ticket; no duplicate replay check; strict exact body and generic 403",
+    "tests": "13 new real dispatcher + enrolled Ed25519 tests; all T04 66/66 PASS, Wall loopback HTTP PASS",
+    "ci": "PENDING",
+    "blocking": "Operator private family/Redis authority wiring, native Rust secure transport, TLS/loopback Wall"
+  }
 }
