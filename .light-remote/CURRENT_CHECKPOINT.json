@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T03c2c6_Real_Chrome_STILL_403_sanitized_provenance_trace_Lab_until_1145UTC",
+  "status": "goldabv2_T03c2c7_Real_Chrome_Origin_null_from_no_referrer_scoped_fix_source_27of27_CI_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "045c526b5a8f6c9b9483df77e4684c1c6381045d71ec9e3ab2d92ea1aba94974",
+    "treeDigest": "4ed9df542e4a1967989a74ce086628ab6590c5ecad11bdd0953f1e963ef8ce2e",
     "trackedFiles": 1169,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T11:12:29.337Z"
+    "recordedAt": "2026-11-03T11:42:21.824Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

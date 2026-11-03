@@ -237,6 +237,7 @@ export function createDesktopOwnerAuthorization({
       }
       const ready = await begin(req.query, owner);
       const page = consentHtml(ready);
+      res.set('Referrer-Policy','origin');
       res.set('Content-Security-Policy',page.csp);
       return res.status(200).type('html').send(page.html);
     } catch (error) { return responseError(res,error); }

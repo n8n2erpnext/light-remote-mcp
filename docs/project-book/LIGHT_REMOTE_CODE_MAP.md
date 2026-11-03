@@ -701,3 +701,7 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 ## T03c2c6 Desktop Owner Consent POST headerless browser navigation (2026-11-03)
 - plugin-server/desktop-auth-v4-server.mjs strictBrowserPost: exact Origin HTTPS when present, reject explicit cross-site/same-site, allow missing Origin+Fetch-Site only with syntactically correct opaque csrf field; postConsent still checks Current Owner Account cookie and atomically consumes CSRF. No relaxed cross-origin allowance.
 - plugin-server/desktop-auth-v4-server.test.mjs: regression for missing Origin/Sec-Fetch-Site, invalid token, no Owner, bad Origin even if same-origin fetch-site, cross-/same-site denial, legitimate 303 callback and replay 410.
+
+## T03c2c7 Chrome consent form Origin/null fix (2026-11-03)
+- plugin-server/desktop-auth-v4-server.mjs `getConsent`: only verified Owner consent HTML response overrides private default no-referrer with `Referrer-Policy: origin`. Chrome form POST now sends the real Origin; destination receives only origin Referer, not PKCE query. `postConsent` continues exact Origin, cross-site and strict single-Owner/CSRF checks.
+- plugin-server/desktop-auth-v4-server.test.mjs asserts consent GET response policy `origin`. Real Chrome screenshot+sanitized provenance was site=same-origin/origin=mismatch before change; repeat physical E2E required.

@@ -161,6 +161,7 @@ test('feature-flagged browser flow requires consent, same origin and verified Ow
   assert.match(consent.body,/Continue to Desktop/);
   assert.match(consent.headers['Content-Security-Policy'],/frame-ancestors 'none'/);
   assert.equal(consent.headers['Cache-Control'],'no-store');
+  assert.equal(consent.headers['Referrer-Policy'],'origin');
   const csrf=consent.body.match(/name="csrf" value="([A-Za-z0-9_-]{43})"/)?.[1];
   assert.equal(csrf?.length,43);
   const headers={
