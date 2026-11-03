@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T04b7b_SIX_FLAG_NATIVE_TICKET_Plugin_Operator_UNIX_SOURCE_122of122_PASS_CI_PENDING_DEFAULT_OFF",
+  "status": "goldabv2_T04b7b_NATIVE_HTTPS_UNIX_TICKET_SOURCE_CI4of4_PASS_T04b8_LAB_PROXY_TOPOLOGY_READONLY",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-03 T04b7b SOURCE ONLY. Plugin HTTPS Native Owner ticket issuer is wired to existing Operator Unix socket with six independent EXACT string-1 flags: original B6 five plus LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4. Default OFF: no public route; Operator internal issuer 404 before body read. Plugin server conditional 2KiB JSON parser BEFORE general 12MiB parser, protected Owner Authorization Bearer and exact {device_id}, explicit LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4 exact reverse proxy allowlist, generic errors and 45s opaque one-use Redis ticket. Per 60s in-process bounded hashed access limiter max5/token max100/global, max512 keys; evaluate performance and distributed throttling before high scale. Actual Node HTTP loopback to real temporary Unix socket transport tests are PASS, but trusted proxy/TLS and pre-Express parser are simulated in native Node due to VPS worktree lacking Express dependencies; NOT actual HTTPS or full deployed Express proof. 12 new router tests, 5 real local HTTP/Unix socket tests, 2 operator flag tests: selected T04 122/122 Node PASS and Wall HTTP loopback revoke regression PASS. Gold Source Gate CI pending. No Lab/UAT/prod runtime deployment, six flags all OFF. NEXT T04b8: physical Lab proxy + real Redis Owner-family/Enrollment cross-process acceptance under snapshot/auto-OFF, Tauri native private transfer and signed Agent relay, secure HTTPS/loopback Wall session cookie and Windows E2E. T03 Owner Login/Logout/Welcome Windows physical PASS, sustained >10min refresh and independent server-side family revoke E2E still OPEN. Earlier tool safety block clock injection was not revisited, no bypass. Gold production, ChatGPT MCP, Agent A/B unchanged.",
+  "nextAction": "T04b7b Gold source commit 89b607d04c3000bb82fdf2ccf2981822c471148a accepted Gold Source Gate41671804510 4/4 PASS, Docs41671804368 PASS, selected T04 Node122/122 and Wall loopback revoke PASS; six independent feature flags default OFF, no running service or Windows EXE deployed. T04b8 read-only ingress map verified on actual VPS/LXD at 2026-11-03 16:15 UTC: Docker netbird-traefik public 443 websecure TLS router goldabv2-mcp Host(goldabv2.light-remote.thaiduy.digital) -> HTTP backend 172.30.0.1:15583 -> LXD proxy to Plugin 127.0.0.1:5583, public and local health200, four GoldABV2 Lab services active. Actual Operator Unix socket /run/light-remote-gold-uat/operator.sock mode660 gold-uat:gold-uat (differs from default source path, unit overrides). STILL UNKNOWN: remote peer address Express sees, X-Forwarded-Proto sanitation, any bypass ingress to LXD proxy, actual 2KiB Express parser under real NGINX/Traefik, real Redis/Owner/Enrollment cross-process and native Rust signed relay. DO NOT guess LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4. Next T04b8 use bounded secret-free Lab-only observation and preflight before enabling any SSO flag; after that snapshot+auto-OFF+real Redis/HTTPS, native Tauri ticket and signed Agent Wall bootstrap physical Windows E2E. Owner Login/Logout/Welcome Windows PASS; >10minute native refresh and independent backend family revoke E2E remain OPEN. Gold UAT/prod/custom MCP and A/B untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1067,7 +1067,22 @@
     "tests": "12 router +5 Node HTTP-real Unix socket transport +2 Operator issuer gates; selected T04 122/122 PASS, Wall HTTP loopback revoke PASS",
     "testLimit": "Proxy, HTTPS and Express parser simulated in Node. No real NGINX/physical HTTPS or real Redis multi-process E2E",
     "rate": "max5 per hashed token per 60s; max100 global per 60s; max512 token hashes per Plugin process; production scale review required",
-    "ci": "PENDING",
+    "ci": "Gold Source Gate 41671804510 4/4 SUCCESS; Docs Integrity 41671804368 SUCCESS",
     "blocking": "Production-grade proxy/TLS acceptance, real cross-process Redis and Enrollment checks, native Tauri secure transfer and signed Agent Wall bootstrap"
+  },
+  "t04b8LabIngressReadOnly": {
+    "checkedAtUtc": "2026-11-03T16:15:24Z",
+    "publicOrigin": "https://goldabv2.light-remote.thaiduy.digital",
+    "traefik": "netbird-traefik Docker public :443; router goldabv2-mcp with TLS websecure",
+    "traefikBackend": "http://172.30.0.1:15583",
+    "lxdProxy": "tcp:172.30.0.1:15583 -> tcp:127.0.0.1:5583 inside light-remote-abv2-lab-20261101",
+    "operatorSocket": "/run/light-remote-gold-uat/operator.sock",
+    "operatorSocketAcl": "0660 gold-uat:gold-uat",
+    "labServices": "4/4 active; public and loopback health200",
+    "effectivePeerVerified": false,
+    "forwardedHttpsSanitizedVerified": false,
+    "featureFlagsEnabled": false,
+    "newDeployment": false,
+    "next": "observe trusted proxy peer and HTTPS forwarded metadata without secrets before setting allowlist; audit alternative backend ingress"
   }
 }
