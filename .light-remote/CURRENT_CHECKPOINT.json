@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_desktop_owner_compatibility_source_only_25of25_tests_PASS_CI_PENDING_runtime_OFF",
+  "status": "goldabv2_desktop_owner_Lab_service_cutover_PASS_4of4_auth_FLAGS_OFF_E2E_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Commit/push GoldABV2-compatible Desktop Owner auth candidate branch, verify Gold Source Gate/Docs CI. Keep both Desktop Owner flags OFF; then preserve Lab rollback and stage only compatible Plugin/Operator sources in isolated LXD with Owner Transfer and A/B regression. Owner-approved Windows native E2E before T04 SSO; no Gold UAT/prod/Long Memory changes.",
+  "nextAction": "Lab Plugin/Operator source cutover with flags OFF passed, rollback snapshot/overrides held. NEXT controlled Owner-authorized Windows Desktop V4 candidate PKCE browser+OS Keyring+refresh/logout E2E, enable both flags only on isolated Lab with Owner consent and rollback, then T04 signed App->Wall SSO. Never touch main Gold UAT/production/MCP or Legacy Long Memory.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -917,10 +917,17 @@
     "nodeSyntax": "PASS",
     "desktopAuthSecurityTests": "25/25 PASS",
     "goldOwnerTransferSynthetic": "PASS with feature flags only in test process",
-    "gitSourceSha": "PENDING",
-    "goldSourceGateCi": "PENDING",
-    "goldABV2LabRuntimeChanged": false,
+    "gitSourceSha": "9d996956cc45bc38b03a95eb2c7faae0a54af6fb",
+    "goldSourceGateCi": "41606865066 4/4 SUCCESS; documentation CI 41606865012 SUCCESS",
+    "goldABV2LabRuntimeChanged": true,
     "goldUATProductionChanged": false,
+    "stagedPluginSource": "/opt/light-remote-abv2-lab/source-9d996956-desktop-owner-plugin-STAGED",
+    "stagedOperatorSource": "/opt/light-remote-abv2-lab/source-9d996956-desktop-owner-operator-STAGED",
+    "labServiceCutover": "PASS: 4/4 active, HTTPS 200, Account Login 200, auth endpoints still 404, active AB grants 0, Activity Log 0600, recent service err counts 0",
+    "lxdRollbackSnapshot": "pre-desktop-owner-9d996956-20261103 (disaster backup only; do not rewind grants)",
+    "sourceOnlyRollback": "/var/backups/light-remote-abv2-lab-desktop-owner-9d996956-20261103/{plugin,operator}.{original.conf,path}",
+    "desktopOwnerFlags": "both explicitly OFF (0) in the final Lab systemd override",
+    "ownerCandidateCI": "41605694255 7/7 PASS; three unsigned non-production LAB binaries, not installed",
     "desktopOwnerLiveE2E": false,
     "appToWallSSO": false,
     "handoff": "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_OWNER_AUTH_LAB_20261103.md"
