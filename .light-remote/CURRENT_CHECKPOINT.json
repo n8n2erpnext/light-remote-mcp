@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T03c2c7_REAL_Windows_Owner_Portal_Callback_Workspace_PASS_vault_refresh_logout_PENDING",
+  "status": "goldabv2_T04a_Desktop_Wall_SSO_OneUse_Ticket_Source16of16_PASS_CI_PENDING_NO_RUNTIME",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Owner screenshot LIVE PASS: Chrome loopback /desktop/v4/callback displayed Sign-in result received, native Desktop V4 entered Overview with OWNER VERIFIED · WALL UNVERIFIED. Accept real Windows Owner Consent/PKCE loopback/workspace unlock only, NOT full T03c2c. Next independently verify Windows Credential Manager persistence, restart/restore, >10min token refresh, logout/revocation; then T04 signed App->Wall SSO. Lab Auth flags TEMP ON with auto-OFF due 2026-11-03 12:40:39 UTC / 19:40:39 HCM; must recheck live flags after expiration, do not auto-renew; 4/4 services active HTTPS200. Prod/Gold UAT unchanged.",
+  "nextAction": "Owner real Windows Login/PKCE callback and Overview Owner Verified PASS, Wall Unverified correctly. T04a SOURCE ONLY: new plugin-server/desktop-wall-sso-v4.mjs 45s hashed one-use Redis ticket, verified native Owner + enrolled target, independent signed device binding and current Owner family, with per-request Wall family check; 16/16 negative tests PASS. No routes registered or deployed. NEXT Gold Source Gate CI 4/4; independently test T03c2c Windows Keyring read-after-restart, >10min refresh/logout/revoke; then T04b signed Operator redemption, native SSO request and Local Wall cookie with per-request revocation. Lab Owner auth temporary flags auto-OFF at 12:40:39 UTC/19:40:39 HCM; live-check if testing later. No Gold UAT/prod change, no automatic A/B approval.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "4ed9df542e4a1967989a74ce086628ab6590c5ecad11bdd0953f1e963ef8ce2e",
-    "trackedFiles": 1169,
+    "treeDigest": "bc513a3c283c550c851a6c493a98e0fd29637afd4a65434a9a6eafb6bf21457e",
+    "trackedFiles": 1171,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T11:42:21.824Z"
+    "recordedAt": "2026-11-03T12:32:44.124Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -943,5 +943,18 @@
     "t03c2c7Source": "9c7d5582f10e4ce6a9f4b03e6c65ceb5bb8f58c4 (consent HTML only Referrer-Policy: origin); GitHub CI 41629686136 4/4 SUCCESS",
     "t03c2c7LiveStatus": "Source staged in Lab SHA matched and removed temporary diagnostics, tests 27/27 PASS, guarded Lab Owner auth enable retry SUCCESS but REAL Windows browser callback/OS vault E2E still UNVERIFIED.",
     "ownerLoginWindowsVisualAcceptance": "PASS on 2026-11-03: native loopback callback receipt, Chrome sign-in result, desktop Overview OWNER VERIFIED · WALL UNVERIFIED. Actual OS keyring, restart/refresh/revoke NOT yet checked."
+  },
+  "t04aSourceOnly": {
+    "paths": [
+      "plugin-server/desktop-wall-sso-v4.mjs",
+      "plugin-server/desktop-wall-sso-v4.test.mjs"
+    ],
+    "test": "16/16 Node PASS on VPS-ARM; full Gold GitHub CI pending",
+    "mounted": false,
+    "runtimeDeployed": false,
+    "ticketTtlSeconds": 45,
+    "protocol": "Desktop native HTTPS authenticated Owner -> one-use SHA256 Redis ticket -> separately verified signed enrolled Wall device -> local Wall independently issues revocable HttpOnly cookie",
+    "blocker": "current Wall stateless HMAC session cookie not linked to Owner family revocation; T04b must enforce per-request family validity",
+    "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_WALL_SSO_T04_CONTRACT_20261103.md"
   }
 }

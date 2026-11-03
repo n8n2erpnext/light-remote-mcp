@@ -15,6 +15,7 @@ on:
       - 'plugin-server/server.mjs'
       - 'plugin-server/desktop-auth-v4-*.mjs'
       - 'plugin-server/desktop-owner-token-v4*.mjs'
+      - 'plugin-server/desktop-wall-sso-v4*.mjs'
       - 'lib/gold-registry-persistence.mjs'
       - 'lib/gold-native-account-aux.mjs'
       - 'platform-v2/sql/045_gold_single_owner_authority.sql'
@@ -295,7 +296,9 @@ jobs:
           node --check plugin-server/desktop-auth-v4-contract.mjs
           node --check plugin-server/desktop-auth-v4-server.mjs
           node --check plugin-server/desktop-owner-token-v4.mjs
-          node --test plugin-server/desktop-auth-v4-contract.test.mjs plugin-server/desktop-auth-v4-server.test.mjs plugin-server/desktop-owner-token-v4.test.mjs
+          node --check plugin-server/desktop-wall-sso-v4.mjs
+          node --check plugin-server/desktop-wall-sso-v4.test.mjs
+          node --test plugin-server/desktop-auth-v4-contract.test.mjs plugin-server/desktop-auth-v4-server.test.mjs plugin-server/desktop-owner-token-v4.test.mjs plugin-server/desktop-wall-sso-v4.test.mjs
           node deploy/scripts/selftest-gold-site-native.mjs
           node deploy/scripts/selftest-gold-wall-account-notifications.mjs
           node deploy/scripts/selftest-gold-wall-notifications-signed-proof.mjs

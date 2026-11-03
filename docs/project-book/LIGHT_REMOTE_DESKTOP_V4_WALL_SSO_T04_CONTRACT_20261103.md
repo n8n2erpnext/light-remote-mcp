@@ -1,0 +1,34 @@
+# LIGHT REMOTE DESKTOP V4 — T04 App → Local Wall SSO
+
+Date: 2026-11-03 (Asia/Ho_Chi_Minh)
+Branch: `feat/goldabv2-desktop-owner-lab-20261103`
+Status: **T04a SOURCE-ONLY protocol and tests — not live, default OFF**
+
+## Grounded acceptance and scope
+Owner's actual Windows screenshot on November 3, 2026 showed Chrome returning to the ephemeral localhost `/desktop/v4/callback` with "Sign-in result received", and the native Tauri application entering Overview with `OWNER VERIFIED · WALL UNVERIFIED`. Real Owner browser consent/PKCE callback/workspace entry PASS. The same screenshot does NOT prove OS credential vault read-after-restart, 10-minute proactive refresh, logout/revocation, or any Wall auth.
+
+The user's required T04 security boundary is **one-way native Desktop Owner → separate Local Wall Owner session**, with independent A/B Agent grants and no reuse of Account Portal cookies.
+
+## T04a immutable authorization contract — new source
+`plugin-server/desktop-wall-sso-v4.mjs` exports `createDesktopWallSsoV4` and `DESKTOP_WALL_TICKET_TTL_MS=45000`. This is pure backend service code with injected trusted adapters; no new HTTP route, no feature flag enabled, no running Wall modification.
+
+1. **Issue**: a native OS process (not React WebView) authenticates to Gold over HTTPS with purpose-scoped Desktop Owner access. An injected **server-trusted** native access inspector must return current verified Owner, exact `urn:light-remote:desktop-owner:v4` audience and `desktop:read` scope, account ID and revocable family ID. An independent authoritative enrolled-device registry verifies that the requested target belongs to the same account and is not revoked. The server generates a 256-bit random 43-char opaque ticket and stores only a SHA-256 ticket key in Redis with `EX=45` and `NX`. Return ticket, target device and expiry; never return or transmit Desktop bearer/refresh token to Wall.
+2. **Redeem**: ONLY a device-signed, independently verified channel from enrolled target Wall can redeem. Its signed envelope MUST bind the SHA-256 ticket digest to its device/account identity and anti-replay transport nonce. The service confirms proof, atomically consumes Redis ticket with `GETDEL`, compares exact signed account/device binding, checks enrollment again, and confirms the Owner family is still live. Wrong account/device, expiry and replay are rejected; mismatches burn ticket.
+3. **Result**: the output is only `wall_local_session_authority_v1` with accountId, deviceId and revocable familyId. This is **not an access token, bearer or Wall cookie**. The Local Wall independently issues a new domain/path-scoped HttpOnly SameSite cookie on its own origin; app login cannot be unlocked by Wall.
+4. **Revocation**: independent `assertWallSessionCurrent` requires LIVE Owner-family and device-enrollment checks on *each* protected Wall request. The current Wall auth uses locally HMAC-signed stateless cookie and does not do this yet. Therefore T04 cannot be mounted or claimed complete until Wall session/revocation integration is implemented with fail-closed semantics. A Chrome browser tab or localhost port alone is never proof.
+5. **No A/B authority**: caller-supplied account, agentId, grantId, B code, Owner consent and refresh tokens are rejected by strict issue schema. This protocol does NOT approve Agent sessions, elevate local device policies or mint ChatGPT MCP tokens.
+
+## T04a negative regression
+`plugin-server/desktop-wall-sso-v4.test.mjs` checks ticket entropy, hashed Redis storage, TTL, single consumption, replay, wrong account, wrong device, signed digest mismatch, forged proof, missing native session, device unenrollment, family revocation, spoofed Agent/B fields, forbidden native credentials over the Wall redeem call, live revocation per protected request, and that no server/Wall route is accidentally mounted. The Gold Source Gate adds these tests and includes this file pair in its branch path filters. Local run: 16/16 PASS on VPS-ARM.
+
+## T04b integration gate (NOT STARTED)
+- Gold backend: wire the ticket issuer into the EXISTING Desktop Owner token service using a **private** family-bound principal accessor, not the public WebView projection. Use a distinct default-OFF feature gate and native-only HTTPS checks. No password/cookie import.
+- Signed device redeem: integrate with existing enrolled device-signed Operator channel; never accept unsigned payloads or raw account/device IDs supplied by the browser. Use one-use ticket digest binding and documented rotation/revocation.
+- Device Wall: add a fixed Local Wall POST redemption route with Host/origin/CSRF constraints and separate HttpOnly SameSite Wall cookie, bound to live Owner family; add authenticated request-level revocation. Wall sign out and Desktop sign out must revoke their respective sessions appropriately; separate A/B state is unchanged.
+- Native Tauri: use Rust-only Owner access state to request HTTPS ticket; never expose access/refresh to WebView or send them through HTTP/NetBird. Open ONLY fixed local Wall target after legitimate device binding; do not construct URLs from untrusted query. Prefer request-body one-time ticket over durable URL query; prevent browser history and referer leakage.
+- Tests: malformed/expired/tampered tickets, duplicate redemption race, signed proof replay, other-device/account, revoked Owner/Portal session, disabled/relinked device, offline fail-closed, Wall cookie revocation, logout, rate limiting, Windows/macOS/Linux native integration and live Owner approval.
+
+## Scope of current delivery
+No T04 endpoints are registered. No signed Wall sessions are issued. No runtime services, flags, installed Windows binaries, Agent grants, Gold main UAT or production were changed by T04a. Source tests do not replace device-signed E2E or Windows vault durability tests.
+
+Next: obtain Gold CI Source Gate 4/4 for T04a; perform independent native Windows credential restore/refresh/logout QA; then T04b signed-device and Wall revocation integration in isolated Lab, default OFF until all security gates PASS.
