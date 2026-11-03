@@ -606,3 +606,6 @@ T00 master handoff pushed to GitHub SSH from VPS-ARM at 8004a074. T01 login-firs
 
 ## 2026-11-03 - Desktop V4 T02 exact Owner/OAuth/Wall source audit
 Read-only source audit of Account Portal and Operator account routes, strict MCP_RESOURCE OAuth PKCE, Local Wall Owner /api/status 401 and independent /api/abv2/approve B/consent CSRF. No real Desktop Owner auth/SSO exists yet. Documented separate purpose-specific Desktop exchange requirement. T01 Web CI success, native jobs pending. Production unchanged.
+
+## 2026-11-03 - T01 CI complete / T03a Desktop Owner PKCE contract scaffold
+T01 single-icon theme source SHA 9f89a63a now GitHub V4 CI run 41571945654 4/4 PASS (Web, Windows, macOS, Linux), not yet physical UI acceptance. T03a pure Desktop owner PKCE challenge/callback validator added with distinct non-MCP audience/scope, 90s intent and strict 127.0.0.1/[::1] callback, rejects forged Owner/A-B authority. Offline Node unit tests 5/5 PASS on ARM without builds; GitHub CI added, pending. Module NOT mounted; real Owner Login, refresh/OS vault, App-Wall SSO still OPEN. Production/Gold UAT unchanged.

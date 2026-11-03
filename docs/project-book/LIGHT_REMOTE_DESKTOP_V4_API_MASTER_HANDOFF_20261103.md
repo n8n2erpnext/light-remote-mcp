@@ -44,9 +44,9 @@ E. OS App Lock applies only after verified account session; unlock cannot overri
 | Task | Scope / gate | Status |
 |---|---|---|
 | T00 | Write master handoff + checkpoint, verify canonical ARM SSH Git and baseline | DONE |
-| T01 | One-icon Light/Dark appearance switch, fix restored-window edge collision; targeted UI test | SOURCE DONE, CI PENDING |
+| T01 | One-icon Light/Dark appearance switch, fix restored-window edge collision; targeted UI test | CODE + CI 4/4 PASS; physical Windows UI E2E OPEN |
 | T02 | Inventory exact Account Portal / Operator OAuth / Local Wall signed API contracts and auth security | SOURCE AUDIT COMPLETE |
-| T03 | Native Owner login PKCE + callback + secure OS vault + logout/refresh | BLOCKED ON T02 |
+| T03 | Native Owner login PKCE + callback + secure OS vault + logout/refresh | IN PROGRESS: T03a validator/test only; no live auth |
 | T04 | Signed one-way App -> Local Wall SSO, replay prevention and logout link | BLOCKED ON T03 |
 | T05 | Overview/Devices/Link/Relink with actual enrolled ShortID and signed status | OPEN |
 | T06 | Sessions / AI Access (per-Agent leases/nicknames, B and consent, Owner close) | OPEN |
@@ -85,3 +85,22 @@ Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4
 - Source evidence: Account Portal /account/api me/devices/usage/logout needs separate Portal Owner session cookie. /oauth/authorize and /oauth/token are strictly bound to MCP_RESOURCE and use Redis one-time code/refresh replay protection.
 - Local Wall /api/status requires its own Owner session. /api/abv2/approve additionally requires B code, request/attempt and independent Owner consent with CSRF. Native Tauri port reachability is NOT Owner proof.
 - Read-only source audit only; no new server route, no production/Wall mutation. Next: T03 purpose-specific Desktop login behind default-OFF controls, then T04 one-way Wall SSO. T01 native CI pending.
+
+### T01 ? CI ACCEPTED, physical Windows acceptance separate
+- Source SHA: 9f89a63a6aeb0ad2f4483c9fd4fc30018f59fe1a.
+- GitHub Actions: https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41571945654 4/4 SUCCESS, Web+Chromium and Windows/macOS/Linux Tauri native build.
+- This is only UI build/automated test acceptance. Updated Windows restored-size screenshot from installed UI pilot is NOT YET VERIFIED; do not claim owner visual signoff or production installation.
+- Next: T03a contract, then T03b server Owner exchange and T03c native vault/callback. No change to installed Agent.
+
+### T02 ? SOURCE CONTRACT COMMIT RECEIPT
+- Contract source commit: b681e6a61b8d2955923323896efca3d851492929.
+- Files: docs/project-book/LIGHT_REMOTE_DESKTOP_V4_OWNER_AUTH_CONTRACT_AUDIT_20261103.md, this ledger, Code Map, Worklog, checkpoint.
+- Read-only source evidence: Account Portal cookie-based me/devices/usage and OAuth MCP_RESOURCE restrictions; Local Wall 401, B4+4/consent and CSRF.
+- No live API or Desktop auth attempted; next T03 deliberately separate audience.
+
+### T03a ? CODED PURE CONTRACT + TESTED; endpoint NOT mounted
+- Paths: plugin-server/desktop-auth-v4-contract.mjs and desktop-auth-v4-contract.test.mjs.
+- Validates owner authority from the already-verified Account Portal session, exact desktop client/resource/scope, PKCE S256, 43-character state+install nonce, strict ephemeral IPv4/IPv6 loopback callback /desktop/v4/callback, 90s authorization intent.
+- Denies remote:MCP audiences/scopes, wrong Owner/account client parameters, forged Agent/grant/B/consent payload, wrong callbacks, weak verifier/challenge.
+- On VPS-ARM only lightweight Node 22 syntax + node --test (NO npm build): 5/5 PASS. New dedicated test step added to GitHub V4 CI; exact run PENDING.
+- This module is never imported/mounted by Account Portal or Operator; creates NO authorization code, session, bearer/refresh token or grant. T03b still needed before enabling actual Sign in.

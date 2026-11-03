@@ -48,6 +48,8 @@ jobs:
         run: npm run build
       - name: Unit, rendered UI and native-shell security tests
         run: npm test
+      - name: Desktop Owner PKCE callback security contract tests (default OFF)
+        run: node --test ../../plugin-server/desktop-auth-v4-contract.test.mjs
       - name: Install Chromium on GitHub runner (never VPS-ARM)
         run: npx playwright install --with-deps chromium
       - name: Pixel/browser QA for exact Figma sizes and intermediate widths

@@ -488,3 +488,9 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - OAuth source: plugin-server/oauth.mjs; PKCE grant and token resource is MCP_RESOURCE only; NO Desktop Owner token bridge.
 - Wall source: device-agent/local-wall.mjs; own Owner cookie required for /api/status and CSRF + separate Owner B/consent for /api/abv2/approve.
 - Contract / negative tests and missing Desktop/Wall SSO: docs/project-book/LIGHT_REMOTE_DESKTOP_V4_OWNER_AUTH_CONTRACT_AUDIT_20261103.md.
+
+## Desktop V4 T03a Owner PKCE pure candidate (2026-11-03)
+- plugin-server/desktop-auth-v4-contract.mjs: default-OFF, NOT MOUNTED, pure strict Desktop audience/client, PKCE S256 and literal loopback callback validator. No token/session issuance.
+- plugin-server/desktop-auth-v4-contract.test.mjs: negative tests for wrong owner, scopes/audience, tampered verifier, callback spoof, B/grant/consent injection.
+- .github/workflows/desktop-v4-native-ci.yml: Node 22 offline contract tests as part of Web job before native builds; no VPS-ARM npm/cargo build.
+- Source and CI acceptance in docs/project-book/LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md.

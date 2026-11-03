@@ -46,3 +46,8 @@ Observed OAuth constants: authorization code TTL 120s, access TTL 3600s, refresh
 - Static route census: 97 distinct exact Wall API/auth paths enumerated from current source; Account Portal actions include me/devices/usage/login/logout/notifications and owner-only mutations.
 - Tests: read-only source audit; no token issued, no CSRF weakening, no runtime production calls, no CI claims for native auth.
 - T02 outcome: API security contract understood; additional purpose-specific Desktop auth and Wall SSO endpoints required. T03 coding must begin behind explicit default-OFF flags and tests, after precise token schema review.
+
+## Candidate T03a pure request validator (not endpoint)
+- plugin-server/desktop-auth-v4-contract.mjs: independent desktop audience urn:light-remote:desktop-owner:v4, clientId light-remote-desktop-v4, fixed desktop:read scope, PKCE S256 and fixed loopback callback validation.
+- Source rejects forged Owner/Agent authority, guessed localhost/remote redirects, weak state and MCP_RESOURCE purpose confusion. Code TTL intent 90 seconds.
+- Node native offline unit tests 5/5 PASS before commit; wired as GitHub CI step. No new OAuth route, no token issuance, no Owner session, no bypass. Exact CI run PENDING.
