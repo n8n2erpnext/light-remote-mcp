@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T03c2c_login_reenabled_Lab60m_until_220037HCM_T04b3_source_signed_ed25519_53of53",
+  "status": "desktop_v4_T03c2c10_COLD_SIGNOUT_LOCK_PASS_signedout_UI_FIX_SOURCE_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Owner Desktop Login 404 was caused by previous bounded Lab Auth flags OFF, verified 2026-11-03 13:57 UTC all four services active health200 authorize404, timer result success. New 60min isolated Lab Plugin Auth+Token window reopened 14:00:37 UTC/21:00:37 HCM until 15:00:37 UTC/22:00:37 HCM, public HTTPS health200 anonymous authorize303, cross-site403, missing native credentials401. Owner should use fresh native Sign in again, never reuse old callback URL. Do not call this a Tauri login regression. T04b3 Gold source d4702af3 real EnrollmentRegistry Ed25519 device signed ticket proof 10 new tests, selected T04a/b 53/53 Node and Wall HTTP loopback PASS, GitHub Source Gate 41650301752 pending; NOT mounted, no native SSO or production deployment. Windows Login/PKCE and cold OS vault restore previously PASS; >10min proactive refresh and Logout/revocation E2E still OPEN; after timer verify actual Lab flags before testing.",
+  "nextAction": "Owner screenshot after explicit Sign out and app close/reopen shows locked SESSION EXPIRED. No Owner auto-restore after local Sign out PASS; SERVER family revoke NOT PROVEN by screenshot. Native Rust root cause: desktop_owner_restore -> refresh_from_vault missing OS keyring -> owner_not_signed_in mapped by OwnerRuntime.finish to expired. SOURCE FIX ONLY in client/desktop-v4/src-tauri/src/owner_login.rs: only restoring + owner_not_signed_in now gives signed_out (Welcome); backend rejected, vault locked, HTTP offline errors still expired. Four native Rust tests and React AuthEntry Welcome test added. NEXT GitHub Desktop V4 CI all Windows/macOS/Linux; produce NEW unsigned candidate from GitHub Actions (existing Windows EXE unchanged) before human cold-start UI re-test. Separately inspect server logout family revoke metadata under authorized Lab window (no tokens), continue T04b signed device Native/Wall route; T04 is not live. GoldABV2 Lab timer lr-desktop-owner-lab-autooff-20261103-relogin.timer due 2026-11-03 15:00:37 UTC/22:00:37 HCM; verify flags before test, no production change.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -171,10 +171,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "da4093e5967f6c13d41c063bec23c4c796400cb2149ca130eba4088ed11d0705",
+    "treeDigest": "8eda294102dcd78acac8488a2a30925bde467ab5837ef4346bc1824786b955f3",
     "trackedFiles": 1182,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T09:42:03.764Z"
+    "recordedAt": "2026-11-03T14:25:28.940Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -778,5 +778,18 @@
   "labAuthFinalState": "OFF verified 2026-11-03 12:43:07 UTC: authOn0/tokenOn0/authOff1/tokenOff1, timer result=success, Plugin/Operator/Wall/Supervisor 4/4 active, HTTPS200, authorize404.",
   "labOwnerRefreshLogoutWindow": "Lab-only flags TEMP ON, root-owned auto-OFF timer lr-desktop-owner-lab-autooff-20261103-refreshlogout.timer due 2026-11-03 13:44:49 UTC / 20:44:49 HCM. Windows >12min refresh + Logout/restart user test pending.",
   "desktopLabLoginRecovery20261103": "GoldABV2 Lab Auth+Token TEMP ON with 60-minute timer lr-desktop-owner-lab-autooff-20261103-relogin.timer due 2026-11-03 15:00:37 UTC /22:00:37 HCM. 4/4 services active, public health200 authorize303. User informed.",
-  "t04b3GoldSignedProof": "source-only operator-host/desktop-wall-sso-device-proof-v4.mjs, real EnrollmentRegistry Ed25519 signed account/device digest and replay; Gold commit d4702af3; 53/53 selected Node tests PASS; live route/Tauri not wired."
+  "t04b3GoldSignedProof": "source-only operator-host/desktop-wall-sso-device-proof-v4.mjs, real EnrollmentRegistry Ed25519 signed account/device digest and replay; Gold commit d4702af3; 53/53 selected Node tests PASS; live route/Tauri not wired.",
+  "t03c2c10OwnerSignoutColdStart": {
+    "evidence": "owner physical Windows screenshot shows SESSION EXPIRED after Sign out and EXE restart; no automatic Owner restore",
+    "localSignoutLocked": "PASS",
+    "nativeUX": "BUG in previous binary, expected signed-out Welcome; code fix source pending CI",
+    "source": "client/desktop-v4/src-tauri/src/owner_login.rs",
+    "tests": [
+      "four Rust regressions for exact missing-vault vs server errors",
+      "React AuthEntry normal Welcome after signed-out"
+    ],
+    "remoteServerFamilyRevocation": "UNVERIFIED",
+    "winCandidate": "NEW GitHub Windows native artifact required",
+    "productionChanged": false
+  }
 }

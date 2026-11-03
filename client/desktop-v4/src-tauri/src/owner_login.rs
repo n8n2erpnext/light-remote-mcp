@@ -170,8 +170,15 @@ impl OwnerRuntime {
                 s.access_deadline=Some(Instant::now()+Duration::from_secs(tokens.expires_in));
                 s.last_verified=Some(Instant::now());
             }
-            Err(_)=>{
-                s.phase="expired".into();
+            Err(error)=>{
+                // Cold start after an explicit Sign out leaves no vault entry.
+                // This is a legitimate signed-out state, NOT an expired or
+                // revoked Owner session. Keep all other failures fail-closed.
+                s.phase=if s.phase=="restoring" && error=="owner_not_signed_in" {
+                    "signed_out".into()
+                } else {
+                    "expired".into()
+                };
                 s.account_id=None;
                 s.access_token=None;
                 s.access_deadline=None;
@@ -667,6 +674,58 @@ mod tests {
         assert_eq!(writes,0);
         assert_eq!(runtime.view().unwrap().phase,"signed_out");
     }
+    #[test]
+    fn cold_restore_after_explicit_signout_shows_welcome_not_session_expired() {
+        // The OS vault returned NoEntry after Sign out. No HTTPS attempt is
+        // needed and neither a token nor a verified Owner can reappear.
+        let runtime=OwnerRuntime::default();
+        let generation=runtime.transition("restoring").unwrap();
+        runtime.finish(generation,Err("owner_not_signed_in".into()));
+        let view=runtime.view().unwrap();
+        assert_eq!(view.phase,"signed_out");
+        assert_eq!(view.account_id,None);
+        let s=runtime.inner.lock().unwrap();
+        assert!(s.access_token.is_none());
+        assert!(s.access_deadline.is_none());
+        assert!(!s.status_inflight);
+    }
+
+    #[test]
+    fn restore_network_rejection_and_inaccessible_vault_still_fail_closed() {
+        for error in [
+            "owner_https_unavailable",
+            "owner_authorization_rejected",
+            "os_vault_read_failed",
+            "os_vault_credential_invalid"
+        ] {
+            let runtime=OwnerRuntime::default();
+            let generation=runtime.transition("restoring").unwrap();
+            runtime.finish(generation,Err(error.into()));
+            assert_eq!(runtime.view().unwrap().phase,"expired", "{error}");
+        }
+    }
+
+    #[test]
+    fn browser_flow_cannot_treat_missing_vault_as_a_valid_signout() {
+        let runtime=OwnerRuntime::default();
+        let generation=runtime.transition("browser_pending").unwrap();
+        runtime.finish(generation,Err("owner_not_signed_in".into()));
+        assert_eq!(runtime.view().unwrap().phase,"expired");
+    }
+
+    #[test]
+    fn stale_restore_callback_cannot_overwrite_new_signout() {
+        let runtime=OwnerRuntime::default();
+        let previous=runtime.transition("restoring").unwrap();
+        {
+            let mut s=runtime.inner.lock().unwrap();
+            s.generation=s.generation.wrapping_add(1);
+            s.phase="signed_out".into();
+        }
+        runtime.finish(previous,Err("owner_not_signed_in".into()));
+        assert_eq!(runtime.view().unwrap().phase,"signed_out");
+    }
+
     #[test]
     fn refresh_failure_wrong_owner_or_locked_vault_fails_closed() {
         let now=Instant::now();

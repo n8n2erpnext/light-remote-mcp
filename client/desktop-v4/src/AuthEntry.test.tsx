@@ -30,6 +30,16 @@ describe('V4 Owner Login gate: UI preview vs feature-enabled native browser flow
     fireEvent.click(screen.getByRole('button',{name:'Cancel sign-in'}));
     expect(cancel).toHaveBeenCalledTimes(1);
   });
+  it('explicit Sign out followed by cold restart shows normal Welcome, not SESSION EXPIRED',()=>{
+    const begin=vi.fn();
+    render(<AuthEntry allowDesignPreview={false} onPreviewWorkspace={()=>{}}
+      nativePhase="signed_out" onBrowserSignIn={begin} />);
+    expect(screen.getByRole('heading',{name:'Welcome to Light Remote'})).toBeTruthy();
+    expect(screen.queryByText('SESSION EXPIRED')).toBeNull();
+    expect(screen.queryByRole('heading',{name:'Sign in again to continue'})).toBeNull();
+    fireEvent.click(screen.getByRole('button',{name:'Continue in browser'}));
+    expect(begin).toHaveBeenCalledTimes(1);
+  });
   it('expired browser state offers a new sign in rather than an unlocked workspace',()=>{
     const begin=vi.fn();
     render(<AuthEntry allowDesignPreview={false} onPreviewWorkspace={()=>{}}
