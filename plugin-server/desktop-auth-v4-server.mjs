@@ -45,7 +45,9 @@ export async function browserOwnerFromOperator(req) {
     const id = String(out?.account?.accountId || '');
     if (!id) return null;
     return {verifiedBy:'account_portal_session', accountId:id,
-      sessionFingerprint:sha(token)};
+      sessionFingerprint:sha(token),
+      accountSessionId:String(out?.session?.sessionId||''),
+      accountSessionExpiresAt:Number(out?.session?.expiresAt)||0};
   } catch { return null; }
 }
 function intentFromQuery(q) {
@@ -120,6 +122,10 @@ export function createDesktopOwnerAuthorization({
   }
   async function begin(q, owner) {
     const intent = validateDesktopOwnerAuthorizationIntent(intentFromQuery(q), owner, clock());
+    if(!/^acctsess_[a-f0-9-]{36}$/.test(String(owner.accountSessionId||''))||
+       !Number.isFinite(Number(owner.accountSessionExpiresAt))||
+       Number(owner.accountSessionExpiresAt)<=clock())
+      fail('verified_desktop_owner_required');
     // Bounded authenticated Owner intents: 12 per ten-minute bucket, with
     // the counter residing in Redis (not unbounded per-process RAM).
     const bucket = Math.floor(clock() / 600_000);
@@ -129,7 +135,8 @@ export function createDesktopOwnerAuthorization({
     if (!Number.isSafeInteger(count) || count < 1 || count > 12)
       fail('desktop_rate_limited');
     const csrf = random43();
-    const record = {...intent, sessionFingerprint:owner.sessionFingerprint || ''};
+    const record = {...intent, sessionFingerprint:owner.sessionFingerprint || '',
+      accountSessionId:owner.accountSessionId, accountSessionExpiresAt:owner.accountSessionExpiresAt};
     await store('consent',csrf,record,CONSENT_TTL_SEC);
     return {csrf, intent};
   }
@@ -137,6 +144,8 @@ export function createDesktopOwnerAuthorization({
     const record = await consume('consent',csrf);
     if (record.expiresAt <= clock() ||
         record.ownerAccountId !== owner?.accountId ||
+        record.accountSessionId !== owner?.accountSessionId ||
+        Number(record.accountSessionExpiresAt)<=clock() ||
         record.sessionFingerprint !== (owner?.sessionFingerprint || '') ||
         owner?.verifiedBy !== 'account_portal_session')
       fail('desktop_owner_mismatch');
@@ -151,6 +160,8 @@ export function createDesktopOwnerAuthorization({
     const code = random43();
     await store('code',code,{
       purpose:'desktop_owner_login_v4', ownerAccountId:record.ownerAccountId,
+      accountSessionId:record.accountSessionId,
+      accountSessionExpiresAt:record.accountSessionExpiresAt,
       clientId:record.clientId, resource:record.resource, scope:record.scope,
       redirectUri:record.redirectUri, codeChallenge:record.codeChallenge,
       state:record.state, installNonce:record.installNonce,
@@ -169,6 +180,7 @@ export function createDesktopOwnerAuthorization({
         record.resource !== DESKTOP_OWNER_RESOURCE ||
         record.scope !== DESKTOP_OWNER_SCOPE ||
         record.expiresAt <= clock() ||
+        Number(record.accountSessionExpiresAt)<=clock() ||
         record.redirectUri !== validateDesktopLoopbackCallback(redirectUri) ||
         record.installNonce !== installNonce ||
         record.state !== state ||
@@ -176,6 +188,8 @@ export function createDesktopOwnerAuthorization({
       fail('desktop_code_invalid');
     return Object.freeze({
       purpose:'desktop_owner_verified_once', accountId:record.ownerAccountId,
+      accountSessionId:record.accountSessionId,
+      accountSessionExpiresAt:record.accountSessionExpiresAt,
       resource:DESKTOP_OWNER_RESOURCE, scope:DESKTOP_OWNER_SCOPE,
       verifiedAt:clock()
     });
@@ -244,5 +258,5 @@ export function registerDesktopOwnerV4Authorization(app,{
   app.get('/account/desktop/v4/authorize',handler.getConsent);
   app.post('/account/desktop/v4/authorize',handler.postConsent);
   // No token endpoint and no App-Wall SSO until T03c/T04 are fully verified.
-  return {enabled:true,routes:2};
+  return {enabled:true,routes:2,consumeCode:handler.consumeCode};
 }

@@ -311,6 +311,19 @@ export class AccountRegistry{
     if(touch){const now=this.now();if(now-session.lastSeenAt>=60_000){session.lastSeenAt=now;this._persist();}}
     return {account:this._viewAccount(account),session:{sessionId:session.sessionId,createdAt:session.createdAt,lastSeenAt:session.lastSeenAt,expiresAt:session.expiresAt}};
   }
+  // Internal Operator-only check: a Desktop family is bound to the exact
+  // existing Account Portal login session, not merely an accountId.
+  // Return no secret, token hash, or mutable reference to the session.
+  desktopOwnerSessionActive(accountId, sessionId){
+    this._prune();
+    const account=this.accounts.get(String(accountId||''));
+    if(!account||this._status(account)!=='active')return false;
+    const id=String(sessionId||'');
+    if(!/^acctsess_[a-f0-9-]{36}$/.test(id))return false;
+    return [...this.sessions.values()].some(row=>
+      row.accountId===account.accountId && row.sessionId===id &&
+      Number(row.expiresAt)>this.now());
+  }
   logout(token){const hash=sha256(token);const session=this.sessions.get(hash);if(session){this.sessions.delete(hash);this._persist();this.emit({type:'account_logout',accountId:session.accountId,status:'ok'});}return {loggedOut:Boolean(session)};}
   account(accountId){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);return this._viewAccount(row);}
   applyEntitlement(accountId,input={}){

@@ -621,3 +621,6 @@ Feature-OFF Desktop Owner Account Portal authorization consent added, backed by 
 
 ## 2026-11-03 ? T03b exact GitHub CI 4 of 4 accepted (runtime OFF)
 Source SHA 376cb8ffd10ec17a4ee0ef88eef9b3f0fa7310c8, run 41576488187 4/4 PASS Web, Windows, macOS, Linux. Docs integrity run41576488180 PASS. Earlier Login theme T01b CI41574241626 and Lab Wall profile T02b CI41575414419 4/4 PASS. T03b feature LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 default OFF, no live Desktop owner token or App-Wall SSO, no GoldABV2 Lab deployment. Next T03c native secure code exchange/OS vault + revocation.
+
+## 2026-11-03 ? T03c1 Owner native token server, default OFF (source only)
+Implemented AccountRegistry direct exact login-session-id validation via Operator Unix socket; browser PKCE code now inherits real sessionId and original expiry. Added separately gated native Owner read-only token exchange, 10-minute access, one-time rotating refresh max 7d, immediate family revocation and source Account Portal logout invalidation. No token leaks to React/Webview/MCP/Wall. Node T03a+b+c1 combined 25/25 security tests PASS; GitHub CI wired, exact run pending. Feature flags remain OFF. Native Tauri callback, OS vault, real UI login and App-Wall SSO are separate OPEN tasks; GoldABV2 Lab untouched.

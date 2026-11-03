@@ -11,7 +11,9 @@ import {createDesktopPkceMaterial, DESKTOP_OWNER_RESOURCE} from './desktop-auth-
 const ORIGIN='https://goldabv2.light-remote.thaiduy.digital';
 const PREFIX='lr:gold:goldabv2lab:';
 const owner={verifiedBy:'account_portal_session',accountId:'owner_verified_42',
-  sessionFingerprint:'valid_portal_session_hash'};
+  sessionFingerprint:'valid_portal_session_hash',
+  accountSessionId:'acctsess_123e4567-e89b-42d3-a456-426614174000',
+  accountSessionExpiresAt:Date.now()+7*24*60*60*1000};
 function query() {
   const p=createDesktopPkceMaterial();
   return {
@@ -148,7 +150,9 @@ test('feature-flagged browser flow requires consent, same origin and verified Ow
     enabled:true,redis,prefix:PREFIX,publicOrigin:ORIGIN,
     verifyOwner:async req=>req.owner||null
   });
-  assert.deepEqual(reg,{enabled:true,routes:2});
+  assert.equal(reg.enabled,true);
+  assert.equal(reg.routes,2);
+  assert.equal(typeof reg.consumeCode,'function');
   const {req,p}=query();
   const getReq={query:req,owner};
   const consent=fakeRes();

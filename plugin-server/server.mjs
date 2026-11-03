@@ -8,6 +8,7 @@ import { authenticateAccess, registerOAuth, initializeOAuthRedis } from './oauth
 import { registerPublicDeviceRoutes, prunePublicRateState, initializePublicRateRedis } from './device-public.mjs';
 import { registerAccountPortal } from './account-portal.mjs';
 import { registerDesktopOwnerV4Authorization } from './desktop-auth-v4-server.mjs';
+import { registerDesktopOwnerTokenRoutes } from './desktop-owner-token-v4.mjs';
 import { initializeGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
@@ -99,12 +100,22 @@ registerWebAssets(app);
 registerAccountPortal(app);
 // GoldABV2 Desktop Owner V4 account consent. Feature OFF by default.
 // Does NOT expose token exchange/refresh, App-Wall SSO, or an MCP grant.
-registerDesktopOwnerV4Authorization(app,{
+const desktopOwnerAuthV4=registerDesktopOwnerV4Authorization(app,{
   enabled:process.env.LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4==='1',
   redis:goldStorage.redis,
   prefix:goldStorage.prefix,
   publicOrigin:PUBLIC_ORIGIN
 });
+// Separate default-OFF native token gate. Even enabling browser consent alone
+// does not issue app tokens. Native vault/callback and E2E required before ON.
+registerDesktopOwnerTokenRoutes(app,{
+  enabled:process.env.LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4==='1' &&
+    process.env.LR_GOLD_ABV2_DESKTOP_TOKEN_V4==='1',
+  redis:goldStorage.redis,
+  prefix:goldStorage.prefix,
+  consumeCode:desktopOwnerAuthV4.consumeCode
+});
+
 registerSupportBackoffice(app,{outbox:supportOutbox});
 registerDistributionPortal(app);
 registerAdminPortal(app);

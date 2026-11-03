@@ -513,3 +513,11 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - plugin-server/server.mjs: register only when LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4=1; default OFF, no token endpoint.
 - plugin-server/desktop-auth-v4-server.test.mjs: unit negative tests for CSRF, wrong Origin/Owner/session, replay, PKCE, callback and rate cap. CI runs both T03 suites.
 - Master T03b: source only; no native Owner auth or GoldABV2 Lab rollout.
+
+## Desktop V4 T03c1 revoked Owner access/refresh session (server only)
+- operator-host/account-registry.mjs: desktopOwnerSessionActive(accountId,sessionId) checks existing Portal login session, its expiration and active account status without exposing token hash.
+- operator-host/executor-routes-account.mjs: internal Unix socket POST /v1/accounts/desktop-session-check returns boolean for active exact session.
+- plugin-server/desktop-auth-v4-server.mjs: consent/code inherits accountSessionId and its original expiry; user cannot supply them.
+- plugin-server/desktop-owner-token-v4.mjs: new default-OFF native token/refresh/status/logout, Redis hashed opaque credentials, 10-minute access, 7-day max refresh/family, Portal-source session revalidation and family revoke.
+- plugin-server/desktop-owner-token-v4.test.mjs: Node security tests of rotation/replay, expiry, cross-site requests, disabled account and revocation. Existing T03a/b regressions in GitHub Web job.
+- plugin-server/server.mjs: two separate flags must both be ON to mount Desktop token routes; no runtime activation in this step.
