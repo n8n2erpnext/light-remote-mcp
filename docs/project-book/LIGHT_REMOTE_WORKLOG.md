@@ -669,3 +669,6 @@ Owner screenshot confirmed corrected Tauri candidate from CI41613182472 UI rende
 
 ## 2026-11-03 11:15 UTC — T03c2c6 Gold backend browser consent Origin fix live under 30m timer
 Owner screenshot: real browser consent GET200, Continue POST desktop_origin_required403, no callback. Gold auth source 1183fd6a GitHub41625626313 4/4 PASS, 27/27 Node, single Owner regression PASS. Isolated LXD exact two changed Plugin files installed checksum PASS, LXD27/27 PASS, 4/4 services healthy. First auto-OFF fired 11:13 UTC. New guarded 30m flags ON window due 11:45 UTC/18:45 HCM, external anonymous authorize303 health200; originless synthetic CSRF no Owner401, cross-site403, missing CSRF403. Owner must initiate new native browser sign-in; real callback/keyring/10m refresh/logout still OPEN. Gold main UAT/production untouched.
+
+## 2026-11-03 12:10 UTC — T03c2c7 Gold Lab Auth bounded retry now ON
+Gold source 9c7d5582 consent-only Referrer-Policy:origin CI 41629686136 4/4 PASS, LXD27/27 PASS. Official Light Remote retry of earlier blocked operation succeeded. Isolated LXD Plugin both Auth flags ON, independent auto-OFF timer due 12:40:39 UTC/19:40:39 HCM; health200, authorize303, cross-site403, native no credentials401, four services active, A/B grants0. No verified Windows native callback, Keyring or T04 SSO yet; Gold UAT/prod unchanged.
