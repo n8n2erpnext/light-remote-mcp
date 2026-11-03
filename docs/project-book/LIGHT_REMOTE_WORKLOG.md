@@ -1011,3 +1011,6 @@ Source `fa1f75bf` five-flag default-OFF Operator SSO startup integration Gold So
 
 ## 2026-11-03 — T04b7a native HTTPS one-use ticket issue source-only
 Created two unmounted security handlers: Plugin native HTTPS ticket request with exactly one `device_id` and Owner access Authorization Bearer (never browser cookies or Agent/B fields), plus Operator Unix-socket-only trusted issue handler. Explicit HTTPS peer pinning blocks spoofed forwarded TLS; default disabled; sanitized 45s ticket response only. One edit to Operator handler clock injection was safety-blocked and not retried; no bypass. Removed an unused Operator dispatcher import to preserve runtime unchanged. Fourteen new regression cases, selected T04 Node 103/103 PASS and Wall loopback HTTP PASS. CI pending. NO native Windows App→Wall SSO, service deployment, public issuer endpoint or A/B grant was created.
+
+## 2026-11-03 — T04b7a Gold CI4/4 accepted
+Default-off unmounted Plugin native HTTPS ticket request and Operator Unix-only issue handlers commit 0f0a002d. Selected T04 103/103 Node PASS and local Wall HTTP revoke PASS. GitHub Source Gate 41668319985 4/4 SUCCESS, Gold Docs 41668319987 PASS. No running routes and no production/Lab, Rust, Agent or Wall deployment. Further real cross-service work remains blocked pending verified security boundary and explicit feature-gated mounting.
