@@ -7,6 +7,7 @@ on:
       - feat/desktop-v4-shared-ui-20261101
       - feat/desktop-v4-wall-activity-20261102
       - feat/desktop-v4-login-entry-20261103
+      - feat/desktop-v4-api-integration-20261103
     paths:
       - client/desktop-v4/**
       - .github/workflows/desktop-v4-native-ci.yml

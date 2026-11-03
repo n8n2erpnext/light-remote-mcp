@@ -1,8 +1,8 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_login_first_figma_google_sans_flex_native_ci_4of4_success_ui_only",
-  "branch": "feat/desktop-v4-login-entry-20261103",
+  "status": "desktop_v4_api_integration_master_handoff_t00_written",
+  "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
   "verifiedDocumentationCI": {
@@ -93,7 +93,8 @@
     "2026-11-02 Owner approved Desktop V4 FINAL UI baseline (9 screens + Open Wall + Activity Logs), source SHA 73d448e9; GitHub Tauri CI 41472068915 Web/Windows/macOS/Linux 4/4 SUCCESS; physical native Agent integration still pending",
     "2026-11-02 Desktop V4 native read-only localhost probe authored without Owner credential bypass; exact status authority and tests documented; source native CI pending",
     "2026-11-03 6 Moryqa Login-first Figma frames corrected to editable Google Sans Flex; Gold Windows Figma visual checked; isolated V4 auth UI source staged, CI pending.",
-    "2026-11-03 Desktop V4 Login-first UI isolated CI run 41569151264 Web/Windows/macOS/Linux 4/4 SUCCESS; Chromium 30/30; Figma Google Sans Flex editable; actual Owner login/SSO remains OPEN."
+    "2026-11-03 Desktop V4 Login-first UI isolated CI run 41569151264 Web/Windows/macOS/Linux 4/4 SUCCESS; Chromium 30/30; Figma Google Sans Flex editable; actual Owner login/SSO remains OPEN.",
+    "2026-11-03 T00 master handoff drafted before API integration on canonical VPS-ARM Git SSH worktree; 13 atomic tasks, OS security and CI constraints."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -142,7 +143,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Owner review portable Windows UI-only test executable from CI run 41569151264. Then implement real Owner Login/PKCE/secure OS session and App to Wall signed SSO without changing approved V4 layout. No Gold UAT or installed Agent cutover.",
+  "nextAction": "Commit and SSH push T00 master handoff from VPS-ARM; then T01 theme single-icon fix, T02 exact account OAuth and Local Wall authorization route audit before Owner login code.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -155,10 +156,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "a4ba37cffa014af800ed2f48b9a041b1eadad9763278fa2a65f01b0d9c3c8ee6",
+    "treeDigest": "800455a14554de52ca3f4d80fb43dead84f3ff51b840a6aca8924667fb67586c",
     "trackedFiles": 1169,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T02:56:15.101Z"
+    "recordedAt": "2026-11-03T03:20:17.097Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -653,5 +654,33 @@
     "nativeLinuxArtifact": "desktop-v4-tauri-pilot-ubuntu-24.04-41569151264",
     "ownerUiAcceptancePending": true,
     "realOwnerAuthStillOpen": true
+  },
+  "desktopV4ApiIntegration": {
+    "canonicalDevice": "VPS-ARM via SSH (user ubuntu)",
+    "repository": "/home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4-shared-ui-20261101",
+    "sshGitRemote": "git@github.com:n8n2erpnext/light-remote-mcp.git",
+    "branch": "feat/desktop-v4-api-integration-20261103",
+    "baseSha": "54c69365b592b5da1ffd51783992defe680a2454",
+    "masterHandoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md",
+    "tasks": {
+      "T00": "handoff written, commit pending",
+      "T01": "open",
+      "T02": "open",
+      "T03": "blocked-on-T02",
+      "T04": "blocked-on-T03",
+      "T05": "open",
+      "T06": "open",
+      "T07": "open",
+      "T08": "open",
+      "T09": "open",
+      "T10": "open",
+      "T11": "open",
+      "T12": "open"
+    },
+    "themeDecision": "one icon Light/Dark toggle; not a standalone build",
+    "realOwnerAuth": false,
+    "appToWallSSO": false,
+    "productionChanged": false,
+    "buildOnARM": false
   }
 }

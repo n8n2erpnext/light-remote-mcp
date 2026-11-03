@@ -597,3 +597,6 @@ Owner requested Authentication as entrance gate, not a subpage of Account; keep 
 Initial GitHub run 41569058662 failed src/AuthEntry.tsx TS18047 detail possibly null on disabled specimen branch. Applied null-safe detail note rendering, no session/Owner authority or UI layout behavior changed. Rerun full GitHub CI exact SHA.
 ## 2026-11-03 — Desktop V4 Login-first native CI 4 of 4 PASS
 Exact source 4878db7596 GitHub Actions run 41569151264 completed 4/4 SUCCESS: web TypeScript/unit/Chromium 30/30 visual, Windows/macOS/Linux Tauri binaries. Moryqa Figma six new frames Google Sans Flex verified; App Google Sans from repo. Owner UI test only; real Owner auth/SSO, native installation acceptance, Gold UAT cutover NOT done.
+
+## 2026-11-03 - Desktop V4 API integration master handoff T00
+Owner reviewed Login-first Windows pilot and requested the titlebar-colliding 3-way theme picker replaced by a single Light/Dark icon, then full API integration with a master handoff updated after EVERY task. Canonical Git SSH source verified on VPS-ARM (ubuntu), not the Windows scratch clone. Created feature branch feat/desktop-v4-api-integration-20261103 from 54c69365. Master handoff documents accepted 9-screen UI, auth and A/B boundaries, 13 atomic tasks, tests, and on-device safety. T00 pending commit/push; production unchanged.

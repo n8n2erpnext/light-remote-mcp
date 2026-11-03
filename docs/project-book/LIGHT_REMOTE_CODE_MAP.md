@@ -468,3 +468,11 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - client/desktop-v4/src/App.test.tsx and e2e/visual-smoke.mjs: negative login bypass and visual font/geometry/route reload tests.
 - Moryqa Figma six new nodes 63:76,63:105,63:244,63:278,63:312,63:346, authentic Google Sans Flex text; old Inter hidden.
 - Full handoff in docs/project-book/LIGHT_REMOTE_DESKTOP_V4_LOGIN_ENTRY_UI_20261103.md.
+
+## Desktop V4 API integration master ledger (2026-11-03)
+- Master handoff: docs/project-book/LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md (T00-T12, task receipts after each completed implementation).
+- Branch feat/desktop-v4-api-integration-20261103 from Login-first UI baseline 54c69365; git operations via VPS-ARM SSH only.
+- Existing Tauri shell in client/desktop-v4/src-tauri/src/main.rs has fixed open_local_wall and anonymous probe_local_wall, never Owner authority.
+- Existing Login shell client/desktop-v4/src/AuthEntry.tsx and auth-entry.css; App.tsx must only expose authenticated routes after verified Server Owner proof. Test-only preview is NOT login.
+- Pending T01: single Light/Dark toggle, fix restored Window edge, preserve Google Sans from repository.
+- Pending T02-T12: audited Account/Wall SSO, typed Owner projections and native modules across platforms, GitHub Actions runners only.
