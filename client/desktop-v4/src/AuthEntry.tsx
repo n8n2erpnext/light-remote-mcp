@@ -123,7 +123,7 @@ export function AuthEntry({ theme, chooseTheme, allowDesignPreview, onPreviewWor
                 mode === 'restoring' ? <RotateCcw size={30} aria-hidden="true" /> :
                 <LockKeyhole size={30} aria-hidden="true" />}
               <strong>{mode === 'app-lock' ? 'OS unlock required' : mode === 'browser-pending' ? 'No verified callback yet' : 'Access stays locked'}</strong>
-              <p>{detail.note}</p>
+              <p>{detail?.note ?? ""}</p>
               <button type="button" className="auth-back" onClick={() => setMode('signed-out')}>Back to sign in</button>
             </div>
           )}

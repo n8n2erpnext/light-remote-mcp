@@ -141,7 +141,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Run exact GitHub CI for V4 Login-first isolated UI pilot, fix Web/Chromium/native issues, then deliver test artifacts. Real OAuth Owner and App-Wall SSO not implemented.",
+  "nextAction": "Push TS18047 null-safe note fix and rerun exact native 4-job CI.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -154,10 +154,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "a00567a15ac08fabb1b2bd305300fd4c46def55fbe4f06bc312cae7b04297d6e",
+    "treeDigest": "a4ba37cffa014af800ed2f48b9a041b1eadad9763278fa2a65f01b0d9c3c8ee6",
     "trackedFiles": 1169,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T02:55:17.528Z"
+    "recordedAt": "2026-11-03T02:56:15.101Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -640,7 +640,7 @@
     ],
     "figmaFont": "Google Sans Flex",
     "appFont": "GoogleSans-Variable.ttf in repository",
-    "ci": "pending",
+    "ci": "41569058662 failed TS18047 nullability in AuthEntry note; correction staged for rerun",
     "nativeLoginVerified": false,
     "appWallSsoImplemented": false,
     "productionChanged": false,
