@@ -535,3 +535,8 @@ Source: client/windows-native/GptOperator.Client/{TrayPopoverForm.cs,Program.cs,
 - client/desktop-v4/src/lib/native-owner.ts, .test.ts: exact invoke-only bridge, candidate flag VITE_LR_V4_OWNER_LOGIN, strict phase/accountId projection; secrets discarded if accidentally returned.
 - client/desktop-v4/src/AuthEntry.tsx, .test.tsx: real browser begin/pending/expired/cancel while UI-only pilot behavior unchanged. App.tsx unlocks only native Owner verified; still no Wall/A-B authorization.
 - CI: native Rust tests with opt-in feature on 3 OS runners, Web UI/security tests and feature-gated React build after visual smoke. NO VPS-ARM build.
+
+## Desktop V4 T03c2b verified source CI
+- Source 9de0b41d, workflow 41582835723 4/4 SUCCESS with 51/51 Web tests and 7/7 Rust tests on EACH of Windows, macOS and Linux. Rust candidate opt-in feature, UI pilot unchanged.
+- Docs library integrity 41582835735 SUCCESS. Status: source/CI PASS, real browser+OS-vault+backend E2E OPEN. GoldABV2 flags OFF and no deployment.
+- Task trace: LIGHT_REMOTE_DESKTOP_V4_API_MASTER_HANDOFF_20261103.md T03c2b.

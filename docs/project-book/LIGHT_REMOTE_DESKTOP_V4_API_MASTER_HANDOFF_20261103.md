@@ -50,7 +50,8 @@ E. OS App Lock applies only after verified account session; unlock cannot overri
 | T03 | Native Owner login PKCE + callback + secure OS vault + logout/refresh | IN PROGRESS: T03a validator/test only; no live auth |
 | T03b | Account Portal Owner browser consent + one-use Redis authorization code; default OFF | SOURCE + CI 4/4 PASS, runtime OFF |
 | T03c1 | Revocable Owner access/refresh on server, bound to exact Portal session | SOURCE + CI 4/4 PASS; runtime OFF |
-| T03c2a | Native OS credential vault with feature default OFF | SOURCE SHA d30d534b; 3-OS CI PENDING |
+| T03c2a | Native OS credential vault with feature default OFF | SOURCE + CI 4/4 PASS; runtime OFF |
+| T03c2b | Native system browser PKCE callback, HTTPS Owner restore/login/logout, React gate | SOURCE + CI 4/4 PASS; E2E still OPEN; default OFF |
 | T04 | Signed one-way App -> Local Wall SSO, replay prevention and logout link | BLOCKED ON T03 |
 | T05 | Overview/Devices/Link/Relink with actual enrolled ShortID and signed status | OPEN |
 | T06 | Sessions / AI Access (per-Agent leases/nicknames, B and consent, Owner close) | OPEN |
@@ -188,3 +189,12 @@ Resume on ARM: cd /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4
 - Fix: build.rs now defines static UI_ONLY and OWNER_CANDIDATE slices, chooses by Cargo feature and passes a static slice to AppManifest. Default UI-only binary still registers two commands and never links Owner backend. Candidate feature still explicitly registers exact four native Owner phase commands.
 - Security hardening in same fix: refuse to start a new login if an Owner session is already verified (must explicit Sign out); native logout prioritizes rotating refresh credential over potentially expired access token when revoking the server family. No change to browser Account Portal /mcp or Wall endpoint.
 - All native CI results for corrected commit still PENDING. Runtime flags OFF; physical Windows E2E not completed.
+
+### T03c2b - Final source/CI acceptance receipt
+- Source: 9de0b41ddaa1db1bc914fc3bc36f9b42a3d3a4be (after fixes 548992dd, 7ef872db). Branch feat/desktop-v4-api-integration-20261103, canonical Git SSH worktree VPS-ARM.
+- GitHub V4 workflow https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41582835723: SUCCESS 4/4 Web/Chromium, Windows-latest, macOS-latest, Ubuntu-24.04. Web frontend unit tests 51/51 PASS and Figma/geometry smoke PASS; Windows/macOS/Linux Rust keyring+Owner callback candidate tests 7/7 PASS on EACH OS. Documentation integrity run41582835735 SUCCESS.
+- Rust native default UI-only build still registers ONLY open_local_wall and probe_local_wall; native Owner candidate module is opt-in Cargo desktop-owner-login. Candidate feature compiled/tested but NO feature-enabled production binary, no real OS keyring write/read/login, no external browser/loopback E2E.
+- React Owner UI candidate requires VITE_LR_V4_OWNER_LOGIN=1 with UI_TEST disabled, plus real native IPC. UI-only pilot still has no login bypass. Actual Owner verification is separate from signed Wall Owner session and Agent A/B B-code/consent.
+- Fixed compile issue: Tauri manifest command lists are static at build-time. Removed UI old assertions, preserved exact Design Preview typography and no-SyntheticEvent native callback. Native Sign out prefers rotating refresh token and rejects an overlapping new Owner login; cancel generation fences late browser callbacks.
+- Backend T03b/T03c1 default-OFF flags LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 and LR_GOLD_ABV2_DESKTOP_TOKEN_V4 have NOT been enabled or deployed. GoldABV2 Lab at http://100.94.184.141:15591 and ChatGPT custom /mcp unchanged. Installed Windows V4 pilot unchanged.
+- NEXT: T03c2c authorized Lab end-to-end plan/build: compile separate native Owner test artifact with both Cargo feature and non-preview frontend flag, controlled GoldABV2 Lab-only Account Portal auth rollout with rollback; verify Owner accountId, browser callback state/issuer/PKCE, OS keyring persistence, restart restore/refresh rotation, server logout revocation and wrong account cases. Then T04 App-to-Wall one-time signed SSO and downstream read APIs. No claim of live login until these pass.

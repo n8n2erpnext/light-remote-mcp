@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_T03c2b_Web_PASS_native_Tauri_E0597_fixed_rerun_pending",
+  "status": "desktop_v4_T03c2b_source_CI4of4_PASS_live_login_E2E_OPEN_default_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -107,7 +107,8 @@
     "2026-11-03 T03c1 commit e20d699e confirmed GitHub CI 41579145997 4/4 PASS and documentation integrity. T03c2a candidate source d30d534b CI run 41579644386 pending; no runtime deployment.",
     "2026-11-03 T03c2a native OS keyring CI 41579644386 4/4 PASS. T03c2b Rust localhost PKCE/HTTPS, secured vault session and React owner login candidate source, test CI pending, runtime OFF.",
     "2026-11-03 T03c2b initial CI 41582176494 identified three UI static/assertion mismatches; source corrections staged for rerun, native unverified.",
-    "2026-11-03 T03c2b Web CI run41582409955 PASS. Windows/macOS/Linux native build script E0597 failure diagnosed from CI logs and static command lifetime fix staged; runtime OFF."
+    "2026-11-03 T03c2b Web CI run41582409955 PASS. Windows/macOS/Linux native build script E0597 failure diagnosed from CI logs and static command lifetime fix staged; runtime OFF.",
+    "2026-11-03 T03c2b source SHA 9de0b41d completed GitHub CI run41582835723 4/4 PASS Web+Windows+macOS+Linux; 51 Web tests and 7 Rust tests/OS. Real Owner login E2E and Lab rollout remain open, flags OFF."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -156,7 +157,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Rerun T03c2b CI on fixed static build.rs; check native candidate Cargo Rust tests for Windows/macOS/Linux after default Tauri build. No runtime deployment; server flags OFF.",
+  "nextAction": "T03c2c: compile separate isolated feature-enabled native Owner login test binary and verify authorized GoldABV2 Lab browser PKCE callback/OS vault/refresh/logout end-to-end after controlled feature flag deployment with rollback. Then T04 signed one-use App-to-Wall SSO. Do NOT use custom ChatGPT /mcp as desktop auth or HTTP Wall for refresh secrets.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -692,8 +693,9 @@
       "T02b": "Source 294aefba, CI 41575414419 4/4 PASS; NetBird Lab HTTP401; physical installed App E2E open.",
       "T03b": "Source 376cb8ff, CI 41576488187 4/4 PASS; default OFF, native token/session/callback not implemented.",
       "T03c1": "DONE source e20d699e, GitHub CI 41579145997 4/4 PASS and docs CI 41579145894 PASS, runtime OFF.",
-      "T03c2a": "DONE: source d30d534b; run41579644386 4/4 PASS Web+Windows+macOS+Linux keyring native feature tests.",
-      "T03c2b": "Source 548992dd, fixes 7ef872db, CI 41582409955 Web PASS, native 3/3 E0597 build.rs failed; static lifetime fix staged and pending CI."
+      "T03c2a": "DONE keyring source d30d534b; CI41579644386 4/4 PASS.",
+      "T03c2b": "SOURCE + CI DONE 9de0b41d; GitHub 41582835723 4/4 PASS Web 51/51 + each native Rust 7/7; NO live E2E and NO runtime feature flags.",
+      "T03c2c": "OPEN: feature-enabled candidate binary + controlled GoldABV2 Lab E2E, keyring persistence/Owner verify/refresh/logout/revocation."
     },
     "themeDecision": "Remove all appearance toggle controls from Login (owner supersedes 1-icon T01); Settings retains Light/Dark/System.",
     "realOwnerAuth": false,
@@ -738,6 +740,8 @@
     "t03c2aCi": "41579644386 4/4 PASS",
     "t03c2aSourceSha": "d30d534b0d79bdfaefba2e23bb0b814bb4445568",
     "t03c2bFeature": "Cargo desktop-owner-login (default OFF), VITE_LR_V4_OWNER_LOGIN=1 (OFF in UI-only build)",
-    "t03c2bCi": "41582409955 Web PASS / native E0597 failed; corrected build.rs static command slices pending new run"
+    "t03c2bCi": "41582835723 SUCCESS 4/4; Web 51/51; Rust Windows macOS Linux 7/7 each",
+    "t03c2bSourceSha": "9de0b41ddaa1db1bc914fc3bc36f9b42a3d3a4be",
+    "t03c2bDocsCi": "41582835735 PASS"
   }
 }

@@ -639,3 +639,6 @@ First GitHub CI 41582176494 for source 548992dd: Web failed exactly three legacy
 
 ## 2026-11-03 - T03c2b static Tauri manifest lifetime correction
 GitHub V4 CI 41582409955 Web/Chromium PASS, 3 native OS jobs FAIL E0597 build.rs local Vec lifetime. Corrected using static UI_ONLY and OWNER_CANDIDATE command slices; default feature OFF remains two commands. Native signout uses refresh before stale access and forbids new login while verified. Repeat CI pending, all runtime flags OFF.
+
+## 2026-11-03 - T03c2b native PKCE Owner candidate four-platform CI accepted
+Verified source 9de0b41ddaa1db1bc914fc3bc36f9b42a3d3a4be GitHub run41582835723 SUCCESS 4/4: Web 51/51, native Windows/macOS/Linux each 7/7 Rust keyring/callback tests. Docs integrity run41582835735 PASS. Default UI-only executable remains isolated; Cargo Owner candidate and frontend login flag OFF unless separately enabled. No live Owner token or App-Wall SSO; installed Windows client and GoldABV2 Lab/prod unchanged. Next T03c2c isolated feature-enabled native candidate and actual verified browser/keyring E2E, then T04 signed App-Wall SSO.
