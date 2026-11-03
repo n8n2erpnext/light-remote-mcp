@@ -719,3 +719,8 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - `plugin-server/desktop-owner-token-v4.mjs`: private `inspectForWallSso` / `familyCurrentForWallSso` with current Portal Owner family checks, NEVER browser routes; 3 tests in .test.mjs.
 - `client/core-files.json`: package required SSO runtime imported by default-OFF Wall, preventing missing-module startup errors. `.github/workflows/gold-connection-lifecycle-gc.yml` adds the tests/syntax/source paths.
 - T04b signed device transport, native Tauri secure ticket exchange, Wall origin TLS and live Windows E2E still OPEN.
+
+## T04b3 enrolled signed device proof (2026-11-03)
+- `operator-host/desktop-wall-sso-device-proof-v4.mjs`: default-unmounted adapter to REAL `EnrollmentRegistry.binding` and `verifyChannel` for `desktop-wall-sso-redeem`, canonical Ed25519 signed message carrying exact ticket SHA256, enrollment-derived account and device IDs, nonce replay and timestamp checks. No credential or direct Agent A/B authority.
+- `operator-host/desktop-wall-sso-device-proof-v4.test.mjs`: 10 tests with generated Ed25519 key and actual enrollment; full 45s Redis one-use issue->signed redeem with `plugin-server/desktop-wall-sso-v4.mjs`. Selected T04a/b 53/53 PASS, loopback Wall HTTP PASS.
+- Gold source-gate workflow now watches both operator-host source+test and invokes syntax/security tests. NOT mounted in `executor-routes-device-channel.mjs`; full signed delivery T04 remains OPEN.

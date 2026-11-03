@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "gold_T04b_source_CI4of4_PASS_T03c2c9_Lab_Auth_TEMP_ON_until_134449UTC_Windows_refresh_logout_PENDING",
+  "status": "goldabv2_T04b3_Real_Enrollment_Ed25519_Device_Signed_Ticket_53of53_PASS_CI_PENDING_AUTH_TEMP_ON",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-03 13:09:53 UTC Official Light Remote armed lr-desktop-owner-lab-autooff-20261103-refreshlogout.timer BEFORE enabling Lab-only Desktop Owner Auth + Token flags for Windows T03c2c9 QA; due 2026-11-03 13:44:49 UTC /20:44:49 HCM. 4/4 services active, external HTTPS health200 anonymous authorize303, cross-site form403, missing token401. Owner notified NEXT WINDOWS TEST READY: existing Desktop V4 EXE, remain OWNER VERIFIED >=12min, then Sign out/restart and verify Login not auto restoring; E2E outcome not yet reported. Gold T04b1/b2 source 80d1ba45 Source Gate 41641554797 4/4 PASS, 43/43 Node + loopback HTTP revocation PASS; default-OFF signed adapter/native Tauri SSO not integrated/deployed. Main Gold UAT/prod/custom MCP/A-B unchanged. Read live flags after timer rather than assume still enabled.",
+  "nextAction": "2026-11-03 14:00 UTC: owner screenshot reported Desktop V4 login inaccessible because prior Lab auto-OFF timer finished, confirmed Lab health200 auth/Token both OFF and authorize404. New 60-minute isolated Lab Owner Auth+Token window ARMED AND ENABLED; timer lr-desktop-owner-lab-autooff-20261103-relogin.timer due 15:00:37 UTC / 22:00:37 Asia/Ho_Chi_Minh; external health200 authorize303, cross-site403 and empty token401; owner can restart NEW native app sign-in. T04b3 SOURCE ONLY new operator-host/desktop-wall-sso-device-proof-v4.mjs genuine EnrollmentRegistry.verifyChannel Ed25519 signed action desktop-wall-sso-redeem, ticket SHA256, enrollment-derived device/account, timestamp/nonce replay checks, plus 10 tests including native ticket issue -> signed one-use redeem. Selected T04a/b suite 53/53 PASS and loopback Wall HTTP PASS; Gold Source Gate CI pending. No actual HTTP route, no credential transport to Wall, no native Rust SSO and no Agent B grant. Remaining: bind real Operator signed channel, Gold ticket issuer, native Rust secure bootstrap with eligible TLS/loopback target, all E2E. Proactive refresh/Logout T03c2c Windows tests remain NOT verified; must run before current timer ends. Gold main UAT/prod unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "d811cfedb4450147283ad186c0176b28b5bf70c03f37dcbf58b02ada307e180b",
-    "trackedFiles": 1174,
+    "treeDigest": "e5687c3f6b8ff477da10c5235ed5da260c685ffafb9fb0a73dcc888c21780b2a",
+    "trackedFiles": 1176,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T13:07:29.404Z"
+    "recordedAt": "2026-11-03T14:05:31.872Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -977,5 +977,17 @@
     "packagingSmoke": "PASS: /dev/shm temporary full client-core stage 125 files + SHA-256 verify + packaged Wall HTTP and icons smoke; temp auto-cleaned",
     "sourceCommit": "80d1ba45341b8da7fe9463b8a1d1ad451898eb8f"
   },
-  "labOwnerRefreshLogoutWindow": "Lab-only flags TEMP ON, root-owned auto-OFF timer lr-desktop-owner-lab-autooff-20261103-refreshlogout.timer due 2026-11-03 13:44:49 UTC / 20:44:49 HCM. Windows >12min refresh + Logout/restart user test pending."
+  "labOwnerRefreshLogoutWindow": "Lab-only flags TEMP ON, root-owned auto-OFF timer lr-desktop-owner-lab-autooff-20261103-refreshlogout.timer due 2026-11-03 13:44:49 UTC / 20:44:49 HCM. Windows >12min refresh + Logout/restart user test pending.",
+  "t04b3SignedDeviceProof": {
+    "module": "operator-host/desktop-wall-sso-device-proof-v4.mjs",
+    "tests": "operator-host/desktop-wall-sso-device-proof-v4.test.mjs",
+    "enrollment": "real EnrollmentRegistry.binding and verifyChannel; canonical Ed25519 action desktop-wall-sso-redeem, SHA256 digest, nonce replay and timestamps",
+    "localTests": "10/10 new, selected T04a/b 53/53 PASS + real Wall HTTP loopback regression",
+    "ci": "pending",
+    "mounted": false,
+    "runtimeDeployed": false,
+    "nativeAppIntegrated": false,
+    "blocking": "trusted signed device-channel route binding, private native ticket transport, Wall eligible TLS/loopback, Windows E2E"
+  },
+  "labOwnerReloginWindow": "isolated GoldABV2 Lab Auth+Token TEMP ON, independent systemd timer lr-desktop-owner-lab-autooff-20261103-relogin.timer due 2026-11-03 15:00:37 UTC /22:00:37 HCM, HTTPS health200 authorize303, same app binary; no production change"
 }
