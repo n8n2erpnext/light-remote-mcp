@@ -32,3 +32,12 @@ Source file Light Remote AI UI/UX, file key wfvLVoNvzVzyNHq51U0DPB.
 ## Required security integration after UI acceptance
 Real Login: system browser -> OAuth authorization code + PKCE -> verified one-time desktop callback -> OS credential vault & revocation -> device/account authority -> App to Local Wall one-way SSO through signed short-lived proof. Never use localhost reachability or test preview as account authorization; A/B consent remains explicit.
 Exact CI run, source SHA and screenshots: complete after GitHub validation.
+## FINAL CI RECEIPT — 2026-11-03
+- Exact tested source commit: 4878db759613d1c0d446e1ec5e5ba415a3301100 (initial UI source 0b229bc3 plus null-safe TypeScript fix).
+- GitHub Actions native V4 workflow: https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/41569151264
+- Completed SUCCESS 4/4: Web TypeScript+Vitest+Chromium visual; Windows Tauri; macOS Tauri; Linux Tauri.
+- Chromium evidence.json: 30/30 PASS. Auth Light and Dark 1440x900, 1280x800, 1024x1024, intermediate widths and Dark 390x844; no horizontal/card overflow, logo loaded, Google Sans alias loaded. Existing nine V4 workspace screens still pass in ephemeral design preview.
+- Native artifacts uploaded by GitHub: desktop-v4-tauri-pilot-windows-latest-41569151264 (6,135,808-byte unsigned .exe), desktop-v4-tauri-pilot-macos-latest-41569151264, desktop-v4-tauri-pilot-ubuntu-24.04-41569151264. These are portable UI-only executables, NOT installer bundles and NOT replaced production Agent.
+- QA visuals physically inspected from Chromium artifact: Login Light 1440x900 and Dark 1440x900, Dark 390x844 all coherent. Figma on Windows inspected with Light Remote Gold separately.
+- Owner real Login, persistent session App->Wall SSO and native installed app functional acceptance are still OPEN. Never mark these as production capable based on UI CI. Owner can review test artifact without affecting device enrollment.
+- The build's Continue in browser is intentionally disabled until secure OAuth PKCE + one-time signed callback + OS vault contract exists. UI TEST ONLY Explore UI preview explicitly does not grant Owner authority or persist authentication. Production compilation without preview flag stays behind Login gate.

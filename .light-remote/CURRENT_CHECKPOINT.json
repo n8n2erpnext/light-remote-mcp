@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "desktop_v4_login_first_figma_google_sans_flex_ci_pending",
+  "status": "desktop_v4_login_first_figma_google_sans_flex_native_ci_4of4_success_ui_only",
   "branch": "feat/desktop-v4-login-entry-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -92,7 +92,8 @@
     "2026-11-02 V4 source-only: Owner-approved UI retains nine screens; minimal Open Wall and Activity Logs controls authored with only fixed native browser opener, failclosed read-only Owner log state; CI pending, Gold UAT unchanged",
     "2026-11-02 Owner approved Desktop V4 FINAL UI baseline (9 screens + Open Wall + Activity Logs), source SHA 73d448e9; GitHub Tauri CI 41472068915 Web/Windows/macOS/Linux 4/4 SUCCESS; physical native Agent integration still pending",
     "2026-11-02 Desktop V4 native read-only localhost probe authored without Owner credential bypass; exact status authority and tests documented; source native CI pending",
-    "2026-11-03 6 Moryqa Login-first Figma frames corrected to editable Google Sans Flex; Gold Windows Figma visual checked; isolated V4 auth UI source staged, CI pending."
+    "2026-11-03 6 Moryqa Login-first Figma frames corrected to editable Google Sans Flex; Gold Windows Figma visual checked; isolated V4 auth UI source staged, CI pending.",
+    "2026-11-03 Desktop V4 Login-first UI isolated CI run 41569151264 Web/Windows/macOS/Linux 4/4 SUCCESS; Chromium 30/30; Figma Google Sans Flex editable; actual Owner login/SSO remains OPEN."
   ],
   "blockers": [
     "A/B V2, session nickname and Pro Share execution remain design, not shipped",
@@ -141,7 +142,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Push TS18047 null-safe note fix and rerun exact native 4-job CI.",
+  "nextAction": "Owner review portable Windows UI-only test executable from CI run 41569151264. Then implement real Owner Login/PKCE/secure OS session and App to Wall signed SSO without changing approved V4 layout. No Gold UAT or installed Agent cutover.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -640,10 +641,17 @@
     ],
     "figmaFont": "Google Sans Flex",
     "appFont": "GoogleSans-Variable.ttf in repository",
-    "ci": "41569058662 failed TS18047 nullability in AuthEntry note; correction staged for rerun",
+    "ci": "41569151264 completed success 4/4 Web Chromium+Windows+macOS+Linux",
     "nativeLoginVerified": false,
     "appWallSsoImplemented": false,
     "productionChanged": false,
-    "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_LOGIN_ENTRY_UI_20261103.md"
+    "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_LOGIN_ENTRY_UI_20261103.md",
+    "sourceShaCi": "4878db759613d1c0d446e1ec5e5ba415a3301100",
+    "visualTests": "30/30 Chromium PASS including Light/Dark, 390px-1440px, Google Sans loaded",
+    "nativeWindowsArtifact": "desktop-v4-tauri-pilot-windows-latest-41569151264 (unsigned portable exe)",
+    "nativeMacArtifact": "desktop-v4-tauri-pilot-macos-latest-41569151264",
+    "nativeLinuxArtifact": "desktop-v4-tauri-pilot-ubuntu-24.04-41569151264",
+    "ownerUiAcceptancePending": true,
+    "realOwnerAuthStillOpen": true
   }
 }
