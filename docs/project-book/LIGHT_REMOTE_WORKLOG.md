@@ -979,3 +979,6 @@ New default-OFF Wall cookie module has 14/14 negative tests: separate HttpOnly 1
 
 ## T04b package staging verified — 2026-11-03
 Ran actual client-core staging + SHA-256 verify + packaged Wall smoke in /dev/shm; 125 files staged, packaged HTTP home/permissions/approve/settings/status and icon parity PASS; temporary RAM-only staging cleaned automatically. Source-only Wall SSO stays default-OFF.
+
+## 2026-11-03 13:09:53 UTC — T03c2c9 isolated Lab Owner refresh/logout QA window ACTIVE
+Gold 80d1ba45 T04b1/b2 source-only Source Gate 41641554797 4/4 PASS, Node43/43 and real loopback revocable SSO cookie HTTP PASS; NOT deployed. An independent 35-minute systemd auto-OFF timer lr-desktop-owner-lab-autooff-20261103-refreshlogout.timer due 13:44:49 UTC/20:44:49 HCM was armed BEFORE temporarily enabling only Lab Plugin Desktop Owner Auth and Token flags; guarded restart PASS, 4/4 services active, external health200 authorize303, cross-site403, missing native credential401. Owner is requested to confirm real Windows >12minute proactive refresh, then Sign out and restart to verify Owner remains signed out. E2E outcome pending; Gold UAT/prod/A-B unchanged.

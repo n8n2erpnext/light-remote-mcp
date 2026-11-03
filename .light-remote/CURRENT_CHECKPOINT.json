@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T04b1b2_Revocable_Local_Wall_SSO_Cookie_Internal_Owner_Family_Source43of43_HTTP_PASS_CI_PENDING",
+  "status": "gold_T04b_source_CI4of4_PASS_T03c2c9_Lab_Auth_TEMP_ON_until_134449UTC_Windows_refresh_logout_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b1/b2 CURRENT: owner login, browser PKCE and cold Windows OS credential restore LIVE PASS (prior checkpoint). SOURCE ONLY Default OFF: device-agent/desktop-wall-sso-session.mjs 10m separate HttpOnly SameSite SSO cookie with max64 memory sessions, live Owner family check EVERY protected Wall request, offline/revoked fail closed, 5m CSRF/logout; local-wall.mjs guarded opt-in desktopWallSso=null /auth/desktop/sso/redeem, strict Host+Origin JSON, direct TLS for nonloopback, no spoofed forwarded TLS. client/core-files.json packs new import. plugin-server/desktop-owner-token-v4.mjs private inspectForWallSso/familyCurrentForWallSso helpers not browser routes. 43/43 selected Node tests and actual ephemeral loopback HTTP test PASS; GitHub Source Gate CI PENDING. CRITICAL blockers before asking Owner to test: operator-agent supplies independent enrolled signed-device redeem adapter and current Owner-family proof, real Tauri native ticket HTTPS and browser bootstrap without leaking tokens, eligible HTTPS or actual loopback Wall target. Remote Lab NetBird Wall over plain HTTP is NOT eligible for SSO cookies; default OFF/no running services modified. Next implement device-channel proof + native flow then CI4/4 and bounded Lab QA. Lab Owner auth flags previously automatically OFF 12:40:39 UTC 2026-11-03; do not assume still on. Gold UAT/prod/Agent A/B unchanged.",
+  "nextAction": "2026-11-03 13:09:53 UTC Official Light Remote armed lr-desktop-owner-lab-autooff-20261103-refreshlogout.timer BEFORE enabling Lab-only Desktop Owner Auth + Token flags for Windows T03c2c9 QA; due 2026-11-03 13:44:49 UTC /20:44:49 HCM. 4/4 services active, external HTTPS health200 anonymous authorize303, cross-site form403, missing token401. Owner notified NEXT WINDOWS TEST READY: existing Desktop V4 EXE, remain OWNER VERIFIED >=12min, then Sign out/restart and verify Login not auto restoring; E2E outcome not yet reported. Gold T04b1/b2 source 80d1ba45 Source Gate 41641554797 4/4 PASS, 43/43 Node + loopback HTTP revocation PASS; default-OFF signed adapter/native Tauri SSO not integrated/deployed. Main Gold UAT/prod/custom MCP/A-B unchanged. Read live flags after timer rather than assume still enabled.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -970,10 +970,12 @@
     "cookie": "separate lr_wall_desktop_sso_v4; in-memory 10m; max64; every request revalidates Owner family and enrolled target",
     "transport": "JSON POST same exact Origin/Host; true TLS required off loopback; no Desktop bearer to Wall",
     "packaged": true,
-    "tests": "43/43 local Node + real ephemeral loopback HTTP PASS; Gold CI pending",
+    "tests": "43/43 Node + real loopback HTTP PASS, GitHub 41641554797 Source Gate 4/4 SUCCESS, Gold docs 41641554683 SUCCESS",
     "deployed": false,
     "productionModified": false,
     "blocking": "real signed device channel, native Rust ticket transfer, proper TLS or localhost Wall destination, live E2E",
-    "packagingSmoke": "PASS: /dev/shm temporary full client-core stage 125 files + SHA-256 verify + packaged Wall HTTP and icons smoke; temp auto-cleaned"
-  }
+    "packagingSmoke": "PASS: /dev/shm temporary full client-core stage 125 files + SHA-256 verify + packaged Wall HTTP and icons smoke; temp auto-cleaned",
+    "sourceCommit": "80d1ba45341b8da7fe9463b8a1d1ad451898eb8f"
+  },
+  "labOwnerRefreshLogoutWindow": "Lab-only flags TEMP ON, root-owned auto-OFF timer lr-desktop-owner-lab-autooff-20261103-refreshlogout.timer due 2026-11-03 13:44:49 UTC / 20:44:49 HCM. Windows >12min refresh + Logout/restart user test pending."
 }
