@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-03",
-  "status": "goldabv2_T04b5_shared_Owner_Redis_proof_79of79_Gold_CI4of4_PASS_default_OFF_not_deployed",
+  "status": "goldabv2_T04b6_exact_five_flag_Operator_authority_wiring_default_OFF_89of89_local_PASS_CI_pending",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b5 source commit 931b86ade48a9d19c5dcbf83a9c2174db64e8276: source CI 41662764438 4/4 PASS, Docs Integrity 41662764452 PASS. Shared Redis Owner proof checks SHA256-addressed access/family keys, exact account/session, current AccountRegistry.desktopOwnerSessionActive single Owner. Factory default OFF and NOT instantiated in Operator host. 13 new tests (79/79 total T04 Node, loopback Wall HTTP PASS) simulate cross-process keys in in-memory Redis; NOT actual Redis/Windows runtime E2E. Next: explicit safe Operator authority feature gate, trusted Plugin native issue, enrolled signed device transport, and HTTPS/loopback Wall redemption; then bounded Lab deployment and real Windows acceptance. T03 Owner Login/Signout/Welcome and cold vault restore LIVE PASS; >10m proactive refresh and independent server family revoke E2E OPEN. Lab Auth flags OFF after scheduled auto-OFF. Gold UAT/prod/custom MCP and Agent A/B unchanged.",
+  "nextAction": "2026-11-03 T04b6 source-only: Operator executor.mjs now instantiates createDesktopWallSsoOperatorGateV4 after shared Gold Redis, AccountRegistry and EnrollmentRegistry. All 5 exact string 1 flags required: LIGHT_REMOTE_GOLD_INDEPENDENT, LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4, LR_GOLD_ABV2_DESKTOP_TOKEN_V4, LR_GOLD_ABV2_DESKTOP_WALL_SSO_V4, LR_GOLD_ABV2_DESKTOP_WALL_SSO_OPERATOR_V4. Default/partial/mistyped OFF => no signedRedeem and signed device route HTTP 404 before reading caller input. Full-on with invalid storage/enrollment fails startup; with valid storage it delegates only T04b5 redeem protected by current Owner session, Redis family and Ed25519 enrolled device signature, no A/B grant. New 10 tests, selected T04 suite 89/89 Node PASS and local Wall HTTP loopback revoke PASS; Gold Source Gate CI pending. No Lab, UAT or production deployment; Plugin ticket issue not mounted, native Rust transfer and Agent signed device channel/HTTPS Wall remain OPEN. T03 Owner native login/logout Welcome Windows LIVE PASS, >10m refresh and backend family revocation E2E OPEN. Last Lab flags Auth and Token OFF at 2026-11-03 15:11 UTC, no reactivation this task.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "f3687445c81bd814f1f291b205450a23523537de81192514d18ae88245334d83",
-    "trackedFiles": 1180,
+    "treeDigest": "42555032e9b4ba3894b844fceb8d84684d010c1d142833efd2f4d79042eab349",
+    "trackedFiles": 1182,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T15:19:50.221Z"
+    "recordedAt": "2026-11-03T15:33:49.204Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1016,5 +1016,24 @@
     "securityLimits": "No new HTTP endpoints; no bearer/refresh to Wall; no A/B grant side effect",
     "blocking": "Explicit Operator trusted authority startup, native secure ticket issue and signed device delivery, Wall TLS/loopback, real Windows E2E",
     "testLimitations": "In-memory Redis simulation under source tests, no real Redis cross-process or installed Windows SSO E2E"
+  },
+  "t04b6OperatorExactGate": {
+    "source": [
+      "operator-host/desktop-wall-sso-operator-gate-v4.mjs",
+      "operator-host/executor.mjs"
+    ],
+    "requiredFlags": [
+      "LIGHT_REMOTE_GOLD_INDEPENDENT",
+      "LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4",
+      "LR_GOLD_ABV2_DESKTOP_TOKEN_V4",
+      "LR_GOLD_ABV2_DESKTOP_WALL_SSO_V4",
+      "LR_GOLD_ABV2_DESKTOP_WALL_SSO_OPERATOR_V4"
+    ],
+    "defaultEnabled": false,
+    "sourceTests": "10 new, selected T04 89/89 PASS and local loopback HTTP regression PASS",
+    "goldCI": "PENDING",
+    "deployed": false,
+    "nativeIntegrated": false,
+    "blocking": "native issue endpoint with correct security, signed device delivery, HTTPS/loopback Wall bootstrap, full Windows E2E"
   }
 }

@@ -256,5 +256,6 @@ test('Operator route is unmounted because no enabled signedRedeem dependency',()
   assert.ok(operator.includes("url.pathname==='/v1/device-channel/desktop-wall-sso-redeem'"));
   assert.ok(operator.includes('signedRedeem:deps.desktopWallSsoSignedRedeem'));
   const host=fs.readFileSync(new URL('./executor.mjs',import.meta.url),'utf8');
-  assert.equal(host.includes('desktopWallSsoSignedRedeem:'),false);
+  assert.ok(host.includes('desktopWallSsoSignedRedeem:desktopWallSsoOperatorGate.signedRedeem'));
+  assert.ok(host.includes('createDesktopWallSsoOperatorGateV4({'));
 });

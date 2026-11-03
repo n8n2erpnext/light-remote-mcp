@@ -73,6 +73,7 @@ import {createGoldAbV2HelperTarget} from './gold-ab-v2-helper-target.mjs';
 import {createGoldAbV2HelperPoll} from './gold-ab-v2-helper-poll.mjs';
 import { GoldDeviceBootObservations } from './gold-device-boot-observations.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
+import { createDesktopWallSsoOperatorGateV4 } from './desktop-wall-sso-operator-gate-v4.mjs';
 import {GoldMemoryAccountSyncPolicy} from './gold-memory-account-sync-policy.mjs';
 import {GoldMemoryAccountDelete} from './gold-memory-account-delete.mjs';
 import { handleRuntimeRoutes } from './executor-routes-runtime.mjs';
@@ -1658,7 +1659,14 @@ if(goldShortIdActive){
  }
 }
 
+// T04b6: independent, exact opt-in only. No flags in normal Lab/prod.
+// Desktop Owner Auth + Token gates alone NEVER enable signed Wall SSO.
+const desktopWallSsoOperatorGate=createDesktopWallSsoOperatorGateV4({
+  env:process.env,storage:goldStorage,accounts,enrollments
+});
+
 const routeDeps=()=>({
+  desktopWallSsoSignedRedeem:desktopWallSsoOperatorGate.signedRedeem,
   ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,
   DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,DevicePairingRegistryError,EnrollmentError,
   FleetAuthorityError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,

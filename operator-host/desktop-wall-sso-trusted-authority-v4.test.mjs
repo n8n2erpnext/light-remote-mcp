@@ -340,7 +340,8 @@ test('T04b5 can never be mounted without explicit runtime integration',()=>{
   );
   assert.equal(op.includes('createDesktopWallSsoTrustedOperatorV4('),false);
   assert.ok(dispatcher.includes('signedRedeem:deps.desktopWallSsoSignedRedeem'));
-  assert.equal(op.includes('desktopWallSsoSignedRedeem:'),false);
+  assert.ok(op.includes('desktopWallSsoSignedRedeem:desktopWallSsoOperatorGate.signedRedeem'));
+  assert.ok(op.includes('createDesktopWallSsoOperatorGateV4({'));
 });
 
 test('invalid Redis, missing AccountRegistry or empty enrollment cannot enable authority',()=>{

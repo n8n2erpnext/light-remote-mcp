@@ -1002,3 +1002,6 @@ Added default-off trusted Operator SSO authority that reads existing hashed Desk
 
 ## 2026-11-03 — T04b5 GitHub CI acceptance
 Gold source commit 931b86ad shared hashed Owner access/family Redis authority with actual AccountRegistry single-Owner and Portal-session verification: 79/79 selected local Node PASS plus loopback Wall HTTP PASS. GitHub run 41662764438 Gold Source Gate 4/4 SUCCESS, Docs Integrity 41662764452 PASS. Default-off factory remains unmounted. No real Redis cross-process E2E, Windows T04 test or production deployment. Next: explicit gated Operator adapter, trusted native issue and signed device delivery, Wall HTTPS/loopback secure bootstrap.
+
+## 2026-11-03 — T04b6 Operator exact-flag authority wiring
+Operator startup now binds T04b5 shared Owner Redis signed ticket redemption ONLY after five independent exact string-1 feature flags; Desktop Auth+Token alone cannot activate Wall SSO. Default OFF means device-channel redeem route returns 404 before parsing and does not touch Redis. Full-on with invalid storage/enrollment fails startup. No native Plugin ticket issuer, Wall bootstrap, Agent A/B grant, running Lab update or production deployment. New ten gate tests, selected T04 Node 89/89 PASS and Wall HTTP loopback revocation regression PASS. Gold Source Gate CI pending.
