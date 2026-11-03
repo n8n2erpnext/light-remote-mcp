@@ -6,11 +6,15 @@ on:
       - 'feat/gold-connection-gc-reconciler-20261029'
       - 'feat/gold-single-owner-transfer-20261101'
       - 'feat/goldabv2-device-local-activity-logs-20261102'
+      - 'feat/goldabv2-desktop-owner-lab-20261103'
     paths:
       - 'lib/gold-connection-job-reaper.mjs'
       - 'operator-host/gold-admin-job-recovery.mjs'
       - 'operator-host/executor-routes-account.mjs'
       - 'operator-host/account-registry.mjs'
+      - 'plugin-server/server.mjs'
+      - 'plugin-server/desktop-auth-v4-*.mjs'
+      - 'plugin-server/desktop-owner-token-v4*.mjs'
       - 'lib/gold-registry-persistence.mjs'
       - 'lib/gold-native-account-aux.mjs'
       - 'platform-v2/sql/045_gold_single_owner_authority.sql'
@@ -288,6 +292,10 @@ jobs:
           node --check device-agent/wall-account-notifications.mjs
           node --check device-agent/fleet-wall-runtime.mjs
           node --check plugin-server/site-announcements.mjs
+          node --check plugin-server/desktop-auth-v4-contract.mjs
+          node --check plugin-server/desktop-auth-v4-server.mjs
+          node --check plugin-server/desktop-owner-token-v4.mjs
+          node --test plugin-server/desktop-auth-v4-contract.test.mjs plugin-server/desktop-auth-v4-server.test.mjs plugin-server/desktop-owner-token-v4.test.mjs
           node deploy/scripts/selftest-gold-site-native.mjs
           node deploy/scripts/selftest-gold-wall-account-notifications.mjs
           node deploy/scripts/selftest-gold-wall-notifications-signed-proof.mjs

@@ -7,6 +7,8 @@ import { PUBLIC_ALLOWED_HOSTS, PUBLIC_HOST, PUBLIC_ORIGIN, PUBLIC_PORT, OPENAI_C
 import { authenticateAccess, registerOAuth, initializeOAuthRedis } from './oauth.mjs';
 import { registerPublicDeviceRoutes, prunePublicRateState, initializePublicRateRedis } from './device-public.mjs';
 import { registerAccountPortal } from './account-portal.mjs';
+import { registerDesktopOwnerV4Authorization } from './desktop-auth-v4-server.mjs';
+import { registerDesktopOwnerTokenRoutes } from './desktop-owner-token-v4.mjs';
 import { initializeGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
@@ -96,6 +98,21 @@ installSiteAnalytics(app);
 registerOAuth(app);
 registerWebAssets(app);
 registerAccountPortal(app);
+// GoldABV2 Desktop Owner V4: separate read-only consent and token gates,
+// both OFF by default. Never reuse ChatGPT MCP credentials or A/B authority.
+const desktopOwnerAuthV4=registerDesktopOwnerV4Authorization(app,{
+  enabled:process.env.LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4==='1',
+  redis:goldStorage.redis,
+  prefix:goldStorage.prefix,
+  publicOrigin:PUBLIC_ORIGIN
+});
+registerDesktopOwnerTokenRoutes(app,{
+  enabled:process.env.LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4==='1' &&
+    process.env.LR_GOLD_ABV2_DESKTOP_TOKEN_V4==='1',
+  redis:goldStorage.redis,
+  prefix:goldStorage.prefix,
+  consumeCode:desktopOwnerAuthV4.consumeCode
+});
 registerSupportBackoffice(app,{outbox:supportOutbox});
 registerDistributionPortal(app);
 registerAdminPortal(app);

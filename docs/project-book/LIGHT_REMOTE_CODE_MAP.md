@@ -685,3 +685,11 @@ Admin Owner security emblem uses /assets/icons/material/security.svg (verified H
 - \`deploy/logrotate/light-remote-gold-abv2-lab\` — standalone isolated LXD Operator audit-log rotation (not device-local logger).
 - \`deploy/scripts/selftest-gold-device-local-activity-log.mjs\`, \`deploy/scripts/selftest-gold-wall-local-activity-http.mjs\` — local archive and Owner HTTP regression fixtures.
 - Source branch \`feat/goldabv2-device-local-activity-logs-20261102\` is installed ONLY on isolated GoldABV2 Lab Wall after source CI 4/4; NOT on Gold UAT production or native Windows/macOS until native acceptance. The latest focused handoff is \`LIGHT_REMOTE_GOLDABV2_DEVICE_LOCAL_ACTIVITY_LOG_20261102.md\`.
+
+## GoldABV2 Desktop Owner auth compatibility overlay (2026-11-03, default OFF)
+- plugin-server/desktop-auth-v4-{contract,server}.mjs and desktop-owner-token-v4.mjs plus tests: strict Desktop-only PKCE S256, browser Owner consent, one-time Redis code, hashed opaque access/refresh, original Portal-session checks, explicit real isOwner requirement; no MCP token reuse or Agent A/B approval.
+- plugin-server/server.mjs: exact flag-gated browser consent and token route imports/registration; both OFF by default.
+- operator-host/account-registry.mjs: additive desktopOwnerSessionActive ties active session ID to current single Owner and excludes ownerTransferPending; keeps Gold transfer/revision logic.
+- operator-host/executor-routes-account.mjs: internal POST /v1/accounts/desktop-session-check, no public Owner token/secret.
+- .github/workflows/gold-connection-lifecycle-gc.yml: Gold branch allowlist and 25 Node Desktop security tests in existing source gate.
+- Full runbook: docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_OWNER_AUTH_LAB_20261103.md; NO runtime deployment yet.

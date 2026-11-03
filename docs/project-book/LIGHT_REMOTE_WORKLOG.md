@@ -928,3 +928,6 @@ Owner requested RAM-bounded local Wall command/output history with durable bound
 
 ## 2026-11-02 — GoldABV2 local Wall activity live acceptance
 Commit 3453ff09 GitHub Source Gate run 41464473906 PASS 4/4, Documentation run 41464473944 SUCCESS. Snapshot pre-wall-activity-3453ff09-20261102; isolated LXD Wall staged source-3453ff09-wall-activity-STAGED, 4/4 services active, health 200, local private device JSONL 21 valid events/0 invalid, Long Memory/Codex ON. Gold UAT production unchanged. Native Windows/macOS physical E2E and Owner Settings visual acceptance pending.
+
+## 2026-11-03 — GoldABV2 Desktop Owner Auth isolated compatibility source
+Created new Gold-based branch feat/goldabv2-desktop-owner-lab-20261103 from b9cf02de, copied Desktop PKCE/consent/token modules and tests, added only targeted Operator session check and Gold Plugin route registration. Preserved current single Owner Transfer/ABV2/Wall R5/Activity Logs. Added strict current isOwner verification and post-transfer token invalidation. Node syntax PASS, 25/25 Desktop security tests PASS, synthetic Gold Owner Transfer PASS with feature flags scoped to process only. CI pending. GoldABV2 Lab runtime and production unchanged.

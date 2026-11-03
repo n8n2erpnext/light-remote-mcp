@@ -327,6 +327,13 @@ export async function handleAccountRoutes(req,res,url,deps){
       const body=await readJson(req),account=accounts.verifyCredentials(body,{recordLogin:true,eventType:'account_wall_login'});
       return sendJson(res,200,{ok:true,account,entitlements:planEntitlements(account)});
     }
+    // Trusted Operator Unix-socket route. Exact Portal session validation
+    // never treats the session ID as a bearer credential or grants A/B access.
+    if (req.method === 'POST' && url.pathname === '/v1/accounts/desktop-session-check') {
+      const body=await readJson(req);
+      const accountId=String(body.accountId||''),sessionId=String(body.sessionId||'');
+      return sendJson(res,200,{ok:true,active:accounts.desktopOwnerSessionActive(accountId,sessionId)});
+    }
     if (req.method === 'GET' && url.pathname === '/v1/accounts/me') {
       const identity=requireAccount(req);
       return sendJson(res,200,{ok:true,...identity,entitlements:planEntitlements(identity.account)});

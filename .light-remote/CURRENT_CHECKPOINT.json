@@ -1,8 +1,8 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
-  "updatedDate": "2026-11-02",
-  "status": "goldabv2_r5_device_local_activity_logs_live_lab_ci_4of4_native_windows_mac_e2e_pending",
-  "branch": "feat/goldabv2-device-local-activity-logs-20261102",
+  "updatedDate": "2026-11-03",
+  "status": "goldabv2_desktop_owner_compatibility_source_only_25of25_tests_PASS_CI_PENDING_runtime_OFF",
+  "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
   "verifiedDocumentationCI": {
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Owner visually accept Lab /settings Activity Logs and verify Clean with synthetic activity; Windows/macOS/Linux native CI/installed E2E before any production release. Do not touch Gold UAT production or auto-delete Long Memory.",
+  "nextAction": "Commit/push GoldABV2-compatible Desktop Owner auth candidate branch, verify Gold Source Gate/Docs CI. Keep both Desktop Owner flags OFF; then preserve Lab rollback and stage only compatible Plugin/Operator sources in isolated LXD with Owner Transfer and A/B regression. Owner-approved Windows native E2E before T04 SSO; no Gold UAT/prod/Long Memory changes.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "23d1ef89db52752a0d55ba826b938bb961b3598430cd93f464a82300b9e8f402",
-    "trackedFiles": 1163,
+    "treeDigest": "c5467de32a7e7ae527947009ea8ee45a7a37275cdfbf2344314ddf1c7d83d8de",
+    "trackedFiles": 1169,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-02T14:41:54.932Z"
+    "recordedAt": "2026-11-03T08:54:50.678Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -907,5 +907,22 @@
     "liveLab": "4/4 services active, HTTPS 200, 21 local JSONL events, 0 invalid, private file mode0600",
     "liveMemoryCodexEnabled": true,
     "historicalMemoryScopeCountObserved": 0
+  },
+  "desktopOwnerLabCompatibility": {
+    "sourceBranch": "feat/goldabv2-desktop-owner-lab-20261103",
+    "sourceBase": "b9cf02de4bc515a1926b86e5f7d08f8876149e7d",
+    "sourceScope": "Additive Desktop PKCE, Owner browser consent, hashed rotating tokens, internal Operator session check; preserve single Owner Transfer/A-B/Wall R5/Activity Logs",
+    "strictOwner": "Account Portal isOwner true, current ownerAccountId exact match, no pending Owner transfer",
+    "flags": "LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 and LR_GOLD_ABV2_DESKTOP_TOKEN_V4 default OFF",
+    "nodeSyntax": "PASS",
+    "desktopAuthSecurityTests": "25/25 PASS",
+    "goldOwnerTransferSynthetic": "PASS with feature flags only in test process",
+    "gitSourceSha": "PENDING",
+    "goldSourceGateCi": "PENDING",
+    "goldABV2LabRuntimeChanged": false,
+    "goldUATProductionChanged": false,
+    "desktopOwnerLiveE2E": false,
+    "appToWallSSO": false,
+    "handoff": "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_OWNER_AUTH_LAB_20261103.md"
   }
 }
