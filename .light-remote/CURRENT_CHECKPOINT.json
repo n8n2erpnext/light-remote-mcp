@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_LAB043_STATIC_IMPORT_GUARD_LAB_PASS_SOURCE_CI_PENDING_RUNTIME_HOLD",
+  "status": "goldabv2_T04B8_A2_LAB043_IMPORT_CLOSURE_SOURCE_CI_4_4_SUCCESS_RUNTIME_RELEASE_HOLD",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T04b8-A2: Lab-only source artifact static closure 222 JS/18 external literal imports/0 missing, negative fixture PASS; Source Gate CI pending. Canonical Git042 vs DB/staged043 remains BLOCKED. Explicit runtime cutover release authorization and fresh timer/snapshot/rollback prerequisites still required; SSO OFF.",
+  "nextAction": "T04b8-A2: Gold Source Gate 41808697185 4/4 SUCCESS, docs/truth both Gold/Desktop PASS. Prepared isolated Lab043 import closure 222 files/18 static external specifiers/0 missing, but canonical Git042 preflight remains BLOCKED exit3 and source cutover NOT authorized. Verify scheduled 16:37:30 ICT autooff and renew independent snapshot/timer/rollback upon separate source release approval; SSO OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1273,7 +1273,20 @@
     "checkedExternalReferences": 18,
     "missingCount": 0,
     "actualLabAudit": "LAB_ONLY_043_PREPARED_ARTIFACT_COMPATIBLE_NOT_RELEASED",
-    "sourceGateCI": "pending",
+    "sourceGateCI": {
+      "gold": {
+        "sourceCommit": "f89c4f7acb47df898e61efdaf681423e8d08bf46",
+        "sourceGateRunId": 41808697185,
+        "sourceGateResult": "success_4_of_4",
+        "docsRunId": 41808697178,
+        "truthRunId": 41808697192
+      },
+      "desktop": {
+        "sourceCommit": "7d7273749fd6a3d460e0badcf8d86667290c42a8",
+        "docsRunId": 41808704974,
+        "truthRunId": 41808704849
+      }
+    },
     "canCutover": false,
     "qualification": "literal static imports only; no real source restart or E2E",
     "evidence": "/home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/LAB043_COMPAT_PREP_20261104/receipt.json"
