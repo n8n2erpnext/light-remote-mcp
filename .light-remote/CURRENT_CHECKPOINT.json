@@ -174,7 +174,7 @@
     "treeDigest": "f76e0b294129257b905302e2aabbae631fae94b1df39760af8616909791d88f0",
     "trackedFiles": 1182,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T06:47:47.923Z"
+    "recordedAt": "2026-11-04T06:49:57.800Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1126,6 +1126,20 @@
     "canEnableSso": false,
     "realLabReadOnlyReview": "PASS",
     "fixtureSelftest": "PASS",
-    "sourceGateCI": "PENDING"
+    "sourceGateCI": "SUCCESS_4_OF_4",
+    "goldCodeCommit": "8a53f2d8dc1b2cd6e38b51190dcb51b2af6beda4",
+    "goldSourceGateRun": 41787944824,
+    "goldDocsRun": 41787944597,
+    "goldProjectTruthRun": 41787944780,
+    "desktopCommit": "d590b99672ed84c50ab0050a94d3f60e4fed8e62",
+    "desktopDocsRun": 41787950463,
+    "desktopProjectTruthRun": 41787950437,
+    "runtimeHealthAfterReview": {
+      "activeUnits": 4,
+      "publicHttps": 200,
+      "tlsVerifyResult": 0,
+      "autoOffTimer": "inactive",
+      "ssoEnabled": false
+    }
   }
 }
