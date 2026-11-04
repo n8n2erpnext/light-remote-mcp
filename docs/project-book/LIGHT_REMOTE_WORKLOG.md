@@ -1083,3 +1083,7 @@ Read-only GoldABV2 Lab PostgreSQL transaction proved light_remote_gold_dev ledge
 ## 2026-11-04 — Schema043 forensic continuity CI accepted
 
 Gold fcf54e9e: docs run41778591691 and Project Truth run41778591645 SUCCESS. Desktop mirror d778fe23: docs run41778598854 and Truth run41778598856 SUCCESS. These are documentation/workflow checks, not canonical SQL043 release authorization or runtime SSO acceptance. Old GoldABV2 Lab remains 043 and its running source local lock has 043 whereas new Git source lock ends 042. Next reviewed release and pre-restart compatibility gate, no unsafe lock copy.
+
+## 2026-11-04 — T04b8-A2 real isolated Lab cutover preflight PASS (negative)
+
+Gold new read-only deploy/scripts/gold-abv2-lab-cutover-preflight.mjs checks actual DB schema in ROLLBACK-only transaction, canonical Git lock vs staged, all locked SQL digests, table/trigger and Node dependency resolution. No --apply, canCutover always false absent independent release authorization. Selftest negative fixture PASS; old deployed source 9d996956 BLOCKED exit3 on local043/Git042 drift, new b8ec5d6f staging BLOCKED exit3 on PG043/staged042 mismatch. Gold Source Gate updated to run test and trigger on its source. No PG/Traefik/SSO/service restart, no 043 approval; SQL044 guest HOLD. Next independent owner approval of canonical 043 and bounded cutover with rollback.

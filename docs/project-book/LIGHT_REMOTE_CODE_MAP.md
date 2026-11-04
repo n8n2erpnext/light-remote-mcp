@@ -798,3 +798,8 @@ Current T04b7b source entry points: plugin-server/server.mjs → desktop-wall-ss
 
 - Isolated Lab PostgreSQL ledger is 001–043, Short ID table and immutable trigger present. Old deployed Plugin+Operator tree 9d996956 has locally extended 43-entry migration lock; new Git-archived b8ec5d6f tree has only 001–042. SQL043 SHA256 935b268899c7b59761781db33d8ad2c573773566844fbfab0b861046f3a680d4 matches old locked pin and SQL files in all three trees. Gate+DB source SHA identical, so local-only lock drift explains failed new Operator startup.
 - Runtime-only 043 pinning is NOT equivalent to reviewed canonical Git approval; project-book treats SQL043 candidate and SQL044 Guest native HOLD. Do not copy a lock entry / toggle approval flag to bypass review. A pre-restart release-schema/package compatibility gate is required to prevent transient HTTP502 on next source cutover. No DB or service changed by this forensic task.
+
+## 2026-11-04 — Isolated Lab pre-restart source compatibility gate
+
+- deploy/scripts/gold-abv2-lab-cutover-preflight.mjs: READ ONLY exact GoldABV2 LXD Lab PG ledger, committed canonical Git lock, staged source lock, SHA of ALL staged locked SQL, immutable Short ID contract and Plugin express/Operator pg resolutions. No --apply; canCutover=false even if technically compatible. Guest044 HOLD.
+- deploy/scripts/selftest-gold-abv2-lab-cutover-preflight.mjs: synthetic fail-closed fixtures. Wired to Gold Source Gate workflow trigger and runner. Actual old 9d996956 source exits3 due local043/Git042 drift; new b8ec5d6f staged source exits3 due DB043/Git042 mismatch. No deployment changes; schema043 independently reviewed release remains mandatory.

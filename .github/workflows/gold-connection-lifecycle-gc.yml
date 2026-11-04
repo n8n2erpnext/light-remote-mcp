@@ -83,6 +83,8 @@ on:
       - 'deploy/scripts/selftest-gold-043-migrator-release-gate.mjs'
       - 'deploy/scripts/gold-ab-v2-043-release-preflight.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-043-release-readiness.mjs'
+      - 'deploy/scripts/gold-abv2-lab-cutover-preflight.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-lab-cutover-preflight.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-owner-approve-http.mjs'
       - 'operator-host/executor.mjs'
       - 'operator-host/device-access-grant-registry.mjs'
@@ -362,6 +364,8 @@ jobs:
           node --check lib/gold-abv2-043-release-readiness.mjs
           node --check deploy/scripts/gold-ab-v2-043-release-preflight.mjs
           node deploy/scripts/selftest-gold-ab-v2-043-release-readiness.mjs
+          node --check deploy/scripts/gold-abv2-lab-cutover-preflight.mjs
+          node deploy/scripts/selftest-gold-abv2-lab-cutover-preflight.mjs
           node --check lib/gold-043-migrator-release-gate.mjs
           node --check deploy/scripts/apply-gold-db.mjs
           node deploy/scripts/selftest-gold-043-migrator-release-gate.mjs
