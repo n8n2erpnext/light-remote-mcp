@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - feat/gold-connection-gc-reconciler-20261029
+      - feat/goldabv2-desktop-owner-lab-20261103
+      - feat/desktop-v4-api-integration-20261103
   pull_request:
     branches:
       - feat/gold-connection-gc-reconciler-20261029
+      - feat/goldabv2-desktop-owner-lab-20261103
+      - feat/desktop-v4-api-integration-20261103
 
 permissions:
   contents: read
