@@ -9,9 +9,11 @@
  * This handler never returns bearer/refresh secrets, A/B grants or Wall cookies.
  */
 import net from 'node:net';
+import crypto from 'node:crypto';
 
 const TOKEN=/^[A-Za-z0-9_-]{43}$/;
 const DEVICE=/^[A-Za-z0-9._:-]{1,160}$/;
+const EDGE_PROOF=/^[a-f0-9]{64}$/;
 const PURPOSE='desktop_wall_sso_v4';
 
 const exact=(row,names)=>{
@@ -33,7 +35,7 @@ const reject=(res,status,reason)=>
   res.status(status).json({ok:false,error:reason});
 
 export function createDesktopWallSsoNativeIssueV4({
-  enabled=false,publicOrigin,proxyPeers=[],issueTrusted,clock=Date.now
+  enabled=false,publicOrigin,proxyPeers=[],edgeProofSecret,issueTrusted,clock=Date.now
 }={}){
   if(enabled!==true)return Object.freeze({enabled:false,handler:null});
   let expected;
@@ -43,15 +45,30 @@ export function createDesktopWallSsoNativeIssueV4({
      typeof issueTrusted!=='function'||typeof clock!=='function'||
      !Array.isArray(proxyPeers)||proxyPeers.some(ip=>normalizedIp(ip)!==ip))
     throw new Error('desktop_wall_sso_native_issuer_unavailable');
+  // LXD's TCP proxy can make *untrusted direct HTTP* appear to come from
+  // 127.0.0.1, the same socket peer as real Traefik HTTPS forwarding.
+  // Source IP + X-Forwarded-Proto therefore cannot attest TLS ingress.
+  // Require a separate non-public 256-bit edge proof for all HTTP hops;
+  // the TLS-only Traefik router must OVERRIDE any caller-supplied copy.
+  if(proxyPeers.length && !EDGE_PROOF.test(String(edgeProofSecret||'')))
+    throw new Error('desktop_wall_sso_edge_proof_unavailable');
   const trustedPeers=new Set(proxyPeers);
+  const expectedProof=proxyPeers.length
+    ?Buffer.from(edgeProofSecret,'hex'):null;
+  const verifiedEdgeProof=value=>{
+    if(!expectedProof||typeof value!=='string'||!EDGE_PROOF.test(value))
+      return false;
+    return crypto.timingSafeEqual(Buffer.from(value,'hex'),expectedProof);
+  };
   const secureTransport=req=>{
     if(String(req.headers?.host||'')!==expected.host)return false;
     if(req.socket?.encrypted===true)return true;
     // The public HTTPS terminator MUST be explicitly allowlisted by exact IP.
-    // Express req.secure alone or a client-supplied X-Forwarded-Proto is NOT
-    // sufficient. No wildcard, subnet or truthy forwarded header accepted.
+    // Neither Express req.secure nor the allowlisted TCP peer is sufficient.
+    // Traefik must overwrite this private header on its TLS-only route.
     const peer=normalizedIp(req.socket?.remoteAddress);
     return Boolean(peer&&trustedPeers.has(peer)&&req.secure===true&&
+      verifiedEdgeProof(req.headers?.['x-light-remote-edge-proof-v4'])&&
       req.headers?.['x-forwarded-proto']==='https'&&
       (!req.headers?.['x-forwarded-host']||
        req.headers['x-forwarded-host']===expected.host));

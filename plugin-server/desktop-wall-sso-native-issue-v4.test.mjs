@@ -9,6 +9,7 @@ import {handleDesktopWallSsoInternalIssueV4}
 const ORIGIN='https://goldabv2.light-remote.thaiduy.digital';
 const DEVICE='dev_test_native_t04b7';
 const ACCESS='A'.repeat(43),TICKET='T'.repeat(43);
+const EDGE_PROOF='a'.repeat(64);
 function setup({peer=[],trustedIssue}={}){
   const calls=[];
   const clock=()=>Date.now();
@@ -19,6 +20,7 @@ function setup({peer=[],trustedIssue}={}){
   });
   const created=createDesktopWallSsoNativeIssueV4({
     enabled:true,publicOrigin:ORIGIN,proxyPeers:peer,
+    edgeProofSecret:peer.length?EDGE_PROOF:undefined,
     issueTrusted,clock
   });
   const body=JSON.stringify({device_id:DEVICE});
@@ -99,7 +101,9 @@ test('T04b7 explicitly allowlisted HTTPS terminator peer accepted',async()=>{
   const f=setup({peer:['127.0.0.1']});
   const forwarded={...f.req,secure:true,
     socket:{encrypted:false,remoteAddress:'127.0.0.1'},
-    headers:{...f.req.headers,'x-forwarded-proto':'https'}};
+    headers:{...f.req.headers,
+      'x-forwarded-proto':'https',
+      'x-light-remote-edge-proof-v4':EDGE_PROOF}};
   assert.equal((await f.call(forwarded)).code,200);
   assert.equal((await f.call({...forwarded,secure:false})).code,403);
   assert.equal((await f.call({...forwarded,headers:{
@@ -230,4 +234,41 @@ test('T04b7b internal route is registered only behind explicit issue callback',(
   assert.ok(operator.includes("url.pathname==='/v1/internal/desktop-wall-sso/issue'"));
   const host=fs.readFileSync(new URL('../operator-host/executor.mjs',import.meta.url),'utf8');
   assert.ok(host.includes('desktopWallSsoInternalIssue:desktopWallSsoOperatorGate.internalIssue'));
+});
+
+test('T04b8 real LXD localhost peer plus spoofed HTTPS forwarded headers fails without edge proof',async()=>{
+  const f=setup({peer:['127.0.0.1']});
+  const direct={
+    ...f.req,secure:true,socket:{encrypted:false,remoteAddress:'127.0.0.1'},
+    headers:{...f.req.headers,'x-forwarded-proto':'https',
+      'x-forwarded-host':'goldabv2.light-remote.thaiduy.digital'}
+  };
+  assert.equal((await f.call(direct)).code,403);
+  assert.equal((await f.call({...direct,headers:{...direct.headers,
+    'x-light-remote-edge-proof-v4':'b'.repeat(64)}})).code,403);
+  assert.equal((await f.call({...direct,headers:{...direct.headers,
+    'x-light-remote-edge-proof-v4':'a'.repeat(63)}})).code,403);
+  assert.equal(f.calls.length,0);
+});
+test('T04b8 fail-closed proxy configuration rejects missing or weak edge proof',()=>{
+  for(const proof of [undefined,'','yes','1'.repeat(32),'z'.repeat(64)]){
+    assert.throws(()=>createDesktopWallSsoNativeIssueV4({
+      enabled:true,publicOrigin:ORIGIN,proxyPeers:['127.0.0.1'],
+      edgeProofSecret:proof,issueTrusted:async()=>{}
+    }),/desktop_wall_sso_edge_proof_unavailable/);
+  }
+  const off=createDesktopWallSsoNativeIssueV4({
+    enabled:false,publicOrigin:ORIGIN,proxyPeers:['127.0.0.1']
+  });
+  assert.equal(off.enabled,false);
+});
+test('T04b8 a wrong peer cannot pass even with valid private edge proof',async()=>{
+  const f=setup({peer:['127.0.0.1']});
+  const direct={
+    ...f.req,secure:true,socket:{encrypted:false,remoteAddress:'10.192.135.62'},
+    headers:{...f.req.headers,'x-forwarded-proto':'https',
+      'x-light-remote-edge-proof-v4':EDGE_PROOF}
+  };
+  assert.equal((await f.call(direct)).code,403);
+  assert.equal(f.calls.length,0);
 });

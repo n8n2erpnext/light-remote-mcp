@@ -131,6 +131,10 @@ registerDesktopWallSsoNativeIssuerV4(app,{
   env:process.env,publicOrigin:PUBLIC_ORIGIN,
   proxyPeers:process.env.LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4
     ?process.env.LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4.split(','):[],
+  // Required when SSL terminates at Traefik/LXD: an explicit 256-bit
+  // edge attestation value must be injected only by the TLS-only router.
+  // Never log, default, generate or expose this private value in the UI.
+  edgeProofSecret:process.env.LR_GOLD_ABV2_DESKTOP_WALL_SSO_EDGE_PROOF_V4,
   operatorCall:callOperatorJson
 });
 registerSupportBackoffice(app,{outbox:supportOutbox});

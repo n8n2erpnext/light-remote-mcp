@@ -217,3 +217,19 @@ test('T04b7b request must have 2-KiB scoped JSON parser before product 12-MiB pa
   assert.ok(source.includes('registerDesktopWallSsoNativeIssuerV4(app,'));
   assert.ok(source.includes('operatorCall:callOperatorJson'));
 });
+
+test('T04b8 Plugin refuses startup with allowlisted LXD proxy but no private edge proof',()=>{
+  const app={post(){throw Error('must_not_register_route')}};
+  assert.throws(()=>registerDesktopWallSsoNativeIssuerV4(app,{
+    env:FLAGS(),publicOrigin:ORIGIN,
+    proxyPeers:['127.0.0.1'],
+    operatorCall:async()=>{}
+  }),/desktop_wall_sso_edge_proof_unavailable/);
+});
+test('T04b8 Plugin server reads a separate opt-in private proxy proof from environment',()=>{
+  const source=fs.readFileSync(new URL('./server.mjs',import.meta.url),'utf8');
+  assert.ok(source.includes(
+    'edgeProofSecret:process.env.LR_GOLD_ABV2_DESKTOP_WALL_SSO_EDGE_PROOF_V4'
+  ));
+  assert.ok(!source.includes('console.log(process.env.LR_GOLD_ABV2_DESKTOP_WALL_SSO_EDGE_PROOF_V4'));
+});

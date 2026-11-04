@@ -70,7 +70,7 @@ const exact=(row,keys)=>row&&typeof row==='object'&&
   Object.keys(row).every(key=>keys.includes(key));
 
 export function registerDesktopWallSsoNativeIssuerV4(app,{
-  env={},publicOrigin,proxyPeers=[],operatorCall,clock=Date.now
+  env={},publicOrigin,proxyPeers=[],edgeProofSecret,operatorCall,clock=Date.now
 }={}){
   if(!desktopWallSsoIssuerEnabledV4(env))
     return Object.freeze({enabled:false,routes:0});
@@ -78,7 +78,7 @@ export function registerDesktopWallSsoNativeIssuerV4(app,{
     throw Error('desktop_wall_sso_issuer_transport_unavailable');
   const throttle=createDesktopWallSsoIssueRateGateV4({clock});
   const native=createDesktopWallSsoNativeIssueV4({
-    enabled:true,publicOrigin,proxyPeers,clock,
+    enabled:true,publicOrigin,proxyPeers,edgeProofSecret,clock,
     issueTrusted:async({accessToken,deviceId})=>{
       if(!throttle.allow(accessToken))fail();
       // This fixed path is NEVER constructed from user input. Unix socket

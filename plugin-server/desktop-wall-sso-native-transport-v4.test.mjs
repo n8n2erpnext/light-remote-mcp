@@ -22,6 +22,7 @@ import {handleDeviceChannelRoutes}
 
 const TOKEN='A'.repeat(43),DEVICE='dev_t04b7b_actual_transport';
 const TICKET='T'.repeat(43),PUBLIC='goldabv2.light-remote.thaiduy.digital';
+const EDGE_PROOF='b'.repeat(64);
 const enabledEnv=()=>({
   ...Object.fromEntries(DESKTOP_WALL_SSO_OPERATOR_REQUIRED_FLAGS
     .map(k=>[k,'1'])),
@@ -104,7 +105,7 @@ async function withTransport(fn,{enablePlugin=true,enableOperator=true,
     const route=registerDesktopWallSsoNativeIssuerV4(app,{
       env:enablePlugin?enabledEnv():{},
       publicOrigin:'https://'+PUBLIC,
-      operatorCall:socketCall,proxyPeers
+      operatorCall:socketCall,proxyPeers,edgeProofSecret:EDGE_PROOF
     });
     // Real HTTP and Unix-socket transport, but minimal native Node harness
     // instead of Express. It enforces the same 2-KiB JSON parsing ceiling.
@@ -147,7 +148,9 @@ async function withTransport(fn,{enablePlugin=true,enableOperator=true,
         body:payload,
         headers:{
           host:PUBLIC,'x-forwarded-proto':'https',
-          authorization:'Bearer '+TOKEN,...options.headers
+          authorization:'Bearer '+TOKEN,
+          'x-light-remote-edge-proof-v4':EDGE_PROOF,
+          ...options.headers
         }});
     await fn({call,route,operatorCalls:()=>operatorCalls,
       privateBodyReads:()=>privateBodyReads});
@@ -206,4 +209,26 @@ test('T04b7b trusted forward-proxy allowlist is required for native HTTP ingress
     assert.equal(result.status,403);
     assert.equal(operatorCalls(),0);
   },{proxyPeers:[]});
+});
+
+test('T04b8 actual Node HTTP -> Unix socket rejects a direct backend HTTPS-header spoof',async()=>{
+  await withTransport(async({call,operatorCalls,privateBodyReads})=>{
+    const spoof=await call({device_id:DEVICE},{headers:{
+      'x-forwarded-proto':'https',
+      'x-light-remote-edge-proof-v4':''
+    }});
+    assert.equal(spoof.status,403);
+    assert.deepEqual(spoof.result,{ok:false,error:'desktop_wall_sso_native_required'});
+    assert.equal(operatorCalls(),0);
+    assert.equal(privateBodyReads(),0);
+  });
+});
+test('T04b8 actual Node HTTP -> Unix socket rejects incorrect edge proof',async()=>{
+  await withTransport(async({call,operatorCalls})=>{
+    const bad=await call({device_id:DEVICE},{headers:{
+      'x-light-remote-edge-proof-v4':'c'.repeat(64)
+    }});
+    assert.equal(bad.status,403);
+    assert.equal(operatorCalls(),0);
+  });
 });
