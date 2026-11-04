@@ -31,7 +31,7 @@
 | Gold main UAT/production and custom ChatGPT MCP | **NOT CHANGED BY T04 SOURCE TASKS** | No deploy, no service restart, no migration, no feature cutover. |
 | Native Windows Desktop V4 candidate for T04 | **NOT AVAILABLE** | Most recent physically accepted candidate was for Owner Login/Logout, not signed Wall SSO. |
 | Agent A/B approval authority | **INDEPENDENT / MUST NOT CHANGE** | Owner web login, native login or SSO must never grant Agent command permission. |
-| Living Master governance | **ACTIVE — Git commit, negative guard test and Docs CI PASS** | Both branches have identical Master; source/docs Project Truth workflow expanded to GoldABV2 + Desktop V4 branches (new CI pending). |
+| Living Master governance | **ACTIVE — Gold + Desktop Project Truth CI PASS** | GitHub gate runs **41757247108** (Gold) and **41757254955** (Desktop) PASS; missing/undated Master negative tests PASS; both copies byte-identical. |
 
 **What the next Agent should do FIRST:** read the current end-of-file receipt; check both branch HEADs; inspect effective Lab reverse-proxy peer and forwarded HTTPS metadata *without exposing credentials*; verify there is no backend bypass to the LXD Plugin socket; prepare explicit isolated Lab snapshot, auto-OFF and rollback before any new live SSO flag. No owner test request yet.
 
@@ -441,3 +441,13 @@ Master mirror: GOLD/DESKTOP identical? yes/no; both checkpoint commits
 - **Negative guard test in isolated temporary Git repository, no user repo changes:** docs task without the Master → DENIED; Master edited with NO newly dated `## YYYY-MM-DD` receipt → DENIED; Master + Worklog + checkpoint with a new dated entry → PASS `living-master-docs-coherent`. Existing Project Truth selftests also PASS on both branches (code-only denial, missing Worklog, stale source SHA, security Code Map, atomic source/docs acceptance and history range).
 - **Critical CI discovery:** existing `.github/workflows/gold-project-truth-sync.yml` originally triggered only for `feat/gold-connection-gc-reconciler-20261029`; the GoldABV2 and Desktop V4 living branches were not covered. **This H00-CI task extends push/pull_request branch triggers to both current feature branches.** Subsequent pushes must run per-commit `--range BASE HEAD`, including documentation-only tasks, with historical pre-Master commits grandfathered. Full new workflow CI result still PENDING until GitHub completes it.
 - **No Lab deployment, SSO flag activation, Owner credential access, A/B grant, production change or native EXE build.** Work remains at T04b8-A: verify real effective Plugin proxy peer, forwarded HTTPS-header trust and direct backend bypass before a bounded Lab SSO gate.
+
+## 2026-11-04 — H00-CI FINAL: per-commit continuity enforcement accepted on BOTH branches [CI PASS]
+
+- **Project Truth GitHub CI Gold:** run **41757247108**, job `source-docs-checkpoint-sync` COMPLETED SUCCESS on commit `4666000b22062d842575468f5a731c05df2d7950`.
+- **Project Truth GitHub CI Desktop:** run **41757254955**, job `source-docs-checkpoint-sync` COMPLETED SUCCESS on commit `7bf6175a309206d370185f3591ca1a4d102a8605`.
+- **Documentation library CI:** Gold run **41757246951** SUCCESS, Desktop run **41757254998** SUCCESS for those same commits. First handoff Docs CI was also independently PASS (Gold 41756711537, Desktop 41756716978).
+- The CI workflow tests the existing Project Truth source/docs checkpoint selftest, then verifies **every pushed commit** via `--range BASE HEAD`, with historical pre-Master commits grandfathered. The gate is enabled for **both current feature branches**, not only historical GC.
+- **Isolated negative checks PASS:** missing Master rejected; Master without new dated receipt rejected; Master + Worklog + checkpoint with dated updates accepted. Both actual H00 commits and H00-CI source commits passed `--head` before reporting. The two Master copies remain byte-identical.
+- **Task H00 outcome:** living documentation, root AGENTS.md and CI guard **COMPLETE**. This does NOT imply the next T04b8 task or Windows Wall SSO is complete. No production/Lab feature/deployment/Agent A/B changes were performed.
+- **Next task:** **T04b8-A** — effective Plugin reverse proxy peer and forwarded HTTPS trust measurement, backend bypass audit, then snapshot/independently timed auto-OFF before any bounded real Redis/Owner/Ed25519 SSO test.
