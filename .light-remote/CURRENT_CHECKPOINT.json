@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "desktop_v4_T04B8_A2_ROLLBACK_READINESS_SOURCE_CI_4_OF_4_PASS_REAL_LAB_HOLD",
+  "status": "desktop_v4_T04B8_A2_LAB_STORAGE_AND_TIMER_BINDING_SOURCE_NEGATIVE_PASS_RELEASE_HOLD",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Next T04b8-A2-LAB-ONLY-APPROVAL-AND-ROLLBACK-REMEDIATION: Gold rollback readiness source CI run41790279601 PASS 4/4, Docs/Truth both branches PASS; actual Lab --audit intentionally BLOCKED by no fresh snapshot, missing independent timer and root disk87.6% used. Existing backups and 4/4 services HTTPS200 PASS. No runtime changes. Obtain explicit Lab-only approval and safe storage plan; do not change canonical Git042, Guest044 HOLD or SSO OFF.",
+  "nextAction": "T04b8-A2-STORAGE-TIMER-GUARD-CI: actual VPS root 87.7% used/14.8GiB free; LXD default Btrfs pool 40GiB, 33.33GiB used, 6.67GiB free; 31 old Lab snapshots. Gold guard now requires specific rollback timer Unit/ExecStart script (not --check), and >=5GiB pool free <=90% used; property parser handles embedded equals. Actual --audit BLOCKED expected, source negative selftests PASS. Need Gold Source Gate+Docs+Project Truth CI, owner-reviewed storage preservation and explicit Lab-only release scope before any cleanup, snapshot/timer or source cutover. Git main lock042, Guest044 HOLD, SSO OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -174,7 +174,7 @@
     "treeDigest": "f76e0b294129257b905302e2aabbae631fae94b1df39760af8616909791d88f0",
     "trackedFiles": 1182,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T07:13:11.042Z"
+    "recordedAt": "2026-11-04T07:24:51.767Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1171,5 +1171,30 @@
     "desktopMirrorCommit": "20e907e3fb5b984af707dd7ee9ad6a799e79acc9",
     "desktopDocsRun": 41790285739,
     "desktopTruthRun": 41790285898
+  },
+  "t04b8A2StorageAndTimerGuard": {
+    "date": "2026-11-04",
+    "scope": "READ_ONLY_AUDIT_AND_SOURCE_CODE",
+    "rootUsedPercent": 87.7,
+    "rootFreeGiB": 14.8,
+    "lxdPoolTotalGiB": 40,
+    "lxdPoolUsedGiB": 33.33,
+    "lxdPoolFreeGiB": 6.67,
+    "actualOldSnapshots": 31,
+    "freshSnapshot": false,
+    "autooffTimerLoaded": false,
+    "btrfsPoolGatePass": true,
+    "rootDiskGatePass": false,
+    "timerTargetBindingVerified": false,
+    "unitTest": "PASS",
+    "liveAudit": "BLOCKED_EXPECTED_EXIT3",
+    "candidateReviewDoc": "docs/project-book/LIGHT_REMOTE_T04B8_A2_STORAGE_REMEDIATION_REVIEW_20261104.md",
+    "noFilesDeleted": true,
+    "noMigrationApplied": true,
+    "noRuntimeRestart": true,
+    "sourceCI": "PENDING",
+    "ssoEnabled": false,
+    "canCutover": false,
+    "releaseApproved": false
   }
 }
