@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_ROLLBACK_READINESS_NEGATIVE_LAB_PASS_CI_PENDING",
+  "status": "goldabv2_T04B8_A2_ROLLBACK_READINESS_SOURCE_CI_4_OF_4_PASS_REAL_LAB_HOLD",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b8-A2-ROLLBACK-READINESS-CI: source-only rollback readiness PASS including strict BOTH-service override check; real Lab audit intentionally BLOCKED: no fresh snapshot, auto-OFF timer not loaded, disk used 87.6% (threshold <=85%) with 14.8GiB free. Backups valid, four units/HTTPS healthy. Commit+push source/docs and verify CI; obtain separate owner Lab-only approval, storage and fresh rollback before cutover. Canonical 043 still HOLD, Guest044 HOLD, SSO OFF.",
+  "nextAction": "Next T04b8-A2-LAB-ONLY-APPROVAL-AND-ROLLBACK-REMEDIATION: Gold rollback readiness source CI run41790279601 PASS 4/4, Docs/Truth both branches PASS; actual Lab --audit intentionally BLOCKED by no fresh snapshot, missing independent timer and root disk87.6% used. Existing backups and 4/4 services HTTPS200 PASS. No runtime changes. Obtain explicit Lab-only approval and safe storage plan; do not change canonical Git042, Guest044 HOLD or SSO OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "30e885ec40efc6b65fc7cf97a51cb71206b4c43276c3f87442fb639a4d1eb3ca",
     "trackedFiles": 1196,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T07:08:34.540Z"
+    "recordedAt": "2026-11-04T07:13:10.864Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1376,9 +1376,16 @@
     "publicHttps": 200,
     "tlsVerify": 0,
     "sourceTests": "PASS",
-    "ci": "PENDING",
+    "ci": "SUCCESS_4_OF_4",
     "canCutover": false,
     "ssoEnabled": false,
-    "releaseApproved": false
+    "releaseApproved": false,
+    "goldCodeCommit": "0ae75f6f302cf67a56b1cffb3b62d3b3819a3bde",
+    "goldSourceGateRun": 41790279601,
+    "goldDocsRun": 41790279578,
+    "goldTruthRun": 41790279581,
+    "desktopMirrorCommit": "20e907e3fb5b984af707dd7ee9ad6a799e79acc9",
+    "desktopDocsRun": 41790285739,
+    "desktopTruthRun": 41790285898
   }
 }
