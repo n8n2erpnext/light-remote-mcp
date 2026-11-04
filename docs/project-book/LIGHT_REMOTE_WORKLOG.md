@@ -831,3 +831,7 @@ VPS-ARM root used74.9%/free30.1GiB and LXD pool used79.6%/free8.2GiB after prior
 ## 2026-11-04 — T04b8-A2 real technical rollback readiness evidence docs CI accepted
 
 GitHub Gold 7cd647df Docs41803644894 and Truth41803644904 COMPLETED SUCCESS; Desktop bf10f723 Docs41803653894 and Truth41803653663 COMPLETED SUCCESS. Master mirrors byte-identical. CI is documentation/project-truth acceptance, NOT SQL043 release or real Lab source cutover. Snapshot/timer readiness was transient, refresh at any later authorization; DB043 vs staged/canonical042 preflight remains BLOCKED exit3. No migration/SSO/service restart.
+
+## 2026-11-04 — T04b8-A2 Lab-only SQL043 artifact PREPARED; source audit fail closed
+
+Created isolated unactivated Lab source-b8ec5d6f-t04b8-a2-LAB043-COMPAT-PREPARED from existing b8ec5d6f stage; original source untouched. Prepared lock43 SHA 9fc28935ab474d8c299b2434fcb36c7b337b377284670fa203d9c5521087f609, SQL043 pinned SHA 935b268899c7b59761781db33d8ad2c573773566844fbfab0b861046f3a680d4; all 43 SQL hashes match. Dedicated new Gold read-only artifact audit --audit exits0 LAB_ONLY_043_PREPARED_ARTIFACT_COMPATIBLE_NOT_RELEASED blockers=[], negative tests PASS; source tree identical except new lock, modules resolve, original source active 4/4 HTTP200. Canonical preflight still BLOCKED exit3 on DB/stage043 vs canonical Git042 (expected). Source Gate workflow updated; CI PENDING. No migration, source switch, SSO/mTLS routing, Gold UAT/prod, Agent grant or Windows E2E changes. Timer due16:37:30 ICT ephemeral; no ongoing release approval.
