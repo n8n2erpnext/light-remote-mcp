@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_DIRECT_LXD_LAB043_PLUGIN_OPERATOR_LIVE_CUTOVER_AND_ROLLBACK_PASS_SSO_OFF",
+  "status": "goldabv2_T04B8_A2_REAL_PLUGIN_TRAEFIK_LXD_MTLS_E2E_PASS_ROLLBACK_PASS_PUBLIC_BACKEND_HOLD_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Direct Lab-only b8ec5d6f Plugin/Operator source startup on real PostgreSQL43 and runtime services 4/4+HTTPS200 PASSED. Independent 18min systemd autooff timer INSIDE LXD armed, manual rollback.service invoked and verified old 9d996956 processes + HTTPS200 (immediate transient 502), timer disarmed. Host /etc read-only is a Light Remote host-boundary not a Lab block. Canonical Git migration lock042 vs Lab43 remains unmodified and UAT/prod release HOLD. T04b8 next: separately guarded Lab-local mTLS private edge integration, SSO/Owner flags OFF, real signed Owner Redis/Windows E2E still OPEN.",
+  "nextAction": "Real isolated b8ec5d6f Plugin on TLS1.3 localhost5584 accepted pinned client200, unpinned403, no cert handshake denied; host LXD proxy15584 direct pinned200; Traefik:v3.6 sidecar localhost19444 -> LXD -> ACTUAL Express Plugin 200/TLS0 after correcting probe-only Host/SNI mismatch. Scoped independently armed LXD timer+manual rollback PASS; old 9d996956 Plugin+Operator restored 4/4 active HTTPS200; no test secrets/proxy/firewall/sidecar remain. NEXT separate guarded public Lab Traefik mTLS backend switch + deny old plaintext :15583, test direct spoof and /mcp /account, THEN Owner/Redis/signed device/Windows Wall SSO E2E gated OFF. SQL unchanged, Gold UAT/prod unchanged, canonical Git lock042 HOLD.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
