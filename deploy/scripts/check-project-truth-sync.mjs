@@ -13,6 +13,7 @@ const repoFlag=args.indexOf('--repo');
 const repo=repoFlag>=0 ? path.resolve(args[repoFlag+1]) : process.cwd();
 const worklog='docs/project-book/LIGHT_REMOTE_WORKLOG.md';
 const codeMap='docs/project-book/LIGHT_REMOTE_CODE_MAP.md';
+const livingMaster='docs/project-book/LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md';
 const checkpoint='.light-remote/CURRENT_CHECKPOINT.json';
 const requiredPaths=[worklog,checkpoint];
 const sourceRoots=[
@@ -66,13 +67,44 @@ function updatedWorklog(mode,ref){
  const diff=gitText(...a);
  return /^\+## 20\d\d-\d\d-\d\d\b/m.test(diff);
 }
+function livingMasterExists(mode,ref){
+ const exists=r=>{try{git('cat-file','-e',r+':'+livingMaster);return true;}catch{return false;}};
+ if(mode==='staged'){
+   const staged=gitText('ls-files','--cached','--',livingMaster).trim();
+   return staged===livingMaster||exists('HEAD');
+ }
+ return exists(ref)||exists(ref+'^');
+}
+function updatedLivingMaster(mode,ref){
+ const a=mode==='staged'
+   ?['diff','--cached','--unified=0','--',livingMaster]
+   :['show','--format=','--unified=0',ref,'--',livingMaster];
+ return /^\+## 20\d\d-\d\d-\d\d\b/m.test(gitText(...a));
+}
 function readCheckpoint(mode,ref){
  const raw=mode==='staged'?gitText('show',':'+checkpoint):gitText('show',ref+':'+checkpoint);
  try{return JSON.parse(raw);}catch{fail('checkpoint must be valid JSON at '+ref);}
 }
 function verify(mode,ref){
  const paths=changedPaths(mode,ref),code=paths.filter(sourcePath);
- if(!code.length)return {ok:true,checked:'docs-only-or-no-code',ref};
+ // After the first living-Master commit, EVERY substantive source or
+ // project-book documentation task must update the same dated Master,
+ // Worklog and checkpoint. Historical pre-Master commits are grandfathered.
+ const masterActive=livingMasterExists(mode,ref);
+ const projectTask=code.length>0||paths.includes(checkpoint)||
+   paths.some(p=>p.startsWith('docs/project-book/'));
+ if(masterActive&&projectTask){
+   const missing=[livingMaster,worklog,checkpoint].filter(p=>!paths.includes(p));
+   if(missing.length)fail('living Master/Worklog/checkpoint required in SAME task commit: '+missing.join(', '));
+   if(!updatedLivingMaster(mode,ref))
+     fail('Living Master needs NEW dated "## YYYY-MM-DD" receipt in same task commit');
+   if(!updatedWorklog(mode,ref))
+     fail('Worklog needs NEW dated "## YYYY-MM-DD" milestone in same task commit');
+   const cp=readCheckpoint(mode,ref);
+   if(cp.livingMasterHandoff?.path!==livingMaster)
+     fail('checkpoint livingMasterHandoff.path must reference canonical living Master');
+ }
+ if(!code.length)return {ok:true,checked:masterActive&&projectTask?'living-master-docs-coherent':'docs-only-or-no-code',ref};
  const missing=requiredPaths.filter(p=>!paths.includes(p));
  if(missing.length)fail('source changed but same commit/stage is missing: '+missing.join(', ')+'; source files: '+code.slice(0,6).join(', '));
  if(code.some(securityBoundary)&&!paths.includes(codeMap))fail('security/device/runtime source changed without Code Map update: '+codeMap);

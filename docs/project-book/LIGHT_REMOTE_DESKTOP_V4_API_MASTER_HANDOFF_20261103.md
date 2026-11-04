@@ -1,5 +1,7 @@
 # LIGHT REMOTE DESKTOP V4 - API INTEGRATION MASTER HANDOFF
 
+> **HISTORICAL RECEIPTS / DEEP REFERENCE.** Starting 2026-11-04, the canonical active GoldABV2 × Desktop V4 handoff is [LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md](LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md). Read its section 0 and newest dated receipt before acting. The older task board and "next action" in this file are archival; use the living Master instead.
+
 Date: 2026-11-03 (Asia/Ho_Chi_Minh). Status: ACTIVE; update after every task.
 Branch: feat/desktop-v4-api-integration-20261103
 VPS-ARM worktree: /home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4-shared-ui-20261101
