@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "desktop_v4_T04B8_A2_REAL_LAB_SOURCE_SWITCH_BLOCKED_SCHEMA043_ROLLBACK_PASS_SSO_OFF",
+  "status": "desktop_v4_T04B8_A2_SCHEMA043_DB_AND_LOCAL_LOCK_DRIFT_VERIFIED_RELEASE_HOLD",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "NEXT SINGLE TASK T04b8-A2-REAL-LAB-SCHEMA-GATE: isolated Lab attempt to switch true Gold b8ec5d6f Plugin and Operator source failed. Plugin missing plugin-server/node_modules express in staging (now fixed in STAGING ONLY); Operator blocked intentionally at gold_pg_candidate_43_not_locked, lock manifest ends 042 and release 043/044 HOLD. Both services explicitly rolled back to original source 9d996956, four units ACTIVE, public HTTPS health200 TLS verify0 and direct LXD host HTTP200, all overrides removed, independent auto-OFF timer stopped/inactive, SSO OFF and :15583 legacy HTTP still reachable. Read exact live Lab migration ledger READ-ONLY; separately review/approve+checksum-lock 043 (do not bypass or simply toggle release flag), then re-preflight module paths and arrange fresh auto-OFF before next rollout. Real mTLS/Owner Redis/Ed25519/Windows App→Wall E2E NOT DONE.",
+  "nextAction": "NEXT T04b8-A2-SCHEMA043-RELEASE-REVIEW: actual Lab PostgreSQL ledger COUNT43, contiguous 001-043, Short ID table and immutable trigger exist. Old running 9d996956 Plugin+Operator source lock has local matching 043 SQL SHA935b268899c7b59761781db33d8ad2c573773566844fbfab0b861046f3a680d4, new Git b8ec5d6f staged lock ends 042, explaining failed source switch. Do NOT unilaterally copy local lock or bypass release HOLD. Obtain independent owner-reviewed release approval, build fail-closed PRE-RESTART schema/dependency preflight, then new rollback and bounded source cutover. Preserve Guest044 HOLD, SSO OFF and legacy bypass threat until mTLS+signed Owner/Windows E2E accepted.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -174,7 +174,7 @@
     "treeDigest": "f76e0b294129257b905302e2aabbae631fae94b1df39760af8616909791d88f0",
     "trackedFiles": 1182,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T04:37:26.070Z"
+    "recordedAt": "2026-11-04T05:19:38.178Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1008,5 +1008,29 @@
     "desktopProjectTruth": "success",
     "scope": "docs and Project Truth only; real source rollout failed and was rolled back; SSO OFF",
     "nextTask": "T04b8-A2-REAL-LAB-SCHEMA-GATE"
+  },
+  "t04b8A2Schema043ActualLabProof": {
+    "date": "2026-11-04",
+    "mode": "READ_ONLY",
+    "result": "PG043_AND_LOCAL_LOCK_DRIFT_PROVEN_RELEASE_HOLD",
+    "database": "light_remote_gold_dev",
+    "ledgerCount": 43,
+    "maxVersion": 43,
+    "shortIdTable": true,
+    "immutableTrigger": true,
+    "oldDeployedLockVersion": 43,
+    "newStagedGitLockVersion": 42,
+    "sql043Digest": "935b268899c7b59761781db33d8ad2c573773566844fbfab0b861046f3a680d4",
+    "sqlDigestMatchesOldLock": true,
+    "first42EntriesMatch": true,
+    "schemaGateAndDbCodeIdentical": true,
+    "oldSourceStillEffective": "9d996956",
+    "labActiveUnits": 4,
+    "publicHttpsCode": 200,
+    "tlsVerifyResult": 0,
+    "ownerAuthTokenFlags": "OFF",
+    "ssoEnabled": false,
+    "nextTask": "T04b8-A2-SCHEMA043-RELEASE-REVIEW",
+    "auditPath": "/home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/SCHEMA_043_CONSISTENCY_AUDIT_20261104.md"
   }
 }
