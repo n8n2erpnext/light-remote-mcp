@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_OWNER_LAB_ONLY_TRIAL_SNAPSHOT_READY_AUTO_OFF_BLOCKED_HOST_ROOT_RO_NO_CUTOVER",
+  "status": "goldabv2_T04B8_A2_DIRECT_LXD_LAB043_PLUGIN_OPERATOR_LIVE_CUTOVER_AND_ROLLBACK_PASS_SSO_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Owner approved guarded isolated Lab-only trial with SQL unchanged and SSO OFF. Snapshot pre-t04b8-a2-owner-approved-20261104-1900 created at 19:00 ICT; rollback timer unit installation FAILED with /etc/systemd/system Read-only file system, host root ext4 ro while home rw. Rollback audit exit3 solely timer; backup SHA/rollback script, storage, 4/4 services and HTTPS200 PASS. No source switch/SQL/SSO/prod. Do not remount or work around local safety. Await authorized host repair, then new independent timer/rollback PASS and independently reviewed Lab-only schema gate before any Plugin/Operator cutover.",
+  "nextAction": "Direct Lab-only b8ec5d6f Plugin/Operator source startup on real PostgreSQL43 and runtime services 4/4+HTTPS200 PASSED. Independent 18min systemd autooff timer INSIDE LXD armed, manual rollback.service invoked and verified old 9d996956 processes + HTTPS200 (immediate transient 502), timer disarmed. Host /etc read-only is a Light Remote host-boundary not a Lab block. Canonical Git migration lock042 vs Lab43 remains unmodified and UAT/prod release HOLD. T04b8 next: separately guarded Lab-local mTLS private edge integration, SSO/Owner flags OFF, real signed Owner Redis/Windows E2E still OPEN.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
