@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_LAB043_RELATIVE_IMPORT_AND_DYNAMIC_INVENTORY_SOURCE_PASS_CI_PENDING_RELEASE_HOLD",
+  "status": "goldabv2_T04B8_A2_SOURCE_CI_4_OF_4_PASS_GOLD_AND_DESKTOP_PUSH_SYNC_LAB_RUNTIME_HOLD",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T04b8-A2 static Lab043 audit/source fixtures remain PASS but runtime release HOLD. Git SSH correct alias github-n8n2erpnext key fingerprint /DVNZRdCoBRonj02EVPGAsks/kE4ipLB1gbQHMlBl+c belongs to thdangduy published key set, yet SSH443 publickey authentication is denied; Github connector returns 403 for collaborator permission. Git push/CI blocked. Owner must verify GitHub authentication key state; do not change private keys or bypass permissions. Preserve both branch commits, then non-force push and check CI. Canonical Git042 vs Lab DB043 and new rollback timer approval still HOLD.",
+  "nextAction": "GitHub SSH/Git operational using ORIGINAL repository core.sshCommand (no keys/config changed). Published Gold 852091a1 and Desktop 153330b3; Gold Source Gate 41821402194 4/4 SUCCESS; Gold Docs 41821402207, Truth 41821401904; Desktop Docs 41821409755, Truth 41821409778 all SUCCESS. Continue independent Lab-only SQL043 runtime release decision; canonical Git042 vs Lab PG043 preflight HOLD; new guarded snapshot and auto-rollback window required before approved real cutover; SSO/Guest044/production OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
