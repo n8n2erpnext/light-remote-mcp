@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "desktop_v4_T04B8_A2_STORAGE_TIMER_SOURCE_CI_4_OF_4_PASS_REAL_LAB_BLOCKED",
+  "status": "goldabv2_T04B8_A2_REAL_LAB_ROLLBACK_TECHNICAL_READY_RELEASE_HOLD",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -15,7 +15,7 @@
   "runtime": {
     "goldUatSchemaLastVerified": 42,
     "sourceMigrationsUpTo": 42,
-    "servicesLastVerified": "2026-11-04 ~11:27 ICT isolated GoldABV2 Lab 4/4 active, HTTPS200 TLS verify0, Plugin/Operator restored to source 9d996956, SSO OFF; 043 release guard blocked candidate.",
+    "servicesLastVerified": "2026-11-04 ~15:52 ICT isolated Lab 4/4 active, public HTTPS200 TLS0, old 9d996956 source, technical rollback PASS transient, staged-source migration preflight BLOCKED and SSO not activated.",
     "historicalClaimsPreserved": 0,
     "unknownWorkRowsPreserved": 0,
     "productionRc47Touched": false
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T04b8-A2-LAB-043-COMPATIBILITY-APPROVAL + STORAGE_REMEDIATION: Gold Source Gate run41792145176 PASS 4/4; original code Gold 06fef1a1 and Desktop mirror 859c0ce6 Docs/Truth PASS. VPS root 87.7% used, LXD pool 33.33/40GiB; readiness still BLOCKED by no fresh snapshot, missing independently-bound auto-off timer and root >85%. Owner-approved preservation review/strict Lab-only artifact decision required; do not delete backups/snapshots or enable SSO.",
+  "nextAction": "T04b8-A2-LAB-043-COMPATIBILITY-APPROVAL: separate explicit Owner Lab-only artifact approval still needed. Actual rollback --audit exit0 blockers=[] after snapshot and timer due 16:37:30 ICT; timer expires and readiness needs renewal. Source preflight BLOCKED DB043 vs committed/staged042; no migration, source cutover, SSO, UAT/production or native E2E.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1203,5 +1203,24 @@
     "desktopMirrorCommit": "859c0ce6c718556b4573d877cbbf125fa2ce1396",
     "desktopDocsRun": 41792152657,
     "desktopProjectTruthRun": 41792152623
+  },
+  "t04b8A2RealRollbackReadiness": {
+    "recordedAtICT": "2026-11-04T15:57:40.050779+07:00",
+    "snapshot": "pre-t04b8-a2-readiness-20261104-155117",
+    "snapshotsRetained": 5,
+    "timerUnit": "lr-t04b8-a2-source-autooff-20261104.timer",
+    "timerDeadlineICT": "2026-11-04 16:37:30 +07",
+    "auditStatus": "TECHNICAL_ROLLBACK_READY_APPROVAL_STILL_REQUIRED",
+    "diskUsedPercent": 74.9,
+    "diskFreeGiB": 30.2,
+    "poolUsedPercent": 79.6,
+    "poolFreeGiB": 8.2,
+    "blockers": [],
+    "releaseApproved": false,
+    "canCutover": false,
+    "canEnableSso": false,
+    "stagedPreflight": "BLOCKED exit3 DB043 vs canonical/staged042",
+    "evidencePath": "/home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/ROLLBACK_READINESS_LIVE_PASS_20261104.json",
+    "ephemeral": true
   }
 }
