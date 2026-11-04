@@ -887,3 +887,8 @@ Current T04b7b source entry points: plugin-server/server.mjs → desktop-wall-ss
 ## 2026-11-04 — Owner Windows release signing custody and CA public staging
 
 ECDSA P-256/SHA256 signed updater source: VPS-ARM:/home/ubuntu/.config/light-remote/signing/client-update-signing-private.pem; client/update-public.pem trust anchor. Current pipeline retains ARM original; Windows Gold CurrentUser DPAPI backup under KEY_VPS/LIGHT_REMOTE_RELEASE_SIGNING is for custody only, not used automatically by updater or GitHub Actions. Distinct RSA4096 GoldABV2 CA PUBLIC root staged in ARM handoff /home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/owner-windows-ca-candidate-public-20261104.pem with SHA256 aec7ecda8544503db2cf15db9676f004048a1a43115013a00ba1f180d299e2f1, no trust activation. Real Owner independent backup and guarded Lab mTLS rollout remain OPEN.
+
+## 2026-11-04 — Owner Windows CA public-readiness gate (release HOLD)
+
+- deploy/scripts/gold-abv2-owner-ca-public-preflight.mjs: public-only X509 Owner RSA4096 CA pin/profile/validity validation, no DPAPI/private key. Exact staged public candidate /home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/owner-windows-ca-candidate-public-20261104.pem matched DER SHA256 aec7ecda8544503db2cf15db9676f004048a1a43115013a00ba1f180d299e2f1. Returns releaseStatus HOLD and exit2 even on valid public CA until independently proven backup, server/client leaf issue, guarded public mTLS rollout and Desktop Wall signed E2E.
+- deploy/scripts/gold-abv2-owner-ca-public-preflight.test.mjs: 12/12 disposable OpenSSL tests for wrong pin/subject/key size/constraints/signature/date/symlink/CLI failure. Gold Connection Lifecycle Source Gate path filter and test run updated. No runtime trust-store change; Gold UAT/prod unchanged.

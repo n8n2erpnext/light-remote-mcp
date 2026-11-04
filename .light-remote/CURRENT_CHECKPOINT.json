@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_WINDOWS_RELEASE_ECDSA_P256_DPAPI_BACKUP_VERIFIED_CA_PUBLIC_STAGED_SSO_OFF",
+  "status": "goldabv2_T04B8_A2_OWNER_WINDOWS_PUBLIC_CA_PREFLIGHT_12_PASS_RELEASE_HOLD_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-04: prior Light Remote updater ECDSA P-256/SHA256 signing PEM still operational ARM chmod600, SHA256 caeeb0d9ba78d5498fda45adf33ea519c1a3d334baf3823c8297ba069fac403e public SPKI 44bd04da6add5c9a7e2f38f1179fcedc1e43ee943562b84950777a7fb83adaf8. Windows owner C:\\Users\\Admin\\Desktop\\KEY_VPS\\LIGHT_REMOTE_RELEASE_SIGNING stores encrypted DPAPI CurrentUser private copy, sign/verify and separate process restoration PASS, no plain Windows PEM. Separate GoldABV2 RSA4096 CA candidate in C:\\Users\\Admin\\Desktop\\KEY_VPS\\LIGHT_REMOTE_GOLDABV2_CA retains private locally; only public root copied to /home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/owner-windows-ca-candidate-public-20261104.pem SHA256 aec7ecda8544503db2cf15db9676f004048a1a43115013a00ba1f180d299e2f1 PASS, not trusted or deployed. Next Owner-independent encrypted backup and recovery password/restore, then guarded Lab-only public mTLS cutover and signed Desktop-to-Wall SSO. Windows online not offline; public Lab original HTTP15583 4/4 HTTPS200, SSO OFF, UAT/prod unaffected.",
+  "nextAction": "2026-11-04: Added read-only source gate deploy/scripts/gold-abv2-owner-ca-public-preflight.mjs and OpenSSL tests 12/12 PASS. Actual Owner Windows RSA4096 CA PUBLIC PEM on ARM /home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/owner-windows-ca-candidate-public-20261104.pem DER SHA256 aec7ecda8544503db2cf15db9676f004048a1a43115013a00ba1f180d299e2f1 verified against explicit pin, self-signed RSA4096 with critical keyUsage certSign, basicConstraints CA:TRUE pathlen:0, expected subject and validity to 2031-11-03. CLI intentionally returns exit2 releaseStatus HOLD, publicCaVerified true. Gold Source Gate integrated. No CA signer private key/DPAPI accessed; no source/runtime public route modified. Need real Owner independent encrypted backup and witnessed isolated restore/re-sign, valid server/client leaf bundle under owner CA, guarded Lab public mTLS-only cutover negative bypass checks, then full signed Desktop Wall SSO E2E. Lab current public HTTP15583 4/4 HTTPS200, SSO/Owner/Token OFF, Gold UAT/prod/SQL unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "2b73795da8d6c512e4ac7c3d25af37eba654f20ec755700f0a18061382ce1b87",
-    "trackedFiles": 1206,
+    "treeDigest": "a8e29d1b1087879e507f78ebfbeecb512ef62fc4e8718a570fed568441aad5b2",
+    "trackedFiles": 1208,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T14:46:37.027Z"
+    "recordedAt": "2026-11-04T15:59:58.008Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
