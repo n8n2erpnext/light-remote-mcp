@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_OWNER_WINDOWS_PUBLIC_CA_PREFLIGHT_12_PASS_RELEASE_HOLD_SSO_OFF",
+  "status": "goldabv2_T04B8_A2_OWNER_CA_RESTORE_SIGNATURE_CHALLENGE_13_PASS_INDEPENDENT_RECOVERY_HOLD_SSO_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "2026-11-04: Added read-only source gate deploy/scripts/gold-abv2-owner-ca-public-preflight.mjs and OpenSSL tests 12/12 PASS. Actual Owner Windows RSA4096 CA PUBLIC PEM on ARM /home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/owner-windows-ca-candidate-public-20261104.pem DER SHA256 aec7ecda8544503db2cf15db9676f004048a1a43115013a00ba1f180d299e2f1 verified against explicit pin, self-signed RSA4096 with critical keyUsage certSign, basicConstraints CA:TRUE pathlen:0, expected subject and validity to 2031-11-03. CLI intentionally returns exit2 releaseStatus HOLD, publicCaVerified true. Gold Source Gate integrated. No CA signer private key/DPAPI accessed; no source/runtime public route modified. Need real Owner independent encrypted backup and witnessed isolated restore/re-sign, valid server/client leaf bundle under owner CA, guarded Lab public mTLS-only cutover negative bypass checks, then full signed Desktop Wall SSO E2E. Lab current public HTTP15583 4/4 HTTPS200, SSO/Owner/Token OFF, Gold UAT/prod/SQL unchanged.",
+  "nextAction": "2026-11-04: Public-only Owner CA restoration challenge code/tests in Gold branch: RSA-PSS SHA256 salt32, random nonce and challengeId, 15-minute TTL. Disposable OpenSSL test suite 13/13 PASS. Any valid signature proves key possession only, NOT independent off-device encrypted backup or actual restored signer custody; releaseStatus HOLD always. No CA private key/DPAPI touched by ARM and no runtime deployment. NEXT Owner physically isolates encrypted CA backup and separately held passphrase, witnesses restoring to another offline machine and signs fresh challenge; then audited leafs, guarded Lab mTLS-only route, signed Owner Desktop Wall SSO E2E. Public original HTTP15583, 4/4 HTTPS200, SSO OFF, UAT/prod SQL unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
