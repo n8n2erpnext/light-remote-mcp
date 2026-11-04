@@ -780,3 +780,8 @@ Current T04b7b source entry points: plugin-server/server.mjs → desktop-wall-ss
 - `plugin-server/desktop-wall-sso-mtls-edge-v4.test.mjs`: actual temporary OpenSSL CA/server/client chain and Node TLS handshake, pin-positive and cert-negative assertions; 3/3 PASS. Selected T04 132/132 PASS.
 - `.github/workflows/gold-connection-lifecycle-gc.yml`: watches new mTLS files and runs syntax/real-TLS fixture in Source Gate; CI pending on new commit.
 - Deployment blocked: Traefik currently HTTP→host `:15583`→LXD Plugin; no mTLS upstream/CA installed, no new LXD proxy, no legacy HTTP removal, no runtime SSO flag. New backend must be mTLS and old plaintext path removed before any live Owner ticket issuance.
+
+## 2026-11-04 — T04b8-A2-LAB1 isolated runtime transport probe (not deployed)
+
+- Standalone temporary `/run/light-remote-t04b8-a2-mtls-probe` uses current `plugin-server/desktop-wall-sso-mtls-edge-v4.mjs` mTLS listener with TLS1.3 and pinned client cert. LXD :15584→:5584; sidecar Traefik3.6 inbound HTTPS loopback :19444, upstream verified TLS+client cert. Correct client 200, wrong pinned cert403, no client handshake denied. Malicious XFP/XFH/edge proof is overwritten/stripped and reflected only as booleans in temporary diagnostic backend. This is a transport-only runtime acceptance, not integrated real Owner/Redis/SSO.
+- Host Docker bridge temporary exact firewall INPUT rule for sidecar :15584 added after backup and removed with probe cleanup. Auto-OFF cleanup completed at 10:02:59 ICT and timer stopped, all ephemeral private cert material removed. Gold Lab 4/4 active, public HTTPS200, original HTTP :15583 still accessible and ticket endpoint remains 404. Actual T04 SSO deployment/Windows E2E deferred until isolated real Plugin/Operator cutover.

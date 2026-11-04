@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8A2_LAB0_SNAPSHOT_BACKUP_AUTOOFF_PASS_STAGING_SAFETY_BLOCKED_SSO_OFF",
+  "status": "goldabv2_T04B8_A2_LAB1_ISOLATED_TRAEFIK_MTLS_LXD_HEADERS_PASS_CLEANUP_PASS_REAL_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b8-A2-LAB0 2026-11-04: Lab snapshot pre-t04b8-a2-20261104 VERIFIED, scoped config backup and host independent auto-OFF timer due 10:06:11 ICT INSTALLED; private test certificates remain on host only, no Docker/LXD mTLS probe installed. Staging via lxc file push/systemd-run was BLOCKED by remote safety, no workaround/retry, no runtime changes. Post-block Lab port5584 absent, new proxy absent; old public TLS health200 and baseline 4/4. NEXT T04b8-A2-LAB-STAGE: check timer trigger cleanup; proceed only via permitted authorized staging, after renewing snapshot/backup/auto-OFF, separate mTLS path test; do not enable SSO or touch Gold UAT/prod/A-B. Update Living Master on both branches.",
+  "nextAction": "T04b8-A2-LAB1 isolated full Traefik HTTPS→mTLS→LXD live transport PASS; correct pinned cert HTTP200, unpinned CA client 403, no cert TLS DENY. Spoofed forwarded proto/host/proof overwritten/stripped, probe verified. Temporary host firewall scoped to sidecar IP 172.30.0.13→172.30.0.1:15584 with tagged rule, backed up, and removed. 2026-11-04 10:02:59 ICT exact auto-OFF cleanup removed sidecar/proxy/service/certs/firewall; timer stopped, Lab four services active, public HTTPS 200, no real SSO ticket route (404), legacy HTTP :15583 remains open. NEXT T04b8-A2-REAL-LAB-CUTOVER: fresh snapshot + auto-OFF, stage true Plugin/Operator code and protected Traefik path, deny old HTTP SSO bypass, then bounded real Redis/Owner+Ed25519 tests; Windows native E2E OPEN. Master Gold/Desktop exact mirror, GitHub Docs/Truth gate pending.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "5c058e3859aafd731c1b97dc1d5f21221e1c7d7b53df8da028819a6e9aa11f66",
     "trackedFiles": 1190,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T02:49:48.635Z"
+    "recordedAt": "2026-11-04T03:06:30.442Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1166,5 +1166,24 @@
     "newProxy": false,
     "ssOEnabled": false,
     "nextTask": "T04b8-A2-LAB-STAGE"
+  },
+  "t04b8A2Lab1": {
+    "status": "ISOLATED_TRANSPORT_E2E_PASS_CLEANUP_PASS_REAL_SSO_OFF",
+    "authorizedRetry": true,
+    "listener": "Lab 127.0.0.1:5584",
+    "lxdProxy": "temporary 172.30.0.1:15584",
+    "traefikProbe": "temporary 127.0.0.1:19444",
+    "certChecks": "correct=200;otherCAClient=403;noClient=TLS_DENY",
+    "tlsSidecar": "HTTP200 verified",
+    "spoofChecks": "protoIsHttps,forwardedHostIsExpected,edgeProofStripped all true",
+    "cleanup": "2026-11-04T10:02:59+07:00",
+    "temporaryFirewallRemoved": true,
+    "temporaryCertsRemoved": true,
+    "sidecarRemoved": true,
+    "lxdProxyRemoved": true,
+    "autoOffTimerStopped": true,
+    "originalHttpBackendStillAccessible": true,
+    "liveSSOEnabled": false,
+    "nextTask": "T04b8-A2-REAL-LAB-CUTOVER"
   }
 }
