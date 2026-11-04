@@ -174,7 +174,7 @@
     "treeDigest": "f76e0b294129257b905302e2aabbae631fae94b1df39760af8616909791d88f0",
     "trackedFiles": 1182,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T05:19:38.178Z"
+    "recordedAt": "2026-11-04T05:21:04.626Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1032,5 +1032,16 @@
     "ssoEnabled": false,
     "nextTask": "T04b8-A2-SCHEMA043-RELEASE-REVIEW",
     "auditPath": "/home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/SCHEMA_043_CONSISTENCY_AUDIT_20261104.md"
+  },
+  "t04b8A2Schema043ForensicDocsCI": {
+    "goldCommit": "fcf54e9ea27fc412a2b79e92acce6953986bb68e",
+    "goldDocsRun": 41778591691,
+    "goldTruthRun": 41778591645,
+    "desktopCommit": "d778fe2365967826f9321882ed5d7b764719346e",
+    "desktopDocsRun": 41778598854,
+    "desktopTruthRun": 41778598856,
+    "status": "ALL_FOUR_SUCCESS",
+    "scope": "documentation only - SQL043 release HOLD and runtime unchanged",
+    "nextTask": "T04b8-A2-SCHEMA043-RELEASE-REVIEW"
   }
 }
