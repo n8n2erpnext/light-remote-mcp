@@ -1437,6 +1437,18 @@
     "canEnableSso": false,
     "stagedPreflight": "BLOCKED exit3 DB043 vs canonical/staged042",
     "evidencePath": "/home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/ROLLBACK_READINESS_LIVE_PASS_20261104.json",
-    "ephemeral": true
+    "ephemeral": true,
+    "documentationCI": {
+      "gold": {
+        "commit": "7cd647df0d7b7ad6a92bed08b516fccb6c9644c5",
+        "docs": 41803644894,
+        "truth": 41803644904
+      },
+      "desktop": {
+        "commit": "bf10f723ad7ec415ad51c0ca4f5d265735d6f6e8",
+        "docs": 41803653894,
+        "truth": 41803653663
+      }
+    }
   }
 }
