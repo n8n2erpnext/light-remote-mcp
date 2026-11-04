@@ -803,3 +803,9 @@ Current T04b7b source entry points: plugin-server/server.mjs → desktop-wall-ss
 
 - deploy/scripts/gold-abv2-lab-cutover-preflight.mjs: READ ONLY exact GoldABV2 LXD Lab PG ledger, committed canonical Git lock, staged source lock, SHA of ALL staged locked SQL, immutable Short ID contract and Plugin express/Operator pg resolutions. No --apply; canCutover=false even if technically compatible. Guest044 HOLD.
 - deploy/scripts/selftest-gold-abv2-lab-cutover-preflight.mjs: synthetic fail-closed fixtures. Wired to Gold Source Gate workflow trigger and runner. Actual old 9d996956 source exits3 due local043/Git042 drift; new b8ec5d6f staged source exits3 due DB043/Git042 mismatch. No deployment changes; schema043 independently reviewed release remains mandatory.
+
+## 2026-11-04 — Lab-only SQL043/045 historical provenance, preflight hardening
+
+- Original November 1 LXD Custom MCP handoff records manual SQL043 Lab-only migration and source lock, Gold UAT stayed 042; current PG043 applied_at 2026-11-01 15:25:05.798104 UTC. Independent catalog table/constraint/index/trigger structure matches candidate 043; PG ledger has no applied SQL digest.
+- Original Single Owner handoff documents manual SQL045 Owner singleton/handoff tables only in Lab, ledger 043. Catalog confirms these two tables exist and Guest044 jobs absent. No canonical 043/045 production migration release approved.
+- deploy/scripts/gold-abv2-lab-cutover-preflight.mjs now verifies committed Git canonical SQL SHA as well as staged SQL SHA, Lab Owner045 tables and Guest044 absence, with matching selftest negative cases. Real old/new stage both fail closed on existing canonical lock042 vs DB043 mismatch. Separate review document: docs/project-book/LIGHT_REMOTE_T04B8_A2_SCHEMA043_RELEASE_REVIEW_20261104.md.

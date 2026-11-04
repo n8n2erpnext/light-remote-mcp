@@ -5,6 +5,7 @@
  * This script only targets light-remote-abv2-lab-20261101 and its isolated PostgreSQL.
  */
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -14,8 +15,9 @@ const root=fileURLToPath(new URL('../../',import.meta.url));
 const lockRel='platform-v2/sql/migrations.lock.json';
 
 export function evaluateLabCutoverPreflight({versions,canonicalLock,stagedLock,
-    stagedDigests={},modules={},shortIdTable=false,immutableTrigger=false,
-    canonicalCommitted=true}={}){
+    stagedDigests={},canonicalDigests={},modules={},shortIdTable=false,
+    immutableTrigger=false,ownerAuthorityTable=false,ownerHandoffsTable=false,
+    guestTableAbsent=false,canonicalCommitted=true}={}){
   const blockers=[];
   const ordered=Array.isArray(versions)&&versions.length>0&&versions.length<=44&&
     versions.every((v,i)=>Number.isInteger(v)&&v===i+1);
@@ -36,7 +38,20 @@ export function evaluateLabCutoverPreflight({versions,canonicalLock,stagedLock,
   if(ordered&&canonical.length!==last)blockers.push('database_version_vs_canonical_lock_mismatch');
   if(last>=43&&(!shortIdTable||!immutableTrigger))
     blockers.push('schema043_table_or_trigger_missing');
+  // Lab-only Owner 045 was applied outside the 001..043 ledger.
+  // This does NOT authorize a canonical 045 release to Gold UAT/production.
+  if(!ownerAuthorityTable||!ownerHandoffsTable)
+    blockers.push('lab_only_owner045_tables_missing');
+  if(!guestTableAbsent)blockers.push('lab_guest044_schema_present');
   if(last>=44)blockers.push('schema044_guest_runtime_hold');
+  if(validRows(canonical)){
+    for(const row of canonical){
+      if(canonicalDigests[row.file]!==row.sha256){
+        blockers.push('canonical_sql_digest_missing_or_mismatched');
+        break;
+      }
+    }
+  }
   if(validRows(staged)){
     for(const row of staged){
       if(stagedDigests[row.file]!==row.sha256){
@@ -93,17 +108,21 @@ function readLedger(){
     "to_regclass('public.lr_gold_device_short_ids') IS NOT NULL,",
     "EXISTS(SELECT 1 FROM pg_trigger WHERE",
     "tgrelid=to_regclass('public.lr_gold_device_short_ids')",
-    "AND tgname='lr_gold_short_id_immutable_trg' AND NOT tgisinternal)",
+    "AND tgname='lr_gold_short_id_immutable_trg' AND NOT tgisinternal),",
+    "to_regclass('public.lr_gold_owner_authority') IS NOT NULL,",
+    "to_regclass('public.lr_gold_owner_handoffs') IS NOT NULL,",
+    "to_regclass('public.lr_gold_pro_share_guest_jobs') IS NULL",
     'FROM public.lr_schema_migrations;',
     'ROLLBACK;'
   ].join(' ');
   const out=exec('lxc',['exec',LAB,'--','runuser','-u','postgres','--','psql',
     '-X','-A','-t','-v','ON_ERROR_STOP=1','-d','light_remote_gold_dev','-c',sql]);
-  const record=out.split('\n').find(line=>/^[0-9,]*\|[tf]\|[tf]$/.test(line));
+  const record=out.split('\n').find(line=>/^[0-9,]*\|[tf]\|[tf]\|[tf]\|[tf]\|[tf]$/.test(line));
   if(!record)throw Error('invalid_schema_ledger_response');
-  const [raw,table,trigger]=record.split('|');
+  const [raw,table,trigger,ownerAuthority,handoffs,guestAbsent]=record.split('|');
   return {versions:raw.split(',').map(Number),shortIdTable:table==='t',
-    immutableTrigger:trigger==='t'};
+    immutableTrigger:trigger==='t',ownerAuthorityTable:ownerAuthority==='t',
+    ownerHandoffsTable:handoffs==='t',guestTableAbsent:guestAbsent==='t'};
 }
 
 function main(){
@@ -118,11 +137,16 @@ function main(){
     const committedText=exec('git',['show','HEAD:'+lockRel],{cwd:root});
     const canonicalCommitted=canonicalText.trim()===committedText.trim();
     const canonicalLock=JSON.parse(canonicalText);
+    const canonicalDigests={};
+    for(const row of canonicalLock.migrations||[]){
+      const sql=fs.readFileSync(path.join(root,'platform-v2/sql',row.file));
+      canonicalDigests[row.file]=crypto.createHash('sha256').update(sql).digest('hex');
+    }
     const stage=inspectStaged(args[2]);
     const ledger=readLedger();
     const result=evaluateLabCutoverPreflight({
       ...ledger,canonicalLock,stagedLock:stage.lock,
-      stagedDigests:stage.digests,modules:stage.modules,canonicalCommitted
+      stagedDigests:stage.digests,canonicalDigests,modules:stage.modules,canonicalCommitted
     });
     console.log(JSON.stringify({
       preflight:'gold-abv2-isolated-lab-only',sourceFolder:path.basename(args[2]),

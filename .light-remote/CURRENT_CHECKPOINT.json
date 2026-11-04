@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_LAB_PREFLIGHT_SOURCE_AND_REAL_NEGATIVE_PASS_RELEASE_HOLD_SSO_OFF",
+  "status": "goldabv2_T04B8_A2_LAB043_ORIGINAL_PROVENANCE_PREFLIGHT_HARDENED_RELEASE_HOLD",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b8-A2-SCHEMA043-RELEASE-REVIEW: actual PG043, canonical Git lock042, old runtime lock043. New READ ONLY preflight test PASS: old local043 vs Git042 BLOCK exit3, new stage042 vs PG043 BLOCK exit3. Must obtain separate owner-reviewed canonical 043 release before source cutover; no apply, no restart, no SSO, preserve Guest044 HOLD.",
+  "nextAction": "T04b8-A2-LAB-043-COMPATIBILITY-APPROVAL: original Nov1 handoff proves manually applied isolated Lab-only 043+local checksum, Gold UAT stayed 042, no canonical release. Owner045 manually applied only in Lab outside 043 ledger. Preflight enhanced canonical+staged SQL SHA, Owner045 contract and Guest044 absent; old/new source still BLOCKED by canonical lock as designed. Obtain separate owner permission before Lab-only compatibility artifact or formal canonical release, independent rollback/mTLS/SSO E2E still open.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "b0abc2eaa71b5bff388f5f6ac2ae34e37c4e39630b8156e56412df523366e120",
+    "treeDigest": "1673028fad254deb6a0df84ee225f95a907168029603d1b281824ee0cda70ddd",
     "trackedFiles": 1192,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T05:36:50.030Z"
+    "recordedAt": "2026-11-04T05:52:45.253Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1291,5 +1291,32 @@
       "sourceCutoverDone": false,
       "ssoEnabled": false
     }
+  },
+  "t04b8A2LabSchemaProvenanceAndGuard": {
+    "date": "2026-11-04",
+    "lab043AppliedUtc": "2026-11-01T15:25:05.798104Z",
+    "historicalLabOnlyManual043": true,
+    "goldUat043ReleaseApproved": false,
+    "historicalLabOnlyManual045Sidecar": true,
+    "lab045TablesPresent": true,
+    "guest044JobsPresent": false,
+    "canonicalLockLatest": 42,
+    "labLedgerLatest": 43,
+    "guardChecks": [
+      "canonical_sql_sha",
+      "staged_sql_sha",
+      "lab045_tables",
+      "guest044_absence",
+      "schema043_trigger",
+      "module_resolution"
+    ],
+    "sourceTests": "PASS",
+    "oldSourcePreflight": "BLOCKED_EXPECTED_EXIT3",
+    "newSourcePreflight": "BLOCKED_EXPECTED_EXIT3",
+    "sourceCi": "PENDING",
+    "runtimeCutover": false,
+    "ssoEnabled": false,
+    "reviewDocument": "docs/project-book/LIGHT_REMOTE_T04B8_A2_SCHEMA043_RELEASE_REVIEW_20261104.md",
+    "nextTask": "T04b8-A2-LAB-043-COMPATIBILITY-APPROVAL"
   }
 }

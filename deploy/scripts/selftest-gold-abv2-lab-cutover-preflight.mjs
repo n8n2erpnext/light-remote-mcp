@@ -13,8 +13,9 @@ const digests=Object.fromEntries(lock(43).migrations.map(r=>[r.file,digest]));
 const modules={plugin_express:true,operator_pg:true};
 const defaults={
   versions:ver(43),canonicalLock:lock(43),stagedLock:lock(43),
-  stagedDigests:digests,modules,shortIdTable:true,immutableTrigger:true,
-  canonicalCommitted:true
+  stagedDigests:digests,canonicalDigests:digests,modules,
+  shortIdTable:true,immutableTrigger:true,ownerAuthorityTable:true,
+  ownerHandoffsTable:true,guestTableAbsent:true,canonicalCommitted:true
 };
 const check=(attrs,expected)=>{
   const r=evaluateLabCutoverPreflight({...defaults,...attrs});
@@ -33,6 +34,11 @@ check({stagedLock:lock(42)},'staged_lock_differs_from_canonical');
 check({versions:[1,2,4]},'database_ledger_not_contiguous');
 check({shortIdTable:false},'schema043_table_or_trigger_missing');
 check({immutableTrigger:false},'schema043_table_or_trigger_missing');
+check({ownerAuthorityTable:false},'lab_only_owner045_tables_missing');
+check({ownerHandoffsTable:false},'lab_only_owner045_tables_missing');
+check({guestTableAbsent:false},'lab_guest044_schema_present');
+check({canonicalDigests:{...digests,'043_fixture.sql':'0'.repeat(64)}},
+  'canonical_sql_digest_missing_or_mismatched');
 check({canonicalCommitted:false},'canonical_lock_not_committed');
 check({modules:{plugin_express:false,operator_pg:true}},'plugin_express_unresolved');
 check({modules:{plugin_express:true,operator_pg:false}},'operator_pg_unresolved');
