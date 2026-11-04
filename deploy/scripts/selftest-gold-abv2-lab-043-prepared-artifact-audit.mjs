@@ -24,6 +24,7 @@ const clean={
   preparedStage:'/opt/light-remote-abv2-lab/source-b8ec5d6f-t04b8-a2-LAB043-COMPAT-PREPARED',
   treeIdenticalExceptLock:true,
   resolvedModules:{plugin_express:true,operator_pg:true},
+  importClosure:{checkedFiles:222,staticReferences:581,missingCount:0},
   review,labUnits:['active','active','active','active'],
   pluginStillOldSource:true,operatorStillOldSource:true
 };
@@ -61,6 +62,10 @@ deny({preparedDigests:{...preparedDigests,[file(1)]:'0'.repeat(64)}},
 deny({treeIdenticalExceptLock:false},'source_copy_differs_outside_lab_lock');
 deny({resolvedModules:{plugin_express:true,operator_pg:false}},
   'stage_node_module_resolution_failed');
+deny({importClosure:{checkedFiles:222,staticReferences:581,missingCount:1}},
+  'static_external_module_closure_not_proven');
+deny({importClosure:{checkedFiles:0,staticReferences:0,missingCount:0}},
+  'static_external_module_closure_not_proven');
 deny({review:{...review,actualLabLedger:42}},
   'real_lab_043_provenance_review_missing');
 deny({review:{...review,releaseApproved:true}},

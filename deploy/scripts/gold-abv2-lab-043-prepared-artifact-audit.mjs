@@ -30,7 +30,7 @@ const ordered=(m,n)=>m?.target==='light_remote_gold_dev - independent Gold only'
 export function evaluatePreparedArtifact({
   canonical,canonicalCommitted=false,canonicalDigests={},proposed,
   preparedLockSha='',preparedDigests={},preparedStage='',treeIdenticalExceptLock=false,
-  resolvedModules={},review={},labUnits=[],pluginStillOldSource=false,
+  resolvedModules={},importClosure={},review={},labUnits=[],pluginStillOldSource=false,
   operatorStillOldSource=false
 }={}){
   const blockers=[];
@@ -52,6 +52,10 @@ export function evaluatePreparedArtifact({
   if(!treeIdenticalExceptLock)blockers.push('source_copy_differs_outside_lab_lock');
   if(resolvedModules.plugin_express!==true||resolvedModules.operator_pg!==true)
     blockers.push('stage_node_module_resolution_failed');
+  if(!Number.isInteger(importClosure.checkedFiles)||importClosure.checkedFiles<1||
+    !Number.isInteger(importClosure.staticReferences)||importClosure.staticReferences<1||
+    importClosure.missingCount!==0)
+    blockers.push('static_external_module_closure_not_proven');
   if(review?.status!=='LAB_ONLY_COMPATIBILITY_PROPOSAL_REPRODUCIBLE'||
     review?.actualLabLedger!==43||review?.canonicalGitLockedThrough!==42||
     review?.proposedLabOnlyLockSha256!==PIN||review?.sql043Sha256!==SQL_PIN||
@@ -66,6 +70,12 @@ export function evaluatePreparedArtifact({
     status:blockers.length?'BLOCKED':'LAB_ONLY_043_PREPARED_ARTIFACT_COMPATIBLE_NOT_RELEASED',
     targetLab:LAB,preparedStage:PREPARED,canonicalLockVersion:42,
     labOnlyLockVersion:43,lockSha256:preparedLockSha,
+    staticDependencyClosure:{
+      checkedFiles:importClosure.checkedFiles??0,
+      checkedExternalReferences:importClosure.staticReferences??0,
+      missingCount:importClosure.missingCount??null,
+      qualification:'literal static imports only, no module execution or computed dynamic imports'
+    },
     canCutover:false,releaseApproved:false,canApplyMigration:false,canEnableSso:false,
     blockers
   });
@@ -98,7 +108,25 @@ function preparedData(){
     "['operator_pg','operator-host/executor.mjs','pg']]){",
     "try{createRequire(root+'/'+entry).resolve(pkg);resolvedModules[key]=true}",
     "catch{resolvedModules[key]=false}}",
-    "console.log(JSON.stringify({proposed:lock,preparedLockSha:digest(raw),digests,resolvedModules}))"
+    "const modulePaths=['plugin-server','operator-host','lib','platform-v2'];",
+    "const patterns=[/(?:^|[;\\n])\\s*import\\s+(?:[\\w*\\s{},]+\\s+from\\s*)?['\\\"]([^'\\\"]+)['\\\"]/gm,/(?:^|[;\\n])\\s*export\\s+[\\w*\\s{},]+\\s+from\\s+['\\\"]([^'\\\"]+)['\\\"]/gm,/\\bimport\\s*\\(\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*\\)/gm,/\\brequire\\s*\\(\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*\\)/gm];",
+    "const importClosure={checkedFiles:0,staticReferences:0,missingCount:0};",
+    "const walk=(dir,depth)=>{if(depth>12||importClosure.checkedFiles>15000)return;",
+    "for(const ent of fs.readdirSync(dir,{withFileTypes:true})){",
+    "if(['node_modules','.git','dist','build'].includes(ent.name))continue;",
+    "const f=require('path').join(dir,ent.name);",
+    "if(ent.isDirectory()){walk(f,depth+1);continue}",
+    "if(!ent.isFile()||!/\\.(?:mjs|cjs|js)$/.test(f))continue;",
+    "importClosure.checkedFiles++;const code=fs.readFileSync(f,'utf8');",
+    "const localRequire=createRequire(f);",
+    "for(const re of patterns){re.lastIndex=0;let match;",
+    "while((match=re.exec(code))!==null){",
+    "const spec=match[1];if(spec.startsWith('node:')||spec.startsWith('data:')||spec.startsWith('./')||spec.startsWith('../')||spec.startsWith('/'))continue;",
+    "importClosure.staticReferences++;",
+    "try{localRequire.resolve(spec)}catch{importClosure.missingCount++}",
+    "}}}};",
+    "for(const folder of modulePaths){const dir=require('path').join(root,folder);if(fs.existsSync(dir))walk(dir,0)};",
+    "console.log(JSON.stringify({proposed:lock,preparedLockSha:digest(raw),digests,resolvedModules,importClosure}))"
   ].join('\n');
   return JSON.parse(lxc(['/usr/bin/node','-e',probe]));
 }
@@ -123,7 +151,7 @@ function runAudit(){
   const result=evaluatePreparedArtifact({...sourceData(),proposed:stage.proposed,
     preparedLockSha:stage.preparedLockSha,preparedDigests:stage.digests,
     preparedStage:PREPARED,treeIdenticalExceptLock,
-    resolvedModules:stage.resolvedModules,review,labUnits,
+    resolvedModules:stage.resolvedModules,importClosure:stage.importClosure,review,labUnits,
     pluginStillOldSource:plugin.includes('source-9d996956-desktop-owner-plugin-STAGED'),
     operatorStillOldSource:operator.includes('source-9d996956-desktop-owner-operator-STAGED')});
   console.log(JSON.stringify(result,null,2));
