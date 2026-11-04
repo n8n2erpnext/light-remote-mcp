@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_OFFLINE_CA_ENCRYPTED_BACKUP_RESTORE_13_OPENSSL_PASS_OWNER_CA_NOT_CREATED_SSO_OFF",
+  "status": "goldabv2_T04B8_A2_OWNER_WINDOWS_GOLD_CA_CANDIDATE_RSA4096_ENCRYPTED_DPAPI_VERIFIED_INDEPENDENT_BACKUP_PENDING_SSO_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "2026-11-04: SOURCE-ONLY explicit Owner-offline CA backup/restore. Existing signer CA key backed up in separate 0700 private archive as PBES2 AES256/PBKDF2-SHA256 600k encrypted PKCS8; passphrase in independently stored 0600 file. Restore REQUIRES independently recorded trusted ca.crt SHA256 fingerprint, rejects tampered archive/wrong passphrase/weak permissions/overwrites, checks recovered key matches trusted CA. Disposable OpenSSL offline signer test fixture 13/13 PASS including recovered CA signing new CSR; all test keys destroyed; no real Owner CA key/backup/passphrase/notifications installed. Gold Source Gate adds trigger/tests and Docs/Project Truth to commit. Earlier cert bundle audit 11/11, offline CSR issuance 9/9, expiry alert 14/14, real Traefik hot reload and Plugin OLD/NEXT tests PASS. NEXT Owner-approved actual CA custody/recovery rehearsal, read-only alert schedule and guarded permanent GoldABV2 Lab public mTLS-only cutover; then signed Owner Redis Ed25519 Desktop Windows-to-Wall SSO E2E. Public Lab original HTTP15583, 4/4 active HTTPS200, Owner/Token/SSO OFF, Git042/UAT/prod/SQL unchanged.",
+  "nextAction": "2026-11-04 ~22:07 ICT: Owner Windows Gold DESKTOP-VA16D27 candidate CA in C:\\Users\\Admin\\Desktop\\KEY_VPS\\LIGHT_REMOTE_GOLDABV2_CA. Encrypted RSA4096 PKCS8 PBES2 AES256 PBKDF2 600000. Windows CurrentUser DPAPI secret stored in LocalAppData separate ACL-protected vault. Public CA SHA256 aec7ecda8544503db2cf15db9676f004048a1a43115013a00ba1f180d299e2f1, expires 2031-11-03 UTC. DPAPI, key/cert match, local encrypted backup and disposable client CSR signing PASS. NOT trusted or deployed; Windows signer ONLINE not offline, same-PC backup not independent, DPAPI password tied to profile. Next independent encrypted backup + Owner recovery secret and witnessed restore, then guarded Lab mTLS. NO signer key/DPAPI to ARM/Git. SSO OFF, Lab original HTTP15583 4/4 HTTPS200; UAT/prod and canonical Git lock unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
