@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8A1_SOURCE_EDGE_PROOF_CI4of4_PASS_129of129_REAL_PROXY_PEER_VERIFIED_RUNTIME_OFF_T04B8A2_NEXT",
+  "status": "goldabv2_T04B8_A2_SOURCE_MTLS_LOOPBACK_TLS13_PINNED_CLIENT_132of132_PASS_CI_PENDING_RUNTIME_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-04 T04b8-A1 Gold source commit 0ecffcfbaeb29d944288546c53a5817d863ff08d added fail-closed mandatory 256-bit hex edge proof for HTTP reverse proxy native Wall SSO; 129/129 selected T04 Node tests PASS, Wall HTTP revocation PASS. Gold Source Gate41760470702 4/4 PASS; Gold truth41760470707/Docs41760470763 PASS; Desktop mirror ddb91dd7f1049d1d059d5842a785c9b2801feabb with truth41760476365/Docs41760476336 PASS. Real Lab topology: Traefik 172.30.0.10 on Docker netbird_netbird, backend host LXD proxy at 172.30.0.1:15583 (bridge 172.30.0.1/24), direct host HTTP health200 as well as public TLS1.3 health200; Plugin socket peer 127.0.0.1 on BOTH paths, so peer+X-Forwarded-Proto never sufficient TLS provenance. Source hardening now requires X-Light-Remote-Edge-Proof-V4 in front of a proxy; no real secret generated or installed; no Traefik proof injection. Static proof over plaintext backend may be sniffed/replayed and is NOT production readiness. Lab checked 2026-11-04 02:26 UTC services4/4 active HTTPS200, Auth/Token/Issuer ON count0. NEXT T04b8-A2: isolate/protect backend over mTLS/private socket/strict proven network boundary and validate actual TLS-only Traefik overwrite and direct backend negative tests with zero Owner tokens; then snapshot+auto-OFF and bounded real Redis Owner/Enrollment signed Wall SSO Lab acceptance. Native Desktop physical Wall SSO not ready, no Windows EXE changed; Gold UAT/prod/custom MCP/Agent A-B unaffected. After any future task update docs/project-book/LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md in both branches byte-identically, append dated ## receipt, Worklog/Code Map/checkpoint and pass Project Truth.",
+  "nextAction": "T04b8-A2-SOURCE: Optional separate loopback-only TLS1.3 mTLS Plugin listener and exact SHA256 client leaf pin SOURCE IMPLEMENTED, 3/3 new tests PASS, selected T04 132/132 PASS; A1 Gold/desktop CI already PASS. New A2 CI PENDING. No Lab/Traefik/LXD/Operator/Windows deployed; legacy HTTP 172.30.0.1:15583 still reachable, SSO all six flags remain OFF. NEXT T04b8-A2-LAB: create isolated LXD snapshot/backup/independent auto-OFF, provision private CA/certs (never log), switch Traefik to mTLS backend behind new loopback LXD proxy and disable plaintext 15583 ingress, verify direct HTTP/spoof denial and rollback. Only after real protected edge may begin T04b8-B Redis/Owner live tests. Update living Master after every task; maintain exact byte identical Gold/Desktop copy. No Agent A/B permission change.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "389364fdb2cf6e0587f2d3f6af097bde94a266c9e78fb8075e3f3d566fff5555",
-    "trackedFiles": 1188,
+    "treeDigest": "5c058e3859aafd731c1b97dc1d5f21221e1c7d7b53df8da028819a6e9aa11f66",
+    "trackedFiles": 1190,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T02:23:46.279Z"
+    "recordedAt": "2026-11-04T02:35:42.483Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1138,5 +1138,14 @@
     "backendBridgeGateway": "172.30.0.1/24",
     "labCheckedUtc": "2026-11-04T02:26:04Z",
     "labServices": "4/4 active, public HTTPS health200, auth/token/issuer flags off"
+  },
+  "t04b8A2MtlsSource": {
+    "status": "SOURCE_TEST_PASS_CI_PENDING_NOT_DEPLOYED",
+    "newTests": "3/3",
+    "selectedT04": "132/132",
+    "listener": "127.0.0.1 feature-flag default OFF TLS1.3 mTLS pinned client certificate",
+    "securityGate": "REMOVE_OLD_PLAINTEXT_LXD_PORT_BEFORE_SSO",
+    "nextTask": "T04b8-A2-LAB",
+    "livingMaster": "docs/project-book/LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md"
   }
 }

@@ -18,6 +18,7 @@ on:
       - 'plugin-server/desktop-wall-sso-v4*.mjs'
       - 'plugin-server/desktop-wall-sso-native-issue-v4*.mjs'
       - 'plugin-server/desktop-wall-sso-native-router-v4*.mjs'
+      - 'plugin-server/desktop-wall-sso-mtls-edge-v4*.mjs'
       - 'plugin-server/desktop-wall-sso-native-transport-v4*.mjs'
       - 'lib/gold-registry-persistence.mjs'
       - 'lib/gold-native-account-aux.mjs'
@@ -330,8 +331,10 @@ jobs:
           node --check plugin-server/desktop-wall-sso-native-router-v4.mjs
           node --check plugin-server/desktop-wall-sso-native-router-v4.test.mjs
           node --check plugin-server/desktop-wall-sso-native-transport-v4.test.mjs
+          node --check plugin-server/desktop-wall-sso-mtls-edge-v4.mjs
+          node --check plugin-server/desktop-wall-sso-mtls-edge-v4.test.mjs
           node --check plugin-server/server.mjs
-          node --test plugin-server/desktop-wall-sso-native-issue-v4.test.mjs plugin-server/desktop-wall-sso-native-router-v4.test.mjs plugin-server/desktop-wall-sso-native-transport-v4.test.mjs
+          node --test plugin-server/desktop-wall-sso-native-issue-v4.test.mjs plugin-server/desktop-wall-sso-native-router-v4.test.mjs plugin-server/desktop-wall-sso-native-transport-v4.test.mjs plugin-server/desktop-wall-sso-mtls-edge-v4.test.mjs
           node --check operator-host/desktop-wall-sso-device-proof-v4.mjs
           node --check operator-host/desktop-wall-sso-device-proof-v4.test.mjs
           node --check operator-host/desktop-wall-sso-signed-route-v4.mjs

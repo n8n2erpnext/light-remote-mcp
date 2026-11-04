@@ -14,6 +14,7 @@ import { registerDesktopWallSsoNativeIssuerV4,
   desktopWallSsoIssuerEnabledV4,DESKTOP_WALL_SSO_TICKET_PATH_V4,
   DESKTOP_WALL_SSO_MAX_BODY_BYTES_V4
 } from './desktop-wall-sso-native-router-v4.mjs';
+import {createDesktopWallSsoMtlsEdgeV4} from './desktop-wall-sso-mtls-edge-v4.mjs';
 import { initializeGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
@@ -202,6 +203,14 @@ app.use((error,req,res,_next)=>{
   }
 });
 
+// Isolated Lab mTLS transport: OFF by default, always binds inside the
+// container to loopback, and NEVER grants Owner/Agent permissions by itself.
+const mtlsEdge=createDesktopWallSsoMtlsEdgeV4({env:process.env,app});
+const mtlsServer=mtlsEdge.enabled
+  ?mtlsEdge.server.listen(mtlsEdge.port,mtlsEdge.host,()=>{
+    console.log(JSON.stringify({event:'gold_desktop_wall_sso_mtls_edge_listen',
+      host:mtlsEdge.host,port:mtlsEdge.port}));
+  }):null;
 const server=app.listen(PUBLIC_PORT,PUBLIC_HOST,()=>{
   console.log(JSON.stringify({event:'direct_plugin_listen',origin:PUBLIC_ORIGIN,host:PUBLIC_HOST,port:PUBLIC_PORT,version:VERSION}));
 });
@@ -210,8 +219,11 @@ function shutdown(signal){
   if(shuttingDown)return;shuttingDown=true;clearInterval(pruner);
   console.log(JSON.stringify({event:'direct_plugin_shutdown',signal}));
   server.closeIdleConnections?.();
+  mtlsServer?.closeIdleConnections?.();
+  mtlsServer?.close();
   const deadline=setTimeout(()=>{
     server.closeAllConnections?.();
+    mtlsServer?.closeAllConnections?.();
     process.exit(0);
   },4000);
   deadline.unref();
