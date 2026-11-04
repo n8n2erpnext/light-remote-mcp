@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "desktop_v4_T04B8_A2_LAB_STORAGE_AND_TIMER_BINDING_SOURCE_NEGATIVE_PASS_RELEASE_HOLD",
+  "status": "desktop_v4_T04B8_A2_STORAGE_TIMER_SOURCE_CI_4_OF_4_PASS_REAL_LAB_BLOCKED",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T04b8-A2-STORAGE-TIMER-GUARD-CI: actual VPS root 87.7% used/14.8GiB free; LXD default Btrfs pool 40GiB, 33.33GiB used, 6.67GiB free; 31 old Lab snapshots. Gold guard now requires specific rollback timer Unit/ExecStart script (not --check), and >=5GiB pool free <=90% used; property parser handles embedded equals. Actual --audit BLOCKED expected, source negative selftests PASS. Need Gold Source Gate+Docs+Project Truth CI, owner-reviewed storage preservation and explicit Lab-only release scope before any cleanup, snapshot/timer or source cutover. Git main lock042, Guest044 HOLD, SSO OFF.",
+  "nextAction": "T04b8-A2-LAB-043-COMPATIBILITY-APPROVAL + STORAGE_REMEDIATION: Gold Source Gate run41792145176 PASS 4/4; original code Gold 06fef1a1 and Desktop mirror 859c0ce6 Docs/Truth PASS. VPS root 87.7% used, LXD pool 33.33/40GiB; readiness still BLOCKED by no fresh snapshot, missing independently-bound auto-off timer and root >85%. Owner-approved preservation review/strict Lab-only artifact decision required; do not delete backups/snapshots or enable SSO.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -174,7 +174,7 @@
     "treeDigest": "f76e0b294129257b905302e2aabbae631fae94b1df39760af8616909791d88f0",
     "trackedFiles": 1182,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T07:24:51.767Z"
+    "recordedAt": "2026-11-04T07:28:14.736Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1192,9 +1192,16 @@
     "noFilesDeleted": true,
     "noMigrationApplied": true,
     "noRuntimeRestart": true,
-    "sourceCI": "PENDING",
+    "sourceCI": "SUCCESS_4_OF_4",
     "ssoEnabled": false,
     "canCutover": false,
-    "releaseApproved": false
+    "releaseApproved": false,
+    "goldCommit": "06fef1a1ae50ccd16f3980041f7b26723b4e9dfa",
+    "goldSourceGateRun": 41792145176,
+    "goldDocsRun": 41792145221,
+    "goldProjectTruthRun": 41792145174,
+    "desktopMirrorCommit": "859c0ce6c718556b4573d877cbbf125fa2ce1396",
+    "desktopDocsRun": 41792152657,
+    "desktopProjectTruthRun": 41792152623
   }
 }
