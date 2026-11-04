@@ -1,5 +1,7 @@
 # LIGHT REMOTE DESKTOP V4 — T04 App → Local Wall SSO
 
+> **Technical T04 contract / historical receipts.** Current state and next-session starting point: [LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md](LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md), maintained after EVERY task from 2026-11-04. Source-only historical status in the opening paragraphs below is superseded by dated appended receipts.
+
 Date: 2026-11-03 (Asia/Ho_Chi_Minh)
 Branch: `feat/goldabv2-desktop-owner-lab-20261103`
 Status: **T04a SOURCE-ONLY protocol and tests — not live, default OFF**

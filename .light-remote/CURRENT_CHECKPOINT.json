@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
-  "updatedDate": "2026-11-03",
-  "status": "goldabv2_T04b7b_NATIVE_HTTPS_UNIX_TICKET_SOURCE_CI4of4_PASS_T04b8_LAB_PROXY_TOPOLOGY_READONLY",
+  "updatedDate": "2026-11-04",
+  "status": "goldabv2_H00_LIVING_MASTER_HANDOFF_CREATED_MANDATORY_PROJECT_TRUTH_TASK_UPDATE_T04B8_NEXT",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b7b Gold source commit 89b607d04c3000bb82fdf2ccf2981822c471148a accepted Gold Source Gate41671804510 4/4 PASS, Docs41671804368 PASS, selected T04 Node122/122 and Wall loopback revoke PASS; six independent feature flags default OFF, no running service or Windows EXE deployed. T04b8 read-only ingress map verified on actual VPS/LXD at 2026-11-03 16:15 UTC: Docker netbird-traefik public 443 websecure TLS router goldabv2-mcp Host(goldabv2.light-remote.thaiduy.digital) -> HTTP backend 172.30.0.1:15583 -> LXD proxy to Plugin 127.0.0.1:5583, public and local health200, four GoldABV2 Lab services active. Actual Operator Unix socket /run/light-remote-gold-uat/operator.sock mode660 gold-uat:gold-uat (differs from default source path, unit overrides). STILL UNKNOWN: remote peer address Express sees, X-Forwarded-Proto sanitation, any bypass ingress to LXD proxy, actual 2KiB Express parser under real NGINX/Traefik, real Redis/Owner/Enrollment cross-process and native Rust signed relay. DO NOT guess LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4. Next T04b8 use bounded secret-free Lab-only observation and preflight before enabling any SSO flag; after that snapshot+auto-OFF+real Redis/HTTPS, native Tauri ticket and signed Agent Wall bootstrap physical Windows E2E. Owner Login/Logout/Welcome Windows PASS; >10minute native refresh and independent backend family revoke E2E remain OPEN. Gold UAT/prod/custom MCP and A/B untouched.",
+  "nextAction": "2026-11-04 H00 living Master created: docs/project-book/LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md (Gold canonical and byte-identical Desktop mirror); root AGENTS.md now instructs every new Agent to read it; Project Truth script enforces new dated Master receipt + Worklog + checkpoint for all future source/project-book task commits, historical pre-Master commits exempt. Verified Gold T04b7b source89b607d0, Source Gate41671804510 4/4 PASS, 122/122 T04 local Node PASS. Lab checked 2026-11-04 01:38:17 UTC: GoldABV2 4/4 services active, public HTTPS health200, Owner Auth/Token/SSO issuer flags OFF and native authorize404; Gold UAT/prod untouched. NEXT T04b8-A: measure real Express proxy TCP peer, forwarded HTTPS header provenance and ingress bypass without exposing credentials, then snapshot/auto-OFF before ANY SSO enable; actual multi-process Redis and Rust/Agent/Wall Windows E2E remain OPEN. Previous Windows Owner Login/Logout/Welcome physical PASS, sustained >10min proactive token refresh and independent live backend logout-family revocation still OPEN. Every next task: update this same Master top CURRENT, append dated ## receipt, Worklog, Code Map if security/source, checkpoint, run --stamp and --staged; mirror identical bytes across both branches; report exact GitHub CI after commit.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "7dfdee8d48049c5f3a79afaa7adf9e844a0758e575f2dd7629ba8156b42db73f",
+    "treeDigest": "27e35d16982dae6066fc5b49b8dc600a25cc8a23610d758ab9b49ce388f469cc",
     "trackedFiles": 1188,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-03T16:12:29.743Z"
+    "recordedAt": "2026-11-04T01:48:15.166Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1084,5 +1084,16 @@
     "featureFlagsEnabled": false,
     "newDeployment": false,
     "next": "observe trusted proxy peer and HTTPS forwarded metadata without secrets before setting allowlist; audit alternative backend ingress"
+  },
+  "livingMasterHandoff": {
+    "path": "docs/project-book/LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md",
+    "canonicalBranch": "feat/goldabv2-desktop-owner-lab-20261103",
+    "mirrorBranch": "feat/desktop-v4-api-integration-20261103",
+    "livingSince": "2026-11-04",
+    "mandatoryForEveryTask": true,
+    "mirrorByteIdenticalRequired": true,
+    "startingNextTask": "T04b8-A",
+    "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
+    "introReceipt": "2026-11-04 H00"
   }
 }

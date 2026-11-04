@@ -1,5 +1,7 @@
 # LIGHT REMOTE GOLDABV2 — FULL MASTER HANDOFF (LATEST)
 
+> **HISTORICAL REFERENCE, NOT CURRENT NEXT-SESSION ENTRY.** Starting 2026-11-04, the authoritative living handoff is [LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md](LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md). Read its section 0 and newest dated receipt first. This archived document preserves Gold R5 / A-B / LM / T04 history but may contain superseded status statements.
+
 ## CURRENT FIRST — GoldABV2 Lab continuation (2026-11-02, after LM Chrome v0.3)
 
 **Authoritative current state — older R4 snapshots below are historical, not the live deployment.**
