@@ -44,3 +44,28 @@ Expected private bundle names: ca.crt, server.crt/server.key, old.crt/old.key, n
 - **Owner SSO:** leave ALL Owner/Token/SSO issuer/operator flags OFF until separate real Redis/device-Ed25519/Windows Desktop-to-Wall E2E acceptance. No canonical Git migration lock042 or Gold UAT/production release approval is implied.
 
 **Next action:** obtain an approved, recoverable CA-key custody/revocation design, implement offline CSR/issuance plus validated certificate installation and renewal scheduling, and repeat the real guarded public Lab mTLS deployment with long-lived credentials and rollback. Only then advance Owner signed SSO E2E.
+
+## 2026-11-04 ~21:20 ICT — Offline CSR/issuance workflow [SOURCE ONLY; OWNER CONTROL]
+
+A new split issuance module is committed only after source/Docs/Project Truth checks: `deploy/scripts/gold-abv2-mtls-offline-issuance.mjs`, with real OpenSSL tests in `deploy/scripts/gold-abv2-mtls-offline-issuance.test.mjs`. Its **request** operation runs on the certificate identity's controlled machine and generates RSA-3072 private key (0600) + signed CSR in a pre-existing private directory (0700). It does not read the CA signing key. Its **sign** operation is a separate explicit Owner offline action and requires an existing private CA directory with ca.crt and ca.key (0700 directory, 0600 key). No CA is created by the helper. It verifies CA certificate and signing-key match, self-signed CA trust, CSR signature and exact CN, >=3072 RSA key, assigns random 128-bit serial, sets CA:FALSE and role-specific EKU and server DNS SAN, limits certificates to <=90 days and refuses CA expiry before leaf expiry. No signer private key, runtime private key, PEM or secret is printed. It never deploys, reloads, restarts or changes live configuration.
+
+Example request on the separate machine owning each leaf key:
+
+```sh
+# Each leaf belongs in a dedicated private directory (chmod 700).
+node deploy/scripts/gold-abv2-mtls-offline-issuance.mjs request --role server --name goldabv2.lab --dir /absolute/private/server-identity
+node deploy/scripts/gold-abv2-mtls-offline-issuance.mjs request --role client --name GoldLab-next-client --dir /absolute/private/client-identity
+```
+
+Owner manually transfers only CSR to the separately controlled signer. An example **explicit offline signing operation** on that authorized offline signer:
+
+```sh
+node deploy/scripts/gold-abv2-mtls-offline-issuance.mjs sign --role server --name goldabv2.lab --csr /absolute/offline-inbox/goldabv2.lab.csr --ca-dir /absolute/offline-signer --out /absolute/offline-out/server.crt --days 90
+node deploy/scripts/gold-abv2-mtls-offline-issuance.mjs sign --role client --name GoldLab-next-client --csr /absolute/offline-inbox/GoldLab-next-client.csr --ca-dir /absolute/offline-signer --out /absolute/offline-out/next.crt --days 90
+```
+
+The signer and key-owning machine are intentionally separate trust roles: copy back **only the signed certificate**, never ca.key or the leaf private key. The runtime bundle's ca.crt is public. Stage server.crt/server.key, old.crt/old.key, next.crt/next.key and ca.crt in a 0700 directory, then run the **existing read-only gate** with --min-days 30 before considering a new bounded Lab release. No copying to production, no automatic rollout, and no CA signing key in the runtime bundle.
+
+**Acceptance:** the new real-OpenSSL CSR/offline-sign module tests **9/9 PASS** (including nested tests): existing exact-two-pin certificate gate accepts three newly issued leafs, distinct OLD/NEXT fingerprints, renewal issues a *fresh* leaf without overwriting OLD, no duplicate overwrite, CSR CN spoofing rejected, role validity capped at 90 days, incorrect CA key denied, RSA2048 CSR denied, insecure signer permissions denied. The new two files and tests have been added to Gold Source Gate. **No long-term CA private key was created**; tests generated and destroyed a disposable private CA in an isolated system temp directory.
+
+**Remaining gate:** Owner key custody and actual runtime CA selection, certificate backups/recovery, audit logging, optional CRL strategy and approval for offline signing. Automated monitoring via the existing read-only certificate gate may alert on <=30-day remaining validity; **automatic CA signing is deliberately NOT provided**. Permanent public Lab mTLS and signed Desktop V4→Local Wall SSO still require their own isolated acceptance.

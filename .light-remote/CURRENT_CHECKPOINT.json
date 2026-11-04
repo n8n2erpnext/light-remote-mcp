@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_REAL_TRAEFIK_CLIENT_CERT_HOT_RELOAD_PASS_OFFLINE_CERT_RELEASE_AUDIT_11_OF_11_PASS_SSO_OFF",
+  "status": "goldabv2_T04B8_A2_OFFLINE_CSR_ISSUANCE_SOURCE_PASS_9_OPENSSL_TESTS_CA_OWNER_SEPARATE_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-04 ~21:00 ICT: Isolated real Traefik:v3.6 sidecar on loopback19445 and LXD dual-pin TLS edges 5585/5586 proved OLD client200 to overlap, OLD client403 to NEXT-only, watched file-provider reload to NEXT client200 on NEXT-only without PID change, rollback OLD client200. Host independent cleanup timer armed then stopped, Docker sidecar, LXD 15585/15586 proxies, firewall rules and all ephemeral CA/client/server private key material removed; public Lab 4/4 active HTTPS200 original public Traefik HTTP15583 unchanged. New read-only offline CA-signed bundle gate checks SAN/EKU/chain/expiration/private-key match/secure permissions/no runtime CA private key and distinct two client pins, OpenSSL tests 11/11 PASS; Gold Source Gate wired. Source-only and docs only; NOT a certificate issuer/auto-renewer, permanent mTLS deployment or signed Desktop->Wall SSO. Next offline CA custody, CSR/issuance, renewal/revocation operations and guarded public Lab pinned-mTLS release; Owner/Token/SSO OFF, UAT/prod SQL and Git042 hold unchanged.",
+  "nextAction": "2026-11-04 ~21:20 ICT: Gold SOURCE-ONLY offline CSR and explicit offline CA signer added. createGoldMtlsCsr generates RSA3072 key+CSR under 0700/0600; signGoldMtlsCsrOffline requires PREEXISTING Owner offline CA with key, verifies CSR CN/key/CA, assigns random serial, role EKU/server SAN and max90d; never prints private keys or installs certs, never auto signs/renews. Real OpenSSL issuer tests 9/9 PASS incl complete compatibility with existing mTLS bundle gate 11/11, renewal new leaf without overwriting OLD, wrong CA/CN/RSA length/validity/permissions rejected. Gold source gate updated; existing sidecar Traefik hot reload pass previously. NEXT approve offline CA key custody+recovery/revocation, add scheduled read-only renew alert, guarded durable public Lab mTLS route, later real signed Owner Redis/Ed25519/Desktop Windows-to-Wall SSO E2E. Public GoldABV2 Lab remains original HTTP15583, 4/4 HTTPS200; Owner/Token/SSO OFF, no Git042/SQL/UAT/prod changes.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "2822ba8b42f89ef637c82bfaa9d5e43e20186b593100dee13c3bd6b7d698eb16",
-    "trackedFiles": 1200,
+    "treeDigest": "99f94cabf074e096a53696741ccfc36d7291ba3346a5989c00a8267827dba637",
+    "trackedFiles": 1202,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T14:09:25.616Z"
+    "recordedAt": "2026-11-04T14:20:45.129Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
