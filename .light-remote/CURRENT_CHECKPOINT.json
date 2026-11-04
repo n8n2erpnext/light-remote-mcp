@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "desktop_v4_T04B8_A2_LAB_PREFLIGHT_SOURCE_AND_REAL_NEGATIVE_PASS_RELEASE_HOLD_SSO_OFF",
+  "status": "desktop_v4_T04B8_A2_LAB043_ORIGINAL_PROVENANCE_PREFLIGHT_HARDENED_RELEASE_HOLD",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T04b8-A2-SCHEMA043-RELEASE-REVIEW: actual PG043, canonical Git lock042, old runtime lock043. New READ ONLY preflight test PASS: old local043 vs Git042 BLOCK exit3, new stage042 vs PG043 BLOCK exit3. Must obtain separate owner-reviewed canonical 043 release before source cutover; no apply, no restart, no SSO, preserve Guest044 HOLD.",
+  "nextAction": "T04b8-A2-LAB-043-COMPATIBILITY-APPROVAL: original Nov1 handoff proves manually applied isolated Lab-only 043+local checksum, Gold UAT stayed 042, no canonical release. Owner045 manually applied only in Lab outside 043 ledger. Preflight enhanced canonical+staged SQL SHA, Owner045 contract and Guest044 absent; old/new source still BLOCKED by canonical lock as designed. Obtain separate owner permission before Lab-only compatibility artifact or formal canonical release, independent rollback/mTLS/SSO E2E still open.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -174,7 +174,7 @@
     "treeDigest": "f76e0b294129257b905302e2aabbae631fae94b1df39760af8616909791d88f0",
     "trackedFiles": 1182,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T05:36:50.200Z"
+    "recordedAt": "2026-11-04T05:52:45.453Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1075,5 +1075,32 @@
       "sourceCutoverDone": false,
       "ssoEnabled": false
     }
+  },
+  "t04b8A2LabSchemaProvenanceAndGuard": {
+    "date": "2026-11-04",
+    "lab043AppliedUtc": "2026-11-01T15:25:05.798104Z",
+    "historicalLabOnlyManual043": true,
+    "goldUat043ReleaseApproved": false,
+    "historicalLabOnlyManual045Sidecar": true,
+    "lab045TablesPresent": true,
+    "guest044JobsPresent": false,
+    "canonicalLockLatest": 42,
+    "labLedgerLatest": 43,
+    "guardChecks": [
+      "canonical_sql_sha",
+      "staged_sql_sha",
+      "lab045_tables",
+      "guest044_absence",
+      "schema043_trigger",
+      "module_resolution"
+    ],
+    "sourceTests": "PASS",
+    "oldSourcePreflight": "BLOCKED_EXPECTED_EXIT3",
+    "newSourcePreflight": "BLOCKED_EXPECTED_EXIT3",
+    "sourceCi": "PENDING",
+    "runtimeCutover": false,
+    "ssoEnabled": false,
+    "reviewDocument": "docs/project-book/LIGHT_REMOTE_T04B8_A2_SCHEMA043_RELEASE_REVIEW_20261104.md",
+    "nextTask": "T04b8-A2-LAB-043-COMPATIBILITY-APPROVAL"
   }
 }
