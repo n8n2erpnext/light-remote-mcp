@@ -855,3 +855,7 @@ Authorized VPS-ARM read-only: Lab 4/4 active HTTPS200/TLS0, old Plugin/Operator 
 ## 2026-11-04 — GoldABV2 Lab043 dependency audit extended (source-only, runtime held)
 
 Gold pinned Lab-only prepared artifact now checks literal relative and external imports, plus exact computed dynamic import inventory: 222 JS / 18 external / 309 relative / 0 missing; one known updater lifeboat dynamic import explicitly unverified at runtime. Negative missing-relative and computed-inventory fixtures PASS; 129/129 selected T04 Owner SSO source tests PASS. Canonical Git042 vs Lab PG043 release BLOCKED and independent rollback readiness BLOCKED. No service/SQL/SSO/Agent mutation. GitHub SSH push unavailable; code CI pending, old local docs commits preserved. Living Master mirror remains exact.
+
+## 2026-11-04 — SSH authorization forensic and T04b8-A2 source gate six-test local PASS
+
+Observed existing VPS SSH host github.com selects a different deploy key than explicit alias github-n8n2erpnext. The latter public key fingerprint /DVNZRdCoBRonj02EVPGAsks/kE4ipLB1gbQHMlBl+c is published under GitHub user thdangduy, but authenticated read-only repo query via exact owner alias over SSH443 STILL failed Permission denied (publickey); GitHub connector collaborator permission also failed 403. Cannot push or verify new CI. Six Lab043 source/release/rollback negative fixtures and Project Truth pass locally. Lab 4/4 active, HTTPS200; prepared source remains nonreleased, SSO OFF. Owner must validate GitHub authentication-key state; keep commits and never bypass denial.
