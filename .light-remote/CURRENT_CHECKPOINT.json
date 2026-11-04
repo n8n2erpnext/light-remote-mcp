@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_RESUME_READONLY_ARTIFACT_PASS_PREFLIGHT_ROLLBACK_BLOCKED_GIT_SSH_PUSH_HOLD",
+  "status": "goldabv2_T04B8_A2_LAB043_RELATIVE_IMPORT_AND_DYNAMIC_INVENTORY_SOURCE_PASS_CI_PENDING_RELEASE_HOLD",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b8-A2 resumed: artifact43 read-only audit PASS; canonical PG043 vs Git042 preflight exit3; independent rollback timer expired, fresh snapshot required; no cutover or SSO approval. GitHub SSH443 identity inconsistent (deploy key/publickey denied), push Gold f7a761c6 and Desktop 3147b735 plus this receipt only after verified write authorization and confirm CI. Lab 4/4 active HTTPS200, old source remains. Release HOLD.",
+  "nextAction": "Prepared Lab043 scanner PASS 222 JS/18 external/309 relative/0 unresolved; one pinned updater dynamic import inventoried, NOT runtime proven. Negative fixtures and 129/129 T04 selected Node PASS; CI PENDING pending authorized GitHub SSH push. Canonical PG043 vs Git042 preflight BLOCKED exit3; rollback fresh snapshot/timer absent; release/SSO/Guest044 HOLD. No runtime mutation.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "a900dbec486b4a50d73d4de2411e28728d857f0f45f39cf0f37d4296356b9c0d",
+    "treeDigest": "a109899907e21bc544c5e148c6bef14cd3739f1991b07b7c806b605205e8bb30",
     "trackedFiles": 1198,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T09:34:29.876Z"
+    "recordedAt": "2026-11-04T11:14:43.212Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

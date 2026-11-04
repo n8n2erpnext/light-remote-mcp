@@ -56,6 +56,12 @@ export function evaluatePreparedArtifact({
     !Number.isInteger(importClosure.staticReferences)||importClosure.staticReferences<1||
     importClosure.missingCount!==0)
     blockers.push('static_external_module_closure_not_proven');
+  if(!Number.isInteger(importClosure.relativeReferences)||importClosure.relativeReferences<1||
+    importClosure.relativeMissingCount!==0)
+    blockers.push('static_relative_module_closure_not_proven');
+  if(importClosure.computedImportCandidates!==1||
+    importClosure.unexpectedComputedImports!==0)
+    blockers.push('computed_import_inventory_not_pinned');
   if(review?.status!=='LAB_ONLY_COMPATIBILITY_PROPOSAL_REPRODUCIBLE'||
     review?.actualLabLedger!==43||review?.canonicalGitLockedThrough!==42||
     review?.proposedLabOnlyLockSha256!==PIN||review?.sql043Sha256!==SQL_PIN||
@@ -74,7 +80,11 @@ export function evaluatePreparedArtifact({
       checkedFiles:importClosure.checkedFiles??0,
       checkedExternalReferences:importClosure.staticReferences??0,
       missingCount:importClosure.missingCount??null,
-      qualification:'literal static imports only, no module execution or computed dynamic imports'
+      checkedRelativeReferences:importClosure.relativeReferences??0,
+      missingRelativeCount:importClosure.relativeMissingCount??null,
+      computedImportCandidates:importClosure.computedImportCandidates??null,
+      unexpectedComputedImports:importClosure.unexpectedComputedImports??null,
+      qualification:'literal imports resolved statically; one known updater lifeboat dynamic import is inventoried but not runtime resolved; no module execution'
     },
     canCutover:false,releaseApproved:false,canApplyMigration:false,canEnableSso:false,
     blockers
@@ -110,7 +120,7 @@ function preparedData(){
     "catch{resolvedModules[key]=false}}",
     "const modulePaths=['plugin-server','operator-host','lib','platform-v2'];",
     "const patterns=[/(?:^|[;\\n])\\s*import\\s+(?:[\\w*\\s{},]+\\s+from\\s*)?['\\\"]([^'\\\"]+)['\\\"]/gm,/(?:^|[;\\n])\\s*export\\s+[\\w*\\s{},]+\\s+from\\s+['\\\"]([^'\\\"]+)['\\\"]/gm,/\\bimport\\s*\\(\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*\\)/gm,/\\brequire\\s*\\(\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*\\)/gm];",
-    "const importClosure={checkedFiles:0,staticReferences:0,missingCount:0};",
+    "const importClosure={checkedFiles:0,staticReferences:0,missingCount:0,relativeReferences:0,relativeMissingCount:0,computedImportCandidates:0,unexpectedComputedImports:0};",
     "const walk=(dir,depth)=>{if(depth>12||importClosure.checkedFiles>15000)return;",
     "for(const ent of fs.readdirSync(dir,{withFileTypes:true})){",
     "if(['node_modules','.git','dist','build'].includes(ent.name))continue;",
@@ -119,9 +129,17 @@ function preparedData(){
     "if(!ent.isFile()||!/\\.(?:mjs|cjs|js)$/.test(f))continue;",
     "importClosure.checkedFiles++;const code=fs.readFileSync(f,'utf8');",
     "const localRequire=createRequire(f);",
+    "const computed=(code.match(/\\bimport\\s*\\(\\s*[^\\x27\\x22\\s]/g)||[]).length;",
+    "importClosure.computedImportCandidates+=computed;",
+    "const known=f===root+'/lib/update-helper-reconcile.mjs'&&code.includes('import(pathToFileURL(lifeboat).href)');",
+    "importClosure.unexpectedComputedImports+=Math.max(0,computed-(known?1:0));",
     "for(const re of patterns){re.lastIndex=0;let match;",
     "while((match=re.exec(code))!==null){",
-    "const spec=match[1];if(spec.startsWith('node:')||spec.startsWith('data:')||spec.startsWith('./')||spec.startsWith('../')||spec.startsWith('/'))continue;",
+    "const spec=match[1];if(spec.startsWith('node:')||spec.startsWith('data:'))continue;",
+    "if(spec.startsWith('./')||spec.startsWith('../')||spec.startsWith('/')){",
+    "importClosure.relativeReferences++;",
+    "try{localRequire.resolve(spec)}catch{importClosure.relativeMissingCount++}",
+    "continue;}",
     "importClosure.staticReferences++;",
     "try{localRequire.resolve(spec)}catch{importClosure.missingCount++}",
     "}}}};",

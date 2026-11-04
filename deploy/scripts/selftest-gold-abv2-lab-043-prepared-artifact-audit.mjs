@@ -24,7 +24,9 @@ const clean={
   preparedStage:'/opt/light-remote-abv2-lab/source-b8ec5d6f-t04b8-a2-LAB043-COMPAT-PREPARED',
   treeIdenticalExceptLock:true,
   resolvedModules:{plugin_express:true,operator_pg:true},
-  importClosure:{checkedFiles:222,staticReferences:581,missingCount:0},
+  importClosure:{checkedFiles:222,staticReferences:18,missingCount:0,
+    relativeReferences:309,relativeMissingCount:0,
+    computedImportCandidates:1,unexpectedComputedImports:0},
   review,labUnits:['active','active','active','active'],
   pluginStillOldSource:true,operatorStillOldSource:true
 };
@@ -62,10 +64,18 @@ deny({preparedDigests:{...preparedDigests,[file(1)]:'0'.repeat(64)}},
 deny({treeIdenticalExceptLock:false},'source_copy_differs_outside_lab_lock');
 deny({resolvedModules:{plugin_express:true,operator_pg:false}},
   'stage_node_module_resolution_failed');
-deny({importClosure:{checkedFiles:222,staticReferences:581,missingCount:1}},
+deny({importClosure:{...clean.importClosure,missingCount:1}},
   'static_external_module_closure_not_proven');
-deny({importClosure:{checkedFiles:0,staticReferences:0,missingCount:0}},
+deny({importClosure:{...clean.importClosure,checkedFiles:0,staticReferences:0}},
   'static_external_module_closure_not_proven');
+deny({importClosure:{...clean.importClosure,relativeReferences:0}},
+  'static_relative_module_closure_not_proven');
+deny({importClosure:{...clean.importClosure,relativeMissingCount:1}},
+  'static_relative_module_closure_not_proven');
+deny({importClosure:{...clean.importClosure,computedImportCandidates:0}},
+  'computed_import_inventory_not_pinned');
+deny({importClosure:{...clean.importClosure,unexpectedComputedImports:1}},
+  'computed_import_inventory_not_pinned');
 deny({review:{...review,actualLabLedger:42}},
   'real_lab_043_provenance_review_missing');
 deny({review:{...review,releaseApproved:true}},
