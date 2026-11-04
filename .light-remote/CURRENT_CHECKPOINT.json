@@ -174,7 +174,7 @@
     "treeDigest": "f76e0b294129257b905302e2aabbae631fae94b1df39760af8616909791d88f0",
     "trackedFiles": 1182,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T05:33:59.057Z"
+    "recordedAt": "2026-11-04T05:36:50.200Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1052,7 +1052,7 @@
     "realOldSource": "BLOCKED_EXPECTED_EXIT3",
     "realNewStage": "BLOCKED_EXPECTED_EXIT3",
     "sourceGateWorkflowUpdated": true,
-    "sourceGateCI": "PENDING",
+    "sourceGateCI": "SUCCESS_4_OF_4",
     "canCutover": false,
     "actualSchema": 43,
     "canonicalGitLock": 42,
@@ -1060,6 +1060,20 @@
     "newStageLock": 42,
     "schema043ReleaseApproved": false,
     "ssoEnabled": false,
-    "labServicesRestarted": false
+    "labServicesRestarted": false,
+    "goldSourceCommit": "4ffcce8b33d56a96053bd0c51a80c3c717e61620",
+    "goldSourceGateRun": 41780066163,
+    "goldDocsIntegrityRun": 41780066087,
+    "goldProjectTruthRun": 41780066173,
+    "desktopMirrorCommit": "19868e7e5f74ac51a2e50cb71801010f21c92355",
+    "desktopDocsIntegrityRun": 41780072332,
+    "desktopProjectTruthRun": 41780072282,
+    "runtimeVerifiedAfterCI": {
+      "unitsActive": 4,
+      "publicHTTPS": 200,
+      "tlsVerify": 0,
+      "sourceCutoverDone": false,
+      "ssoEnabled": false
+    }
   }
 }
