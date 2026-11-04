@@ -51,3 +51,7 @@ A future separate owner decision must identify exact isolated Lab target, pinned
 ## 8. 2026-11-04 19:00 ICT — Owner conditional trial authorization and system safety stop
 
 The owner authorized a strictly isolated LAB043 Plugin/Operator guarded source trial, with SQL unchanged, SSO/mTLS OFF, Guest044 HOLD and UAT/production excluded. This is NOT authority to override the canonical Git042 vs Lab43 startup preflight without a reviewed separate Lab-only release gate. Before any source switch, host systemd rollback timer installation failed: /etc/systemd/system is on read-only host root. No cutover or SQL occurred. Fresh isolated Lab snapshot pre-t04b8-a2-owner-approved-20261104-1900 was created. Continue only after independent timer readiness and Lab-only schema/startup review are both satisfied.
+
+## 9. 2026-11-04 19:25 — Native staged schema043 Lab gate and real source restart PASS
+
+A specifically Owner-authorized isolated Lab-only trial ran source b8ec5d6f from inside LXD after proving PostgreSQL ledger43 and exact artifact lock043 SHA256. Its native assertGoldStartupMigrationLedger and assertGoldStartupExtensionTables PASS on real PG with SQL043 trigger and Guest044 absent. Both Plugin+Operator actually booted and served HTTPS200. The separate canonical Git lock042 preflight intentionally still BLOCKS generic UAT/prod release and has NOT been disabled or modified. Lab-local service rollback restored old source and timer disarmed. No SQL applied, SSO OFF, main Gold UAT/prod untouched.
