@@ -31,6 +31,7 @@
 | Gold main UAT/production and custom ChatGPT MCP | **NOT CHANGED BY T04 SOURCE TASKS** | No deploy, no service restart, no migration, no feature cutover. |
 | Native Windows Desktop V4 candidate for T04 | **NOT AVAILABLE** | Most recent physically accepted candidate was for Owner Login/Logout, not signed Wall SSO. |
 | Agent A/B approval authority | **INDEPENDENT / MUST NOT CHANGE** | Owner web login, native login or SSO must never grant Agent command permission. |
+| Living Master governance | **ACTIVE — Git commit, negative guard test and Docs CI PASS** | Both branches have identical Master; source/docs Project Truth workflow expanded to GoldABV2 + Desktop V4 branches (new CI pending). |
 
 **What the next Agent should do FIRST:** read the current end-of-file receipt; check both branch HEADs; inspect effective Lab reverse-proxy peer and forwarded HTTPS metadata *without exposing credentials*; verify there is no backend bypass to the LXD Plugin socket; prepare explicit isolated Lab snapshot, auto-OFF and rollback before any new live SSO flag. No owner test request yet.
 
@@ -432,3 +433,11 @@ Master mirror: GOLD/DESKTOP identical? yes/no; both checkpoint commits
 - **Work:** new canonical file in Gold and exact mirror in Desktop; both existing historical Master documents and checkpoints point here. Project Truth enforcement requires a newly dated master receipt in future source and project documentation task commits. Git commit SHA/CI for this H00 task must be reported in chat; do not invent SHA inside an uncommitted document.
 - **No deployment, migration, native executable or policy change.** Gold UAT/prod, ChatGPT MCP and Agent A/B unchanged.
 - **Next task:** **T04b8-A** measure actual Plugin-side proxy peer/HTTPS forwarded metadata safely and audit backend bypass; do not activate SSO until security evidence and rollback/auto-OFF are proven.
+
+## 2026-11-04 — H00-CI: Master Git receipts, negative guard proof, expanded CI coverage [DOCS CI PASS / TRUTH CI PENDING]
+
+- **First canonical Master commits:** Gold `c38e2e540fa66ce634ab5e2902ae628af3a905e8` and Desktop `475de7bf415d66817d8c90d0f79c46f6b1e97560`; identical 42 KB living Master, root AGENTS.md and identical Project Truth verifier logic; worktrees clean after push.
+- **First GitHub Docs Integrity:** Gold run **41756711537** SUCCESS, Desktop run **41756716978** SUCCESS. Project Truth `--staged` and `--head` PASS on both branches at first commits. Those documentation CI results do not represent a Gold Source Gate or Windows runtime acceptance.
+- **Negative guard test in isolated temporary Git repository, no user repo changes:** docs task without the Master → DENIED; Master edited with NO newly dated `## YYYY-MM-DD` receipt → DENIED; Master + Worklog + checkpoint with a new dated entry → PASS `living-master-docs-coherent`. Existing Project Truth selftests also PASS on both branches (code-only denial, missing Worklog, stale source SHA, security Code Map, atomic source/docs acceptance and history range).
+- **Critical CI discovery:** existing `.github/workflows/gold-project-truth-sync.yml` originally triggered only for `feat/gold-connection-gc-reconciler-20261029`; the GoldABV2 and Desktop V4 living branches were not covered. **This H00-CI task extends push/pull_request branch triggers to both current feature branches.** Subsequent pushes must run per-commit `--range BASE HEAD`, including documentation-only tasks, with historical pre-Master commits grandfathered. Full new workflow CI result still PENDING until GitHub completes it.
+- **No Lab deployment, SSO flag activation, Owner credential access, A/B grant, production change or native EXE build.** Work remains at T04b8-A: verify real effective Plugin proxy peer, forwarded HTTPS-header trust and direct backend bypass before a bounded Lab SSO gate.
