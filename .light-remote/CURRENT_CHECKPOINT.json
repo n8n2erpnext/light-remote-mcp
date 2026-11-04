@@ -175,7 +175,7 @@
     "treeDigest": "5c058e3859aafd731c1b97dc1d5f21221e1c7d7b53df8da028819a6e9aa11f66",
     "trackedFiles": 1190,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T04:33:58.979Z"
+    "recordedAt": "2026-11-04T04:37:25.902Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1210,5 +1210,19 @@
     },
     "nextTask": "T04b8-A2-REAL-LAB-SCHEMA-GATE",
     "windowsPhysicalE2E": "NOT_TESTED"
+  },
+  "t04b8A2RealLabFailedCutoverDocsCi": {
+    "goldCommit": "898ea60758dc2b1ca7c5657a79ab5f5eee51f689",
+    "goldDocsIntegrityRun": 41774007357,
+    "goldDocsIntegrity": "success",
+    "goldProjectTruthRun": 41774007472,
+    "goldProjectTruth": "success",
+    "desktopCommit": "134e8a705fed74f2f1ce7fb2dbef2b2f9f1de921",
+    "desktopDocsIntegrityRun": 41774013294,
+    "desktopDocsIntegrity": "success",
+    "desktopProjectTruthRun": 41774013319,
+    "desktopProjectTruth": "success",
+    "scope": "docs and Project Truth only; real source rollout failed and was rolled back; SSO OFF",
+    "nextTask": "T04b8-A2-REAL-LAB-SCHEMA-GATE"
   }
 }
