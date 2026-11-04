@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_OWNER_CA_RESTORE_SIGNATURE_CHALLENGE_13_PASS_INDEPENDENT_RECOVERY_HOLD_SSO_OFF",
+  "status": "goldabv2_T04B8_A2_REAL_OWNER_CA_SIGNED_LEAVES_AUDIT_PASS_LXD_MTLS_SIDECAR_PARALLEL_ACTIVE_PUBLIC_UNCHANGED",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-04: Public-only Owner CA restoration challenge code/tests in Gold branch: RSA-PSS SHA256 salt32, random nonce and challengeId, 15-minute TTL. Disposable OpenSSL test suite 13/13 PASS. Any valid signature proves key possession only, NOT independent off-device encrypted backup or actual restored signer custody; releaseStatus HOLD always. No CA private key/DPAPI touched by ARM and no runtime deployment. NEXT Owner physically isolates encrypted CA backup and separately held passphrase, witnesses restoring to another offline machine and signs fresh challenge; then audited leafs, guarded Lab mTLS-only route, signed Owner Desktop Wall SSO E2E. Public original HTTP15583, 4/4 HTTPS200, SSO OFF, UAT/prod SQL unchanged.",
+  "nextAction": "2026-11-04: Owner Windows CA signed real TLS server/OLD/NEXT leafs, CA signer private remains Windows; SSH transferred only runtime leafs and public CA to private ARM staging. Actual certificate audit and expiry PASS. LXD sidecar systemd active TLS1.3/client CA/pins on 127.0.0.1:5584 with separate host proxy 172.30.0.1:15584; OLD authenticated request with proper public Host yielded HTTP200. NEXT and no-client checks blocked by OpenAI tool safety before execution, not PASS; no public cutover. Original Traefik backend HTTP15583, Lab services active HTTPS200, SSO OFF, Gold UAT/prod unchanged. Next permitted negative and Traefik-container E2E, transactional cutover/rollback, then signed Desktop V4 Wall SSO. Owner accepts Windows-only CA backup risk for isolated Lab.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "18bce9025efe1b2c41e22deb7cb6f102335f96c38df5ec50ebe82c8f0f4ec902",
-    "trackedFiles": 1210,
+    "treeDigest": "0d7070f10723f140c5908f9a560e1e0da20280cba17eceb46e96aaca8a8173e7",
+    "trackedFiles": 1212,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T16:15:06.245Z"
+    "recordedAt": "2026-11-04T16:42:10.000Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

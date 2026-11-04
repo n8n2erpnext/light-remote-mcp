@@ -25,6 +25,8 @@ on:
       - 'deploy/scripts/gold-abv2-mtls-offline-ca-recovery*.mjs'
       - 'deploy/scripts/gold-abv2-owner-ca-public-preflight*.mjs'
       - 'deploy/scripts/gold-abv2-owner-ca-restore-challenge*.mjs'
+      - 'deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.mjs'
+      - 'deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.service'
       - 'plugin-server/desktop-wall-sso-native-transport-v4*.mjs'
       - 'lib/gold-registry-persistence.mjs'
       - 'lib/gold-native-account-aux.mjs'
@@ -367,6 +369,7 @@ jobs:
           node --check deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs
           node --check deploy/scripts/gold-abv2-owner-ca-restore-challenge.test.mjs
           node --test deploy/scripts/gold-abv2-owner-ca-restore-challenge.test.mjs
+          node --check deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.mjs
           node --check operator-host/desktop-wall-sso-device-proof-v4.mjs
           node --check operator-host/desktop-wall-sso-device-proof-v4.test.mjs
           node --check operator-host/desktop-wall-sso-signed-route-v4.mjs
