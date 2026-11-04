@@ -175,7 +175,7 @@
     "treeDigest": "1673028fad254deb6a0df84ee225f95a907168029603d1b281824ee0cda70ddd",
     "trackedFiles": 1192,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T05:52:45.253Z"
+    "recordedAt": "2026-11-04T05:55:54.224Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1313,10 +1313,17 @@
     "sourceTests": "PASS",
     "oldSourcePreflight": "BLOCKED_EXPECTED_EXIT3",
     "newSourcePreflight": "BLOCKED_EXPECTED_EXIT3",
-    "sourceCi": "PENDING",
+    "sourceCi": "SUCCESS_4_OF_4",
     "runtimeCutover": false,
     "ssoEnabled": false,
     "reviewDocument": "docs/project-book/LIGHT_REMOTE_T04B8_A2_SCHEMA043_RELEASE_REVIEW_20261104.md",
-    "nextTask": "T04b8-A2-LAB-043-COMPATIBILITY-APPROVAL"
+    "nextTask": "T04b8-A2-LAB-043-COMPATIBILITY-APPROVAL",
+    "goldSourceCommit": "f9e8ae2ca06a52cb248ee1a6a07035ce06f72107",
+    "goldSourceGateRun": 41781994866,
+    "goldDocsIntegrityRun": 41781994869,
+    "goldProjectTruthRun": 41781994935,
+    "desktopMirrorCommit": "f43d4e4d02b5415a94ac1450571047d7dd462528",
+    "desktopDocsIntegrityRun": 41782000058,
+    "desktopProjectTruthRun": 41782000170
   }
 }
