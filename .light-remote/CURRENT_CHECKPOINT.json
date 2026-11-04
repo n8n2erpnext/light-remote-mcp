@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_REAL_LXD_PLUGIN_DUAL_CLIENT_PIN_ROTATION_OLD_NEW_OVERLAP_AND_NEW_ONLY_REVOCATION_PASS_SCOPED_ROLLBACK_SSO_OFF",
+  "status": "goldabv2_T04B8_A2_REAL_TRAEFIK_CLIENT_CERT_HOT_RELOAD_PASS_OFFLINE_CERT_RELEASE_AUDIT_11_OF_11_PASS_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-04 ~20:46 ICT: Real LXD Plugin dual-pin rotation PASS using isolated shadow stage (Lab043 b8ec5d6f base + exact 72b87fb9 mTLS module/test only), in-LXD TLS suite 4/4. Actual overlapping OLD and NEXT clients both HTTP200/TLS0; after promote NEXT-only, OLD HTTP403, NEXT HTTP200, missing client TLS rejection curl56/HTTP000. First negative TLS probe triggered ERR shell trap and automatic rollback (safe), later corrected test control-flow. Independently prearmed LXD 12-minute rollback service manually triggered SUCCESS exit0, baseline Plugin/Operator 9d996956 restored, 4/4 active, public HTTPS200/TLS0; timer OFF, port5584 closed and ephemeral keys removed. Public Traefik still original HTTP15583 and Owner/Token/SSO OFF. NEXT persistent cert issuance/expiry/rotation and Traefik reload tests in guarded Lab, then real Owner Redis Ed25519 Desktop Windows->Local Wall SSO E2E. No UAT/prod/SQL or canonical Git lock042 changes.",
+  "nextAction": "2026-11-04 ~21:00 ICT: Isolated real Traefik:v3.6 sidecar on loopback19445 and LXD dual-pin TLS edges 5585/5586 proved OLD client200 to overlap, OLD client403 to NEXT-only, watched file-provider reload to NEXT client200 on NEXT-only without PID change, rollback OLD client200. Host independent cleanup timer armed then stopped, Docker sidecar, LXD 15585/15586 proxies, firewall rules and all ephemeral CA/client/server private key material removed; public Lab 4/4 active HTTPS200 original public Traefik HTTP15583 unchanged. New read-only offline CA-signed bundle gate checks SAN/EKU/chain/expiration/private-key match/secure permissions/no runtime CA private key and distinct two client pins, OpenSSL tests 11/11 PASS; Gold Source Gate wired. Source-only and docs only; NOT a certificate issuer/auto-renewer, permanent mTLS deployment or signed Desktop->Wall SSO. Next offline CA custody, CSR/issuance, renewal/revocation operations and guarded public Lab pinned-mTLS release; Owner/Token/SSO OFF, UAT/prod SQL and Git042 hold unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "56d036365a8dbd8af589f9489724766585e079b801d390ae622a35fef2325e4c",
-    "trackedFiles": 1198,
+    "treeDigest": "2822ba8b42f89ef637c82bfaa9d5e43e20186b593100dee13c3bd6b7d698eb16",
+    "trackedFiles": 1200,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T13:34:59.252Z"
+    "recordedAt": "2026-11-04T14:09:25.616Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
