@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_OFFLINE_CSR_ISSUANCE_SOURCE_PASS_9_OPENSSL_TESTS_CA_OWNER_SEPARATE_SSO_OFF",
+  "status": "goldabv2_T04B8_A2_READ_ONLY_MTLS_EXPIRY_WATCH_14_OPENSSL_PASS_RENEW30_CRITICAL7_SOURCE_ONLY_SSO_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "2026-11-04 ~21:20 ICT: Gold SOURCE-ONLY offline CSR and explicit offline CA signer added. createGoldMtlsCsr generates RSA3072 key+CSR under 0700/0600; signGoldMtlsCsrOffline requires PREEXISTING Owner offline CA with key, verifies CSR CN/key/CA, assigns random serial, role EKU/server SAN and max90d; never prints private keys or installs certs, never auto signs/renews. Real OpenSSL issuer tests 9/9 PASS incl complete compatibility with existing mTLS bundle gate 11/11, renewal new leaf without overwriting OLD, wrong CA/CN/RSA length/validity/permissions rejected. Gold source gate updated; existing sidecar Traefik hot reload pass previously. NEXT approve offline CA key custody+recovery/revocation, add scheduled read-only renew alert, guarded durable public Lab mTLS route, later real signed Owner Redis/Ed25519/Desktop Windows-to-Wall SSO E2E. Public GoldABV2 Lab remains original HTTP15583, 4/4 HTTPS200; Owner/Token/SSO OFF, no Git042/SQL/UAT/prod changes.",
+  "nextAction": "2026-11-04 ~21:30 ICT: New read-only mTLS public certificate expiry watcher source/test passes real OpenSSL 14/14. In already approved staged bundle it validates X509 CA/issuer signature, server SAN, client/server EKU, CA and leaf expiry, file symlink and dir security, distinct OLD+NEXT pin (overlap), or NEXT-only after pin revocation; never reads private keys or touches network/signer/live config. Status healthy exit0; 30-day renew_soon exit2; 7-day critical or expired/invalid exit3. Gold Source Gate includes trigger/check/test. Owner CA encrypted offline backup/restore drill and pin/CA root compromise runbook documented but NO actual CA key/backup/restore/cron/notification installed. Previous offline CSR issuance 9/9 PASS, cert release audit 11/11 and real Traefik reload PASS. NEXT Owner-approved offline CA custody/recovery/alert schedule plus guarded persistent Lab pinned-mTLS cutover and then real signed Desktop-to-Wall SSO. Public GoldABV2 Lab original HTTP15583 and 4/4 HTTPS200, Owner/Token/SSO OFF, no UAT/prod/SQL changes.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
