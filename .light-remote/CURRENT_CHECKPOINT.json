@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "desktop_v4_T04B8_A2_SOURCE_MTLS_LOOPBACK_TLS13_PINNED_CLIENT_132of132_PASS_CI_PENDING_RUNTIME_OFF",
+  "status": "desktop_v4_T04B8A2_SOURCE_PINNED_MTLS_CI4of4_PASS_LOCAL132of132_LAB_OFF_NEXT_A2_LAB",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T04b8-A2-SOURCE: Optional separate loopback-only TLS1.3 mTLS Plugin listener and exact SHA256 client leaf pin SOURCE IMPLEMENTED, 3/3 new tests PASS, selected T04 132/132 PASS; A1 Gold/desktop CI already PASS. New A2 CI PENDING. No Lab/Traefik/LXD/Operator/Windows deployed; legacy HTTP 172.30.0.1:15583 still reachable, SSO all six flags remain OFF. NEXT T04b8-A2-LAB: create isolated LXD snapshot/backup/independent auto-OFF, provision private CA/certs (never log), switch Traefik to mTLS backend behind new loopback LXD proxy and disable plaintext 15583 ingress, verify direct HTTP/spoof denial and rollback. Only after real protected edge may begin T04b8-B Redis/Owner live tests. Update living Master after every task; maintain exact byte identical Gold/Desktop copy. No Agent A/B permission change.",
+  "nextAction": "T04b8-A2-SOURCE CI ACCEPTED: Gold a74cba5d Gold Source Gate 41761822548 COMPLETED SUCCESS 4/4, Project Truth41761822698 PASS, Docs41761822657 PASS; Desktop 70d23371 Project Truth41761828404 PASS, Docs41761828526 PASS. Source local 132/132 PASS, TLS1.3 pinned mTLS listener default OFF and NOT DEPLOYED. Lab four services active HTTPS200, legacy HTTP 172.30.0.1:15583 still accessible, no private certificates installed, no SSO Owner/Token/Issuer enabled. NEXT T04b8-A2-LAB snapshot/backup/independent auto-OFF, private mTLS certs, Traefik-LXD protected route, retire old HTTP backend, prove negative bypass before T04b8-B live Redis/Owner and later Windows E2E. Gold UAT/prod, Agent A/B remain unchanged. Living Master must remain byte-identical.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -174,7 +174,7 @@
     "treeDigest": "f76e0b294129257b905302e2aabbae631fae94b1df39760af8616909791d88f0",
     "trackedFiles": 1182,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T02:35:42.674Z"
+    "recordedAt": "2026-11-04T02:38:54.259Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -924,12 +924,19 @@
     "labServices": "4/4 active, public HTTPS health200, auth/token/issuer flags off"
   },
   "t04b8A2MtlsSource": {
-    "status": "SOURCE_TEST_PASS_CI_PENDING_NOT_DEPLOYED",
+    "status": "SOURCE_CI_PASS_4of4_RUNTIME_OFF",
     "newTests": "3/3",
     "selectedT04": "132/132",
     "listener": "127.0.0.1 feature-flag default OFF TLS1.3 mTLS pinned client certificate",
     "securityGate": "REMOVE_OLD_PLAINTEXT_LXD_PORT_BEFORE_SSO",
     "nextTask": "T04b8-A2-LAB",
-    "livingMaster": "docs/project-book/LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md"
+    "livingMaster": "docs/project-book/LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md",
+    "goldSourceCommit": "a74cba5d8939108d6ab81ae1e0a51f0c50126349",
+    "desktopMirrorCommit": "70d233719b87d68d92fc4b7b6d0eea7e5147694d",
+    "goldSourceGateRun": 41761822548,
+    "goldProjectTruthRun": 41761822698,
+    "goldDocsRun": 41761822657,
+    "desktopProjectTruthRun": 41761828404,
+    "desktopDocsRun": 41761828526
   }
 }
