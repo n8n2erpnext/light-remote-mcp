@@ -87,6 +87,8 @@ on:
       - 'deploy/scripts/selftest-gold-abv2-lab-cutover-preflight.mjs'
       - 'deploy/scripts/gold-abv2-lab-043-compatibility-review.mjs'
       - 'deploy/scripts/selftest-gold-abv2-lab-043-compatibility-review.mjs'
+      - 'deploy/scripts/gold-abv2-lab-043-prepared-artifact-audit.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-lab-043-prepared-artifact-audit.mjs'
       - 'deploy/scripts/gold-abv2-lab-rollback-readiness.mjs'
       - 'deploy/scripts/selftest-gold-abv2-lab-rollback-readiness.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-owner-approve-http.mjs'
@@ -372,6 +374,8 @@ jobs:
           node deploy/scripts/selftest-gold-abv2-lab-cutover-preflight.mjs
           node --check deploy/scripts/gold-abv2-lab-043-compatibility-review.mjs
           node deploy/scripts/selftest-gold-abv2-lab-043-compatibility-review.mjs
+          node --check deploy/scripts/gold-abv2-lab-043-prepared-artifact-audit.mjs
+          node deploy/scripts/selftest-gold-abv2-lab-043-prepared-artifact-audit.mjs
           node --check deploy/scripts/gold-abv2-lab-rollback-readiness.mjs
           node deploy/scripts/selftest-gold-abv2-lab-rollback-readiness.mjs
           node --check lib/gold-043-migrator-release-gate.mjs
