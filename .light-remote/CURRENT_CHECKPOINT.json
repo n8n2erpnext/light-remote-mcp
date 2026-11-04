@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_MTLS_DUAL_EXACT_CLIENT_PIN_ROTATION_SOURCE_90_TESTS_PASS_LAB_RUNTIME_OFF",
+  "status": "goldabv2_T04B8_A2_REAL_LXD_PLUGIN_DUAL_CLIENT_PIN_ROTATION_OLD_NEW_OVERLAP_AND_NEW_ONLY_REVOCATION_PASS_SCOPED_ROLLBACK_SSO_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Gold T04b8-A2 source-only rotation of exact mTLS client leaf SHA-256: optional NEXT_V4 pin permits old+new overlapping only, then old denied after promotion. Node TLS 4/4, Plugin suite 42/42 and Operator 48/48 PASS. Code not deployed to LXD. Real public Lab mTLS-only :15584 and old HTTP bypass removal passed during temporary bounded trial; original shared Traefik HTTP :15583, old Plugin/Operator 9d996956, 4/4 and public HTTPS200 restored with timers OFF and test keys/proxy removed. GitHub Source Gate pending; operational cert issuance/renewal and Traefik rotation not proven. SSO/Owner/Token OFF, canonical lock42 release and Gold UAT/prod untouched.",
+  "nextAction": "2026-11-04 ~20:46 ICT: Real LXD Plugin dual-pin rotation PASS using isolated shadow stage (Lab043 b8ec5d6f base + exact 72b87fb9 mTLS module/test only), in-LXD TLS suite 4/4. Actual overlapping OLD and NEXT clients both HTTP200/TLS0; after promote NEXT-only, OLD HTTP403, NEXT HTTP200, missing client TLS rejection curl56/HTTP000. First negative TLS probe triggered ERR shell trap and automatic rollback (safe), later corrected test control-flow. Independently prearmed LXD 12-minute rollback service manually triggered SUCCESS exit0, baseline Plugin/Operator 9d996956 restored, 4/4 active, public HTTPS200/TLS0; timer OFF, port5584 closed and ephemeral keys removed. Public Traefik still original HTTP15583 and Owner/Token/SSO OFF. NEXT persistent cert issuance/expiry/rotation and Traefik reload tests in guarded Lab, then real Owner Redis Ed25519 Desktop Windows->Local Wall SSO E2E. No UAT/prod/SQL or canonical Git lock042 changes.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
