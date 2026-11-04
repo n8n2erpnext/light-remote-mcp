@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_LAB043_ORIGINAL_PROVENANCE_PREFLIGHT_HARDENED_RELEASE_HOLD",
+  "status": "goldabv2_T04B8_A2_LAB043_REPRODUCIBLE_REVIEW_PASS_APPROVAL_HOLD",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b8-A2-LAB-043-COMPATIBILITY-APPROVAL: original Nov1 handoff proves manually applied isolated Lab-only 043+local checksum, Gold UAT stayed 042, no canonical release. Owner045 manually applied only in Lab outside 043 ledger. Preflight enhanced canonical+staged SQL SHA, Owner045 contract and Guest044 absent; old/new source still BLOCKED by canonical lock as designed. Obtain separate owner permission before Lab-only compatibility artifact or formal canonical release, independent rollback/mTLS/SSO E2E still open.",
+  "nextAction": "T04b8-A2-LAB-043-COMPATIBILITY-APPROVAL: proposed Lab-only lock43 SHA256 9fc28935ab474d8c299b2434fcb36c7b337b377284670fa203d9c5521087f609 matched both old deployed pins, SQL043 hash and true PG043; in-memory only; actual scope approval needed before Lab-only stage/cutover, no canonical UAT/prod migration or SSO.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "1673028fad254deb6a0df84ee225f95a907168029603d1b281824ee0cda70ddd",
-    "trackedFiles": 1192,
+    "treeDigest": "f8fccb1a14c6b9a0d48f42464d9ddeb007f60dfc8d18139931b1ca402c156c83",
+    "trackedFiles": 1194,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-04T05:55:54.224Z"
+    "recordedAt": "2026-11-04T06:47:47.720Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1325,5 +1325,23 @@
     "desktopMirrorCommit": "f43d4e4d02b5415a94ac1450571047d7dd462528",
     "desktopDocsIntegrityRun": 41782000058,
     "desktopProjectTruthRun": 41782000170
+  },
+  "t04b8A2Lab043ReproducibleReview": {
+    "date": "2026-11-04",
+    "status": "LAB_ONLY_COMPATIBILITY_PROPOSAL_REPRODUCIBLE",
+    "tool": "deploy/scripts/gold-abv2-lab-043-compatibility-review.mjs",
+    "test": "deploy/scripts/selftest-gold-abv2-lab-043-compatibility-review.mjs",
+    "hypotheticalLockSHA256": "9fc28935ab474d8c299b2434fcb36c7b337b377284670fa203d9c5521087f609",
+    "sql043SHA256": "935b268899c7b59761781db33d8ad2c573773566844fbfab0b861046f3a680d4",
+    "actualLabLedger": 43,
+    "canonicalGitLock": 42,
+    "oldPluginAndOperatorPinMatch": true,
+    "canCutover": false,
+    "releaseApproved": false,
+    "canApplyMigration": false,
+    "canEnableSso": false,
+    "realLabReadOnlyReview": "PASS",
+    "fixtureSelftest": "PASS",
+    "sourceGateCI": "PENDING"
   }
 }

@@ -809,3 +809,8 @@ Current T04b7b source entry points: plugin-server/server.mjs → desktop-wall-ss
 - Original November 1 LXD Custom MCP handoff records manual SQL043 Lab-only migration and source lock, Gold UAT stayed 042; current PG043 applied_at 2026-11-01 15:25:05.798104 UTC. Independent catalog table/constraint/index/trigger structure matches candidate 043; PG ledger has no applied SQL digest.
 - Original Single Owner handoff documents manual SQL045 Owner singleton/handoff tables only in Lab, ledger 043. Catalog confirms these two tables exist and Guest044 jobs absent. No canonical 043/045 production migration release approved.
 - deploy/scripts/gold-abv2-lab-cutover-preflight.mjs now verifies committed Git canonical SQL SHA as well as staged SQL SHA, Lab Owner045 tables and Guest044 absence, with matching selftest negative cases. Real old/new stage both fail closed on existing canonical lock042 vs DB043 mismatch. Separate review document: docs/project-book/LIGHT_REMOTE_T04B8_A2_SCHEMA043_RELEASE_REVIEW_20261104.md.
+
+## 2026-11-04 — GoldABV2 Lab043 deterministic in-memory manifest review
+
+- deploy/scripts/gold-abv2-lab-043-compatibility-review.mjs: read-only --review, fixed isolated LXD; verifies canonical Git42 SQL hashes, real PG043/applied_at, Short ID and Owner045 sidecar, Guest044 absent, old deployed Plugin/Operator lock43 and new staged42. Hypothetical in-memory lock43 SHA256 9fc28935ab474d8c299b2434fcb36c7b337b377284670fa203d9c5521087f609 matched both old locks. Always canCutover:false, canApplyMigration:false, releaseApproved:false.
+- deploy/scripts/selftest-gold-abv2-lab-043-compatibility-review.mjs: negative source tamper/owner/guest/argument tests. Gold Source Gate workflow includes both script paths and fixture selftest; no runtime changes.
