@@ -1219,3 +1219,7 @@ VPS-ARM operational updater manifest signing original PEM retained chmod0600, SH
 ## 2026-11-04 — T04b8-A2 Owner Windows candidate CA public identity gate PASS; operational rollout HOLD
 
 New read-only deploy/scripts/gold-abv2-owner-ca-public-preflight.mjs + OpenSSL fixture test verifies explicit public SHA256 pin and CA profile (RSA4096, self-signed, critical CA pathlen0, certificateSigning, expected subject, expiry). Actual public PEM in ARM handoff verified against aec7ecda8544503db2cf15db9676f004048a1a43115013a00ba1f180d299e2f1 and exit2/RELEASE HOLD, never marks operationally approved. Test 12/12 PASS; source Gate triggers and executes new checks. No Owner independent backup/restore proof, no persistent server/client CA-signed leaf bundle, no permanent public mTLS cutover, no signed Desktop Wall E2E. Public Lab unchanged 4/4 HTTPS200 old HTTP15583, SSO OFF, UAT/prod untouched.
+
+## 2026-11-04 — T04b8-A2 Owner CA public-only restoration challenge 13/13 PASS, actual recovery HOLD
+
+Added public-only issuer/verifier for short-lived RSA-PSS SHA256 restore possession challenge, random 256-bit nonce+ID with 15-minute expiration and exact owner CA pin. Disposable fixture tests 13/13 PASS; Gold source gate wired. Verifier reads only pinned public root; a valid signature proves key possession, NOT independent off-device restore. releaseApproved=false, CLI exit2/HOLD, no replay-consumption store. No private CA key/DPAPI transfer or runtime change. Current public Lab old HTTP15583, 4/4 HTTPS200, SSO OFF; UAT/prod unchanged.

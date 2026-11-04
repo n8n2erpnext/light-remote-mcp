@@ -892,3 +892,7 @@ ECDSA P-256/SHA256 signed updater source: VPS-ARM:/home/ubuntu/.config/light-rem
 
 - deploy/scripts/gold-abv2-owner-ca-public-preflight.mjs: public-only X509 Owner RSA4096 CA pin/profile/validity validation, no DPAPI/private key. Exact staged public candidate /home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/owner-windows-ca-candidate-public-20261104.pem matched DER SHA256 aec7ecda8544503db2cf15db9676f004048a1a43115013a00ba1f180d299e2f1. Returns releaseStatus HOLD and exit2 even on valid public CA until independently proven backup, server/client leaf issue, guarded public mTLS rollout and Desktop Wall signed E2E.
 - deploy/scripts/gold-abv2-owner-ca-public-preflight.test.mjs: 12/12 disposable OpenSSL tests for wrong pin/subject/key size/constraints/signature/date/symlink/CLI failure. Gold Connection Lifecycle Source Gate path filter and test run updated. No runtime trust-store change; Gold UAT/prod unchanged.
+
+## 2026-11-04 — Owner CA restoration challenge (public verifier only)
+
+deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs exports issueOwnerCaRecoveryChallenge, ownerCaRecoveryChallengePayload and verifyOwnerCaRecoveryResponse. RSA4096 public CA trust, random challenge ID and nonce with TTL15m, RSA-PSS SHA256 salt32 proof. Real isolated restore not proven by signature alone, release HOLD/exit2 always, no persistent replay store; source tests 13/13 and CI trigger.
