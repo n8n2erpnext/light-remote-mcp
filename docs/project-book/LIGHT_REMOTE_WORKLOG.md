@@ -1163,3 +1163,7 @@ Observed existing VPS SSH host github.com selects a different deploy key than ex
 ## 2026-11-04 — GitHub push restored on existing VPS-ARM Git config; all exact-SHA CI green
 
 The repository already pins id_ed25519_n8n2erpnext through core.sshCommand, unrelated to ~/.ssh/config host default. Normal git ls-remote origin PASS. Normal, no-override, non-force git push published Gold HEAD 852091a1 and Desktop HEAD 153330b3, 4 formerly unpushed commits per branch, both worktrees clean. Gold Source Gate 41821402194 PASS 4/4; Gold Docs 41821402207 and Truth 41821401904 PASS; Desktop Docs 41821409755 and Truth 41821409778 PASS. No keys/config/credentials were changed; prior SSH-denial attribution superseded by successful normal Git workflow. Lab source runtime, SQL, SSO and UAT/prod unchanged; canonical Git042/PG043 and fresh rollback-window gates remain HOLD.
+
+## 2026-11-04 — T04b8-A2 Lab043 GO/NO-GO, no runtime release
+
+Real isolated Lab: 222/222 staged JS Node syntax PASS, update-lifeboat Linux/macOS dynamic targets present and syntax PASS without runtime execution; 18 external / 309 local literal imports all resolve. Lab preflight BLOCKED exit3 (Git42 vs DB/staged43). Rollback readiness BLOCKED exit3 (fresh snapshot and independent auto-off timer absent); backup SHA/rollback --check, disk root ~30GiB free, Btrfs pool ~8.2GiB free, 4/4 active HTTPS200 PASS. No service, SQL, SSO, Agent grant or main UAT/production mutation. Separate explicit Lab-only source release approval and guarded rollback still required.

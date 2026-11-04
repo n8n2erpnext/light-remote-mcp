@@ -39,3 +39,9 @@ The sizes above are **du estimates, not guaranteed reclaimable bytes**. Ordinary
 4. Immediately before authorized Lab-only cutover: create fresh scoped snapshot and backup, arm and inspect a properly bound independent auto-off rollback unit, rerun **source compatibility review AND rollback readiness audit**, and only then evaluate time-bounded source switch, readiness observation and rollback criteria. No mTLS/Owner/Redis/Ed25519 or native Windows SSO acceptance has been proven by these preparatory checks.
 
 **No action in this review authorizes deletion, SQL apply, service restart, mTLS changes or SSO enablement.**
+
+## 2026-11-04 ~18:36 ICT — Latest storage and timer readiness
+
+Earlier 87.7%-used VPS root was historical, not current: read-only audit finds 30.0GiB free/75.0% used. Btrfs pool has 8.2GiB free/79.6% used. Both capacity guards PASS; no deletion/remediation was performed.
+
+Rollback-readiness exit3 remains BLOCKED. Backup SHA256 and rollback --check PASS, four Lab units active, public HTTPS200/TLS0; five historical snapshots, newest taken at 15:51 ICT, outside 2h freshness. Independent auto-off timer is not loaded, active, scheduled or verified against its rollback script. A new snapshot and rollback timer are future release-window steps requiring explicit isolated Lab-only approval, not authorized by this review.
