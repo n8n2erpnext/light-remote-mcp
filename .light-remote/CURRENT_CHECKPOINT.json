@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Prepared Lab043 scanner PASS 222 JS/18 external/309 relative/0 unresolved; one pinned updater dynamic import inventoried, NOT runtime proven. Negative fixtures and 129/129 T04 selected Node PASS; CI PENDING pending authorized GitHub SSH push. Canonical PG043 vs Git042 preflight BLOCKED exit3; rollback fresh snapshot/timer absent; release/SSO/Guest044 HOLD. No runtime mutation.",
+  "nextAction": "T04b8-A2 static Lab043 audit/source fixtures remain PASS but runtime release HOLD. Git SSH correct alias github-n8n2erpnext key fingerprint /DVNZRdCoBRonj02EVPGAsks/kE4ipLB1gbQHMlBl+c belongs to thdangduy published key set, yet SSH443 publickey authentication is denied; Github connector returns 403 for collaborator permission. Git push/CI blocked. Owner must verify GitHub authentication key state; do not change private keys or bypass permissions. Preserve both branch commits, then non-force push and check CI. Canonical Git042 vs Lab DB043 and new rollback timer approval still HOLD.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
