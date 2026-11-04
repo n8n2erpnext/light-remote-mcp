@@ -69,3 +69,29 @@ The signer and key-owning machine are intentionally separate trust roles: copy b
 **Acceptance:** the new real-OpenSSL CSR/offline-sign module tests **9/9 PASS** (including nested tests): existing exact-two-pin certificate gate accepts three newly issued leafs, distinct OLD/NEXT fingerprints, renewal issues a *fresh* leaf without overwriting OLD, no duplicate overwrite, CSR CN spoofing rejected, role validity capped at 90 days, incorrect CA key denied, RSA2048 CSR denied, insecure signer permissions denied. The new two files and tests have been added to Gold Source Gate. **No long-term CA private key was created**; tests generated and destroyed a disposable private CA in an isolated system temp directory.
 
 **Remaining gate:** Owner key custody and actual runtime CA selection, certificate backups/recovery, audit logging, optional CRL strategy and approval for offline signing. Automated monitoring via the existing read-only certificate gate may alert on <=30-day remaining validity; **automatic CA signing is deliberately NOT provided**. Permanent public Lab mTLS and signed Desktop V4→Local Wall SSO still require their own isolated acceptance.
+
+## 2026-11-04 ~21:30 ICT — Public-certificate-only expiration alert, safe key backup and revocation review
+
+**New code (source-only):** `deploy/scripts/gold-abv2-mtls-expiry-watch.mjs` and `.test.mjs`. This **does not read any private key**. It requires a 0700 runtime certificate directory containing public `ca.crt`, `server.crt`, and certificates for the chosen mode: `old.crt` + `next.crt` for `overlap`, or `next.crt` alone for `new-only`. Any `ca.key` in that directory is rejected. It verifies X.509 signatures, trusted issuer, clientAuth/serverAuth, server hostname, distinct two-pin fingerprints during overlap, validity, CA expiry and unsafe directory/symlink conditions. It does not perform requests over the network, create, sign, install, renew, change flags or reload Traefik.
+
+Manual, read-only status checks against an **already-approved staging directory**:
+
+```sh
+node deploy/scripts/gold-abv2-mtls-expiry-watch.mjs --dir /absolute/private/public-certs-staged --mode overlap --name goldabv2.lab --renew-days 30 --critical-days 7
+node deploy/scripts/gold-abv2-mtls-expiry-watch.mjs --dir /absolute/private/public-certs-staged --mode new-only --name goldabv2.lab --renew-days 30 --critical-days 7
+```
+
+The CLI emits only JSON metadata (certificate SHA-256 and validity, no private paths/PEM). Exit **0 healthy**, **2 renew soon (30 days)**, **3 critical (7 days), invalid/expired or a blocking validation error**. A future Owner-approved timer can run this command daily **only when an approved runtime certificate bundle exists**; notifications may be generated from exit status. No unattended checker or external notification was installed in this task.
+
+**Real OpenSSL tests:** 14/14 PASS (13 nested): trusted bundle, 30-day warning, 7-day critical, expiry, NEW-only mode ignoring OLD, duplicate pin, wrong server hostname, signer key accidentally included, tampering, wrong EKU, symlink/insecure mode, CLI0/JSON privacy and invalid CLI mode exit3. Added test paths and commands to Gold Connection Lifecycle Source Gate.
+
+**Offline Owner CA key custody / backup checklist (policy draft; not an automated secret copy):**
+
+- The Owner selects an offline signer/CA, documents a non-secret CA public certificate SHA-256 fingerprint and approval/rotation record. Never store `ca.key` on GoldABV2 LXD, VPS-ARM runtime, public Traefik, GitHub, CI, ChatGPT, shared handoffs or Long Memory.
+- Back up the **signer key only on the Owner-authorized offline signer** to encrypted media under Owner-held credentials, with a separate encrypted recovery copy. Avoid pasting passwords or exposing backup ciphertext in project logs. Restrict both key copies and document recovery custody off-device.
+- Test recovery on a separate isolated/offline machine: validate that the restored key matches the **public CA certificate** and can sign one disposable CSR with the explicit offline signer. Destroy disposable test material and record only the public fingerprint, date, PASS/FAIL and accountable approver.
+- For suspected **client key compromise**, remove that exact SHA-256 pin from Plugin and switch Traefik to an uncompromised client credential under a guarded rollback plan. Require the old client to receive HTTP403; preserve no plaintext backend bypass. This is *pin-level revocation*, not CRL/OCSP.
+- For **CA key compromise**, treat every issued leaf as untrusted; rotate the trust root, reissue server/client identities and disable the compromised CA. No automatic root rotation or CRL/OCSP is implemented; a separate incident/approval procedure must precede any permanent rollout.
+- Renewal: before the 30-day threshold generate a fresh per-identity key/CSR, obtain explicit offline signature (90-day leaf max), validate its expiry and exact pin, overlap OLD+NEXT, reload Traefik (live sidecar PASS previously), prove NEXT-only behavior and retire OLD after acceptance. Always retain independent rollback and confirm public HTTPS/MCP/Account A/B contracts.
+
+**Open release gates:** Owner-approved offline CA key custody and actual backup recovery, root-change/revocation incident policy, daily schedule/notification destination, persistent certificate installation/rotation on GoldABV2 Lab, public pinned mTLS-only release and full signed Desktop V4-to-Wall SSO E2E. Do not claim these are complete or enable SSO. Canonical Git lock042 Gold UAT/prod release remains HOLD.

@@ -21,6 +21,7 @@ on:
       - 'plugin-server/desktop-wall-sso-mtls-edge-v4*.mjs'
       - 'deploy/scripts/gold-abv2-mtls-certificate-gate*.mjs'
       - 'deploy/scripts/gold-abv2-mtls-offline-issuance*.mjs'
+      - 'deploy/scripts/gold-abv2-mtls-expiry-watch*.mjs'
       - 'plugin-server/desktop-wall-sso-native-transport-v4*.mjs'
       - 'lib/gold-registry-persistence.mjs'
       - 'lib/gold-native-account-aux.mjs'
@@ -351,6 +352,9 @@ jobs:
           node --check deploy/scripts/gold-abv2-mtls-offline-issuance.mjs
           node --check deploy/scripts/gold-abv2-mtls-offline-issuance.test.mjs
           node --test deploy/scripts/gold-abv2-mtls-offline-issuance.test.mjs
+          node --check deploy/scripts/gold-abv2-mtls-expiry-watch.mjs
+          node --check deploy/scripts/gold-abv2-mtls-expiry-watch.test.mjs
+          node --test deploy/scripts/gold-abv2-mtls-expiry-watch.test.mjs
           node --check operator-host/desktop-wall-sso-device-proof-v4.mjs
           node --check operator-host/desktop-wall-sso-device-proof-v4.test.mjs
           node --check operator-host/desktop-wall-sso-signed-route-v4.mjs
