@@ -47,3 +47,7 @@ The actual Lab review verifies applied ledger 043/timestamp, SQL043 SHA 935b2688
 Canonical preflight remains BLOCKED exit3: Git committed migration lock ends at 042, isolated Lab database ledger and prepared source lock at 043. No reviewed release exception policy grants a source cutover, and this review does not authorize changing main/UAT/prod lock. Lab-only Owner045 and Guest044 HOLD remain unchanged.
 
 A future separate owner decision must identify exact isolated Lab target, pinned stage and acceptable startup gate; fresh snapshot, independent rollback timer and bounded health tests must pass immediately before any restart. SSO/Guest044/production are not in this scope.
+
+## 8. 2026-11-04 19:00 ICT — Owner conditional trial authorization and system safety stop
+
+The owner authorized a strictly isolated LAB043 Plugin/Operator guarded source trial, with SQL unchanged, SSO/mTLS OFF, Guest044 HOLD and UAT/production excluded. This is NOT authority to override the canonical Git042 vs Lab43 startup preflight without a reviewed separate Lab-only release gate. Before any source switch, host systemd rollback timer installation failed: /etc/systemd/system is on read-only host root. No cutover or SQL occurred. Fresh isolated Lab snapshot pre-t04b8-a2-owner-approved-20261104-1900 was created. Continue only after independent timer readiness and Lab-only schema/startup review are both satisfied.
