@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_REAL_PLUGIN_TRAEFIK_LXD_MTLS_E2E_PASS_ROLLBACK_PASS_PUBLIC_BACKEND_HOLD_SSO_OFF",
+  "status": "goldabv2_T04B8_A2_MTLS_DUAL_EXACT_CLIENT_PIN_ROTATION_SOURCE_90_TESTS_PASS_LAB_RUNTIME_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Real isolated b8ec5d6f Plugin on TLS1.3 localhost5584 accepted pinned client200, unpinned403, no cert handshake denied; host LXD proxy15584 direct pinned200; Traefik:v3.6 sidecar localhost19444 -> LXD -> ACTUAL Express Plugin 200/TLS0 after correcting probe-only Host/SNI mismatch. Scoped independently armed LXD timer+manual rollback PASS; old 9d996956 Plugin+Operator restored 4/4 active HTTPS200; no test secrets/proxy/firewall/sidecar remain. NEXT separate guarded public Lab Traefik mTLS backend switch + deny old plaintext :15583, test direct spoof and /mcp /account, THEN Owner/Redis/signed device/Windows Wall SSO E2E gated OFF. SQL unchanged, Gold UAT/prod unchanged, canonical Git lock042 HOLD.",
+  "nextAction": "Gold T04b8-A2 source-only rotation of exact mTLS client leaf SHA-256: optional NEXT_V4 pin permits old+new overlapping only, then old denied after promotion. Node TLS 4/4, Plugin suite 42/42 and Operator 48/48 PASS. Code not deployed to LXD. Real public Lab mTLS-only :15584 and old HTTP bypass removal passed during temporary bounded trial; original shared Traefik HTTP :15583, old Plugin/Operator 9d996956, 4/4 and public HTTPS200 restored with timers OFF and test keys/proxy removed. GitHub Source Gate pending; operational cert issuance/renewal and Traefik rotation not proven. SSO/Owner/Token OFF, canonical lock42 release and Gold UAT/prod untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
