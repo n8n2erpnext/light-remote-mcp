@@ -79,6 +79,10 @@ test('T04b8 A2 rejects missing certs, malformed port, and mixed proxy allowlist'
     {[PREFIX+'MTLS_CERT_PATH_V4']:'relative-cert.pem'},
     {[PREFIX+'MTLS_CLIENT_SHA256_V4']:'not-a-fingerprint'},
     {[PREFIX+'MTLS_CLIENT_SHA256_V4']:undefined},
+    {[PREFIX+'MTLS_CLIENT_SHA256_NEXT_V4']:''},
+    {[PREFIX+'MTLS_CLIENT_SHA256_NEXT_V4']:'bad'},
+    {[PREFIX+'MTLS_CLIENT_SHA256_NEXT_V4']:'A'.repeat(64)},
+    {[PREFIX+'MTLS_CLIENT_SHA256_NEXT_V4']:'a'.repeat(64)},
     {[PREFIX+'PROXY_PEERS_V4']:'127.0.0.1'}
   ]){
     assert.throws(()=>createDesktopWallSsoMtlsEdgeV4({
@@ -124,4 +128,42 @@ test('T04b8 A2 real TLS1.3 handshake requires trusted client cert; binds loopbac
     key:fs.readFileSync(f.p('server.key'))
   }));
   assert.equal(calls,1,'Certificate for serverAuth must not pass clientAuth');
+});
+
+test('T04b8 rotation: only old+next pinned client leaves during overlap, then old denied',async(t)=>{
+  const f=fixture();
+  t.after(()=>fs.rmSync(f.dir,{recursive:true,force:true}));
+  const ca=fs.readFileSync(f.p('ca.crt'));
+  const oldCert=fs.readFileSync(f.p('client.crt'));
+  const oldKey=fs.readFileSync(f.p('client.key'));
+  const nextCert=fs.readFileSync(f.p('other.crt'));
+  const nextKey=fs.readFileSync(f.p('other.key'));
+  const nextPin=crypto.createHash('sha256')
+    .update(new crypto.X509Certificate(nextCert).raw).digest('hex');
+  let allowed=0;
+  const app=(_req,res)=>{allowed++;res.writeHead(200);res.end('allowed');};
+  async function start(env){
+    const edge=createDesktopWallSsoMtlsEdgeV4({env,app});
+    await new Promise((resolve,reject)=>{
+      edge.server.once('error',reject);
+      edge.server.listen(0,edge.host,resolve);
+    });
+    t.after(()=>new Promise(resolve=>edge.server.close(resolve)));
+    return edge.server.address().port;
+  }
+  const overlappingPort=await start({
+    ...f.env,[PREFIX+'MTLS_CLIENT_SHA256_NEXT_V4']:nextPin
+  });
+  assert.equal((await request(overlappingPort,{ca,cert:oldCert,key:oldKey})).status,200);
+  assert.equal((await request(overlappingPort,{ca,cert:nextCert,key:nextKey})).status,200);
+  assert.equal(allowed,2);
+  await assert.rejects(request(overlappingPort,{ca}));
+  assert.equal(allowed,2);
+  // Once the next leaf is promoted and the overlap pin removed, old must fail.
+  const finalPort=await start({...f.env,
+    [PREFIX+'MTLS_CLIENT_SHA256_V4']:nextPin
+  });
+  assert.equal((await request(finalPort,{ca,cert:oldCert,key:oldKey})).status,403);
+  assert.equal((await request(finalPort,{ca,cert:nextCert,key:nextKey})).status,200);
+  assert.equal(allowed,3);
 });

@@ -21,6 +21,7 @@ const CERT='LR_GOLD_ABV2_DESKTOP_WALL_SSO_MTLS_CERT_PATH_V4';
 const KEY='LR_GOLD_ABV2_DESKTOP_WALL_SSO_MTLS_KEY_PATH_V4';
 const CA='LR_GOLD_ABV2_DESKTOP_WALL_SSO_MTLS_CLIENT_CA_PATH_V4';
 const CLIENT_SHA='LR_GOLD_ABV2_DESKTOP_WALL_SSO_MTLS_CLIENT_SHA256_V4';
+const CLIENT_SHA_NEXT='LR_GOLD_ABV2_DESKTOP_WALL_SSO_MTLS_CLIENT_SHA256_NEXT_V4';
 const PROXY_PEERS='LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4';
 const fail=()=>{throw new Error('desktop_wall_sso_mtls_edge_unavailable');};
 
@@ -37,7 +38,15 @@ export function createDesktopWallSsoMtlsEdgeV4({
   const port=Number(rawPort);
   if(!Number.isSafeInteger(port)||port<1024||port>65535||
      !/^[a-f0-9]{64}$/.test(String(env[CLIENT_SHA]||'')))fail();
-  const expectedClient=Buffer.from(env[CLIENT_SHA],'hex');
+  // Optional second client leaf for a bounded no-gap rotation window.
+  // Only these exact two SHA-256 DER fingerprints may reach Express.
+  const nextClientSha=env?.[CLIENT_SHA_NEXT];
+  if(nextClientSha!==undefined&&
+     (!/^[a-f0-9]{64}$/.test(String(nextClientSha))||
+      nextClientSha===env[CLIENT_SHA]))fail();
+  const expectedClients=[Buffer.from(env[CLIENT_SHA],'hex')];
+  if(nextClientSha!==undefined)
+    expectedClients.push(Buffer.from(nextClientSha,'hex'));
   for(const name of [CERT,KEY,CA])
     if(typeof env[name]!=='string'||!path.isAbsolute(env[name])||
        env[name].includes('\0'))fail();
@@ -58,8 +67,13 @@ export function createDesktopWallSsoMtlsEdgeV4({
     const raw=req.socket?.getPeerCertificate?.(true)?.raw;
     const actual=Buffer.isBuffer(raw)
       ?crypto.createHash('sha256').update(raw).digest():null;
+    // Evaluate each configured pin, even if the first matches.
+    let pinned=0;
+    if(actual)
+      for(const expected of expectedClients)
+        pinned|=Number(crypto.timingSafeEqual(actual,expected));
     if(req.socket?.encrypted!==true||req.socket?.authorized!==true||
-       !actual||!crypto.timingSafeEqual(actual,expectedClient)){
+       pinned!==1){
       res.writeHead(403,{'Cache-Control':'no-store'});
       res.end();
       return;
