@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-04",
-  "status": "desktop_v4_H00_LIVING_MASTER_FULL_CI_PASS_MIRROR_IDENTICAL_T04B8_NEXT",
+  "status": "desktop_v4_T04B8_A1_ACTUAL_PROXY_PEER_AND_DIRECT_HTTP_BYPASS_VERIFIED_FAIL_CLOSED_EDGE_PROOF_SOURCE_LOCAL129of129_PASS_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "2026-11-04 H00 Living Master ACCEPTED, current state in docs/project-book/LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md; Gold canonical/ Desktop byte-identical mirror. Initial commits Gold c38e2e540fa66ce634ab5e2902ae628af3a905e8, Desktop 475de7bf415d66817d8c90d0f79c46f6b1e97560; CI-hardening commits Gold 4666000b22062d842575468f5a731c05df2d7950, Desktop 7bf6175a309206d370185f3591ca1a4d102a8605. Project Truth CI Gold 41757247108 SUCCESS and Desktop 41757254955 SUCCESS, Docs CI Gold 41757246951 and Desktop 41757254998 SUCCESS. Future EVERY task requires updating living Master CURRENT FIRST and adding new dated ## receipt, Worklog, checkpoint, Code Map if code/security, --stamp/--staged and byte-identical mirror, GitHub per-commit --range verification. NEXT T04b8-A: secret-free measurement of real Plugin Express remote peer, Traefik forwarded HTTPS header provenance and alternate backend ingress, then guarded snapshot/auto-OFF before live Redis Owner family/enrollment and Ed25519/Tauri/Wall SSO. Six SSO flags OFF; Gold Lab health4/4 and HTTPS200 observed 2026-11-04 01:38 UTC. Owner Login/Signout/Welcome physically Windows PASS, sustained >10m refresh and backend family revocation E2E OPEN, T04 App->Wall Windows E2E OPEN; no Gold production/UAT/Agent A/B changes.",
+  "nextAction": "T04b8-A1 2026-11-04: On authorized VPS-ARM, public goldabv2 HTTPS health200 TLS1.3 AND direct LXD backend plain HTTP 172.30.0.1:15583 health200 measured. Plugin TCP peer in BOTH paths was 127.0.0.1; Express trust-proxy loopback and forwarded XFP were NOT adequate TLS provenance. Gold source-only native issue handler now requires 64-lowercase-hex 256-bit X-Light-Remote-Edge-Proof-V4 compared timingSafeEqual for any HTTP proxy peer, throws if configured proxy peers but missing/weak LR_GOLD_ABV2_DESKTOP_WALL_SSO_EDGE_PROOF_V4; native router and server pass only private config; source tests deny forged backend HTTP Host+XFP without correct edge proof. Selected T04 Node129/129 PASS, local Wall HTTP revocation regression PASS, Gold Source Gate CI PENDING. This is NOT deployed: no Traefik edge injection configured, static proof over plain HTTP remains sniff/replay risk, so SSO MUST STAY OFF. NEXT T04b8-A2: isolate backend/protect TLS terminator→LXD transport using mTLS/private Unix/strict network boundary and verify actual TLS-only router overwrites private proof header; test direct backend forgery negative with zero credentials, snapshot+auto-OFF before any live Redis/Owner/Enrollment SSO. Gold main UAT/production, MCP, A/B, Windows native binary unchanged. Prior real Windows Owner Login/Logout Welcome PASS, >10m refresh, real backend family revoke and App→Wall SSO E2E OPEN. Update living Master docs/project-book/LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md after EVERY task, both mirrors byte identical.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -876,7 +876,7 @@
     "livingSince": "2026-11-04",
     "mandatoryForEveryTask": true,
     "mirrorByteIdenticalRequired": true,
-    "startingNextTask": "T04b8-A",
+    "startingNextTask": "T04b8-A2",
     "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
     "introReceipt": "2026-11-04 H00",
     "firstGoldCommit": "c38e2e540fa66ce634ab5e2902ae628af3a905e8",
@@ -893,5 +893,28 @@
     ],
     "workflowCI": "Gold project truth 41757247108 SUCCESS; Desktop project truth 41757254955 SUCCESS; Gold Docs 41757246951 SUCCESS; Desktop Docs 41757254998 SUCCESS",
     "outcome": "H00 COMPLETE: mandatory dated living Master/Worklog/checkpoint task receipts, CI guard on both active branches, negative missing/undated tests PASS, mirror identical"
+  },
+  "t04b8A1ObservedProxyAndSourceEdgeProof": {
+    "date": "2026-11-04",
+    "publicTls": "TLS 1.3",
+    "publicHealth": 200,
+    "directBackend": "http://172.30.0.1:15583/healthz",
+    "directBackendHealth": 200,
+    "publicViaTraefikNodePeer": "127.0.0.1",
+    "directHostNodePeer": "127.0.0.1",
+    "risk": "same peer plus client spoofable X-Forwarded-Proto cannot attest HTTPS; direct backend HTTP reachable from VPS host",
+    "sourceMitigation": [
+      "plugin-server/desktop-wall-sso-native-issue-v4.mjs",
+      "plugin-server/desktop-wall-sso-native-router-v4.mjs",
+      "plugin-server/server.mjs"
+    ],
+    "proofEnv": "LR_GOLD_ABV2_DESKTOP_WALL_SSO_EDGE_PROOF_V4",
+    "tests": "129/129 selected T04 Node PASS and separate real Wall HTTP revoke loopback PASS",
+    "githubCI": "PENDING",
+    "enabledInLab": false,
+    "traefikProofInjectionPresent": false,
+    "deployed": false,
+    "nativeWindowsE2E": false,
+    "blocking": "secure backend isolation/mTLS or equivalent and TLS-only actual Traefik header overwrite verification; prevent plaintext edge proof observation/replay"
   }
 }
