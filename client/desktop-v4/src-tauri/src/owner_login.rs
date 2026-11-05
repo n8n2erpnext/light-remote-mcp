@@ -626,6 +626,39 @@ pub(crate) async fn approve_private_owner_wall_sso(
     Ok(())
 }
 
+
+/// T04b9c3c — the Owner can ONLY enter the short public browser code.
+/// The private full challenge and enrolled Device ID come from the
+/// same-device OS-only Agent IPC, never from React/URL/user arguments.
+/// Feature remains unmounted on the Agent and default OFF in UI builds.
+#[tauri::command]
+pub(crate) async fn desktop_owner_wall_sso_approve(
+    state:State<'_,OwnerRuntime>,approval_code:String
+) -> Result<OwnerView,String> {
+    if crate::use_goldabv2_lab_wall() {
+        // NetBird Wall profile currently points to remote plaintext HTTP.
+        // Do not use it as an SSO cookie destination.
+        return Err(wall_sso_denied());
+    }
+    if approval_code.len()!=8 ||
+        !approval_code.bytes().all(|b|
+          b.is_ascii_alphanumeric()||b==b'-'||b==b'_') {
+        return Err(wall_sso_denied());
+    }
+    let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
+    // Must be a verified, non-refreshing Owner before even querying pending.
+    runtime.wall_snapshot()?;
+    let pending=crate::owner_wall_ticket::read_private_wall_pending_from_agent()
+        .await.map_err(|_|wall_sso_denied())?;
+    if !pending.challenge.starts_with(&approval_code) {
+        return Err(wall_sso_denied());
+    }
+    approve_private_owner_wall_sso(
+        runtime.clone(),pending.challenge,pending.device_id
+    ).await?;
+    runtime.view()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -341,3 +341,21 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 840px) {
   .log-actions .lr-button { width: 100%; }
 }
+
+/* Owner SSO challenge code is available ONLY in explicit, signed-outside-UI
+   LAB candidate builds. React never handles an Owner ticket or credential. */
+.owner-wall-sso-review{
+  border:1px solid var(--border-color,#334454);
+  background:var(--card-background,rgba(18,29,38,.68));
+  border-radius:12px;padding:18px 22px;margin:8px 0 20px;
+}
+.owner-wall-sso-review h2{font-size:17px;margin:0 0 8px;}
+.owner-wall-sso-review p{font-size:13px;line-height:1.5;margin:8px 0;color:var(--text-muted,#a6b5c4)}
+.owner-wall-sso-review form{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:12px 0}
+.owner-wall-sso-review label{font-size:13px;display:block;min-width:180px}
+.owner-wall-sso-review input{display:block;width:180px;box-sizing:border-box;
+  border:1px solid #3b4d60;border-radius:7px;padding:9px 12px;margin-top:5px;
+  font-family:'Google Sans Code',ui-monospace,monospace;font-size:18px;
+  letter-spacing:.1em;background:transparent;color:inherit}
+.owner-wall-sso-review input:focus-visible{outline:2px solid #629ccc;outline-offset:2px}
+.owner-wall-sso-review button{border:1px solid #3b4d60}

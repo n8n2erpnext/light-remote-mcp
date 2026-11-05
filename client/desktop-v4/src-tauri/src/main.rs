@@ -111,7 +111,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             open_local_wall, probe_local_wall,
             owner_login::desktop_owner_begin, owner_login::desktop_owner_status,
-            owner_login::desktop_owner_restore, owner_login::desktop_owner_logout
+            owner_login::desktop_owner_restore, owner_login::desktop_owner_logout,
+            owner_login::desktop_owner_wall_sso_approve
         ])
         .run(tauri::generate_context!())
         .expect("Light Remote V4 Owner Login candidate startup failed");

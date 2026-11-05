@@ -178,9 +178,117 @@ pub(crate) async fn relay_native_wall_ticket_to_agent(
         .await.map_err(|_|deny())?
 }
 
+
+/// The browser's public challenge is read from the same-device enrolled
+/// Agent, never taken from Tauri/React arguments or an untrusted URL.
+/// It cannot authorize a Wall cookie without a separate HttpOnly browser
+/// cookie and the Owner-approved one-use signed ticket.
+pub(crate) struct NativeWallPending {
+    pub(crate) challenge:String,
+    pub(crate) device_id:String,
+}
+const NATIVE_AGENT_PENDING_REQUEST: &[u8]=b"{\"action\":\"pending\"}\n";
+const NATIVE_PENDING_MAX_REPLY: u64=512;
+
+fn parse_native_wall_pending(bytes:&[u8],now_ms:u64)
+    -> Result<NativeWallPending,String>
+{
+    if bytes.len()>NATIVE_PENDING_MAX_REPLY as usize {return Err(deny());}
+    let row:Value=serde_json::from_slice(bytes).map_err(|_|deny())?;
+    let obj=row.as_object().ok_or_else(deny)?;
+    if obj.len()!=5 || !["ok","pending","challenge","deviceId","expiresAt"]
+        .iter().all(|k|obj.contains_key(*k)) ||
+       row.get("ok").and_then(Value::as_bool)!=Some(true) ||
+       row.get("pending").and_then(Value::as_bool)!=Some(true)
+    {return Err(deny());}
+    let challenge=row.get("challenge").and_then(Value::as_str)
+        .ok_or_else(deny)?;
+    let device=row.get("deviceId").and_then(Value::as_str)
+        .ok_or_else(deny)?;
+    let expires=row.get("expiresAt").and_then(Value::as_u64)
+        .ok_or_else(deny)?;
+    if !opaque(challenge)||!device_id_ok(device)||
+       expires<=now_ms+2_000||
+       expires>now_ms+60_000 {return Err(deny());}
+    Ok(NativeWallPending{
+        challenge:challenge.to_owned(),device_id:device.to_owned()
+    })
+}
+
+pub(crate) async fn read_private_wall_pending_from_agent()
+    -> Result<NativeWallPending,String>
+{
+    use tokio::io::{AsyncReadExt,AsyncWriteExt};
+    let operation=async {
+        #[cfg(windows)]
+        let mut stream=tokio::net::windows::named_pipe::ClientOptions::new()
+            .open(NATIVE_WALL_SSO_WIN_PIPE).map_err(|_|deny())?;
+        #[cfg(unix)]
+        let mut stream=tokio::net::UnixStream::connect(
+            trusted_unix_agent_socket()?
+        ).await.map_err(|_|deny())?;
+        #[cfg(not(any(windows,unix)))]
+        return Err(deny());
+        stream.write_all(NATIVE_AGENT_PENDING_REQUEST)
+            .await.map_err(|_|deny())?;
+        stream.flush().await.map_err(|_|deny())?;
+        let mut answer=Vec::with_capacity(160);
+        (&mut stream).take(NATIVE_PENDING_MAX_REPLY+1)
+            .read_to_end(&mut answer).await.map_err(|_|deny())?;
+        if answer.len()>NATIVE_PENDING_MAX_REPLY as usize{
+            return Err(deny());
+        }
+        let now=SystemTime::now().duration_since(UNIX_EPOCH)
+            .map_err(|_|deny())?.as_millis() as u64;
+        parse_native_wall_pending(&answer,now)
+    };
+    tokio::time::timeout(Duration::from_secs(4),operation)
+        .await.map_err(|_|deny())?
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn t04b9c3c_pending_pipe_read_contains_no_ticket_or_owner_credential() {
+        let reply=json!({
+            "ok":true,"pending":true,"challenge":"C".repeat(43),
+            "deviceId":"dev_loc","expiresAt":1_030_000u64
+        });
+        let p=parse_native_wall_pending(
+            reply.to_string().as_bytes(),1_000_000
+        ).unwrap();
+        assert_eq!(p.device_id,"dev_loc");
+        assert_eq!(p.challenge,"C".repeat(43));
+        assert_eq!(NATIVE_AGENT_PENDING_REQUEST,b"{\"action\":\"pending\"}\n");
+    }
+    #[test]
+    fn t04b9c3c_pending_pipe_read_rejects_privilege_fields_and_expiry() {
+        let mut reply=json!({
+            "ok":true,"pending":true,"challenge":"C".repeat(43),
+            "deviceId":"dev_loc","expiresAt":1_030_000u64
+        });
+        reply["ticket"]=json!("T".repeat(43));
+        assert!(parse_native_wall_pending(
+            reply.to_string().as_bytes(),1_000_000
+        ).is_err());
+        reply.as_object_mut().unwrap().remove("ticket");
+        reply["expiresAt"]=json!(1_001_000u64);
+        assert!(parse_native_wall_pending(
+            reply.to_string().as_bytes(),1_000_000
+        ).is_err());
+        reply["expiresAt"]=json!(1_060_001u64);
+        assert!(parse_native_wall_pending(
+            reply.to_string().as_bytes(),1_000_000
+        ).is_err());
+        reply["expiresAt"]=json!(1_030_000u64);
+        reply["deviceId"]=json!("../not-local");
+        assert!(parse_native_wall_pending(
+            reply.to_string().as_bytes(),1_000_000
+        ).is_err());
+    }
+
 
     #[test]
     fn native_private_pipe_path_is_fixed_not_browser_or_remote_http() {

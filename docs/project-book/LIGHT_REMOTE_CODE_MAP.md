@@ -606,3 +606,12 @@ Current T04b7b source entry points: plugin-server/server.mjs → desktop-wall-ss
 
 - Commit 7c5852bd workflow 41976431257 SUCCESS 7/7: Web, Windows/macOS/Linux UI-only native and unsigned Owner Login LAB native candidate builds. Rust Owner OS secure-vault compile/unit tests PASS in each UI-only job. Desktop Truth 41976431454, Docs 41976431358 PASS.
 - Gold Source 219726a5 CI 41976425962 4/4 PASS. New Gold Windows Agent Named Pipe Node test pending source workflow commit. Native Owner flow remains private, not Tauri IPC or user-visible UI; Agent socket not mounted. Real Windows account peer/SID ACL, actual Owner-browser E2E, signed Ed25519/Redis and loopback/HTTPS acceptance OPEN, Gold Lab flags OFF.
+
+
+## 2026-11-05 — T04b9c3c1 native Owner public-code authorization candidate (source only)
+
+- client/desktop-v4/src-tauri/src/owner_wall_ticket.rs: bounded OS-private pending request from installed Agent with exact public challenge, deviceId and expiry; no token returned to JS, expires within 60s.
+- client/desktop-v4/src-tauri/src/owner_login.rs: desktop_owner_wall_sso_approve takes ONLY a user-typed 8-character code. Rust fetches full pending challenge/device from fixed local pipe, verifies code, independently checks live scoped Owner session and generation, issues one-use ticket and sends it through private enrolled Agent, refuses NetBird plaintext Lab Wall profile.
+- client/desktop-v4/src-tauri/src/main.rs, build.rs and permissions/desktop-owner.toml: explicit fixed command available only in feature-enabled native Owner candidate; UI-only handler remains exactly two local commands.
+- client/desktop-v4/src/lib/native-wall-sso.ts and .test.ts: gate candidate with VITE_LR_V4_WALL_SSO_CANDIDATE=1 and VITE_LR_V4_OWNER_LOGIN=1; exact 8-character public code only; no React Owner token, ticket, deviceId or URL. App.tsx adds an Owner-verified confirmation form only in explicit candidate; CSS consistent with current V4 theme.
+- Rust/React CI PENDING. Running Windows installed Agent has NOT mounted pipe; real named-pipe SID peer ACL and Owner browser/Redis E2E OPEN. Gold SSO flags OFF, no production rollout.

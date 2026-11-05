@@ -15,6 +15,7 @@ import { probeNativeLocalWall, type NativeWallProbe } from './lib/native-wall-pr
 import { AuthEntry } from './AuthEntry';
 import { nativeOwnerAvailable, nativeOwnerBegin, nativeOwnerStatus,
   nativeOwnerRestore, nativeOwnerLogout, type NativeOwnerView } from './lib/native-owner';
+import {nativeWallSsoCandidateAvailable,nativeApproveWallCode} from './lib/native-wall-sso';
 
 const iconMap: Record<(typeof navRoutes)[number]['icon'], LucideIcon> = {
   house: House,
@@ -365,6 +366,20 @@ export function App() {
   const { theme, choose } = useTheme();
   const nativeLoginAvailable = NATIVE_OWNER_CANDIDATE && nativeOwnerAvailable();
   const nativeOwnerVerified = nativeLoginAvailable && nativeOwner.phase === 'verified';
+  const nativeWallSsoPilot = !UI_DESIGN_PREVIEW && nativeWallSsoCandidateAvailable();
+  const [wallSsoCode,setWallSsoCode]=useState('');
+  const [wallSsoBusy,setWallSsoBusy]=useState(false);
+  const [wallSsoResult,setWallSsoResult]=useState<string|null>(null);
+  const approveBrowserWallCode=async(event:React.FormEvent<HTMLFormElement>)=>{
+    event.preventDefault();
+    if(!nativeOwnerVerified||!nativeWallSsoPilot||wallSsoBusy)return;
+    setWallSsoBusy(true);setWallSsoResult(null);
+    const approved=await nativeApproveWallCode(wallSsoCode);
+    setWallSsoBusy(false);setWallSsoCode('');
+    setWallSsoResult(approved
+      ?'Owner confirmed. Return to the same browser tab to finish signing in.'
+      :'Unable to verify this code. Check the Wall request and your Owner session.');
+  };
   const workspaceUnlocked = inDesignPreview || nativeOwnerVerified;
   const [status, setStatus] = useState<LoadState>({ phase: 'loading', result: null });
   const [reload, setReload] = useState(0);
@@ -501,6 +516,24 @@ export function App() {
           </div>
         </header>
         {wallOpenError && <div className="open-wall-error" role="alert">{wallOpenError}</div>}
+        {nativeWallSsoPilot && nativeOwnerVerified && route==='overview' && !inDesignPreview && (
+          <section className="owner-wall-sso-review" aria-labelledby="owner-wall-sso-title">
+            <h2 id="owner-wall-sso-title">Sign in to Local Wall</h2>
+            <p>On this device, open Wall and select <strong>Sign in with Desktop V4</strong>. Generate a verification code in that browser tab, then enter it here. This never approves Agent A/B access.</p>
+            <form onSubmit={approveBrowserWallCode}>
+              <label htmlFor="owner-wall-sso-code">Wall verification code</label>
+              <input id="owner-wall-sso-code" value={wallSsoCode}
+                maxLength={8} autoComplete="off" autoCapitalize="none" spellCheck={false}
+                onChange={event=>{setWallSsoCode(event.target.value);setWallSsoResult(null);}}
+                aria-describedby="owner-wall-sso-info" />
+              <Button type="submit" disabled={wallSsoBusy||!(/^[A-Za-z0-9_-]{8}$/.test(wallSsoCode))}>
+                {wallSsoBusy?'Verifying Owner…':'Approve Wall sign-in'}
+              </Button>
+            </form>
+            <p id="owner-wall-sso-info">The code expires after 60 seconds. No token or ticket enters this screen.</p>
+            {wallSsoResult && <p role="status">{wallSsoResult}</p>}
+          </section>
+        )}
         {route === 'overview' ? <Overview status={status} navigate={navigate} wallProbe={wallProbe} />
           : route === 'ai-access' ? <AiAccess status={status} />
             : route === 'settings' ? <SettingsPage theme={theme} choose={choose} status={status} openWall={requestOpenWall} canOpenWall={canOpenWall} />

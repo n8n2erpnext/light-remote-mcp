@@ -4,7 +4,8 @@ static UI_ONLY: &[&str] = &["open_local_wall","probe_local_wall"];
 static OWNER_CANDIDATE: &[&str] = &[
     "open_local_wall","probe_local_wall",
     "desktop_owner_begin","desktop_owner_status",
-    "desktop_owner_restore","desktop_owner_logout"
+    "desktop_owner_restore","desktop_owner_logout",
+    "desktop_owner_wall_sso_approve"
 ];
 fn main() {
     let commands: &'static [&'static str] =
