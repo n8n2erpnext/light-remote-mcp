@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "goldabv2_T04B8_A2_PUBLIC_MTLS_LIVE_USER_LINGER_FIREWALL_RECOVERY_PASS_NATIVE_SSO_EDGE_HEADER_HARDENED_SSO_OFF",
+  "status": "T04b9a_NATIVE_TICKET_SOURCE_STAGED_CI_PENDING_GOLD_LAB_MTLS_LIVE_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "2026-11-05: Public GoldABV2 Lab mTLS live accepted, old plaintext port15583 removed, 5/5 active public HTTPS200. VPS-ARM ubuntu user systemd linger enabled; 75s timer/service installed in user home to re-add ONLY exact runtime INPUT15584 Traefik->LXD rule when current Gold mTLS route/IP/LXD topology still matches. Timer enabled ACTIVE, ExecMainStatus0; live scoped rule actually removed then user service restored it, public HTTPS200 afterwards. This makes firewall auto-repair reboot-capable without writing root read-only /etc/iptables/rules.v4, but full VPS reboot NOT yet tested. Gold source mirror deploy/scripts/gold-abv2-mtls-firewall-ensure.{sh,service,timer,test.mjs}; static 5/5 PASS. Gold LXD sidecar updated in place with previous bridge source backup, scrubs caller-supplied x-light-remote-edge-proof-v4 and forwards only optional local proof on exact signed native POST ticket path if separately configured; currently proof/SSO NOT configured. Sidecar source test 6/6 PASS; existing signed Owner issuer/device/redeem 102/102 PASS; runtime OLD200 NEXT200 no-client TLS denied; native public ticket POST unauthenticated 404. No actual Desktop-to-Wall authenticated SSO session claimed. Next ensure real Owner Desktop V4 login/enrolled device SSO Lab-only E2E and test reboot persistence under controlled maintenance; Gold main UAT/prod/SQL untouched.",
+  "nextAction": "T04b9b source: native Owner token issue behind OS-vault/generation fence, enrolled Ed25519 signed relay and secure/localhost browser-safe Wall session bootstrap; Gold Lab 5/5 HTTPS200, SSO flags OFF. Native T04b9a four Rust tests await CI. No Lab runtime change; full VPS reboot not tested.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1092,7 +1092,7 @@
     "livingSince": "2026-11-04",
     "mandatoryForEveryTask": true,
     "mirrorByteIdenticalRequired": true,
-    "startingNextTask": "T04b8-A2",
+    "startingNextTask": "T04b9b",
     "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
     "introReceipt": "2026-11-04 H00",
     "firstGoldCommit": "c38e2e540fa66ce634ab5e2902ae628af3a905e8",
@@ -1506,5 +1506,13 @@
     "canCutover": false,
     "qualification": "literal static imports only; no real source restart or E2E",
     "evidence": "/home/ubuntu/handoffs/T04B8_A2_REAL_LAB_20261104/LAB043_COMPAT_PREP_20261104/receipt.json"
+  },
+  "t04b9aNativeTicketPreparation": {
+    "state": "desktop_source_staged_not_deployed",
+    "goldRuntime": "mTLS public 5/5 active HTTPS200 TLSverify0, SSO OFF",
+    "baselineTests": "Gold selected SSO Node 129/129 PASS",
+    "nativeRustTests": "four defined, GitHub CI pending, no local Rust build",
+    "security": "no IPC access or token/ticket to WebView; no signed relay yet",
+    "nextTask": "T04b9b"
   }
 }
