@@ -163,5 +163,7 @@ test('T04b1 Wall route requires opt-in trusted agent adapters, not A/B',()=>{
   const agent=fs.readFileSync(new URL('./operator-agent.mjs',import.meta.url),'utf8');
   assert.ok(wall.includes('desktopWallSso=null'));
   assert.ok(wall.includes("url.pathname==='/auth/desktop/sso/redeem'"));
+  assert.ok(wall.includes('permanently seal legacy browser-ticket redemption'));
+  assert.ok(wall.includes("desktopSsoBootstrap.finish(req)"));
   assert.equal(agent.includes('desktopWallSso:'),false);
 });

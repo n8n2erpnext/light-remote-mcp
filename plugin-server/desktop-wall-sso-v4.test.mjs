@@ -219,5 +219,7 @@ test('T04a remains source-only: no HTTP route or Wall integration mounted',()=>{
   const wall=fs.readFileSync(new URL('../device-agent/local-wall.mjs',import.meta.url),'utf8');
   assert.ok(!cloud.includes("desktop-wall-sso-v4.mjs"));
   assert.ok(wall.includes('desktopWallSso=null'));
-  assert.ok(wall.includes("if(!desktopSsoSession)return json(res,404"));
+  assert.ok(wall.includes('permanently seal legacy browser-ticket redemption'));
+  assert.ok(wall.includes("if(url.pathname==='/auth/desktop/sso/redeem')"));
+  assert.ok(wall.includes('desktopSsoBootstrap.finish(req)'));
 });

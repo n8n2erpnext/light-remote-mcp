@@ -2455,40 +2455,14 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
     // page or expose an accidentally permissive native approval endpoint.
     if(url.pathname.startsWith('/auth/desktop/sso/browser/'))
       return json(res,404,{ok:false,error:'not_found'});
-    if(url.pathname==='/auth/desktop/sso/redeem'){
-      if(!desktopSsoSession)return json(res,404,{ok:false,error:'not_found'});
-      if(req.method!=='POST')return json(res,405,{ok:false,error:'method_not_allowed'});
-      const requestHost=String(req.headers.host||'').toLowerCase();
-      const configuredHost=(String(host).includes(':')?'['+String(host)+']':String(host)).toLowerCase()+':'+String(server.address()?.port??port);
-      // Do not trust a caller-supplied x-forwarded-proto as proof of TLS.
-      const tls=Boolean(req.socket?.encrypted);
-      const origin=(tls?'https://':'http://')+configuredHost;
-      const site=String(req.headers['sec-fetch-site']||'').toLowerCase();
-      const type=String(req.headers['content-type']||'').split(';')[0].trim();
-      // No native bearer or refresh credential is ever accepted at the Wall.
-      // Do not issue an HttpOnly cookie over plain HTTP on non-loopback hosts.
-      if(requestHost!==configuredHost||req.headers.origin!==origin||
-         site==='cross-site'||site==='same-site'||
-         type!=='application/json'||(!loopback&&!tls))
-        return json(res,403,{ok:false,error:'desktop_wall_sso_origin_required'});
-      let payload;
-      try{payload=await body(req,1024)}
-      catch{return json(res,400,{ok:false,error:'desktop_wall_sso_request_invalid'});}
-      if(!payload||typeof payload!=='object'||Array.isArray(payload)||
-         Object.keys(payload).length!==1||typeof payload.ticket!=='string')
-        return json(res,400,{ok:false,error:'desktop_wall_sso_request_invalid'});
-      try{
-        const issued=await desktopSsoSession.redeem(payload.ticket,{
-          secure:tls
-        });
-        res.writeHead(200,{
-          'content-type':'application/json; charset=utf-8',
-          'cache-control':'no-store','referrer-policy':'no-referrer',
-          'x-content-type-options':'nosniff','set-cookie':issued.cookie
-        });
-        return res.end(JSON.stringify({ok:true,expiresAt:issued.expiresAt}));
-      }catch{return json(res,403,{ok:false,error:'desktop_wall_sso_denied'});}
-    }
+    // T04b9c3b1: permanently seal legacy browser-ticket redemption.
+    // A browser can only complete the two-sided challenge + HttpOnly cookie
+    // handoff. Never accept a ticket, Owner token or signed Agent envelope
+    // in any HTTP request to this endpoint, even if all SSO flags are ON.
+    if(url.pathname==='/auth/desktop/sso/redeem')
+      return json(res,404,{ok:false,error:'not_found'});
+    if(url.pathname.startsWith('/auth/desktop/sso/'))
+      return json(res,404,{ok:false,error:'not_found'});
     if(req.method==='GET'&&['/assets/vendor/xterm/xterm.js','/assets/vendor/xterm/xterm.css','/assets/vendor/xterm/addon-fit.js'].includes(url.pathname)){
       const name=url.pathname.slice('/assets/vendor/xterm/'.length);
       try{const data=fs.readFileSync(PTY_VENDOR_DIR+name);res.writeHead(200,{'content-type':name.endsWith('.css')?'text/css; charset=utf-8':'application/javascript; charset=utf-8','cache-control':'public,max-age=86400','x-content-type-options':'nosniff','content-length':data.length});res.end(data);}

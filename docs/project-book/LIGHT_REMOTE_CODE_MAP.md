@@ -962,3 +962,13 @@ deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs exports issueOwnerCaReco
 - client/core-files.json: includes bootstrap module as imported dependency (126 total); temporary /dev/shm stage-client-core, --verify and selftest-packaged-local-wall pass (39 Material icons, 18 essential, /, permissions, approve, settings, status).
 - .github/workflows/gold-connection-lifecycle-gc.yml: watches new module+test, Source Gate runs Node syntax/tests and packaged Wall integrity. CI pending Git commit.
 - NEXT T04b9c3b: native OS-vault Owner ticket and explicit secure browser challenge bridge to trusted Agent, physical Windows localhost Wall, user-approved SSO; never ticket in URL/JS, do not allow NetBird remote HTTP login.
+
+
+## 2026-11-05 — T04b9c3b1/b2 legacy browser ticket sealed; private OS Agent IPC source only
+
+- device-agent/local-wall.mjs: browser /auth/desktop/sso/redeem now UNCONDITIONAL 404 before body even if SSO flags ON. Only begin + finish challenge endpoints remain. Unknown SSO route fallback 404. No browser ticket accepted.
+- deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs: actual ephemeral loopback challenge begin/private Agent approval/browser finish; exact Origin/Host, HttpOnly cookie, replay denial and live Owner revocation; old ticket POST expects 404.
+- device-agent/desktop-wall-sso-native-ipc-v4.mjs: source-only non-HTTP, default OFF, exact Windows named pipe or 0700/0600 owner Unix socket, <=1536B challenge/ticket/device envelope, current Agent enrollment identity and one-use in-process approval; not mounted in operator-agent.mjs or browser.
+- device-agent/desktop-wall-sso-native-ipc-v4.test.mjs (8): socket ACL/mode, absent listener, invalid messages, wrong device, replay, unsafe parent/symlink, fixed path, no runtime mount. Selected Gold T04 Node 181/181 PASS; old static tests updated to require legacy sealing.
+- client/core-files.json: 127 core files, new native IPC module shipped without activating, stage/verify SHA256 + packaged Wall icon/status/pagerender PASS. Gold Connection Source Gate workflow tests and source paths updated, GitHub CI pending.
+- NEXT T04b9c3c: Owner-initiated UI challenge → Rust generation-fenced native ticket → OS-private IPC Agent signed redeem → Wall browser finish. NO live owner E2E yet; Windows service peer identity not independently proven; Lab flags OFF.
