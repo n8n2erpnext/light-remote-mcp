@@ -26,7 +26,12 @@ on:
       - 'deploy/scripts/gold-abv2-owner-ca-public-preflight*.mjs'
       - 'deploy/scripts/gold-abv2-owner-ca-restore-challenge*.mjs'
       - 'deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.mjs'
+      - 'deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.test.mjs'
       - 'deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.service'
+      - 'deploy/scripts/gold-abv2-mtls-firewall-ensure.sh'
+      - 'deploy/scripts/gold-abv2-mtls-firewall-ensure.test.mjs'
+      - 'deploy/scripts/gold-abv2-mtls-firewall-ensure.service'
+      - 'deploy/scripts/gold-abv2-mtls-firewall-ensure.timer'
       - 'plugin-server/desktop-wall-sso-native-transport-v4*.mjs'
       - 'lib/gold-registry-persistence.mjs'
       - 'lib/gold-native-account-aux.mjs'
@@ -370,6 +375,11 @@ jobs:
           node --check deploy/scripts/gold-abv2-owner-ca-restore-challenge.test.mjs
           node --test deploy/scripts/gold-abv2-owner-ca-restore-challenge.test.mjs
           node --check deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.mjs
+          node --check deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.test.mjs
+          node --test deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.test.mjs
+          bash -n deploy/scripts/gold-abv2-mtls-firewall-ensure.sh
+          node --check deploy/scripts/gold-abv2-mtls-firewall-ensure.test.mjs
+          node --test deploy/scripts/gold-abv2-mtls-firewall-ensure.test.mjs
           node --check operator-host/desktop-wall-sso-device-proof-v4.mjs
           node --check operator-host/desktop-wall-sso-device-proof-v4.test.mjs
           node --check operator-host/desktop-wall-sso-signed-route-v4.mjs
