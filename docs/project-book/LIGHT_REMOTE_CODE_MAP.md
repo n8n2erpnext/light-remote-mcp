@@ -994,3 +994,10 @@ deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs exports issueOwnerCaReco
 - device-agent/desktop-wall-sso-native-ipc-v4.mjs: OS-private read-only pending action with enrolled Device/account recheck; returns only challenge, deviceId and expiry, never ticket. 10/10 IPC tests PASS and 10/10 browser bootstrap tests PASS; selected full SSO 185/185 PASS.
 - client/core-files.json now 128 files including browser-page module; /dev/shm stage-client-core verify SHA-256 and packaged Wall smoke PASS. Source Gate YAML watches new page/test, syntax and selected SSO tests. New CI pending.
 - Physical Windows read-only: Light Remote Agent and companion under SAME OS Admin account, localhost 5491/5492 APIs 401; real OS Named Pipe Agent runtime/peer SID ACL NOT exercised. Default OFF.
+
+## 2026-11-05 — T04b9c3c2 Desktop same-device Wall source map
+- client/desktop-v4/src-tauri/src/main.rs: fixed same-host Wall home, Logs and status probe on localhost:5491; no NetBird/LXD build profile.
+- client/desktop-v4/src-tauri/src/owner_login.rs: GoldABV2 Owner HTTPS independent, no deprecated NetBird Wall-profile denial; trusted local Agent SSO remains required.
+- client/desktop-v4/src/lib/native-shell.test.ts + client/desktop-v4/e2e/desktop-local-wall-route-contract.mjs + .github/workflows/desktop-v4-native-ci.yml: topology and CI guard.
+- device-agent/operator-agent.mjs: previous uncommitted experimental SSO mount reversed on Gold worktree, source default OFF.
+- docs/project-book/LIGHT_REMOTE_DESKTOP_V4_LOCAL_WALL_T04_CORRECTION_20261105.md: authoritative topic handoff complementing canonical Living Master.
