@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T03_LAB_OWNER_AUTH_TOKEN_TEMP_ON_AUTHORIZE_HTTP303_REAL_OWNER_CALLBACK_E2E_OPEN_SSO_OFF",
+  "status": "T05A_DESKTOP_ABV2_NATIVE_BRIDGE_SOURCE_IMPLEMENTED_GOLD_IPC_4_OF_4_PASS_CI_PENDING_REAL_E2E_OPEN",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Owner retry Desktop V4 fresh PKCE sign-in before isolated LXD timer auto-off 2026-11-05 18:42:21 ICT. Verify real browser Owner consent and native callback. T04 two-way same-host Wall SSO and direct in-App A/B V2 still open.",
+  "nextAction": "Pass Gold/Desktop security/docs/source and native Windows/macOS/Linux CI; stage separately enrolled GoldABV2 same-host Agent QA; physically verify live pending and B-code durable grant. Current Gold-old Windows Agent untouched. T04 two-way SSO remains OPEN.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -171,10 +171,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "6aaa39c65216db4367a21901b264f2c47bcb4369a176cf2509e0b03f23b67e5f",
-    "trackedFiles": 1186,
+    "treeDigest": "91cdba8006608956078d732bc96e70558a1a8e49856f4ef6cea9a3c10fac5ecc",
+    "trackedFiles": 1189,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T10:56:32.648Z"
+    "recordedAt": "2026-11-05T11:21:19.135Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1412,5 +1412,16 @@
     "verification": "authorize303; session401 without credentials; login200; health200; MCP GET405; LXD4/4 active",
     "ownerCallback": "PENDING",
     "scope": "No production/Windows Agent changes"
+  },
+  "t05aNativeAbv2Source": {
+    "agent": "device-agent/desktop-abv2-native-ipc-v4.mjs and operator-agent.mjs (Gold only, gated OFF)",
+    "desktop": "client/desktop-v4/src-tauri/src/owner_abv2.rs and src/App.tsx",
+    "flags": {
+      "agent": "LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4",
+      "desktop": "VITE_LR_V4_ABV2_NATIVE"
+    },
+    "tests": "Gold Node native IPC 4/4 PASS; native Desktop CI pending",
+    "physicalE2E": "NOT TESTED; older Windows Gold Agent unchanged",
+    "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_NATIVE_ABV2_API_INTEGRATION_20261105.md"
   }
 }

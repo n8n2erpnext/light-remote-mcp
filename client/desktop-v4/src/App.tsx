@@ -16,6 +16,8 @@ import { AuthEntry } from './AuthEntry';
 import { nativeOwnerAvailable, nativeOwnerBegin, nativeOwnerStatus,
   nativeOwnerRestore, nativeOwnerLogout, type NativeOwnerView } from './lib/native-owner';
 import {nativeWallSsoCandidateAvailable,nativeApproveWallCode} from './lib/native-wall-sso';
+import {nativeAbv2Available,nativeAbv2Pending,nativeAbv2Approve,
+  type NativeAbv2Status,type NativeAbv2Request} from './lib/native-abv2';
 
 const iconMap: Record<(typeof navRoutes)[number]['icon'], LucideIcon> = {
   house: House,
@@ -142,7 +144,75 @@ function DataBoundaryNotice({ status }: { status: LoadState }) {
   );
 }
 
-function PendingApprovals() {
+function NativeApprovalRequest({
+  request,consentRequired,approving,onApprove
+}:{
+  request:NativeAbv2Request;
+  consentRequired:boolean;
+  approving:boolean;
+  onApprove:(request:NativeAbv2Request,bCode:string,consentCode:string)=>Promise<boolean>;
+}) {
+  const [bCode,setBCode]=useState('');
+  const [consentCode,setConsentCode]=useState('');
+  const [result,setResult]=useState<'idle'|'approved'|'failed'>('idle');
+  const validB=/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(bCode);
+  const validConsent=!consentRequired||/^[A-Za-z0-9_-]{32}$/.test(consentCode);
+  const submit=async(e:React.FormEvent)=>{
+    e.preventDefault();
+    if(!validB||!validConsent||approving)return;
+    const ok=await onApprove(request,bCode,consentCode);
+    setBCode('');setConsentCode('');
+    setResult(ok?'approved':'failed');
+  };
+  return <form className="approval-surface" onSubmit={submit}>
+    <p><strong>Agent connection request</strong> · Attempt {request.attempt}</p>
+    <p className="field-note">A code: {request.aCode||'Verified by enrolled Agent'} · Expires {new Date(request.expiresAt).toLocaleTimeString()}</p>
+    <label className="eyebrow" htmlFor={'b-code-'+request.requestId}>B code from AI Agent</label>
+    <input id={'b-code-'+request.requestId} type="text" value={bCode}
+      maxLength={9} autoComplete="off" spellCheck={false}
+      placeholder="XXXX-XXXX" aria-label="Agent B code"
+      onChange={e=>{setResult('idle');setBCode(e.target.value.toUpperCase());}} />
+    {consentRequired&&<>
+      <label className="eyebrow" htmlFor={'consent-'+request.requestId}>Owner consent code</label>
+      <input id={'consent-'+request.requestId} type="text" value={consentCode}
+        maxLength={32} autoComplete="off" spellCheck={false}
+        placeholder="Required Owner consent" onChange={e=>setConsentCode(e.target.value)} />
+    </>}
+    <Button variant="primary" type="submit" disabled={!validB||!validConsent||approving}>
+      {approving?'Approving…':'Approve Agent'}
+    </Button>
+    {result==='approved'&&<p role="status">Approved by the enrolled Agent and Operator.</p>}
+    {result==='failed'&&<p role="alert">Approval unavailable or expired. Refresh the request and try again.</p>}
+  </form>;
+}
+
+function PendingApprovals({native,refresh,approving,onApprove}:{
+  native:NativeAbv2Status|null;
+  refresh:()=>void;
+  approving:boolean;
+  onApprove:(request:NativeAbv2Request,bCode:string,consentCode:string)=>Promise<boolean>;
+}) {
+  if (native) {
+    return <Card className="approval-card">
+      <CardHeading description="Live same-device Agent · current Owner session">PENDING APPROVALS</CardHeading>
+      {native.state==='ready'?<>
+        <div className="approval-surface">
+          <h3>{native.pending.length===0?'No pending A/B V2 requests':native.pending.length+' verified request(s)'}</h3>
+          <p>Device: {native.shortId||native.deviceId}. Approvals require the B code and current Owner authority.</p>
+          <Button variant="secondary" onClick={refresh}>Refresh pending requests</Button>
+          {!native.ownerApproveEnabled&&<p role="alert">Agent approvals are disabled by the backend policy.</p>}
+        </div>
+        {native.ownerApproveEnabled&&native.pending.map(request=>
+          <NativeApprovalRequest key={request.requestId} request={request}
+            consentRequired={native.ownerConsentRequired}
+            approving={approving} onApprove={onApprove} />)}
+      </>:<div className="approval-surface">
+        <h3>Local GoldABV2 Agent not available</h3>
+        <p>Owner is logged in, but the same-device enrolled Agent has not exposed its A/B V2 native channel. This application will not use another machine's Wall or the older Gold client.</p>
+        <Button variant="secondary" onClick={refresh}>Retry Agent connection</Button>
+      </div>}
+    </Card>;
+  }
   return (
     <Card className="approval-card">
       <CardHeading description="Owner-verified A/B V2 requests">PENDING APPROVALS</CardHeading>
@@ -162,52 +232,61 @@ function PendingApprovals() {
   );
 }
 
-function AuthorizationPolicy() {
+function AuthorizationPolicy({native}:{native:NativeAbv2Status|null}) {
   return (
     <Card className="policy-card">
       <CardHeading description="Backend is the only source of grants">AUTHORIZATION POLICY</CardHeading>
       <div className="policy-surface">
         <p>B code: 4 + 4 · Owner consent</p>
         <p>Grant: 24 hours per Agent</p>
-        <p className="caution"><span className="caution-dot" />A/B V2 capability not verified — approval unavailable</p>
+        <p className="caution"><span className="caution-dot" />{native?.state==='ready'
+          ?native.ownerApproveEnabled?'Signed Owner/Agent approval is available':'Operator has disabled A/B approval'
+          :'A/B V2 capability not verified — approval unavailable'}</p>
       </div>
     </Card>
   );
 }
 
-function ActiveGrants() {
+function ActiveGrants({native}:{native:NativeAbv2Status|null}) {
   return (
     <Card className="grants-card">
       <CardHeading description="Per-Agent lease, nickname and verified revocation state">
         ACTIVE AGENT GRANTS
       </CardHeading>
       <div className="grants-surface">
-        <h3>No verified grants</h3>
-        <p>Approved Agent sessions will appear only when a signed source returns grants and real expiry times.</p>
+        <h3>{native?.state==='ready'?'Signed grant listing not yet connected':'No verified grants'}</h3>
+        <p>Approvals above are real Agent/Operator actions when enabled. Active session and grant rows require a separate signed collection API.</p>
         <p>Revocation or renewal requires authenticated Owner authority.</p>
-        <span className="status-tag">Awaiting verified Owner API</span>
+        <span className="status-tag">{native?.state==='ready'?'Waiting for grant registry API':'Awaiting verified Owner API'}</span>
       </div>
     </Card>
   );
 }
 
-function AiAccess({ status }: { status: LoadState }) {
+function AiAccess({ status,native,refresh,approving,onApprove }: {
+  status:LoadState;
+  native:NativeAbv2Status|null;
+  refresh:()=>void;
+  approving:boolean;
+  onApprove:(request:NativeAbv2Request,bCode:string,consentCode:string)=>Promise<boolean>;
+}) {
   return (
     <div className="screen-content">
       <div className="approval-grid">
-        <PendingApprovals />
-        <AuthorizationPolicy />
+        <PendingApprovals native={native} refresh={refresh} approving={approving} onApprove={onApprove} />
+        <AuthorizationPolicy native={native} />
       </div>
-      <ActiveGrants />
+      <ActiveGrants native={native} />
       <DataBoundaryNotice status={status} />
     </div>
   );
 }
 
-function Overview({ status, navigate, wallProbe }: {
+function Overview({ status, navigate, wallProbe, abv2 }: {
   status: LoadState;
   navigate: (route: RouteKey) => void;
   wallProbe: NativeWallProbe;
+  abv2: NativeAbv2Status|null;
 }) {
   const verified = status.result?.state === 'ready' ? status.result.device : null;
   return (
@@ -228,8 +307,8 @@ function Overview({ status, navigate, wallProbe }: {
         </Card>
         <Card className="metric-card">
           <CardHeading>PENDING APPROVALS</CardHeading>
-          <strong className="metric-value">—</strong>
-          <span className="muted">Owner verification required</span>
+          <strong className="metric-value">{abv2?.state==='ready'?abv2.pending.length:'—'}</strong>
+          <span className="muted">{abv2?.state==='ready'?'Verified by local enrolled Agent':'Owner and Agent verification required'}</span>
         </Card>
       </div>
       <div className="overview-main">
@@ -366,6 +445,29 @@ export function App() {
   const { theme, choose } = useTheme();
   const nativeLoginAvailable = NATIVE_OWNER_CANDIDATE && nativeOwnerAvailable();
   const nativeOwnerVerified = nativeLoginAvailable && nativeOwner.phase === 'verified';
+  const nativeAbv2Pilot=!UI_DESIGN_PREVIEW&&nativeOwnerVerified&&nativeAbv2Available();
+  const [abv2,setAbv2]=useState<NativeAbv2Status>({state:'unavailable',reason:'not_checked'});
+  const [abv2Approving,setAbv2Approving]=useState(false);
+  const refreshAbv2=useCallback(()=>{
+    if(!nativeAbv2Pilot)return;
+    void nativeAbv2Pending().then(setAbv2);
+  },[nativeAbv2Pilot]);
+  const approveAbv2=async(request:NativeAbv2Request,bCode:string,consentCode:string)=>{
+    if(!nativeAbv2Pilot||abv2Approving)return false;
+    setAbv2Approving(true);
+    try{
+      const result=await nativeAbv2Approve(request,bCode,consentCode);
+      if(result.state==='granted')refreshAbv2();
+      return result.state==='granted';
+    }finally{setAbv2Approving(false);}
+  };
+  useEffect(()=>{
+    if(!nativeAbv2Pilot)return;
+    refreshAbv2();
+    const timer=window.setInterval(refreshAbv2,8000);
+    return()=>window.clearInterval(timer);
+  },[nativeAbv2Pilot,refreshAbv2]);
+
   const nativeWallSsoPilot = !UI_DESIGN_PREVIEW && nativeWallSsoCandidateAvailable();
   const [wallSsoCode,setWallSsoCode]=useState('');
   const [wallSsoBusy,setWallSsoBusy]=useState(false);
@@ -534,8 +636,8 @@ export function App() {
             {wallSsoResult && <p role="status">{wallSsoResult}</p>}
           </section>
         )}
-        {route === 'overview' ? <Overview status={status} navigate={navigate} wallProbe={wallProbe} />
-          : route === 'ai-access' ? <AiAccess status={status} />
+        {route === 'overview' ? <Overview status={status} navigate={navigate} wallProbe={wallProbe} abv2={nativeAbv2Pilot?abv2:null} />
+          : route === 'ai-access' ? <AiAccess status={status} native={nativeAbv2Pilot?abv2:null} refresh={refreshAbv2} approving={abv2Approving} onApprove={approveAbv2} />
             : route === 'settings' ? <SettingsPage theme={theme} choose={choose} status={status} openWall={requestOpenWall} canOpenWall={canOpenWall} />
               : <FeatureScreen route={route} status={status.result} />}
         <footer className="page-footer">

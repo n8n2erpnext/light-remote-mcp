@@ -159,7 +159,8 @@ jobs:
     env:
       VITE_LR_V4_UI_TEST: '0'
       VITE_LR_V4_OWNER_LOGIN: '1'
-      VITE_LR_V4_WALL_SSO_CANDIDATE: '0' # pending local Agent SSO acceptance
+      VITE_LR_V4_ABV2_NATIVE: '1' # signed Owner + same-host Agent IPC, not Wall/LXD
+      VITE_LR_V4_WALL_SSO_CANDIDATE: '0' # separate T04 local Wall SSO not accepted
     defaults:
       run:
         working-directory: client/desktop-v4

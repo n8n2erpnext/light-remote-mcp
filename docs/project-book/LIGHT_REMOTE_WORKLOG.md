@@ -1025,3 +1025,6 @@ Final source e55f8b2d Desktop GitHub run 42010747527 SUCCESS 7/7 across UI/Owner
 ## 2026-11-05 — T03 GoldABV2 Owner PKCE authorize HTTP404 runtime correction
 
 Owner showed correct GoldABV2 HTTPS authorize URL returning Cannot GET, while Desktop was awaiting secure browser callback. Source route exists; deployed LXD plugin Owner Auth and Token flags were OFF due late-sorting permanent systemd override. Scoped runtime-only late-priority /run drop-in now makes only Auth+Token ON, with independent auto-off timer at 18:42:21 ICT; SSO flags OFF. Verified authorize303, session401 without credentials, account login200, health200, MCP GET405, LXD four services active. Physical browser consent/callback remains OPEN. No Windows Gold or production change.
+
+## 2026-11-05 — T05A real Desktop Agent API source integration
+Native Rust Owner -> private same-host Agent IPC -> Owner verification -> enrolled signed Operator A/B V2 pending and B approval. React AI Access receives actual bounded pending rows and approval results, no Owner token or fake data. Gold Node IPC 4/4 PASS; Desktop CI pending. Agent feature OFF, old Gold Windows client and LXD untouched; full physical grant and App/Wall SSO unverified.

@@ -656,6 +656,68 @@ pub(crate) async fn desktop_owner_wall_sso_approve(
     runtime.view()
 }
 
+
+// T05: Real owner-bound pending A/B V2 and B approval via OS-local Agent.
+// The native Owner bearer is sent ONLY to its local Agent's private socket;
+// React receives just a sanitized pending row set and approval result.
+// The Agent verifies current GoldABV2 Owner, enrolled account and signs the
+// existing ABV2 Operator channel. No current Windows Gold Agent was modified.
+#[tauri::command]
+pub(crate) async fn desktop_owner_abv2_pending(
+    state:State<'_,OwnerRuntime>
+) -> Result<Value,String> {
+    let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
+    let snap=runtime.wall_snapshot().map_err(|_|"desktop_abv2_owner_required")?;
+    let account=snap.account.clone();
+    let access=snap.access.clone();
+    let result=tauri::async_runtime::spawn_blocking(move|| {
+        if !verify_owner_session(&access,&account) {
+            return Err("desktop_abv2_owner_required".to_string());
+        }
+        crate::owner_abv2::exchange(&json!({"action":"pending","access":access}))
+    }).await.map_err(|_|"desktop_abv2_native_unavailable".to_string())??;
+    if !runtime.wall_snapshot_current(&snap) {
+        return Err("desktop_abv2_owner_required".into());
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+pub(crate) async fn desktop_owner_abv2_approve(
+    state:State<'_,OwnerRuntime>,
+    request_id:String,expected_attempt:u64,b_code:String,consent_code:String
+) -> Result<Value,String> {
+    let valid_id=request_id.len()==36&&request_id.starts_with("av2_")&&
+        request_id[4..].bytes().all(|b|b.is_ascii_hexdigit()&&!b.is_ascii_uppercase());
+    let valid_b=b_code.len()==9&&b_code.as_bytes()[4]==b'-'&&
+        b_code.bytes().enumerate().all(|(i,b)|i==4||b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789".contains(&b));
+    let valid_consent=consent_code.is_empty()||
+        (consent_code.len()==32&&consent_code.bytes().all(|b|
+          b.is_ascii_alphanumeric()||b==b'-'||b==b'_'));
+    if !valid_id||expected_attempt==0||expected_attempt>1_000_000||
+       !valid_b||!valid_consent {
+        return Err("desktop_abv2_invalid_request".into());
+    }
+    let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
+    let snap=runtime.wall_snapshot().map_err(|_|"desktop_abv2_owner_required")?;
+    let account=snap.account.clone();
+    let access=snap.access.clone();
+    let result=tauri::async_runtime::spawn_blocking(move||{
+        if !verify_owner_session(&access,&account) {
+            return Err("desktop_abv2_owner_required".into());
+        }
+        crate::owner_abv2::exchange(&json!({
+            "action":"approve","access":access,"requestId":request_id,
+            "expectedAttempt":expected_attempt,"bCode":b_code,
+            "consentCode":consent_code
+        }))
+    }).await.map_err(|_|"desktop_abv2_native_unavailable".to_string())??;
+    if !runtime.wall_snapshot_current(&snap) {
+        return Err("desktop_abv2_owner_required".into());
+    }
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

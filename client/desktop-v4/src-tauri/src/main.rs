@@ -11,6 +11,8 @@ mod owner_vault;
 mod owner_login;
 #[cfg(feature = "desktop-owner-login")]
 mod owner_wall_ticket;
+#[cfg(feature = "desktop-owner-login")]
+mod owner_abv2;
 
 // Every desktop host opens its OWN device-local Wall. GoldABV2 is the
 // cloud Owner/Operator backend, never an alternate Wall destination.
@@ -103,7 +105,9 @@ fn main() {
             open_local_wall, probe_local_wall,
             owner_login::desktop_owner_begin, owner_login::desktop_owner_status,
             owner_login::desktop_owner_restore, owner_login::desktop_owner_logout,
-            owner_login::desktop_owner_wall_sso_approve
+            owner_login::desktop_owner_wall_sso_approve,
+            owner_login::desktop_owner_abv2_pending,
+            owner_login::desktop_owner_abv2_approve
         ])
         .run(tauri::generate_context!())
         .expect("Light Remote V4 Owner Login candidate startup failed");
