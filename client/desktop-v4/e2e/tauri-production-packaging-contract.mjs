@@ -19,7 +19,9 @@ assert.ok(start>0,'dedicated Owner LAB CI job must exist');
 const ownerJob=workflow.slice(start);
 assert.match(ownerJob,/VITE_LR_V4_OWNER_LOGIN:\s*'1'/);
 assert.match(ownerJob,/VITE_LR_V4_UI_TEST:\s*'0'/);
-assert.match(ownerJob,/LR_V4_WALL_PROFILE:\s*'goldabv2-lab'/);
+assert.match(ownerJob,/VITE_LR_V4_WALL_SSO_CANDIDATE:\s*'0'/);
+assert.doesNotMatch(workflow,/LR_V4_WALL_PROFILE|100\.94\.184\.141|15591/,
+  'Desktop QA must open its same-host Local Wall, not a Linux LXD NetBird NAT');
 assert.match(ownerJob,/run: npm exec -- tauri build --no-bundle --features desktop-owner-login --ci/);
 assert.doesNotMatch(ownerJob,/^\s*run:\s*cargo build\s/m,
   'raw cargo cannot create a standalone Tauri frontend');
