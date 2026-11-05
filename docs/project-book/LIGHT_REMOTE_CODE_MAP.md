@@ -615,3 +615,10 @@ Current T04b7b source entry points: plugin-server/server.mjs → desktop-wall-ss
 - client/desktop-v4/src-tauri/src/main.rs, build.rs and permissions/desktop-owner.toml: explicit fixed command available only in feature-enabled native Owner candidate; UI-only handler remains exactly two local commands.
 - client/desktop-v4/src/lib/native-wall-sso.ts and .test.ts: gate candidate with VITE_LR_V4_WALL_SSO_CANDIDATE=1 and VITE_LR_V4_OWNER_LOGIN=1; exact 8-character public code only; no React Owner token, ticket, deviceId or URL. App.tsx adds an Owner-verified confirmation form only in explicit candidate; CSS consistent with current V4 theme.
 - Rust/React CI PENDING. Running Windows installed Agent has NOT mounted pipe; real named-pipe SID peer ACL and Owner browser/Redis E2E OPEN. Gold SSO flags OFF, no production rollout.
+
+## 2026-11-05 — T04b9c3c2 Desktop same-device Wall source map
+- client/desktop-v4/src-tauri/src/main.rs: fixed same-host Wall home, Logs and status probe on localhost:5491; no NetBird/LXD build profile.
+- client/desktop-v4/src-tauri/src/owner_login.rs: GoldABV2 Owner HTTPS independent, no deprecated NetBird Wall-profile denial; trusted local Agent SSO remains required.
+- client/desktop-v4/src/lib/native-shell.test.ts + client/desktop-v4/e2e/desktop-local-wall-route-contract.mjs + .github/workflows/desktop-v4-native-ci.yml: topology and CI guard.
+- device-agent/operator-agent.mjs: previous uncommitted experimental SSO mount reversed on Gold worktree, source default OFF.
+- docs/project-book/LIGHT_REMOTE_DESKTOP_V4_LOCAL_WALL_T04_CORRECTION_20261105.md: authoritative topic handoff complementing canonical Living Master.

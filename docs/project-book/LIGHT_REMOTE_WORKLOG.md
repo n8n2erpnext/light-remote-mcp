@@ -1009,3 +1009,7 @@ Inspected authorized physical Windows host read-only: Light Remote runtime Node 
 ## 2026-11-05 — T04b9c3c1 exact source + CI acceptance 185/185, Gold 4/4, Desktop native 7/7
 
 Gold 6102e2cb selected SSO Node 185/185 PASS and staged packaged Wall 128 files SHA verified with pages/icons PASS, GitHub Source Gate 41982786922 4/4 SUCCESS, Truth 41982787066 and Docs 41982787108 SUCCESS. Desktop a06460e0 UI/native Owner LAB run 41982793533 7/7 SUCCESS (Windows/macOS/Ubuntu; Rust secure Owner/private OS pending candidate compiled), Truth 41982793306 and Docs 41982793299 SUCCESS. Physical Windows Gold read-only: two localhost Light Remote processes same OS Admin user, API401; NO actual named-pipe SSO listener mounted or private native UI consent activated. Real Owner Redis/Ed25519/Wall cookie E2E OPEN. All SSO flags OFF, Gold Lab mTLS unchanged, Agent A/B and Gold UAT/prod untouched. NEXT T04b9c3c2 authenticated installed Windows local Agent mount + physical E2E.
+
+## 2026-11-05 — T04b9c3c2 Desktop same-host Wall topology repair
+
+User confirmed local-first architecture: Desktop App, Tray and Wall belong to the same installed device; Linux headless Wall+CLI, NetBird LXD NAT is remote QA only. A/B V2 must work in-App; T04 Owner SSO App↔Wall TWO directions, App→Wall preferred. Previous uncommitted Gold Agent trial reverted, no Lab runtime touched. Desktop native main.rs/owner_login.rs, native-shell test and native CI now guard localhost:5491. Node22 standalone source contract PASS; GitHub CI pending. Full Owner SSO/Agent/Windows physical E2E NOT VERIFIED.

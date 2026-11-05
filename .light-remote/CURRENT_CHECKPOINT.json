@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C3C1_SOURCE_185_OF_185_GOLD_CI_4_OF_4_DESKTOP_NATIVE_CI_7_OF_7_PASS_REAL_E2E_HOLD_SSO_OFF",
+  "status": "T04B9C3C2_TOPOLOGY_LOCALHOST_SOURCE_PASS_DESKTOP_CI_PENDING_BIDIRECTIONAL_SSO_E2E_OPEN",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T04b9c3c2: physical installed Windows same-user named-pipe ACL peer test and independently gated Agent SSO mount, then enrolled Ed25519 signed real Owner Redis one-use ticket + browser same-device loopback/HTTPS code and HttpOnly Wall cookie E2E with immediate revoke/rollback. Source Gold 6102e2cb CI 41982786922 4/4 PASS, Desktop a06460e0 CI 41982793533 7/7 PASS, Gold Node SSO 185/185, packaged 128-file Wall PASS. SSO OFF, UAT/prod/A-B untouched.",
+  "nextAction": "T04b9c3c2 Desktop GitHub CI accept; then stage same-host GoldABV2 Agent+Desktop candidate and finish App-to-Wall, Wall-to-App Owner SSO and direct in-app Agent A/B V2 approval. No LXD NetBird Wall as native Desktop Open Wall target.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -171,10 +171,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "2427b45a65c4a3d64509b2839d2efe608fd1ff6db15a7b59aba18701f190c367",
-    "trackedFiles": 1185,
+    "treeDigest": "f56f82fc1ded070692de0268af864750c91ac5522b42db76288bacd5ea2662d7",
+    "trackedFiles": 1186,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T06:46:53.519Z"
+    "recordedAt": "2026-11-05T10:21:06.241Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1362,5 +1362,18 @@
     "ci": "Gold Source 41982786922 4/4 SUCCESS, Truth 41982787066 SUCCESS, Docs 41982787108 SUCCESS; Desktop native 41982793533 7/7 SUCCESS Windows/mac/Linux, Truth 41982793306 SUCCESS Docs 41982793299 SUCCESS",
     "next": "T04b9c3c2 true enrolled Windows E2E",
     "limits": "Owner Desktop/Wall native SSO candidate NOT installed/flagged on real Windows; Agent private IPC not mounted; no live Redis or Owner ticket E2E"
+  },
+  "t04b9c3c2TopologyCorrection": {
+    "date": "2026-11-05",
+    "localWall": "http://127.0.0.1:5491/",
+    "netBirdLabWall": "http://100.94.184.141:15591/ (LXD Wall QA NAT only)",
+    "backend": "https://goldabv2.light-remote.thaiduy.digital",
+    "wrongGoldAgentUncommittedTrial": "reverted before deployment",
+    "tests": "standalone Node22 local contract PASS; native CI PENDING",
+    "appToWall": "SOURCE ONLY, live OFF",
+    "wallToApp": "REQUIRED, NOT IMPLEMENTED",
+    "abv2InAppApproval": "REQUIRED, NOT VERIFIED",
+    "windowsE2E": "NOT TESTED",
+    "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_LOCAL_WALL_T04_CORRECTION_20261105.md"
   }
 }

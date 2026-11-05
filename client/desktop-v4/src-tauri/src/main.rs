@@ -12,17 +12,13 @@ mod owner_login;
 #[cfg(feature = "desktop-owner-login")]
 mod owner_wall_ticket;
 
-// Only preapproved build-time profiles may open a Wall.
-// An isolated GoldABV2 Lab V4 pilot targets a NetBird overlay address.
-fn use_goldabv2_lab_wall() -> bool {
-    option_env!("LR_V4_WALL_PROFILE") == Some("goldabv2-lab")
-}
+// Every desktop host opens its OWN device-local Wall. GoldABV2 is the
+// cloud Owner/Operator backend, never an alternate Wall destination.
+// A Linux LXD NetBird NAT access URL is only external QA, never App Wall.
 fn exact_wall_view(view: &str) -> Result<&'static str, String> {
-    match (use_goldabv2_lab_wall(), view) {
-        (true, "home") => Ok("http://100.94.184.141:15591/"),
-        (true, "logs") => Ok("http://100.94.184.141:15591/settings#activityLogSettings"),
-        (false, "home") => Ok("http://127.0.0.1:5491/"),
-        (false, "logs") => Ok("http://127.0.0.1:5491/settings#activityLogSettings"),
+    match view {
+        "home" => Ok("http://127.0.0.1:5491/"),
+        "logs" => Ok("http://127.0.0.1:5491/settings#activityLogSettings"),
         _ => Err("unsupported_local_wall_view".into()),
     }
 }
@@ -48,13 +44,8 @@ fn probe_wall_presence() -> &'static str {
     use std::io::{Read, Write};
     use std::net::{SocketAddrV4, TcpStream, Ipv4Addr};
     use std::time::Duration;
-    let (addr, request): (SocketAddrV4, &[u8]) = if use_goldabv2_lab_wall() {
-        (SocketAddrV4::new(Ipv4Addr::new(100, 94, 184, 141), 15591),
-         b"GET /api/status HTTP/1.1\r\nHost: 100.94.184.141:15591\r\nConnection: close\r\nAccept: application/json\r\n\r\n")
-    } else {
-        (SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5491),
-         b"GET /api/status HTTP/1.1\r\nHost: 127.0.0.1:5491\r\nConnection: close\r\nAccept: application/json\r\n\r\n")
-    };
+    let addr=SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5491);
+    let request=b"GET /api/status HTTP/1.1\r\nHost: 127.0.0.1:5491\r\nConnection: close\r\nAccept: application/json\r\n\r\n";
     let Ok(mut socket) = TcpStream::connect_timeout(&addr.into(), Duration::from_millis(500)) else {
         return "unavailable";
     };

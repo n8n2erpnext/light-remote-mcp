@@ -635,11 +635,8 @@ pub(crate) async fn approve_private_owner_wall_sso(
 pub(crate) async fn desktop_owner_wall_sso_approve(
     state:State<'_,OwnerRuntime>,approval_code:String
 ) -> Result<OwnerView,String> {
-    if crate::use_goldabv2_lab_wall() {
-        // NetBird Wall profile currently points to remote plaintext HTTP.
-        // Do not use it as an SSO cookie destination.
-        return Err(wall_sso_denied());
-    }
+    // Local Wall selection is fixed to this host's 127.0.0.1:5491.
+    // Never authorize a remote NetBird/LXD Wall from this desktop command.
     if approval_code.len()!=8 ||
         !approval_code.bytes().all(|b|
           b.is_ascii_alphanumeric()||b==b'-'||b==b'_') {
