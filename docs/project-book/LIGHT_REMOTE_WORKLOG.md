@@ -964,3 +964,8 @@ Gold 3eedc8c7 Source Gate run 41965947690 SUCCESS 4/4; Gold Project Truth 419659
 ## 2026-11-05 — T04b9c2 source-only signed Owner-family per-request 165/165 PASS
 
 Added private Ed25519 signed fresh nonce Owner-family-current path from Device Agent (source only) to dedicated Plugin 2KiB six-flag route to Operator enrollment+Owner family validator. Every protected Local Wall request rechecks current Owner state in tests; no bearer/family exposure to browser. 9 new Operator and 8 new Agent integration tests PASS, all selected T04 Node 165/165 PASS. Gold Connection Source Gate updated, CI pending. Runtime Agent/Wall integration not mounted, public GoldABV2 Lab mTLS healthy, SSO OFF, A/B UAT production untouched. Next T04b9c3 secure localhost/HTTPS browser cookie bootstrap plus physical native Windows E2E. Living Master mirrored identically.
+
+
+## 2026-11-05 — T04b9c2 exact GitHub 4/4 Source CI accepted
+
+Gold bbab5075 Source Gate 41969938745 4/4 SUCCESS, Gold Truth 41969938830 and Docs 41969938750 SUCCESS. Desktop b206e0df mirror Truth 41969967379 and Docs 41969967330 SUCCESS. Source-local T04 tests 165/165 PASS; NOT native Windows Owner-to-Wall E2E. Post-commit GoldABV2 mTLS Lab 5/5 active, health HTTPS200 TLSverify0; public family-current POST404 (SSO OFF). Git worktrees clean, Master identical. NEXT T04b9c3 safe true HTTPS/loopback browser bootstrap and physical Windows Owner proof, no UAT/prod/A-B changes.
