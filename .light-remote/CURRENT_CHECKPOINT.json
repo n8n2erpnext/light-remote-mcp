@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T05D_WINDOWS_GOLDABV2_ABV2_B_GRANT_AND_REAL_COMMAND_PASS_DESKTOP_GUI_B_PROVENANCE_OPEN_SSE_FIX_NODE_5_OF_5_PASS_CI_PENDING",
+  "status": "T05E_DESKTOP_REACT_B_APPROVE_NATIVE_ADAPTER_INTEGRATION_TEST_STAGED_CI_PENDING_PHYSICAL_UI_PROVENANCE_OPEN",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Gold Windows CI regenerate isolated Agent QA ZIP after Local Wall SSE close crash fix; verify operator B grant via A/B V2 ready and real command (already PASS); independently verify Desktop V4 GUI Approve through native IPC (not confirmed by backend), then T04 two-way SSO and signed Sessions UI. Lab exact QA device allowlist autooff 21:08:12 ICT, no old Gold changes.",
+  "nextAction": "GitHub Desktop V4 CI on branch feat/desktop-v4-api-integration-20261103: run 3 new NativeApprovalRequest React+native adapter tests and existing 60 tests, TypeScript and Windows/macOS/Linux Tauri. Do not claim previous physical B grant was from Desktop GUI. Current isolated QA process stopped; do not change old Gold or Operator allowlist. T04 App/Wall SSO and signed Active Grants APIs remain open.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "1cb27d36cb6091993e1706b77984bea4de3954bf5bf19f507ebfb4887835396c",
     "trackedFiles": 1240,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T13:39:08.834Z"
+    "recordedAt": "2026-11-05T14:15:09.005Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1742,5 +1742,16 @@
     "oldWindowsGold": "ports 5491/5492 and Agent untouched",
     "qaPorts": "Wall 5591, Fleet 5592 not currently listening",
     "sso": "NOT COMPLETE"
+  },
+  "t05eNativeDesktopFormContract": {
+    "date": "2026-11-05",
+    "sourceFile": "client/desktop-v4/src/App.tsx",
+    "newTestFile": "client/desktop-v4/src/NativeApprovalRequest.test.tsx",
+    "sourceCases": "B-only native invoke, consent-required invoke, fail-closed IPC refusal; no HTTP fallback",
+    "physicalDesktopClick": "NOT OBSERVED",
+    "priorSignedBGrant": "T05D PASS",
+    "qaRuntime": "isolated managed QA process stopRequested; last A/B session held after Operator restart; revalidate before new test",
+    "oldGold": "UNTOUCHED",
+    "ci": "PENDING"
   }
 }

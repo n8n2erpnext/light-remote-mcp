@@ -1037,3 +1037,9 @@ Fixed private IPC and enrolled Agent binding; no new HTTP, no auth in JS, no app
 - deploy/windows-goldabv2-v4-qa/Invoke-GoldABV2-V4-QA.ps1: manual connect/disconnect actions for enrolled signed QA device; no old Gold task/service; QA Wall remains 5591 in coexistence.
 - deploy/windows-goldabv2-v4-qa/README.md and deploy/scripts/selftest-goldabv2-v4-windows-qa-sidecar.mjs: explicit signed-Cloud-before-AB-discovery contract.
 - LXD GoldABV2 Operator: temp-only exact-device allowlist contains LXD and Windows QA with autooff 21:08:12 ICT; no public/prod config changes. AB plugin generated B and Owner approved a real granted session. UI-specific Desktop provenance not verified.
+
+## 2026-11-05 — T05E Desktop native Owner Approve human-input-to-Tauri contract
+
+- client/desktop-v4/src/App.tsx: exports existing NativeApprovalRequest for focused UI contract tests; default UI/build behavior unchanged.
+- client/desktop-v4/src/NativeApprovalRequest.test.tsx: three React + real native-abv2 adapter tests. B-only uppercase normalization, form disabled until valid, exact Tauri desktop_owner_abv2_approve invocation with request/attempt/B/consent; consent-required branch; native IPC denial fail-closed; browser HTTP forbidden in every case. These tests are source-level, not proof of a physical click in Tauri.
+- Signed Agent grant inventory and AI Sessions UI are still awaiting signed read APIs. T04 Desktop/Local Wall SSO remains open and must not be conflated with Owner B approval.
