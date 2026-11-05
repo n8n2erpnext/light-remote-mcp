@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C3C2_DESKTOP_LOCAL_WALL_FIXED_FIRST_CI_PACKAGING_FAIL_REPAIRED_NATIVE_CI_RETRY_PENDING",
+  "status": "T04B9C3C2_DESKTOP_LOCAL_WALL_TOPOLOGY_NATIVE_CI_7_OF_7_PASS_OWNER_SSO_E2E_OPEN",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Accept followup Desktop native CI after updating obsolete LXD NetBird packaging contract; then same-device GoldABV2 Agent/App SSO both directions and in-App A/B V2 approval. SSO runtime OFF.",
+  "nextAction": "T04b9c3c3: stage separate GoldABV2-enrolled same-host Agent alongside native Desktop in isolated Windows QA without modifying Gold old client; App->Wall and Wall->App SSO live E2E plus native A/B V2 approvals; no NetBird Linux LXD Wall target.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -174,7 +174,7 @@
     "treeDigest": "6aaa39c65216db4367a21901b264f2c47bcb4369a176cf2509e0b03f23b67e5f",
     "trackedFiles": 1186,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T10:26:15.353Z"
+    "recordedAt": "2026-11-05T10:34:25.609Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1384,5 +1384,21 @@
     "fix": "guard absence of LXD NetBird Wall profile; require default-OFF SSO candidate; keep Tauri production asset embedding",
     "retryCI": "PENDING",
     "livingMaster": "docs/project-book/LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md"
+  },
+  "t04b9c3c2DesktopNativeCI": {
+    "date": "2026-11-05",
+    "source": "e55f8b2dc33732f43f235914820d4217a4c89128",
+    "runId": 42010747527,
+    "conclusion": "success",
+    "jobs": "7/7",
+    "uiTests": "56/56",
+    "ownerContractTests": "25/25",
+    "windowsUnsignedOwnerLabExeSha256": "6879964559B57D3B689390961B487F0E5FE0DDDAF6C20C00CA4B708733D30216",
+    "windowsOwnerLabArtifactId": 13406663382,
+    "windowsPhysicalE2E": "NOT TESTED",
+    "ssoAppToWall": "SOURCE ONLY, RUNTIME OFF",
+    "ssoWallToApp": "REQUIRED, NOT IMPLEMENTED",
+    "abv2InApp": "REQUIRED, NOT VERIFIED",
+    "link": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42010747527"
   }
 }

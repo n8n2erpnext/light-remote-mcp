@@ -1,6 +1,6 @@
 # Light Remote GoldABV2 × Desktop V4 — Local Wall / Owner SSO correction
 **Date:** 2026-11-05 ICT
-**Status:** T04b9c3c2 topology correction; source patch under test/CI. Not a new product architecture.
+**Status:** T04b9c3c2 topology correction accepted by Desktop native CI 7/7, 2026-11-05; SSO installed E2E remains OPEN. Not a new product architecture.
 **Canonical continuity:** `LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md`. This subject handoff supplements, never supersedes it.
 
 ## Owner-confirmed product architecture (immutable scope)
@@ -44,3 +44,9 @@ F. Record exact CI SHA/artifact hash, source-only vs live runtime vs owner-accep
 
 ## Worktree / handoff discipline
 Gold canonical worktree `/home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/goldabv2-desktop-owner-lab-20261103`; Desktop worktree `/home/ubuntu/n8n2erpnext/light-remote-mcp-worktrees/desktop-v4-shared-ui-20261101`. Keep canonical Living Master byte-identical in both; update Worklog, Code Map, Current Checkpoint; use Project Truth --stamp/--staged/--head. The current Gold Lab 5-service health, public mTLS and LXD service source are independent of Desktop native CI. Never collapse CI PASS into installed SSO PASS.
+
+## Latest CI receipt — 2026-11-05
+- Desktop source commit e55f8b2dc33732f43f235914820d4217a4c89128.
+- GitHub native UI+Owner LAB workflow 42010747527: 7/7 PASS for Windows, macOS, Ubuntu, including 56 UI tests, 25 Owner contract tests, Chromium, packaging, local-Wall routing regression.
+- Unsigned Owner Login LAB Windows artifact ID 13406663382; EXE SHA256 6879964559B57D3B689390961B487F0E5FE0DDDAF6C20C00CA4B708733D30216.
+- Native SSO still default OFF; physical GoldABV2 Agent on Windows, App→Wall, Wall→App, and in-App A/B V2 remain unverified.
