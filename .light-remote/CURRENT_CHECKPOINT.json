@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
-  "updatedDate": "2026-11-04",
-  "status": "goldabv2_T04B8_A2_REAL_OWNER_CA_SIGNED_LEAVES_AUDIT_PASS_LXD_MTLS_SIDECAR_PARALLEL_ACTIVE_PUBLIC_UNCHANGED",
+  "updatedDate": "2026-11-05",
+  "status": "goldabv2_T04B8_A2_REAL_PUBLIC_MTLS_CUTOVER_ACCEPTED_OLD_HTTP_REMOVED_REBOOT_PERSISTENCE_OPEN_SSO_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "2026-11-04: Owner Windows CA signed real TLS server/OLD/NEXT leafs, CA signer private remains Windows; SSH transferred only runtime leafs and public CA to private ARM staging. Actual certificate audit and expiry PASS. LXD sidecar systemd active TLS1.3/client CA/pins on 127.0.0.1:5584 with separate host proxy 172.30.0.1:15584; OLD authenticated request with proper public Host yielded HTTP200. NEXT and no-client checks blocked by OpenAI tool safety before execution, not PASS; no public cutover. Original Traefik backend HTTP15583, Lab services active HTTPS200, SSO OFF, Gold UAT/prod unchanged. Next permitted negative and Traefik-container E2E, transactional cutover/rollback, then signed Desktop V4 Wall SSO. Owner accepts Windows-only CA backup risk for isolated Lab.",
+  "nextAction": "2026-11-05: Real GoldABV2 public mTLS cutover ACCEPTED. Traefik routes Gold backend to https://172.30.0.1:15584 with TLS1.3 required Owner CA client cert and pinned OLD/NEXT. Retried previously blocked probe unchanged: OLD and NEXT HTTP200 CA verify0; absent cert TLS rejected curl56. Public health200 TLS0, login200, MCP GET405, all five Lab units active. Removed plaintext LXD proxy15583 and old INPUT firewall exception; old HTTP curl7. Watchdog armed before cutover and DISARMED after acceptance; manual rollback and receipt stored in /home/ubuntu/handoffs/T04B8_A2_PUBLIC_MTLS_20261105. REBOOT PERSISTENCE OPEN: live exact scoped firewall rule15584 works, netfilter-persistent disk rules.v4 lacks rule; candidate iptables-restore --test PASS but sudo install FAILED due Read-only file system. Disk unchanged. Before reboot require host-authorized persistence. No root CA private on ARM; same-Windows backup risk accepted for isolated Lab. Owner/Token/Desktop SSO OFF, Gold main UAT/prod/SQL unchanged. NEXT authorized firewall reboot persistence then Desktop V4 to Wall signed SSO E2E.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
