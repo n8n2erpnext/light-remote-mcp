@@ -28,6 +28,11 @@ jobs:
       - name: Verify isolated sidecar never modifies installed Gold
         shell: pwsh
         run: node deploy/scripts/selftest-goldabv2-v4-windows-qa-sidecar.mjs
+      - name: Regression test Local Wall SSE browser disconnect stays alive
+        shell: pwsh
+        run: |
+          node --test device-agent/local-wall-events-close.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Windows Local Wall SSE close regression failed' }
       - name: Test real Windows OS named pipe Owner/Agent protocol (mock Operator only)
         shell: pwsh
         run: |

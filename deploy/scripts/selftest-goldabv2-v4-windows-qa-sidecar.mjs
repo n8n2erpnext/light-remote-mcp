@@ -25,6 +25,7 @@ assert.match(launcher,/ProcessStartInfo/);
 assert.match(launcher,/LR_GOLD_INSTANCE_ID = 'abv2lab01'/);
 assert.match(launcher,/LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1 = '1'/);
 assert.match(launcher,/LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY = '1'/);
+assert.match(launcher,/ValidateSet\([^\n]*'connect'[^\n]*'disconnect'/);
 assert.match(launcher,/--no-wait/);
 assert.match(launcher,/PUBLIC Activation URL/);
 assert.match(launcher,/\/enroll\?id=/);

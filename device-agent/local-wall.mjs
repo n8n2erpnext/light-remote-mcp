@@ -3065,7 +3065,7 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       res.write(`event: hello\ndata: ${JSON.stringify({ok:true,now:new Date().toISOString()})}\n\n`);
       activityClients.add(res);ensureActivityPump();
       let closed=false;const keep=setInterval(()=>{if(!closed)res.write(`: keepalive ${Date.now()}\n\n`);},20000);
-      req.on('close',()=>{closed=true;clearInterval(keep);activityClients.delete(res);stopActivityPumpIfIdle();});return;
+      req.on('close',()=>{closed=true;clearInterval(keep);activityClients.delete(res);});return;
     }
     if(goldAbV2LabV1Disabled()&&url.pathname==='/api/approve'&&['GET','POST'].includes(req.method))
       return json(res,423,{ok:false,error:'abv2_lab_legacy_v1_temporarily_disabled'});

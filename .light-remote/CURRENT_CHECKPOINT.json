@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T05C_GOLDABV2_WINDOWS_QA_CI_PASS_SECOND_DEVICE_ENROLLMENT_PENDING_OWNER_APPROVAL_REAL_ABV2_B_GRANT_OPEN",
+  "status": "T05D_WINDOWS_GOLDABV2_ABV2_B_GRANT_AND_REAL_COMMAND_PASS_DESKTOP_GUI_B_PROVENANCE_OPEN_SSE_FIX_NODE_5_OF_5_PASS_CI_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Owner must approve new GoldABV2 QA Windows device enrollment (enr_d86c2daa-259d-4808-8eec-70a03c8d5397 / code B2L9-DF4G, 600s validity). After approval poll and start QA Agent 5591/5592, use Light Remote AB V2 plugin to create A and test Desktop native Owner B Approve. Existing Gold untouched. T04 SSO separate.",
+  "nextAction": "Gold Windows CI regenerate isolated Agent QA ZIP after Local Wall SSE close crash fix; verify operator B grant via A/B V2 ready and real command (already PASS); independently verify Desktop V4 GUI Approve through native IPC (not confirmed by backend), then T04 two-way SSO and signed Sessions UI. Lab exact QA device allowlist autooff 21:08:12 ICT, no old Gold changes.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "0608718c763ad8588ca99e2ebe36f23523c6219e3b99f87076d384c86b23c518",
-    "trackedFiles": 1239,
+    "treeDigest": "1cb27d36cb6091993e1706b77984bea4de3954bf5bf19f507ebfb4887835396c",
+    "trackedFiles": 1240,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T13:08:38.516Z"
+    "recordedAt": "2026-11-05T13:39:08.834Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1723,5 +1723,24 @@
     "abiToolDiscovery": "0 matching QA device before enrollment",
     "realBGrant": "NOT TESTED",
     "oldGold": "UNCHANGED"
+  },
+  "t05dWindowsAbv2EndToEnd": {
+    "date": "2026-11-05",
+    "qaDeviceId": "dev_2b22462d8df5491f3b880fda",
+    "qaShortId": "CYD3BY",
+    "enrollment": "Owner approved",
+    "sameAccountAsLxd": true,
+    "cloudConnectionId": "dc_253f0d32-827d-427e-99c5-77ceee5ca0f8",
+    "abv2Grant": "PASS, Helper ready and list_devices granted QA device",
+    "abv2Session": "s_mw3l77zr_6e38d5244fcd49f7",
+    "realRemoteCommand": "PASS via newly authorized AB plugin session",
+    "desktopUiApprovalProvenance": "NOT INDEPENDENTLY VERIFIED",
+    "localWallSseBug": "stopActivityPumpIfIdle undefined; removed bad call in source and physically patched isolated QA runtime",
+    "regressionTests": "SSE 1/1, native IPC 4/4, total 5/5 PASS on Gold ARM; Windows CI pending",
+    "abv2OperatorLabAllowlist": "temporary exact QA device + original LXD only",
+    "allowlistAutooffIct": "2026-11-05T21:08:12+07:00",
+    "oldWindowsGold": "ports 5491/5492 and Agent untouched",
+    "qaPorts": "Wall 5591, Fleet 5592 not currently listening",
+    "sso": "NOT COMPLETE"
   }
 }

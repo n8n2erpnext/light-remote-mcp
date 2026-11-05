@@ -1,7 +1,7 @@
 # Light Remote GoldABV2 T05A - isolated manual Windows QA Agent.
 # Never install tasks/services or modify existing installed Gold and its state.
 [CmdletBinding()]
-param([ValidateSet('check','status','login','poll','daemon')][string]$Action = 'check')
+param([ValidateSet('check','status','login','poll','connect','disconnect','daemon')][string]$Action = 'check')
 $ErrorActionPreference = 'Stop'
 $Root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $Node = Join-Path $Root 'runtime\node.exe'

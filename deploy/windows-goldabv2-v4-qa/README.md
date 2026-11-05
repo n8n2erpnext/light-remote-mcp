@@ -26,6 +26,10 @@ Windows PowerShell 5.1 can have a Restricted script-execution policy. On that ho
 5. Run -Action daemon in its own terminal under the SAME Windows OS user as Desktop V4. It uses QA ports 5591/5592 and dedicated local named pipe if authorized. Stop with Ctrl+C; it installs NO service or scheduled task.
 6. Launch the Owner Login LAB Desktop V4 executable from its own native Desktop CI artifact, log into GoldABV2, open AI Access and verify a real pending A/B V2 request. Enter B and approve. Require authoritative Operator durable grant confirmation, not just a UI indication.
 
+## Signed Cloud connection before A/B V2 discovery
+
+After Owner enrollment is approved and poll/status confirms the new GoldABV2 QA device, run -Action connect under the same QA state. This uses the enrolled Agent Ed25519 identity to request the normal Cloud connection lease (not an Agent A/B grant). Only a connected device can be selected by the ChatGPT A/B V2 helper. Start -Action daemon after connect. Use -Action disconnect for isolated teardown. Never connect or disconnect the installed Gold-old client.
+
 ## Boundaries
 
 - QA launcher uses child-scoped environment, separate state/device.json, wall-auth.json, commands, update-runtime and QA ports. It does not edit installed Gold files, Service, Scheduled Task or system-wide environment.
