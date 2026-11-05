@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T05B_WINDOWS_NATIVE_PIPE_MOCK_3_OF_3_PASS_UNIX_TEST_PATH_FIXED_QA_ZIP_RETRY_PENDING",
+  "status": "T05C_WINDOWS_QA_AGENT_ZIP_AND_DESKTOP_EXE_STAGED_OWNER_ENROLLMENT_PENDING_REAL_B_E2E_OPEN",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Retry GoldABV2 Windows Agent QA bundle CI after platform-specific Unix path test fix. Preserve old Gold Windows 5491/5492; QA ports 5591/5592. Real signed Owner B E2E not yet attempted.",
+  "nextAction": "Owner approval required for GoldABV2 QA device enrollment by 2026-11-05 20:04:51 ICT, then poll and launch isolated QA daemon 5591/5592, sign a real B grant with T05A native Desktop. Updated QA launcher source needs repackaging. Do not change old Gold. T04 SSO separate.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -174,7 +174,7 @@
     "treeDigest": "6f583600b76866696a9324123a51913e46e32570703fd6d3eb22938dc35440c3",
     "trackedFiles": 1189,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T12:23:00.021Z"
+    "recordedAt": "2026-11-05T13:03:22.462Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1479,5 +1479,19 @@
     "fix": "Node test compares path.join(...) on host OS, no Agent runtime code change",
     "zipRetry": "PENDING",
     "realOwnerGrant": "NOT TESTED"
+  },
+  "t05cPhysicalWindowsQa": {
+    "agentCi": 42026701806,
+    "agentZipSha256": "4A5B4CB9BA3831AD07D5F9DEE24CC88232AA3C92976A681C94F5DF987174DF63",
+    "desktopCi": 42019133001,
+    "desktopExeSha256": "68286F22344F9271F842E75AF0AAC30C8438D96649B83F8C30B1AC72D358946B",
+    "enrollmentId": "enr_22d8dc86-9e05-416c-9027-ba70761ffa5f",
+    "deviceCode": "55PA-2TFC",
+    "deviceCodeExpiryIct": "2026-11-05T20:04:51+07:00",
+    "enrollmentState": "pending",
+    "oldGold": "unchanged",
+    "daemon": "NOT STARTED",
+    "realBGrant": "NOT TESTED",
+    "newSourceLauncher": "public HTTPS enrollment link, --no-wait, B-only flags; repack pending"
   }
 }
