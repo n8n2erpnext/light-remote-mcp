@@ -635,3 +635,10 @@ Deployed LXD plugin-server/server.mjs gates GET /account/desktop/v4/authorize on
 Gold: device-agent/desktop-abv2-native-ipc-v4.mjs (+test); gated listener and verified signed Operator calls in device-agent/operator-agent.mjs; packaged by client/core-files.json.
 Desktop: client/desktop-v4/src-tauri/src/owner_abv2.rs, owner_login.rs, main.rs, build.rs, permissions/desktop-owner.toml; src/lib/native-abv2.ts (+test), src/App.tsx, .github/workflows/desktop-v4-native-ci.yml.
 Fixed private IPC and enrolled Agent binding; no new HTTP, no auth in JS, no approval without B. Feature source only until GoldABV2 Agent QA is enrolled on same host and physically accepted.
+
+## 2026-11-05 — T05B isolated Windows GoldABV2 Agent QA code
+- deploy/windows-goldabv2-v4-qa/Invoke-GoldABV2-V4-QA.ps1 — manual child-only environment launcher using GoldABV2 endpoints, dedicated state and 5591/5592.
+- deploy/windows-goldabv2-v4-qa/README.md — exact coexistence/Owner enrollment and B approval QA directions; Desktop Open Wall remains 5491 old Gold.
+- .github/workflows/goldabv2-desktop-v4-windows-agent-qa.yml — native Windows CI, 129-file staged core and Node 22, mock named-pipe test, manual QA artifact only.
+- deploy/scripts/selftest-goldabv2-v4-windows-qa-sidecar.mjs — no Gold client or service/task modifications; required isolation checks.
+- device-agent/desktop-abv2-native-ipc-v4.test.mjs — shared native Owner/Agent proof test now runs on Windows named pipe as well as Unix socket. No production source API/security policy changes.

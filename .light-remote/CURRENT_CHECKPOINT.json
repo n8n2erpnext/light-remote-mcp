@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T05A_GOLD_AGENT_SOURCE_CI_PASS_DESKTOP_NATIVE_7_OF_7_PASS_REAL_ABV2_E2E_UNTESTED_SSO_TWO_WAY_OPEN",
+  "status": "T05B_GOLDABV2_WINDOWS_ISOLATED_AGENT_QA_SIDECAR_SOURCE_AND_PS_PARSER_PASS_GITHUB_CI_PENDING_E2E_OPEN",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Stage same-host separately enrolled GoldABV2 Agent QA without overwriting current Windows Gold-old client; verify real pending/B Operator grant with Owner Login LAB EXE artifact 13411585522. T04 App↔Local Wall SSO separate. LXD Owner Auth temporary auto-off 19:44:01 ICT.",
+  "nextAction": "T05B GitHub Windows CI zip packaging and native named-pipe mock tests; stage unpacked QA Agent with 5591/5592, explicit GoldABV2 Owner enrollment, run native Desktop pending/B grant E2E. Existing Gold-old Agent 5491/5492 untouched. T04 two-way App/Wall SSO OPEN.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -174,7 +174,7 @@
     "treeDigest": "6f583600b76866696a9324123a51913e46e32570703fd6d3eb22938dc35440c3",
     "trackedFiles": 1189,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T11:35:07.129Z"
+    "recordedAt": "2026-11-05T12:19:42.462Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1458,5 +1458,17 @@
     "sso": "NOT COMPLETE",
     "ownerLabQaAutoOffIct": "2026-11-05T19:44:01+07:00",
     "ownerLabQaTimer": "lr-t03-owner-v4-autooff-20261105-extension.timer"
+  },
+  "t05bWindowsSidecarQa20261105": {
+    "date": "2026-11-05",
+    "source": "deploy/windows-goldabv2-v4-qa and .github/workflows/goldabv2-desktop-v4-windows-agent-qa.yml",
+    "windowsGoldOldPorts": "5491/5492 occupied; leave unchanged",
+    "qaPorts": "5591/5592 unoccupied at read-only check",
+    "qaState": "dedicated state/device.json; new explicit GoldABV2 enrollment required",
+    "nativeIpc": "Windows fixed name; test does not bypass enrolled Agent or B approval",
+    "checks": "Node IPC 4/4, static isolation contract, YAML parsing, Windows PS 5.1 parser PASS",
+    "packageCi": "PENDING",
+    "realWindowsApproval": "NOT TESTED",
+    "handoff": "docs/project-book/LIGHT_REMOTE_GOLDABV2_WINDOWS_SIDECAR_QA_20261105.md"
   }
 }
