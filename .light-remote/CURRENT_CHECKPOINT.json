@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C3A_BROWSER_SAFE_CHALLENGE_SOURCE_173_OF_173_PACKAGED_WALL_PASS_SSO_OFF_CI_PENDING",
+  "status": "T04B9C3A_SOURCE_173_OF_173_PACKAGED_WALL_PASS_GOLD_CI_4_OF_4_ACCEPTED_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b9c3b: explicit user-initiated browser challenge->native Owner session trusted handoff, OS-vault/generation-fenced one-use ticket issue to enrolled Agent, local secure browser finish; physical Windows Owner SSO E2E. T04b9c3a 8/8 new +173/173 selected T04 source PASS, staged packaged Wall 126/126 files SHA verified; CI pending, runtime SSO OFF, NetBird remote HTTP not eligible.",
+  "nextAction": "T04b9c3b: native OS-vault Owner ticket and explicit user-initiated browser challenge->enrolled Agent handoff; retire/seal legacy browser ticket POST /auth/desktop/sso/redeem, use true loopback/HTTPS browser finish and physical Windows E2E. Gold e8020156 CI 41972670571 4/4 PASS; Gold Docs/Truth PASS; Desktop d3048146 Docs/Truth PASS. Lab 5/5 HTTPS200 mTLS, SSO OFF, A/B/UAT/prod untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1545,12 +1545,13 @@
     "next": "T04b9c3"
   },
   "t04b9c3aBrowserBootstrap": {
-    "state": "gold_source_only_not_deployed",
+    "state": "source_ci_pass_not_deployed",
     "tests": "8 new loopback HTTP PASS, 173/173 selected T04 Node PASS",
     "packagedWall": "126 files staged and SHA-256 verified, 39 icons, 18 essential icons, 4 pages and status PASS",
     "security": "browser challenge non-bearer, HttpOnly 60s cookie, one-use native server-approved principal, Owner live check before finish, no ticket/refresh/URL/React",
     "runtime": "not mounted by Agent, all SSO flags OFF, no Windows E2E",
-    "ci": "pending",
-    "next": "T04b9c3b"
+    "ci": "Gold Source Gate 41972670571 4/4 SUCCESS; Gold Truth 41972670326 SUCCESS; Gold Docs 41972670416 SUCCESS; Desktop Truth 41972698394 SUCCESS; Desktop Docs 41972698399 SUCCESS",
+    "next": "T04b9c3b",
+    "legacySecurityGate": "Legacy /auth/desktop/sso/redeem browser ticket POST MUST be retired or sealed before live SSO"
   }
 }
