@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import express from 'express';
 import { callOperatorJson, proxyOperatorDuplex } from './operator-client.mjs';
 import { registerDesktopWallSsoPublicRedeemV4 } from './desktop-wall-sso-public-redeem-v4.mjs';
+import { registerDesktopWallSsoPublicFamilyCurrentV4 } from './desktop-wall-sso-public-family-current-v4.mjs';
 
 const BOOTSTRAP = new Set(['enrollment-begin','enrollment-poll','device-heartbeat','account-login']);
 const CHANNEL = new Set([
@@ -73,6 +74,13 @@ export function registerPublicDeviceRoutes(app){
     env:process.env,
     operatorCall:callOperatorJson,
     rateAllow:req=>allow('channel:desktop-wall-sso-redeem:'+hash(ip(req)).slice(0,20),30)
+  });
+  // Per protected Wall request, device signs a fresh Owner-family status
+  // query; same six-flag OFF boundary, private Operator verification.
+  registerDesktopWallSsoPublicFamilyCurrentV4(app,{
+    env:process.env,
+    operatorCall:callOperatorJson,
+    rateAllow:req=>allow('channel:desktop-wall-sso-family-current:'+hash(ip(req)).slice(0,20),600)
   });
   app.post('/device-channel/stream',async(req,res)=>{
     if(!await allow(`duplex:${hash(ip(req)).slice(0,20)}`,2400)) return res.status(429).json({ok:false,error:'rate_limited'});

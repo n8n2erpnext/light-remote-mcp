@@ -43,6 +43,25 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       readJson,sendJson,signedRedeem:deps.desktopWallSsoSignedRedeem
     });
   }
+  // T04b9c2: signed enrolled-Device Agent asks whether its current Owner
+  // family is still live, once per protected Wall request. DEFAULT OFF:
+  // 404 BEFORE reading caller body when all six SSO gates are not active.
+  // The dedicated T04 verifier consumes the signed nonce exactly ONCE.
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/desktop-wall-sso-family-current'){
+    if(typeof deps.desktopWallSsoFamilyCurrent!=='function')
+      return sendJson(res,404,{ok:false,error:'not_found'});
+    res.setHeader?.('Cache-Control','no-store');
+    try{
+      const envelope=await readJson(req);
+      const value=await deps.desktopWallSsoFamilyCurrent(envelope);
+      if(value?.ok!==true||value.current!==true||
+         value.deviceId!==envelope?.deviceId)
+        throw Error('family_denied');
+      return sendJson(res,200,value);
+    }catch{
+      return sendJson(res,403,{ok:false,error:'desktop_wall_sso_family_current_denied'});
+    }
+  }
   // Enrolled-Agent signed, owner-scoped, READ-ONLY V2 preview.
   // No account cookie or unverified deviceId, no B plaintext, no approve.
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/abv2-pending-preview'){

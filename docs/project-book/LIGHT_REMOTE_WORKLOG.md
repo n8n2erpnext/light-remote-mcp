@@ -1259,3 +1259,8 @@ Added dedicated default-OFF public SSO route outside general device-channel whit
 ## 2026-11-05 — T04b9c1 accepted Gold CI 4/4; Docs & Project Truth PASS
 
 Gold 3eedc8c7 Source Gate run 41965947690 SUCCESS 4/4; Gold Project Truth 41965947536 and Docs Integrity 41965947823 SUCCESS. Desktop mirror 95fdf75d Project Truth 41965978629 and Docs Integrity 41965978919 SUCCESS. GoldABV2 Lab 5/5 active, public TLS health 200 verification0; signed redeem publicly 404, SSO OFF. Local signed-route regression 148/148 PASS; real Redis, actual native Windows-to-Wall Owner SSO and browser bootstrap NOT tested. Next T04b9c2 signed Owner-family-current per request and true local/HTTPS secure Wall session. No runtime/A-B/UAT/production change.
+
+
+## 2026-11-05 — T04b9c2 source-only signed Owner-family per-request 165/165 PASS
+
+Added private Ed25519 signed fresh nonce Owner-family-current path from Device Agent (source only) to dedicated Plugin 2KiB six-flag route to Operator enrollment+Owner family validator. Every protected Local Wall request rechecks current Owner state in tests; no bearer/family exposure to browser. 9 new Operator and 8 new Agent integration tests PASS, all selected T04 Node 165/165 PASS. Gold Connection Source Gate updated, CI pending. Runtime Agent/Wall integration not mounted, public GoldABV2 Lab mTLS healthy, SSO OFF, A/B UAT production untouched. Next T04b9c3 secure localhost/HTTPS browser cookie bootstrap plus physical native Windows E2E. Living Master mirrored identically.

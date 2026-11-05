@@ -942,3 +942,13 @@ deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs exports issueOwnerCaReco
 - plugin-server/desktop-wall-sso-public-redeem-v4.test.mjs (6) and device-agent/desktop-wall-sso-agent-transport-v4.test.mjs (4): pure Node source and simulated HTTPS Plugin+Operator with real EnrollmentRegistry Ed25519 and in-memory Redis. Selected T04 148/148 PASS. No physical real Redis/HTTPS/Windows SSO tested.
 - plugin-server/desktop-wall-sso-native-router-v4.test.mjs updated historical parser static test for new scoped body parser (native ticket 2048 cap still enforced). Gold Connection Source Gate workflow updated for source+test paths and execution.
 - Next T04b9c2: exact enrolled signed current Owner-family validation on every Wall request, genuine localhost/HTTPS browser session bootstrap; SSO remains OFF.
+
+
+## 2026-11-05 — T04b9c2 signed Owner-family current status per Local Wall request (SOURCE ONLY)
+
+- operator-host/desktop-wall-sso-family-current-v4.mjs: signed Ed25519 enrolled device action desktop-wall-sso-family-current, exact account/device/family payload, one EnrollmentRegistry nonce verification, authoritative Owner family and device check, recheck device binding/key after await, returns only ok,current,deviceId.
+- operator-host/desktop-wall-sso-operator-gate-v4.mjs, executor.mjs and executor-routes-device-channel.mjs: sixth issuer flag plus five SSO flags required to expose private family status route, 404 before body when OFF, no token exposure.
+- plugin-server/desktop-wall-sso-public-family-current-v4.mjs, device-public.mjs, server.mjs: dedicated family-current POST outside generic CHANNEL; 2048b special JSON parser before 12MiB product parser, no browser origin/cookies, per-IP Redis limiter, private Operator Unix transport.
+- device-agent/desktop-wall-sso-family-current-v4.mjs: source-only immutable verified HTTPS Agent live Owner family callback with fresh signed nonce per protected Wall request; not imported by runtime operator-agent.mjs and no browser/IPC action.
+- operator-host/desktop-wall-sso-family-current-v4.test.mjs (9) and device-agent/desktop-wall-sso-family-current-v4.test.mjs (8) plus tightened sixth-flag regression. Selected SSO 165/165 PASS using real Ed25519 EnrollmentRegistry with simulated HTTPS/Owner family; no real Windows Owner/Redis E2E yet.
+- Next T04b9c3 secure browser same-origin true localhost/HTTPS bootstrap and real Windows Owner proof. SSO OFF.

@@ -34,6 +34,7 @@ on:
       - 'deploy/scripts/gold-abv2-mtls-firewall-ensure.timer'
       - 'plugin-server/desktop-wall-sso-native-transport-v4*.mjs'
       - 'plugin-server/desktop-wall-sso-public-redeem-v4*.mjs'
+      - 'plugin-server/desktop-wall-sso-public-family-current-v4*.mjs'
       - 'lib/gold-registry-persistence.mjs'
       - 'lib/gold-native-account-aux.mjs'
       - 'platform-v2/sql/045_gold_single_owner_authority.sql'
@@ -64,6 +65,7 @@ on:
       - 'device-agent/desktop-wall-sso-session*.mjs'
       - 'device-agent/desktop-wall-sso-agent-redemption-v4*.mjs'
       - 'device-agent/desktop-wall-sso-agent-transport-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-family-current-v4*.mjs'
       - 'deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs'
       - 'device-agent/local-activity-log.mjs'
       - 'device-agent/update-settings-page.mjs'
@@ -78,6 +80,7 @@ on:
       - 'operator-host/desktop-wall-sso-signed-route-v4*.mjs'
       - 'operator-host/desktop-wall-sso-trusted-authority-v4*.mjs'
       - 'operator-host/desktop-wall-sso-operator-gate-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-family-current-v4*.mjs'
       - 'operator-host/desktop-wall-sso-internal-issue-v4*.mjs'
       - 'operator-host/executor.mjs'
       - 'operator-host/executor-routes-device-channel.mjs'
@@ -279,6 +282,7 @@ on:
       - 'device-agent/desktop-wall-sso-session*.mjs'
       - 'device-agent/desktop-wall-sso-agent-redemption-v4*.mjs'
       - 'device-agent/desktop-wall-sso-agent-transport-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-family-current-v4*.mjs'
       - 'deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs'
       - 'device-agent/operator-agent.mjs'
       - 'device-agent/relink-linux-server.py'
@@ -288,6 +292,7 @@ on:
       - 'operator-host/desktop-wall-sso-signed-route-v4*.mjs'
       - 'operator-host/desktop-wall-sso-trusted-authority-v4*.mjs'
       - 'operator-host/desktop-wall-sso-operator-gate-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-family-current-v4*.mjs'
       - 'operator-host/desktop-wall-sso-internal-issue-v4*.mjs'
       - 'operator-host/executor.mjs'
       - 'operator-host/executor-routes-device-channel.mjs'
@@ -348,6 +353,9 @@ jobs:
           node --check device-agent/desktop-wall-sso-agent-transport-v4.mjs
           node --check device-agent/desktop-wall-sso-agent-transport-v4.test.mjs
           node --test device-agent/desktop-wall-sso-agent-transport-v4.test.mjs
+          node --check device-agent/desktop-wall-sso-family-current-v4.mjs
+          node --check device-agent/desktop-wall-sso-family-current-v4.test.mjs
+          node --test device-agent/desktop-wall-sso-family-current-v4.test.mjs
           node deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs
           node --check device-agent/wall-account-notifications.mjs
           node --check device-agent/fleet-wall-runtime.mjs
@@ -370,6 +378,7 @@ jobs:
           node --check plugin-server/desktop-wall-sso-public-redeem-v4.mjs
           node --check plugin-server/desktop-wall-sso-public-redeem-v4.test.mjs
           node --test plugin-server/desktop-wall-sso-public-redeem-v4.test.mjs
+          node --check plugin-server/desktop-wall-sso-public-family-current-v4.mjs
           node --test plugin-server/desktop-wall-sso-native-issue-v4.test.mjs plugin-server/desktop-wall-sso-native-router-v4.test.mjs plugin-server/desktop-wall-sso-native-transport-v4.test.mjs plugin-server/desktop-wall-sso-mtls-edge-v4.test.mjs
           node --check deploy/scripts/gold-abv2-mtls-certificate-gate.mjs
           node --check deploy/scripts/gold-abv2-mtls-certificate-gate.test.mjs
@@ -402,6 +411,9 @@ jobs:
           node --check operator-host/executor-routes-device-channel.mjs
           node --check operator-host/desktop-wall-sso-trusted-authority-v4.mjs
           node --check operator-host/desktop-wall-sso-trusted-authority-v4.test.mjs
+          node --check operator-host/desktop-wall-sso-family-current-v4.mjs
+          node --check operator-host/desktop-wall-sso-family-current-v4.test.mjs
+          node --test operator-host/desktop-wall-sso-family-current-v4.test.mjs
           node --check operator-host/desktop-wall-sso-operator-gate-v4.mjs
           node --check operator-host/desktop-wall-sso-operator-gate-v4.test.mjs
           node --check operator-host/executor.mjs

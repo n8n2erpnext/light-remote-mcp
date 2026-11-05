@@ -11,6 +11,8 @@
  */
 import {createDesktopWallSsoTrustedOperatorV4}
   from './desktop-wall-sso-trusted-authority-v4.mjs';
+import {createDesktopWallSsoFamilyCurrentV4}
+  from './desktop-wall-sso-family-current-v4.mjs';
 
 export const DESKTOP_WALL_SSO_OPERATOR_REQUIRED_FLAGS=Object.freeze([
   'LIGHT_REMOTE_GOLD_INDEPENDENT',
@@ -44,12 +46,19 @@ export function createDesktopWallSsoOperatorGateV4({
   });
   if(service.enabled!==true||typeof service.redeem!=='function')
     throw new Error('desktop_wall_sso_operator_authority_unavailable');
-  // Only the signed device-channel route receives the callback.
-  // Ticket issue and Wall session assertion are intentionally NOT routed.
+  // T04b9c2: expose live current-family checks only when issuer and all
+  // other SSO gates are enabled. The request is separately Ed25519 signed;
+  // no caller-provided Account/Device identity is authoritative.
+  const issuerEnabled=env[DESKTOP_WALL_SSO_ISSUER_FLAG_V4]==='1';
+  const family=issuerEnabled?createDesktopWallSsoFamilyCurrentV4({
+    enabled:true,enrollments,
+    assertWallSessionCurrent:service.assertWallSessionCurrent
+  }):null;
+  // Only signed device-channel routes receive callbacks. No A/B grants.
   return Object.freeze({
     enabled:true,signedRedeem:service.redeem,
-    internalIssue:env[DESKTOP_WALL_SSO_ISSUER_FLAG_V4]==='1'
-      ?service.issue:undefined,
+    internalIssue:issuerEnabled?service.issue:undefined,
+    familyCurrent:family?.check,
     authority:service
   });
 }

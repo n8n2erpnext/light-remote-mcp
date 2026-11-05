@@ -169,10 +169,12 @@ test('T04b7b a sixth exact issuer flag is required in addition to redemption',()
   assert.equal(gate.enabled,true);
   assert.equal(typeof gate.signedRedeem,'function');
   assert.equal(gate.internalIssue,undefined);
+  assert.equal(gate.familyCurrent,undefined);
   for(const bad of ['true','yes','01','1 ',true,1]){
     const badEnv={...env,LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4:bad};
     gate=createDesktopWallSsoOperatorGateV4({env:badEnv,...deps});
     assert.equal(gate.internalIssue,undefined);
+    assert.equal(gate.familyCurrent,undefined);
   }
   gate=createDesktopWallSsoOperatorGateV4({
     env:{...env,LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4:'1'},...deps
@@ -180,6 +182,7 @@ test('T04b7b a sixth exact issuer flag is required in addition to redemption',()
   assert.equal(gate.enabled,true);
   assert.equal(typeof gate.signedRedeem,'function');
   assert.equal(typeof gate.internalIssue,'function');
+  assert.equal(typeof gate.familyCurrent,'function');
   assert.equal(deps.activity(),0);
 });
 test('T04b7b enabling only issuer flag cannot activate Operator or read Redis',()=>{

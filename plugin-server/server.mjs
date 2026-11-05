@@ -16,6 +16,7 @@ import { registerDesktopWallSsoNativeIssuerV4,
 } from './desktop-wall-sso-native-router-v4.mjs';
 import {createDesktopWallSsoMtlsEdgeV4} from './desktop-wall-sso-mtls-edge-v4.mjs';
 import {DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4} from './desktop-wall-sso-public-redeem-v4.mjs';
+import {WALL_SSO_FAMILY_PUBLIC_PATH_V4} from './desktop-wall-sso-public-family-current-v4.mjs';
 import { initializeGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
@@ -101,8 +102,17 @@ app.use(DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4,(req,res,next)=>{
     return res.status(404).json({ok:false,error:'not_found'});
   next();
 },express.json({limit:'2048b',strict:true}));
+// T04b9c2: live Owner-family checks use an equally narrow signed route.
+// Each protected request creates a NEW Ed25519 nonce; never trust a cached
+// browser cookie when the remote Owner family has been revoked.
+app.use(WALL_SSO_FAMILY_PUBLIC_PATH_V4,(req,res,next)=>{
+  if(!publicSsoRedeemEnabledV4||req.method!=='POST')
+    return res.status(404).json({ok:false,error:'not_found'});
+  next();
+},express.json({limit:'2048b',strict:true}));
 const generalJsonBodyParser=express.json({limit:'12mb'});
-app.use((req,res,next)=>req.path===DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4
+app.use((req,res,next)=>(req.path===DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4||
+  req.path===WALL_SSO_FAMILY_PUBLIC_PATH_V4)
   ?next():generalJsonBodyParser(req,res,next));
 app.use(express.urlencoded({extended:false,limit:'128kb'}));
 const PUBLIC_INDEXABLE_PATHS=new Set(['/','/downloads','/downloads/','/support','/privacy','/terms','/cookies','/robots.txt','/sitemap.xml','/site.webmanifest','/favicon.ico']);

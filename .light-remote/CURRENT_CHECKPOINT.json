@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C1_SOURCE_148_OF_148_GOLD_CI_4_OF_4_PASS_LAB_SSO_OFF_T04B9C2_NEXT",
+  "status": "T04B9C2_SIGNED_OWNER_FAMILY_PER_REQUEST_SOURCE_165_OF_165_PASS_CI_PENDING_LAB_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b9c2: implement signed authenticated enrolled device Owner-family status on every protected Wall request; secure true loopback/HTTPS browser cookie bootstrap, followed by scoped real Lab/Windows physical E2E. Gold 3eedc8c7 CI 41965947690 4/4 SUCCESS, Gold Docs/Truth PASS; Desktop 95fdf75d mirror Docs/Truth PASS. Public Lab mTLS 5/5 HTTP200 TLSverify0, public SSO 404/OFF. Do NOT weaken A/B/UAT/prod.",
+  "nextAction": "T04b9c3: secure localhost or true HTTPS same-origin browser cookie bootstrap; OS-vault native Owner ticket issue and physical Windows E2E. T04b9c2 9+8 new tests, selected Node 165/165 PASS; CI pending. Agent source not mounted; GoldABV2 Lab mTLS 5/5 active, SSO OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "21cabb7a60a60a90146083e9aabf2a21bdacd54cf84b24d2effc60c712b02657",
-    "trackedFiles": 1223,
+    "treeDigest": "c6ec7f737ca099adb7b6c507bcab59b05e4fa09b497ba678e915cc1b7b32167a",
+    "trackedFiles": 1228,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T04:08:21.483Z"
+    "recordedAt": "2026-11-05T04:46:29.384Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1092,7 +1092,7 @@
     "livingSince": "2026-11-04",
     "mandatoryForEveryTask": true,
     "mirrorByteIdenticalRequired": true,
-    "startingNextTask": "T04b9c2",
+    "startingNextTask": "T04b9c3",
     "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
     "introReceipt": "2026-11-04 H00",
     "firstGoldCommit": "c38e2e540fa66ce634ab5e2902ae628af3a905e8",
@@ -1534,5 +1534,14 @@
     "ci": "Gold Source Gate 41965947690 4/4 SUCCESS; Gold Truth 41965947536 SUCCESS; Gold Docs 41965947823 SUCCESS; Desktop Truth 41965978629 SUCCESS; Desktop Docs 41965978919 SUCCESS",
     "runtime": "5/5 Lab mTLS HTTPS200, Owner/SSO flags OFF",
     "nextTask": "T04b9c2"
+  },
+  "t04b9c2SignedOwnerFamilyCurrent": {
+    "state": "source_only_unmounted",
+    "tests": "17/17 new and 165/165 selected SSO Node PASS",
+    "security": "fresh Ed25519 nonce per protected Wall request, live Owner-family status and device re-enrollment check, fail-closed",
+    "routes": "private and dedicated public signed family-current, 6-flag OFF, 2KiB",
+    "ci": "pending",
+    "runtime": "none changed",
+    "next": "T04b9c3"
   }
 }
