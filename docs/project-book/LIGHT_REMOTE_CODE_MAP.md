@@ -1021,3 +1021,6 @@ Fixed private IPC and enrolled Agent binding; no new HTTP, no auth in JS, no app
 - .github/workflows/goldabv2-desktop-v4-windows-agent-qa.yml — native Windows CI, 129-file staged core and Node 22, mock named-pipe test, manual QA artifact only.
 - deploy/scripts/selftest-goldabv2-v4-windows-qa-sidecar.mjs — no Gold client or service/task modifications; required isolation checks.
 - device-agent/desktop-abv2-native-ipc-v4.test.mjs — shared native Owner/Agent proof test now runs on Windows named pipe as well as Unix socket. No production source API/security policy changes.
+
+## 2026-11-05 — T05B first Windows named-pipe CI portability correction
+- device-agent/desktop-abv2-native-ipc-v4.test.mjs: Windows OS named-pipe actual pending+Approve, revocation and default-disabled tests passed in CI 42026245362; first simulated Unix path test used fixed / separators and failed on Windows path.join. Updated the test assertion to host-native path.join; runtime Agent native IPC untouched. New zip workflow retry pending.

@@ -33,8 +33,8 @@ async function send(socketPath,payload){
 test('OS-private path chooses Windows pipe or same-user Unix socket',()=>{
  assert.equal(desktopAbv2NativeSocketPathV4({platform:'win32'}),
   ABV2_NATIVE_WIN_PIPE_V4);
- assert.match(desktopAbv2NativeSocketPathV4({platform:'linux',home:'/home/alice'}),
-  /^\/home\/alice\/\.light-remote\/desktop-v4-abv2\.sock$/);
+ assert.equal(desktopAbv2NativeSocketPathV4({platform:'linux',home:'/home/alice'}),
+  path.join('/home/alice','.light-remote','desktop-v4-abv2.sock'));
 });
 test('default disabled creates no listener',async()=>{
  const service=await startDesktopAbv2NativeAgentIpcV4();
