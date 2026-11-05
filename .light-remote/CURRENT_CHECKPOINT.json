@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04b9a_NATIVE_TICKET_SOURCE_STAGED_CI_PENDING_GOLD_LAB_MTLS_LIVE_SSO_OFF",
+  "status": "T04B9B_ENROLLED_AGENT_ED25519_SOURCE_9_OF_9_PASS_SSO_OFF_CI_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b9b source: native Owner token issue behind OS-vault/generation fence, enrolled Ed25519 signed relay and secure/localhost browser-safe Wall session bootstrap; Gold Lab 5/5 HTTPS200, SSO flags OFF. Native T04b9a four Rust tests await CI. No Lab runtime change; full VPS reboot not tested.",
+  "nextAction": "T04b9c: trusted Agent-to-Operator HTTPS/Unix request with {ticket,signedEnvelope}, per-request signed Owner-family check, secure loopback/HTTPS same-origin Wall cookie bootstrap. No current runtime auth/SSO activation. T04b9b 9/9; selected T04 Node 138/138, real enrollment with fake Redis only.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "daafe1ae87bca578edca10649a05ac754dd8aafbca799bee8814933393b57caf",
-    "trackedFiles": 1217,
+    "treeDigest": "dc3deb4ee20f89effe822f8c6953a46abd1e0f863f0822af73e6257edeb4240f",
+    "trackedFiles": 1219,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T03:10:28.971Z"
+    "recordedAt": "2026-11-05T03:49:37.581Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1092,7 +1092,7 @@
     "livingSince": "2026-11-04",
     "mandatoryForEveryTask": true,
     "mirrorByteIdenticalRequired": true,
-    "startingNextTask": "T04b9b",
+    "startingNextTask": "T04b9c",
     "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
     "introReceipt": "2026-11-04 H00",
     "firstGoldCommit": "c38e2e540fa66ce634ab5e2902ae628af3a905e8",
@@ -1514,5 +1514,13 @@
     "nativeRustTests": "four defined, GitHub CI pending, no local Rust build",
     "security": "no IPC access or token/ticket to WebView; no signed relay yet",
     "nextTask": "T04b9b"
+  },
+  "t04b9bAgentSignedRedemption": {
+    "state": "source_only_not_mounted",
+    "newTests": "9/9 PASS",
+    "selectedNode": "138/138 PASS",
+    "ci": "pending",
+    "runtime": "public Gold mTLS healthy; SSO OFF",
+    "nextTask": "T04b9c"
   }
 }

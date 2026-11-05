@@ -61,6 +61,7 @@ on:
       - 'operator-host/executor-routes-device-channel.mjs'
       - 'device-agent/local-wall.mjs'
       - 'device-agent/desktop-wall-sso-session*.mjs'
+      - 'device-agent/desktop-wall-sso-agent-redemption-v4*.mjs'
       - 'deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs'
       - 'device-agent/local-activity-log.mjs'
       - 'device-agent/update-settings-page.mjs'
@@ -274,6 +275,7 @@ on:
       - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
       - 'device-agent/local-wall.mjs'
       - 'device-agent/desktop-wall-sso-session*.mjs'
+      - 'device-agent/desktop-wall-sso-agent-redemption-v4*.mjs'
       - 'deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs'
       - 'device-agent/operator-agent.mjs'
       - 'device-agent/relink-linux-server.py'
@@ -337,6 +339,9 @@ jobs:
           node --check device-agent/desktop-wall-sso-session.test.mjs
           node --check deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs
           node --test device-agent/desktop-wall-sso-session.test.mjs
+          node --check device-agent/desktop-wall-sso-agent-redemption-v4.mjs
+          node --check device-agent/desktop-wall-sso-agent-redemption-v4.test.mjs
+          node --test device-agent/desktop-wall-sso-agent-redemption-v4.test.mjs
           node deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs
           node --check device-agent/wall-account-notifications.mjs
           node --check device-agent/fleet-wall-runtime.mjs
