@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C3B_GOLD_CI_4_OF_4_DESKTOP_NATIVE_CI_7_OF_7_PASS_WINDOWS_NAMED_PIPE_CI_PENDING_SSO_OFF",
+  "status": "T04B9C3B_WINDOWS_PIPE_CI_7_OF_8_POSIX_PATH_TEST_ASSERT_FIXED_LOCAL_8_OF_8_RECHECK_PENDING_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b9c3c: Windows Named Pipe Node runner CI new Gold workflow pending; then verify installed Windows same-account Agent/Owner SID ACL, explicit Owner challenge UI, Rust native ticket-to-Agent IPC, Ed25519 real Redis and browser same-device secure Wall finish. Gold Source run 41976425962 4/4 SUCCESS, Desktop native run 41976431257 7/7 SUCCESS; Lab SSO OFF, A/B/UAT/prod unaffected.",
+  "nextAction": "Recheck new Gold Windows Agent CI after Node path.join test fix; previous run 41977418584 7/8: Windows Named Pipe server path worked, only hard-coded POSIX expected path assertion failed. Then T04b9c3c physical installed Windows same-user SID/ACL and explicit Owner challenge + native Rust ticket -> enrolled Agent real Redis signed SSO. No runtime Agent mount or Tauri command, SSO OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "7c2e3b9b2a6e662dfd97747398334ae46bdac8af840dacb1ba84e4367b058d25",
+    "treeDigest": "94f98d5697d6cf2312edb71e923f5c1db22472837805225f205b0b98e385af81",
     "trackedFiles": 1232,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T05:58:51.521Z"
+    "recordedAt": "2026-11-05T06:02:27.535Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1566,6 +1566,6 @@
     "next": "T04b9c3c",
     "goldCi": "Source Gate 41976425962 4/4 SUCCESS; Truth 41976426058 SUCCESS; Docs 41976425876 SUCCESS",
     "desktopCi": "UI and Tauri native 41976431257 7/7 SUCCESS Windows/macOS/Linux; Truth 41976431454 SUCCESS; Docs 41976431358 SUCCESS",
-    "winPipeCi": "new Windows Agent CI step pending new Gold workflow run"
+    "winPipeCi": "41977418584 7/8, single expected POSIX slash path fails on Windows; path.join test fix locally 8/8, new CI pending"
   }
 }

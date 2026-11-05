@@ -979,3 +979,8 @@ deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs exports issueOwnerCaReco
 - Gold source 219726a5 41976425962 Source Gate 4/4 PASS (181/181 selected Node SSO and 127 core file packaged Wall), Truth 41976426058, Docs 41976425876 PASS.
 - Desktop source 7c5852bd CI 41976431257 7/7 PASS native Win/mac/Linux Owner LAB/UI-only, Rust vault/Owner unit tests SUCCESS, Truth 41976431454, Docs 41976431358 PASS. Not actual installed Owner SSO.
 - Gold Connection Source Gate Windows Agent job now runs private IPC Node test on windows-latest; separate new workflow CI PENDING to verify OS Named Pipe protocol. Actual installed Windows service identity ACL and browser user consent remain OPEN. SSO default OFF, no Agent mount or UAT/prod/A-B changes.
+
+
+## 2026-11-05 — T04b9c3b Windows Named Pipe test assertion portability
+
+- device-agent/desktop-wall-sso-native-ipc-v4.test.mjs: actual windows-latest runner test reached OS named pipe, seven of eight cases PASS in run 41977418584. The only failure compared a Unix forward-slash literal against Windows node:path normalized backslash path. Updated expected path to platform-matching path.join; no Agent IPC production transport, Named Pipe ACL, Owner scope or security policy change. Local 8/8 PASS; next Windows source CI pending.

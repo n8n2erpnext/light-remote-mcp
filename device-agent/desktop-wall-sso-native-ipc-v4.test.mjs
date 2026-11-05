@@ -143,9 +143,11 @@ test('T04b9c3b2 fixed pipe identity cannot be replaced with TCP/browser URL',asy
   assert.equal(nativeWallSsoSocketPathV4({
     platform:'win32',home:'/anything'
   }),NATIVE_WALL_SSO_WIN_PIPE_V4);
+  // Node's path.join follows the runner OS even when injecting a different
+  // platform selector. Assert the same owner-scoped path portably.
   assert.equal(nativeWallSsoSocketPathV4({
     platform:'linux',home:'/tmp/owner'
-  }),'/tmp/owner/.light-remote/desktop-v4-owner-wall-sso.sock');
+  }),path.join('/tmp/owner','.light-remote','desktop-v4-owner-wall-sso.sock'));
   await assert.rejects(startNativeWallSsoAgentIpcV4({
     enabled:true,wall:{desktopSsoBootstrap:{approveTrustedNative:()=>{}}},
     getEnrollment:()=>({}),socketPath:'http://127.0.0.1:5491'
