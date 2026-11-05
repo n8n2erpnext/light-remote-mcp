@@ -944,3 +944,8 @@ GoldABV2 Lab read-only: 5/5 active, verified public TLS health200, unauthenticat
 ## 2026-11-05 — T04b9b enrolled-Agent Ed25519 redeem source, 138/138 selected SSO PASS
 
 Source-only Gold Agent adapter prepares exact signed digest+ticket request for trusted Operator; 9/9 real enrolled Ed25519 verification with simulated Redis and selected T04 Node 138/138 PASS. Workflow Source Gate expanded. Not mounted; no runtime or Owner/SSO flag change. Desktop Rust T04b9a remains source-only and Rust CI pending. Next T04b9c is secured Agent transport, signed per-request Owner-family verification and localhost/HTTPS browser-safe Wall bootstrap. Same Living Master in Gold and Desktop; no A/B/UAT/production modifications.
+
+
+## 2026-11-05 — T04b9b verified GitHub Source Gate 4/4; T04b9a Desktop native 7/7
+
+Gold 2edf175e Source Gate 41964026074 SUCCESS all 4 jobs including new enrolled-device Ed25519 tests, Project Truth 41964026127 SUCCESS and Docs 41964026077 SUCCESS. Desktop earlier Rust native ticket module c010231e CI run 41962943877 SUCCESS 7/7 Web/Tauri/Owner LAB (Windows/macOS/Linux); Desktop Docs 41962943880 and Truth 41962943819 SUCCESS. Latest Desktop mirror 2751d372 Docs 41964056663 and Truth 41964056664 SUCCESS. These are CI and source tests, NOT physical Desktop-to-Wall signed SSO. T04b9c secured signed route, live Owner-family check and browser-safe bootstrap remain OPEN. No runtime or A/B/UAT/prod changes.
