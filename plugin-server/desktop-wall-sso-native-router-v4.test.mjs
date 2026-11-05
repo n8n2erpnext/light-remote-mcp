@@ -211,8 +211,13 @@ test('T04b7b Operator internal dispatcher denies TCP and browser headers',async(
 test('T04b7b request must have 2-KiB scoped JSON parser before product 12-MiB parser',()=>{
   const source=fs.readFileSync(new URL('./server.mjs',import.meta.url),'utf8');
   const scoped=source.indexOf('app.use(DESKTOP_WALL_SSO_TICKET_PATH_V4,');
-  const generic=source.indexOf("app.use(express.json({limit:'12mb'}));");
+  // The T04b9c1 route-specific signed redeem parser now intercepts its
+  // own path before the general product parser. Keep this T04b7b invariant
+  // while requiring the signed route to explicitly skip 12-MiB parsing.
+  const generic=source.indexOf("const generalJsonBodyParser=express.json({limit:'12mb'});");
   assert.ok(scoped>0&&generic>scoped);
+  assert.ok(source.includes('req.path===DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4'));
+  assert.ok(source.includes('app.use(DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4,'));
   assert.ok(source.includes('express.json({limit:DESKTOP_WALL_SSO_MAX_BODY_BYTES_V4,strict:true})'));
   assert.ok(source.includes('registerDesktopWallSsoNativeIssuerV4(app,'));
   assert.ok(source.includes('operatorCall:callOperatorJson'));

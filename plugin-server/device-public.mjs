@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import express from 'express';
 import { callOperatorJson, proxyOperatorDuplex } from './operator-client.mjs';
+import { registerDesktopWallSsoPublicRedeemV4 } from './desktop-wall-sso-public-redeem-v4.mjs';
 
 const BOOTSTRAP = new Set(['enrollment-begin','enrollment-poll','device-heartbeat','account-login']);
 const CHANNEL = new Set([
@@ -65,6 +66,13 @@ export function registerPublicDeviceRoutes(app){
       if(!p.deviceId) throw new Error('device_id_required');
       return res.json(await callOperatorJson('POST',`/v1/devices/${encodeURIComponent(p.deviceId)}/heartbeat`,p));
     }catch(error){return res.status(Number(error.status)||400).json({ok:false,error:error.message||'bootstrap_failed'});}
+  });
+  // Dedicated, opt-in native Agent redemption route. It is NOT part of the
+  // generic channel whitelist and remains 404 before JSON parsing while OFF.
+  registerDesktopWallSsoPublicRedeemV4(app,{
+    env:process.env,
+    operatorCall:callOperatorJson,
+    rateAllow:req=>allow('channel:desktop-wall-sso-redeem:'+hash(ip(req)).slice(0,20),30)
   });
   app.post('/device-channel/stream',async(req,res)=>{
     if(!await allow(`duplex:${hash(ip(req)).slice(0,20)}`,2400)) return res.status(429).json({ok:false,error:'rate_limited'});

@@ -931,3 +931,14 @@ deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs exports issueOwnerCaReco
 - device-agent/desktop-wall-sso-agent-redemption-v4.mjs: private enrolled-Agent adapter (NOT mounted). Assembles exact ticket SHA256 digest signed with action desktop-wall-sso-redeem and wraps {ticket,signedEnvelope} for injected authenticated Operator transport. Validates current Account/Device before and after network callback and returns only bound Owner Wall principal; does not expose to HTTP UI/Tauri or grant A/B privileges.
 - device-agent/desktop-wall-sso-agent-redemption-v4.test.mjs: real EnrollmentRegistry Ed25519 and Operator route with fake Redis, 9/9; selected T04 suite 138/138 PASS.
 - .github/workflows/gold-connection-lifecycle-gc.yml: paths/syntax/tests updated. CI pending new GitHub run. Next exact trusted Agent transport, live per-request Owner family check and secure same-origin Wall bootstrap. SSO OFF.
+
+
+## 2026-11-05 — T04b9c1 restricted Gold Plugin + private Agent signed SSO transport (source-only)
+
+- plugin-server/desktop-wall-sso-public-redeem-v4.mjs: dedicated exact POST /device-channel/desktop-wall-sso-redeem, outside CHANNEL whitelist; default 404 before body, all six issuer gates required, strict 2KiB JSON/body schema + SHA256 digest + Origin/cookie rejection; private Unix Operator forwarding, 30/min scoped Redis limiter, no owner token or grant.
+- plugin-server/server.mjs: SSO exact route pre-gate/2048b parser before global 12MiB, bypass global parser for SSO path; all other device routes unchanged.
+- plugin-server/device-public.mjs: registers dedicated SSO relay before ordinary channel routes, with independent rate limiter; no generic channel whitelist privilege.
+- device-agent/desktop-wall-sso-agent-transport-v4.mjs: not-mounted private Agent HTTPS sender pinned to GoldABV2 Lab URL, redirect error, omit cookies/credentials, 2KiB bounded Operator authority response; pairs with existing enrolled Ed25519 signed adapter.
+- plugin-server/desktop-wall-sso-public-redeem-v4.test.mjs (6) and device-agent/desktop-wall-sso-agent-transport-v4.test.mjs (4): pure Node source and simulated HTTPS Plugin+Operator with real EnrollmentRegistry Ed25519 and in-memory Redis. Selected T04 148/148 PASS. No physical real Redis/HTTPS/Windows SSO tested.
+- plugin-server/desktop-wall-sso-native-router-v4.test.mjs updated historical parser static test for new scoped body parser (native ticket 2048 cap still enforced). Gold Connection Source Gate workflow updated for source+test paths and execution.
+- Next T04b9c2: exact enrolled signed current Owner-family validation on every Wall request, genuine localhost/HTTPS browser session bootstrap; SSO remains OFF.

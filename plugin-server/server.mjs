@@ -15,6 +15,7 @@ import { registerDesktopWallSsoNativeIssuerV4,
   DESKTOP_WALL_SSO_MAX_BODY_BYTES_V4
 } from './desktop-wall-sso-native-router-v4.mjs';
 import {createDesktopWallSsoMtlsEdgeV4} from './desktop-wall-sso-mtls-edge-v4.mjs';
+import {DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4} from './desktop-wall-sso-public-redeem-v4.mjs';
 import { initializeGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
@@ -91,7 +92,18 @@ if(desktopWallSsoIssuerEnabledV4(process.env)){
   app.use(DESKTOP_WALL_SSO_TICKET_PATH_V4,
     express.json({limit:DESKTOP_WALL_SSO_MAX_BODY_BYTES_V4,strict:true}));
 }
-app.use(express.json({limit:'12mb'}));
+// T04b9c1: SSO device-signed public redeem must not be parsed by the
+// broad 12-MiB device-channel body parser. OFF rejects *before* body read.
+// ON uses exactly 2 KiB, with separate rate + signature checks downstream.
+const publicSsoRedeemEnabledV4=desktopWallSsoIssuerEnabledV4(process.env);
+app.use(DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4,(req,res,next)=>{
+  if(!publicSsoRedeemEnabledV4||req.method!=='POST')
+    return res.status(404).json({ok:false,error:'not_found'});
+  next();
+},express.json({limit:'2048b',strict:true}));
+const generalJsonBodyParser=express.json({limit:'12mb'});
+app.use((req,res,next)=>req.path===DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4
+  ?next():generalJsonBodyParser(req,res,next));
 app.use(express.urlencoded({extended:false,limit:'128kb'}));
 const PUBLIC_INDEXABLE_PATHS=new Set(['/','/downloads','/downloads/','/support','/privacy','/terms','/cookies','/robots.txt','/sitemap.xml','/site.webmanifest','/favicon.ico']);
 app.use((req,res,next)=>{

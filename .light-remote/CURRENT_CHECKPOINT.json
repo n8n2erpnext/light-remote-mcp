@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9B_SOURCE_GOLD_CI_4_OF_4_PASS_DESKTOP_NATIVE_CI_7_OF_7_PASS_NOT_MOUNTED_SSO_OFF",
+  "status": "T04B9C1_GOLD_PRIVATE_SIGNED_SSO_HTTPS_BRIDGE_SOURCE_148_OF_148_PASS_CI_PENDING_LAB_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b9c: wire exact enrolled Device Agent signed ticket+envelope Operator HTTPS/Unix route, signed per-request Owner-family current verification and valid localhost/HTTPS browser-safe Wall cookie bootstrap; no actual Owner SSO E2E yet. Gold 2edf175e CI 41964026074 4/4 PASS; Desktop native c010231e CI 41962943877 7/7 PASS.",
+  "nextAction": "T04b9c2: enrolled-device signed current Owner-family private Operator validation on EACH protected Local Wall request; safe true localhost/HTTPS browser SSO cookie bootstrap. T04b9c1 source 148/148 PASS; Gold CI pending. No runtime SSO, Agent adapter not mounted and actual Windows E2E not done.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "dc3deb4ee20f89effe822f8c6953a46abd1e0f863f0822af73e6257edeb4240f",
-    "trackedFiles": 1219,
+    "treeDigest": "21cabb7a60a60a90146083e9aabf2a21bdacd54cf84b24d2effc60c712b02657",
+    "trackedFiles": 1223,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T03:49:37.581Z"
+    "recordedAt": "2026-11-05T04:08:21.483Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1092,7 +1092,7 @@
     "livingSince": "2026-11-04",
     "mandatoryForEveryTask": true,
     "mirrorByteIdenticalRequired": true,
-    "startingNextTask": "T04b9c",
+    "startingNextTask": "T04b9c2",
     "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
     "introReceipt": "2026-11-04 H00",
     "firstGoldCommit": "c38e2e540fa66ce634ab5e2902ae628af3a905e8",
@@ -1523,5 +1523,16 @@
     "runtime": "public Gold mTLS healthy; SSO OFF",
     "nextTask": "T04b9c",
     "status": "source_ci_pass_not_mounted"
+  },
+  "t04b9c1SignedPublicHttpsBridge": {
+    "status": "source_only_not_deployed",
+    "goldNodeTests": "148/148 PASS",
+    "newTransportTests": "10/10 PASS",
+    "verification": "real Ed25519 EnrollmentRegistry, simulated HTTPS and Redis",
+    "routes": "exact POST /device-channel/desktop-wall-sso-redeem gated by SIX flags, 2048-byte parser before general 12MB",
+    "agent": "immutable GoldABV2 Lab HTTPS, source-only not mounted",
+    "ci": "pending",
+    "runtime": "5/5 Lab mTLS HTTPS200, Owner/SSO flags OFF",
+    "nextTask": "T04b9c2"
   }
 }
