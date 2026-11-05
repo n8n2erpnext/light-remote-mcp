@@ -1005,3 +1005,7 @@ deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs exports issueOwnerCaReco
 ## 2026-11-05 — T04b9c3c2 packaging test alignment
 
 client/desktop-v4/e2e/tauri-production-packaging-contract.mjs: replaced historical GoldABV2 Linux LXD NetBird Wall profile assertion with same-device Desktop/local Wall route exclusion and SSO candidate OFF check; Tauri embedded release/frontend security still enforced. First CI 42010141813 failed old assertion, native jobs skipped; rerun pending.
+
+## 2026-11-05 — T03 Owner Auth runtime route diagnostic
+
+Deployed LXD plugin-server/server.mjs gates GET /account/desktop/v4/authorize on LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 and /account/desktop/v4/session on Owner Auth plus LR_GOLD_ABV2_DESKTOP_TOKEN_V4. A late permanent Lab systemd override set both=0; scoped /run late-sorting override enables both temporarily and an independent 50m auto-off timer restores baseline at 18:42:21 ICT. No repository source code changes; SSO remains OFF. Windows Desktop same-host Local Wall still 127.0.0.1:5491.

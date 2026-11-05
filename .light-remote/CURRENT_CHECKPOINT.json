@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C3C2_DESKTOP_LOCAL_WALL_TOPOLOGY_NATIVE_CI_7_OF_7_PASS_OWNER_SSO_E2E_OPEN",
+  "status": "T03_LAB_OWNER_AUTH_TOKEN_TEMP_ON_AUTHORIZE_HTTP303_REAL_OWNER_CALLBACK_E2E_OPEN_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b9c3c3: stage separate GoldABV2-enrolled same-host Agent alongside native Desktop in isolated Windows QA without modifying Gold old client; App->Wall and Wall->App SSO live E2E plus native A/B V2 approvals; no NetBird Linux LXD Wall target.",
+  "nextAction": "Owner retry Desktop V4 fresh PKCE sign-in before isolated LXD timer auto-off 2026-11-05 18:42:21 ICT. Verify real browser Owner consent and native callback. T04 two-way same-host Wall SSO and direct in-App A/B V2 still open.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "7ef2c596977e95a03281502fc0ccb0d883186d3a78ca9b7633ae281110e91d02",
     "trackedFiles": 1233,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T10:34:25.336Z"
+    "recordedAt": "2026-11-05T10:56:32.313Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1616,5 +1616,17 @@
     "ssoWallToApp": "REQUIRED, NOT IMPLEMENTED",
     "abv2InApp": "REQUIRED, NOT VERIFIED",
     "link": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42010747527"
+  },
+  "t03OwnerAuth404Fix": {
+    "date": "2026-11-05",
+    "labOnly": "light-remote-abv2-lab-20261101",
+    "cause": "deployed Owner Auth and Token OFF; permanent Lab systemd zzz override set both=0",
+    "fix": "runtime-only late-order drop-in sets Owner Auth and Token=1, SSO flags remain OFF",
+    "autoOffTimer": "lr-t03-owner-v4-autooff-20261105.timer",
+    "autoOffUtc": "2026-11-05T11:42:21Z",
+    "autoOffIct": "2026-11-05T18:42:21+07:00",
+    "verification": "authorize303; session401 without credentials; login200; health200; MCP GET405; LXD4/4 active",
+    "ownerCallback": "PENDING",
+    "scope": "No production/Windows Agent changes"
   }
 }
