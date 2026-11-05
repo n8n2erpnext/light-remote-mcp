@@ -969,3 +969,8 @@ Added private Ed25519 signed fresh nonce Owner-family-current path from Device A
 ## 2026-11-05 — T04b9c2 exact GitHub 4/4 Source CI accepted
 
 Gold bbab5075 Source Gate 41969938745 4/4 SUCCESS, Gold Truth 41969938830 and Docs 41969938750 SUCCESS. Desktop b206e0df mirror Truth 41969967379 and Docs 41969967330 SUCCESS. Source-local T04 tests 165/165 PASS; NOT native Windows Owner-to-Wall E2E. Post-commit GoldABV2 mTLS Lab 5/5 active, health HTTPS200 TLSverify0; public family-current POST404 (SSO OFF). Git worktrees clean, Master identical. NEXT T04b9c3 safe true HTTPS/loopback browser bootstrap and physical Windows Owner proof, no UAT/prod/A-B changes.
+
+
+## 2026-11-05 — T04b9c3a browser-safe challenge bootstrap SOURCE only, 173/173 tests PASS
+
+Added Device Agent in-process 60s two-sided browser challenge HttpOnly cookie, guarded by opt-in Local Wall same-origin loopback/real TLS POST begin/finish; separate private trusted native approve method, never an HTTP route. The browser never sees Owner ticket, token, family ID or signed proof. Finish rechecks LIVE Owner family and sends separate Wall SSO cookie only with matching browser challenge cookie. New real loopback HTTP tests 8/8 PASS; full selected T04 regression 173/173 PASS, legacy loopback Wall SSO revoke PASS; updated client/core-files manifest to 126 entries and proved in-memory stage/verify, packaged Wall pages and icons PASS. Gold Source Gate extended with tests and packaged Wall CI check; exact GitHub CI pending. No native Desktop Rust or running Agent hook, no browser UI exchange, no deployed SSO, no Lab flag change; UAT/prod/A-B untouched. Next T04b9c3b native user-initiated secure challenge+Owner ticket transfer followed by physical Windows Owner E2E.
