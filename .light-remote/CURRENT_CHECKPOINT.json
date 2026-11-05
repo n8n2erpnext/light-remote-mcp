@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C2_SIGNED_OWNER_FAMILY_PER_REQUEST_SOURCE_165_OF_165_PASS_CI_PENDING_LAB_SSO_OFF",
+  "status": "T04B9C2_SOURCE_165_OF_165_GOLD_CI_4_OF_4_PASS_SSO_OFF_T04B9C3_NEXT",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b9c3: secure localhost or true HTTPS same-origin browser cookie bootstrap; OS-vault native Owner ticket issue and physical Windows E2E. T04b9c2 9+8 new tests, selected Node 165/165 PASS; CI pending. Agent source not mounted; GoldABV2 Lab mTLS 5/5 active, SSO OFF.",
+  "nextAction": "T04b9c3: true localhost or verified HTTPS browser same-origin Wall SSO cookie bootstrap, native Owner OS-vault one-use ticket request and physical Windows signed Owner->Wall E2E. Gold bbab5075 Source CI run 41969938745 4/4 PASS, Gold Truth/Docs PASS, Desktop mirror b206e0df Truth/Docs PASS; Lab 5/5 active HTTPS200/TLSverify0, public family-current404, SSO OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1536,11 +1536,11 @@
     "nextTask": "T04b9c2"
   },
   "t04b9c2SignedOwnerFamilyCurrent": {
-    "state": "source_only_unmounted",
+    "state": "source_ci_pass_not_mounted",
     "tests": "17/17 new and 165/165 selected SSO Node PASS",
     "security": "fresh Ed25519 nonce per protected Wall request, live Owner-family status and device re-enrollment check, fail-closed",
     "routes": "private and dedicated public signed family-current, 6-flag OFF, 2KiB",
-    "ci": "pending",
+    "ci": "Gold Source Gate 41969938745 4/4 SUCCESS; Gold Truth 41969938830 SUCCESS; Gold Docs 41969938750 SUCCESS; Desktop Truth 41969967379 SUCCESS; Desktop Docs 41969967330 SUCCESS",
     "runtime": "none changed",
     "next": "T04b9c3"
   }
