@@ -989,3 +989,8 @@ Gold /auth/desktop/sso/redeem legacy always 404, old HTTP loopback test replaced
 ## 2026-11-05 — T04b9c3b Gold CI 4/4, native Win/mac/Linux CI 7/7 PASS
 
 Gold 219726a5 Source Gate 41976425962 SUCCESS 4/4, Truth 41976426058 and Docs 41976425876 SUCCESS, selected 181/181 Node SSO PASS and 127 client-core file package PASS. Desktop 7c5852bd Tauri/UI and Owner LAB candidate native run 41976431257 SUCCESS 7/7 Win/mac/Linux, with Rust Owner OS-vault compile/unit tests PASS, Truth 41976431454 and Docs 41976431358 SUCCESS. Added NEW Windows Agent runner Node Named Pipe test step in Gold workflow; CI pending new commit. No live SSO/Agent mount/Tauri IPC, installed Windows service SID ACL and true Owner browser E2E OPEN, Gold Lab SSO OFF, A/B/UAT/prod untouched.
+
+
+## 2026-11-05 — T04b9c3b Windows Named Pipe CI portability RCA and local fix
+
+Gold Windows Agent runner 41977418584 ran the 8 IPC Node tests on Windows: 7 PASS, 1 FAIL only from expected POSIX slash path vs Node Windows path.join backslashes. Changed test expectation to path.join, no production IPC, Agent A/B or security gate modified. Local IPC 8/8 PASS. New Windows CI pending next Gold commit. Desktop native 7/7 and prior Gold Source Gate 4/4 PASS, Lab SSO OFF, installed Windows SID/ACL and Owner E2E OPEN.
