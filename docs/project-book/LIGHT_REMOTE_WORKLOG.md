@@ -1317,3 +1317,7 @@ User confirmed local-first architecture: Desktop App, Tray and Wall belong to th
 ## 2026-11-05 — T04b9c3c2 CI failure triage: obsolete LXD Wall packaging assertion
 
 Desktop run 42010141813 failed only in prior packaging-contract expectation of LR_V4_WALL_PROFILE=goldabv2-lab; all preceding Web/visual/source tests passed and native build jobs were skipped. Updated client/desktop-v4/e2e/tauri-production-packaging-contract.mjs to require same-host Wall profile absence and explicit SSO candidate OFF; Tauri production embedding check retained. CI rerun pending. No runtime change.
+
+## 2026-11-05 — T04b9c3c2 corrected Desktop local-Wall CI 7/7 ACCEPTED
+
+Final source e55f8b2d Desktop GitHub run 42010747527 SUCCESS 7/7 across UI/Owner/Chromium and Windows/macOS/Linux native builds. Tests 56/56 UI and 25/25 Owner backend contract PASS, localhost topology contract and Tauri packaging PASS. Windows Owner LAB unsigned binary SHA256 6879964559B57D3B689390961B487F0E5FE0DDDAF6C20C00CA4B708733D30216, artifact 13406663382. SSO default OFF; no real installed GoldABV2 Agent/App E2E, reverse Wall→App SSO or direct Desktop A/B V2 approval accepted.
