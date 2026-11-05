@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C3C1_BROWSER_PUBLIC_CODE_PRIVATE_IPC_NATIVE_OWNER_SOURCE_185_OF_185_NODE_PASS_CI_PENDING_SSO_OFF",
+  "status": "T04B9C3C1_SOURCE_185_OF_185_GOLD_CI_4_OF_4_DESKTOP_NATIVE_CI_7_OF_7_PASS_REAL_E2E_HOLD_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b9c3c2: verify actual installed Windows Agent/Owner peer SID Named Pipe ACL, mount Agent OS-private pending/approval only under isolated SSO gating, real Owner HTTPS token+Redis family and Ed25519 one-use ticket, same-device browser finish E2E with rollback. Current T04b9c3c1 Node 185/185 PASS and packaged Wall 128/128 SHA PASS, Desktop Rust/TypeScript CI pending. Running Agent + all SSO flags OFF; no A/B/UAT/prod change.",
+  "nextAction": "T04b9c3c2: physical installed Windows same-user named-pipe ACL peer test and independently gated Agent SSO mount, then enrolled Ed25519 signed real Owner Redis one-use ticket + browser same-device loopback/HTTPS code and HttpOnly Wall cookie E2E with immediate revoke/rollback. Source Gold 6102e2cb CI 41982786922 4/4 PASS, Desktop a06460e0 CI 41982793533 7/7 PASS, Gold Node SSO 185/185, packaged 128-file Wall PASS. SSO OFF, UAT/prod/A-B untouched.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1569,13 +1569,14 @@
     "winPipeCi": "Gold 41977849737, Windows Agent job 127080797526 SUCCESS; 8/8 Node Windows Named Pipe tests PASS"
   },
   "t04b9c3c1OwnerConfirmation": {
-    "state": "gold_desktop_source_only_ci_pending",
+    "state": "source_ci_accepted_real_e2e_open",
     "physicalWin10Observation": "Light Remote Wall 5491 and 5492 processes same current Windows OS Admin account; both local API HTTP401; no peer ACL acceptance",
     "browser": "explicit code generation, public 8-char code, independent HttpOnly 60s cookie, same-origin CSP and finish",
     "agent": "OS private pending challenge single-choice, exact enrolled Device binding; source not mounted",
     "desktop": "Rust OS pipe pending and verified Owner code command; UI behind VITE_LR_V4_WALL_SSO_CANDIDATE=1, absent current builds",
     "tests": "Gold selected SSO Node 185/185 PASS; 128 file packaged Wall SHA PASS; Browser JS syntax PASS",
-    "ci": "new GitHub Gold + Desktop native pending",
-    "next": "T04b9c3c2 true enrolled Windows E2E"
+    "ci": "Gold Source 41982786922 4/4 SUCCESS, Truth 41982787066 SUCCESS, Docs 41982787108 SUCCESS; Desktop native 41982793533 7/7 SUCCESS Windows/mac/Linux, Truth 41982793306 SUCCESS Docs 41982793299 SUCCESS",
+    "next": "T04b9c3c2 true enrolled Windows E2E",
+    "limits": "Owner Desktop/Wall native SSO candidate NOT installed/flagged on real Windows; Agent private IPC not mounted; no live Redis or Owner ticket E2E"
   }
 }
