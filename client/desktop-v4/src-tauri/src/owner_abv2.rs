@@ -43,7 +43,7 @@ fn sanitize(request:&Value,response:Value)->Result<Value,String> {
             let consent=response.get("ownerConsentRequired").and_then(Value::as_bool).ok_or_else(deny)?;
             let pending=response.get("pending").and_then(Value::as_array).ok_or_else(deny)?;
             if !ident(device)||pending.len()>5||
-                short.is_some_and(|s|s.len()!=6||!s.is_ascii_alphanumeric()) {
+                short.is_some_and(|s|s.len()!=6||!s.bytes().all(|b|b.is_ascii_alphanumeric())) {
                 return Err(deny());
             }
             let rows:Result<Vec<_>,_>=pending.iter().map(row).collect();

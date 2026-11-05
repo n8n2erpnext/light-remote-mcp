@@ -1082,3 +1082,9 @@ Desktop adds Rust native Owner generation-fenced pending/Approve commands and IP
 - Desktop source HEAD bb5e1f29d6e69f8c79c5465aded6aba204c856d5: first GitHub native run 42018356265 failed TypeScript before native OS jobs. Root cause only three new test calls read PENDING.pending[0] without TypeScript non-null assertion, caught by strict noUncheckedIndexedAccess. No Agent/Owner backend issue established by that failure, and no native binaries built by this run.
 - Corrected client/desktop-v4/src/lib/native-abv2.test.ts with non-null assertions for test-fixture first row; kept native Owner, enrolled Agent and B approval production code unchanged. Desktop native CI rerun pending.
 - Existing Windows Gold-old client, Linux LXD runtime and A/B grants remain untouched; no physical GoldABV2 same-host Agent/Owner B grant acceptance yet.
+
+## 2026-11-05 — T05A Desktop CI native Rust type correction, initial 60/60 UI PASS [NATIVE REBUILD PENDING]
+
+- Desktop T05A commit 5149bf3940cc4af3312486f85bbde5da8b3701af, GitHub run 42018640299: Web unit 60/60 PASS, Owner contract 25/25, same-host Wall regression, Chromium and Tauri production packaging PASS. Owner Login LAB macOS native compile FAILED because new src-tauri/src/owner_abv2.rs mistakenly called is_ascii_alphanumeric() on &str rather than on bytes. This is a compile-time source error, not an Owner/Agent live failure. Other native jobs may be superseded by new push.
+- Fixed only that Rust validation expression to s.bytes().all(byte is ASCII alphanumeric), preserving the strict six-character short ID shape and existing native Owner/Agent trust boundary. GitHub native Windows/macOS/Linux rerun PENDING.
+- Gold Agent source Gate 42018349829 SUCCESS and Node native IPC 4/4 PASS still stand. Existing installed Gold-old Windows Agent and GoldABV2 LXD runtime untouched. No installed real Owner→Agent B approval PASS.
