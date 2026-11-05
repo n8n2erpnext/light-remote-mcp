@@ -21,3 +21,10 @@ Gold local Node native IPC: 4/4 PASS, including default OFF, socket permissions,
 
 ## Next steps
 Accept Project Truth, Docs and native CI; prepare separate GoldABV2-enrolled Agent QA on SAME host without corrupting old Gold installation; test real Owner login, pending display, short ID/A and B approval, durable grant, revocation. Then connect active grants/Sessions and complete two-way Local Wall SSO. Do not call source build physical PASS.
+
+## Exact source CI acceptance (2026-11-05)
+- Agent source 1642dc3a and Gold Source Gate 42018349829 PASS; Native IPC 4/4 PASS.
+- Desktop native source 342ceaa1, workflow 42019133001 SUCCESS 7/7; UI 60/60, Owner contracts 25/25; Windows/macOS/Linux Owner LAB binaries generated.
+- Windows Owner LAB EXE SHA256 68286F22344F9271F842E75AF0AAC30C8438D96649B83F8C30B1AC72D358946B, GitHub artifact 13411585522.
+- Physical same-host GoldABV2 Agent/Owner B E2E untested. Installed Windows Agent remains older Gold. New local IPC flag OFF. Do not claim actual grant.
+- GoldABV2 LXD Owner Login temporary QA extended to 19:44:01 ICT via separate active auto-off timer with rollback; SSO OFF.
