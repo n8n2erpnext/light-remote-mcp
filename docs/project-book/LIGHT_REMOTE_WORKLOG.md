@@ -1028,3 +1028,6 @@ Owner showed correct GoldABV2 HTTPS authorize URL returning Cannot GET, while De
 
 ## 2026-11-05 — T05A real Desktop Agent API source integration
 Native Rust Owner -> private same-host Agent IPC -> Owner verification -> enrolled signed Operator A/B V2 pending and B approval. React AI Access receives actual bounded pending rows and approval results, no Owner token or fake data. Gold Node IPC 4/4 PASS; Desktop CI pending. Agent feature OFF, old Gold Windows client and LXD untouched; full physical grant and App/Wall SSO unverified.
+
+## 2026-11-05 — T05A first CI triage
+Gold native A/B V2 bridge Source Gate 42018349829 PASS. Desktop first native CI 42018356265 failed strictly at TypeScript test fixture array[0] non-null requirement (3 call sites); fixed test only. Retry pending. No Windows Gold-old/GoldABV2 Lab runtime changes, physical B approval E2E open.

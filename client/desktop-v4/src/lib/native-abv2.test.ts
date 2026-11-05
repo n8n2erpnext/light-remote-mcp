@@ -34,7 +34,7 @@ describe('Desktop V4 enrolled Agent native A/B V2, no browser credentials',()=>{
  it('passes only human B/request/attempt, not Owner tokens or user-controlled URLs',async()=>{
   const invoke=vi.fn(async()=>({state:'granted',requestId:REQUEST,expiresAt:1799999999999}));
   const host={__TAURI_INTERNALS__:{invoke}} as unknown as Window;
-  const row=PENDING.pending[0];
+  const row=PENDING.pending[0]!;
   const result=await nativeAbv2Approve(row,'4RFG-F3C6','',host);
   expect(result.state).toBe('granted');
   expect(invoke).toHaveBeenCalledWith(
@@ -47,6 +47,6 @@ describe('Desktop V4 enrolled Agent native A/B V2, no browser credentials',()=>{
   const invoke=vi.fn(async()=>{throw Error('not running');});
   const host={__TAURI_INTERNALS__:{invoke}} as unknown as Window;
   expect((await nativeAbv2Pending(host)).state).toBe('unavailable');
-  expect((await nativeAbv2Approve(PENDING.pending[0],'4RFG-F3C6','',host)).state).toBe('unavailable');
+  expect((await nativeAbv2Approve(PENDING.pending[0]!,'4RFG-F3C6','',host)).state).toBe('unavailable');
  });
 });
