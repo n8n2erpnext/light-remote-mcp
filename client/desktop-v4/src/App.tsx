@@ -144,7 +144,7 @@ function DataBoundaryNotice({ status }: { status: LoadState }) {
   );
 }
 
-function NativeApprovalRequest({
+export function NativeApprovalRequest({
   request,consentRequired,approving,onApprove
 }:{
   request:NativeAbv2Request;
