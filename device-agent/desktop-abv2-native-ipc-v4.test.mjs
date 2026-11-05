@@ -42,11 +42,11 @@ test('default disabled creates no listener',async()=>{
  await service.close();
 });
 test('ABV2 native pending/Approve verifies Owner, enrollment and returns no secrets',async(t)=>{
- if(process.platform==='win32'){t.skip('Unix permissions fixture');return;}
  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-v4-abv2-'));
  const parent=path.join(tmp,'.light-remote');
  fs.mkdirSync(parent,{mode:0o700});
- const socketPath=path.join(parent,'desktop-v4-abv2.sock');
+ const socketPath=process.platform==='win32'?ABV2_NATIVE_WIN_PIPE_V4:
+   path.join(parent,'desktop-v4-abv2.sock');
  let approvals=0,checks=0;
  const service=await startDesktopAbv2NativeAgentIpcV4({
   enabled:true,socketPath,readEnrollment:()=>({...enrollment}),
@@ -63,8 +63,10 @@ test('ABV2 native pending/Approve verifies Owner, enrollment and returns no secr
   }
  });
  t.after(async()=>{await service.close();fs.rmSync(tmp,{recursive:true,force:true});});
- assert.equal(fs.statSync(parent).mode&0o077,0);
- assert.equal(fs.statSync(socketPath).mode&0o077,0);
+ if(process.platform!=='win32'){
+  assert.equal(fs.statSync(parent).mode&0o077,0);
+  assert.equal(fs.statSync(socketPath).mode&0o077,0);
+ }
  const preview=await send(socketPath,{action:'pending',access:ACCESS});
  assert.equal(preview.ok,true);
  assert.equal(preview.pending.length,1);
@@ -83,19 +85,20 @@ test('ABV2 native pending/Approve verifies Owner, enrollment and returns no secr
  assert.ok(checks>=4);
 });
 test('revoked enrollment blocks native request before Owner check',async(t)=>{
- if(process.platform==='win32'){t.skip('Unix permissions fixture');return;}
  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-v4-abv2-revoked-'));
  const parent=path.join(tmp,'.light-remote');
  fs.mkdirSync(parent,{mode:0o700});
  let verified=false;
  const service=await startDesktopAbv2NativeAgentIpcV4({
-  enabled:true,socketPath:path.join(parent,'desktop-v4-abv2.sock'),
+  enabled:true,socketPath:process.platform==='win32'?ABV2_NATIVE_WIN_PIPE_V4:
+    path.join(parent,'desktop-v4-abv2.sock'),
   readEnrollment:()=>({...enrollment,revoked:true}),
   verifyOwner:async()=>{verified=true;return {verified:true,accountId:'acct_owner'};},
   preview:async()=>signed,approve:async()=>({ok:true})
  });
  t.after(async()=>{await service.close();fs.rmSync(tmp,{recursive:true,force:true});});
- const denied=await send(path.join(parent,'desktop-v4-abv2.sock'),{action:'pending',access:ACCESS});
+ const denied=await send(process.platform==='win32'?ABV2_NATIVE_WIN_PIPE_V4:
+   path.join(parent,'desktop-v4-abv2.sock'),{action:'pending',access:ACCESS});
  assert.deepEqual(denied,{ok:false});
  assert.equal(verified,false);
 });

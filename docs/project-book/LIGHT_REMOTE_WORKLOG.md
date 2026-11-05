@@ -1338,3 +1338,6 @@ Desktop run 42018640299 Web unit 60/60, Owner contract 25/25 and visual/packagin
 ## 2026-11-05 — T05A Desktop native 7/7 CI acceptance and bounded Owner Lab QA extension
 
 Desktop run 42019133001 completed SUCCESS 7/7 for UI/Owner contracts/Chromium and 3 OS UI-only + 3 OS Owner LAB native binaries. Windows unsigned Owner LAB exe SHA256 68286F22344F9271F842E75AF0AAC30C8438D96649B83F8C30B1AC72D358946B, artifact 13411585522. Gold Agent Source Gate 42018349829 PASS; native IPC 4/4. User's older Gold Windows Agent untouched; actual GoldABV2 same-host B grant E2E not accepted. LXD Owner Auth QA autooff extended via independent active timer to 19:44:01 ICT, SSO OFF; exact rollback unchanged. Next separate Agent QA enrollment, B approval, SSO two-way.
+
+## 2026-11-05 — T05B isolated GoldABV2 Windows Agent QA artifact preparation
+Windows read-only host verified Gold-old uses localhost 5491/5492; 5591/5592 free; PowerShell 5.1. Prepared separate manual GoldABV2 Agent ZIP CI from canonical Gold 129-file manifest, separate runtime/state/ports, fixed same-host named pipe, explicit new Owner enrollment, no installer/services/tasks. Windows PS parser PASS, Node 4/4 and static isolation test PASS; GitHub packaging and real live B grant pending. Old Gold remains unchanged.
