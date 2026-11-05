@@ -949,3 +949,8 @@ Source-only Gold Agent adapter prepares exact signed digest+ticket request for t
 ## 2026-11-05 — T04b9b verified GitHub Source Gate 4/4; T04b9a Desktop native 7/7
 
 Gold 2edf175e Source Gate 41964026074 SUCCESS all 4 jobs including new enrolled-device Ed25519 tests, Project Truth 41964026127 SUCCESS and Docs 41964026077 SUCCESS. Desktop earlier Rust native ticket module c010231e CI run 41962943877 SUCCESS 7/7 Web/Tauri/Owner LAB (Windows/macOS/Linux); Desktop Docs 41962943880 and Truth 41962943819 SUCCESS. Latest Desktop mirror 2751d372 Docs 41964056663 and Truth 41964056664 SUCCESS. These are CI and source tests, NOT physical Desktop-to-Wall signed SSO. T04b9c secured signed route, live Owner-family check and browser-safe bootstrap remain OPEN. No runtime or A/B/UAT/prod changes.
+
+
+## 2026-11-05 — T04b9c1 Agent→Plugin→Operator signed redeem HTTPS bridge SOURCE 148/148 PASS
+
+Added dedicated default-OFF public SSO route outside general device-channel whitelist, six exact flags, 404 before body parse, special 2KiB parser before 12MiB general and no generic SSO parser fallback. Added private immutable HTTPS Agent transport, no redirect/cookie/credentials, bounded response. Ten new Node tests with real Ed25519 EnrollmentRegistry + simulated HTTPS/Redis; selected T04 148/148 PASS. Gold Connection Source Gate extended. Not mounted/deployed on Lab, no live Owner/Windows SSO; all SSO flags OFF, public Lab 5/5 HTTPS200, UAT/prod A/B unchanged. Next T04b9c2 signed per-request Owner-family validation and secure Wall browser bootstrap. Exact CI run pending.
