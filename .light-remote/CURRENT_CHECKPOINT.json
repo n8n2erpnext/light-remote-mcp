@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C3C2_TOPOLOGY_LOCALHOST_SOURCE_PASS_DESKTOP_CI_PENDING_BIDIRECTIONAL_SSO_E2E_OPEN",
+  "status": "T04B9C3C2_DESKTOP_LOCAL_WALL_FIXED_FIRST_CI_PACKAGING_FAIL_REPAIRED_NATIVE_CI_RETRY_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b9c3c2 Desktop GitHub CI accept; then stage same-host GoldABV2 Agent+Desktop candidate and finish App-to-Wall, Wall-to-App Owner SSO and direct in-app Agent A/B V2 approval. No LXD NetBird Wall as native Desktop Open Wall target.",
+  "nextAction": "Accept followup Desktop native CI after updating obsolete LXD NetBird packaging contract; then same-device GoldABV2 Agent/App SSO both directions and in-App A/B V2 approval. SSO runtime OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "7ef2c596977e95a03281502fc0ccb0d883186d3a78ca9b7633ae281110e91d02",
     "trackedFiles": 1233,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T10:20:48.286Z"
+    "recordedAt": "2026-11-05T10:26:15.040Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1591,5 +1591,14 @@
     "abv2InAppApproval": "REQUIRED, NOT VERIFIED",
     "windowsE2E": "NOT TESTED",
     "handoff": "docs/project-book/LIGHT_REMOTE_DESKTOP_V4_LOCAL_WALL_T04_CORRECTION_20261105.md"
+  },
+  "t04b9c3c2PackagingFix": {
+    "date": "2026-11-05",
+    "initialNativeCI": 42010141813,
+    "initialNativeCIStatus": "FAIL: obsolete LR_V4_WALL_PROFILE assertion only, dependent native jobs skipped",
+    "changedPath": "client/desktop-v4/e2e/tauri-production-packaging-contract.mjs",
+    "fix": "guard absence of LXD NetBird Wall profile; require default-OFF SSO candidate; keep Tauri production asset embedding",
+    "retryCI": "PENDING",
+    "livingMaster": "docs/project-book/LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md"
   }
 }

@@ -1001,3 +1001,7 @@ deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs exports issueOwnerCaReco
 - client/desktop-v4/src/lib/native-shell.test.ts + client/desktop-v4/e2e/desktop-local-wall-route-contract.mjs + .github/workflows/desktop-v4-native-ci.yml: topology and CI guard.
 - device-agent/operator-agent.mjs: previous uncommitted experimental SSO mount reversed on Gold worktree, source default OFF.
 - docs/project-book/LIGHT_REMOTE_DESKTOP_V4_LOCAL_WALL_T04_CORRECTION_20261105.md: authoritative topic handoff complementing canonical Living Master.
+
+## 2026-11-05 — T04b9c3c2 packaging test alignment
+
+client/desktop-v4/e2e/tauri-production-packaging-contract.mjs: replaced historical GoldABV2 Linux LXD NetBird Wall profile assertion with same-device Desktop/local Wall route exclusion and SSO candidate OFF check; Tauri embedded release/frontend security still enforced. First CI 42010141813 failed old assertion, native jobs skipped; rerun pending.

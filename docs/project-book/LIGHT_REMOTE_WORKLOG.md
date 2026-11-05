@@ -1313,3 +1313,7 @@ Gold 6102e2cb selected SSO Node 185/185 PASS and staged packaged Wall 128 files 
 ## 2026-11-05 — T04b9c3c2 Desktop same-host Wall topology repair
 
 User confirmed local-first architecture: Desktop App, Tray and Wall belong to the same installed device; Linux headless Wall+CLI, NetBird LXD NAT is remote QA only. A/B V2 must work in-App; T04 Owner SSO App↔Wall TWO directions, App→Wall preferred. Previous uncommitted Gold Agent trial reverted, no Lab runtime touched. Desktop native main.rs/owner_login.rs, native-shell test and native CI now guard localhost:5491. Node22 standalone source contract PASS; GitHub CI pending. Full Owner SSO/Agent/Windows physical E2E NOT VERIFIED.
+
+## 2026-11-05 — T04b9c3c2 CI failure triage: obsolete LXD Wall packaging assertion
+
+Desktop run 42010141813 failed only in prior packaging-contract expectation of LR_V4_WALL_PROFILE=goldabv2-lab; all preceding Web/visual/source tests passed and native build jobs were skipped. Updated client/desktop-v4/e2e/tauri-production-packaging-contract.mjs to require same-host Wall profile absence and explicit SSO candidate OFF; Tauri production embedding check retained. CI rerun pending. No runtime change.
