@@ -1041,3 +1041,6 @@ Desktop run 42019133001 completed SUCCESS 7/7 for UI/Owner contracts/Chromium an
 
 ## 2026-11-05 — T05B isolated GoldABV2 Windows Agent QA artifact preparation
 Windows read-only host verified Gold-old uses localhost 5491/5492; 5591/5592 free; PowerShell 5.1. Prepared separate manual GoldABV2 Agent ZIP CI from canonical Gold 129-file manifest, separate runtime/state/ports, fixed same-host named pipe, explicit new Owner enrollment, no installer/services/tasks. Windows PS parser PASS, Node 4/4 and static isolation test PASS; GitHub packaging and real live B grant pending. Old Gold remains unchanged.
+
+## 2026-11-05 — T05B Windows pipe CI first failure and test-only correction
+Workflow 42026245362 Windows runner: 3 tests PASS including actual OS named-pipe pending/Approve with mock Operator, revoked enrollment and default OFF. Unix path test failed because simulated Linux path joined by Windows path module used backslashes. Corrected test to compare host path.join; native Agent runtime source unchanged. New Windows QA zip CI rerun pending.
