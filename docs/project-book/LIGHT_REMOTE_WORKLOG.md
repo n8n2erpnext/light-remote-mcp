@@ -939,3 +939,8 @@ Detected user systemd manager available when explicit bus vars are set; linger e
 ## 2026-11-05 — T04b9a native Rust ticket preparation, Desktop source staged; no SSO activation
 
 GoldABV2 Lab read-only: 5/5 active, verified public TLS health200, unauthenticated ticket POST404, six SSO flags not enabled; 129/129 targeted Gold SSO Node tests PASS. Added Desktop native-only fixed-HTTPS one-use 45s Owner ticket request/parser in owner_wall_ticket.rs and feature-gated module declaration in main.rs; no Tauri command or browser/JS/token exposure. Four Rust unit tests authored, not compiled on VPS-ARM (GitHub CI pending). Remote Lab Wall remains HTTP non-loopback, so real signed enrolled-device relay and secure/loopback browser Wall cookie bootstrap are still required before T04 E2E. Living Master updated identically on both branches. No Lab service/flag, A/B, Gold UAT or production changes.
+
+
+## 2026-11-05 — T04b9b enrolled-Agent Ed25519 redeem source, 138/138 selected SSO PASS
+
+Source-only Gold Agent adapter prepares exact signed digest+ticket request for trusted Operator; 9/9 real enrolled Ed25519 verification with simulated Redis and selected T04 Node 138/138 PASS. Workflow Source Gate expanded. Not mounted; no runtime or Owner/SSO flag change. Desktop Rust T04b9a remains source-only and Rust CI pending. Next T04b9c is secured Agent transport, signed per-request Owner-family verification and localhost/HTTPS browser-safe Wall bootstrap. Same Living Master in Gold and Desktop; no A/B/UAT/production modifications.
