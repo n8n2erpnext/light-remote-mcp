@@ -1364,3 +1364,7 @@ Owner-approved GoldABV2 Windows QA device CYD3BY enrolled and signed-connected. 
 ## 2026-11-05 — T05E native B approval UI integration regression preparation
 
 Added direct React form tests around actual NativeApprovalRequest and nativeAbv2Approve, covering B-only, consent-required, native IPC denied and zero HTTP fallback. Design preview test had never executed the native approval form, whereas backend grant and IPC protocol source were already tested. These tests need Windows/CI acceptance; they do NOT prove the previous human used Desktop rather than Account. No SSD-consuming install on VPS-ARM. QA Agent process was subsequently stopped (stopRequested); LXD Operator restarted and Windows QA device discovery briefly changed. Old Gold unaffected.
+
+## 2026-11-05 — T05E final native Desktop build accepted (source 7/7)
+
+CI run 42043281542 completed SUCCESS all 7 jobs. 63/63 frontend tests including 3 native React B/Owner-consent/fail-closed form tests, 25/25 Owner API contracts; Windows/macOS/Linux Owner LAB and UI-only native builds PASS. Windows Owner LAB artifact 13423977055, EXE SHA256 7759A1422F707A0F44B09A33C038E71FD450528ED7D1E3E8FAF5D5E57418A523 independently verified and staged on physical Windows in separate T05E QA folder; NOT launched or installed over previous candidate. Physical button provenance remains open; old Gold untouched, T04 SSO and signed Active Grants/Sessions API pending.
