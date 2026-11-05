@@ -1294,3 +1294,8 @@ Gold 219726a5 Source Gate 41976425962 SUCCESS 4/4, Truth 41976426058 and Docs 41
 ## 2026-11-05 — T04b9c3b Windows Named Pipe CI portability RCA and local fix
 
 Gold Windows Agent runner 41977418584 ran the 8 IPC Node tests on Windows: 7 PASS, 1 FAIL only from expected POSIX slash path vs Node Windows path.join backslashes. Changed test expectation to path.join, no production IPC, Agent A/B or security gate modified. Local IPC 8/8 PASS. New Windows CI pending next Gold commit. Desktop native 7/7 and prior Gold Source Gate 4/4 PASS, Lab SSO OFF, installed Windows SID/ACL and Owner E2E OPEN.
+
+
+## 2026-11-05 — T04b9c3b final source/CI accepted: Windows Named Pipe 8/8, Gold 4/4, Desktop native 7/7
+
+Gold ff530d88 GC Source Gate run 41977849737 4/4 SUCCESS; Windows Agent named pipe job 127080797526 source test 8/8 PASS (Windows Server). Previous path separator assertion 7/8 failure from 41977418584 fixed without changing IPC transport/ACL. Gold Truth 41977849777, Docs 41977849710 SUCCESS. Desktop mirror a01d7ba0 Truth 41977856720, Docs 41977856726 PASS; Desktop native Windows/mac/Linux source CI 41976431257 7/7 PASS. Gold selected Node SSO 181/181, packaged 127 files PASS. NOT installed Windows Owner-to-Wall E2E: no running Agent pipe, no Tauri command/UI, Windows service SID peer ACL test and real Redis signed Owner/browser finish OPEN. Lab SSO OFF, Gold UAT/prod A/B unchanged. NEXT T04b9c3c physical Windows explicit Owner challenge, Agent mount and guarded E2E.
