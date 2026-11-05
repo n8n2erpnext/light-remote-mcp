@@ -314,6 +314,10 @@
       "destination": "device-agent/desktop-wall-sso-browser-page-v4.mjs"
     },
     {
+      "source": "device-agent/desktop-abv2-native-ipc-v4.mjs",
+      "destination": "device-agent/desktop-abv2-native-ipc-v4.mjs"
+    },
+    {
       "source": "device-agent/desktop-wall-sso-native-ipc-v4.mjs",
       "destination": "device-agent/desktop-wall-sso-native-ipc-v4.mjs"
     },

@@ -1009,3 +1009,8 @@ client/desktop-v4/e2e/tauri-production-packaging-contract.mjs: replaced historic
 ## 2026-11-05 — T03 Owner Auth runtime route diagnostic
 
 Deployed LXD plugin-server/server.mjs gates GET /account/desktop/v4/authorize on LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4 and /account/desktop/v4/session on Owner Auth plus LR_GOLD_ABV2_DESKTOP_TOKEN_V4. A late permanent Lab systemd override set both=0; scoped /run late-sorting override enables both temporarily and an independent 50m auto-off timer restores baseline at 18:42:21 ICT. No repository source code changes; SSO remains OFF. Windows Desktop same-host Local Wall still 127.0.0.1:5491.
+
+## 2026-11-05 — T05A Desktop A/B V2 real API wiring
+Gold: device-agent/desktop-abv2-native-ipc-v4.mjs (+test); gated listener and verified signed Operator calls in device-agent/operator-agent.mjs; packaged by client/core-files.json.
+Desktop: client/desktop-v4/src-tauri/src/owner_abv2.rs, owner_login.rs, main.rs, build.rs, permissions/desktop-owner.toml; src/lib/native-abv2.ts (+test), src/App.tsx, .github/workflows/desktop-v4-native-ci.yml.
+Fixed private IPC and enrolled Agent binding; no new HTTP, no auth in JS, no approval without B. Feature source only until GoldABV2 Agent QA is enrolled on same host and physically accepted.

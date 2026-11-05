@@ -13,6 +13,7 @@ import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, norm
 import { createPlatformAdapter } from './platform-adapters/index.mjs';
 import { invalidateCommandExistenceCache } from './platform-adapters/shared.mjs';
 import { startLocalWall } from './local-wall.mjs';
+import { startDesktopAbv2NativeAgentIpcV4 } from './desktop-abv2-native-ipc-v4.mjs';
 import {goldAbV2LabWallBOnly} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import {assertNotificationOwnerEmail} from './wall-account-notifications.mjs';
 import {createGoldWallModules} from './gold-wall-modules.mjs';
@@ -1458,13 +1459,13 @@ async function daemon(args){
   const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||8000,15000));
   const dormantPollMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_DORMANT_CHECK_MS)||2000,30000));
   const commandHeartbeatMs=Math.max(2000,Math.min(Number(process.env.OPERATOR_AGENT_COMMAND_HEARTBEAT_MS)||5000,15000));
-  let stopped=false,wake=null,failures=0,localWall=null,fleetTimer=null,fleetReconciling=false,codexSupervisorTimer=null;
+  let stopped=false,wake=null,failures=0,localWall=null,desktopAbv2Ipc=null,fleetTimer=null,fleetReconciling=false,codexSupervisorTimer=null;
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
   EXECUTOR_PROBE.start();
   // Do not start a signed command channel with an unprobed new Agent.
   await EXECUTOR_PROBE.check();
   if(EXECUTOR_PROBE.status().ready===null)await EXECUTOR_PROBE.check();
-  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(typeof goldMemoryFlushTimer!=='undefined')clearInterval(goldMemoryFlushTimer);if(typeof goldPeerPollTimer!=='undefined')clearInterval(goldPeerPollTimer);if(wake)wake();if(codexSupervisorTimer)clearInterval(codexSupervisorTimer);if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(typeof goldMemoryFlushTimer!=='undefined')clearInterval(goldMemoryFlushTimer);if(typeof goldPeerPollTimer!=='undefined')clearInterval(goldPeerPollTimer);if(wake)wake();if(codexSupervisorTimer)clearInterval(codexSupervisorTimer);if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{desktopAbv2Ipc?.close().catch(()=>{});}catch{}try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
@@ -1482,6 +1483,89 @@ async function daemon(args){
       sessionId:p.sessionId,agentId:p.agentId},{force:Boolean(force)});
   },
   getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),setFilesystemRoots:async data=>setLocalFilesystemRoots(data),getFilesystemVolumes:async()=>filesystemVolumeInventory(),ownerApprovePermissions:async data=>ownerApproveServerPermissions(data,hub),rescanCapabilities:async()=>rescanHostCapabilities(hub),beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
+
+  // Desktop V4 native Agent bridge: same-host PRIVATE IPC, not a Wall HTTP
+  // route and not a new cloud endpoint. No feature flag => no listener.
+  // The current Windows Gold client remains unchanged until a separate
+  // GoldABV2-enrolled Agent candidate is explicitly installed and tested.
+  const desktopAbv2NativeEnabled=
+    process.env.LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4==='1'&&
+    hub==='https://goldabv2.light-remote.thaiduy.digital'&&
+    base==='https://goldabv2.light-remote.thaiduy.digital'&&
+    LOCAL_WALL_HOST==='127.0.0.1'&&
+    wallAuth?.enabled===true&&
+    Boolean(readState()?.enrollment?.deviceId);
+  if(desktopAbv2NativeEnabled){
+    const nativeEnrollment=()=>readState()?.enrollment||null;
+    const nativeOwner=async access=>{
+      if(!/^[A-Za-z0-9_-]{43}$/.test(String(access||'')))throw Error('desktop_owner_invalid');
+      const response=await fetch('https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/session',{
+        method:'GET',headers:{authorization:'Bearer '+access,accept:'application/json'},
+        credentials:'omit',redirect:'error',cache:'no-store',
+        signal:AbortSignal.timeout(7000)
+      });
+      if(response.status!==200||response.redirected===true||
+         !String(response.headers.get('content-type')||'').includes('application/json')||
+         Number(response.headers.get('content-length')||0)>2048)
+        throw Error('desktop_owner_invalid');
+      const chunks=[];let size=0;
+      for await(const chunk of response.body){
+        size+=chunk.length;if(size>2048)throw Error('desktop_owner_invalid');
+        chunks.push(Buffer.from(chunk));
+      }
+      const view=JSON.parse(Buffer.concat(chunks,size).toString('utf8'));
+      if(view?.verified!==true||view?.scope!=='desktop:read'||
+         view?.resource!=='urn:light-remote:desktop-owner:v4'||
+         view?.accountId!==nativeEnrollment().accountId)
+        throw Error('desktop_owner_invalid');
+      return {verified:true,accountId:view.accountId};
+    };
+    const nativePending=async owner=>{
+      const now=readState();
+      if(!now?.enrollment?.deviceId||
+         now.enrollment.accountId!==owner.accountId)throw Error('desktop_abv2_binding_invalid');
+      const answer=await channelRequest(now,hub,'abv2-pending-preview',{});
+      if(answer?.ok!==true||answer.deviceId!==now.enrollment.deviceId||
+         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(answer.accountEmail||''))||
+         !Array.isArray(answer.pending)||answer.pending.length>5||
+         !answer.pending.every(row=>row.state==='pending'&&
+           Number(row.expiresAt)>Date.now()))
+        throw Error('desktop_abv2_preview_invalid');
+      return {
+        ok:true,deviceId:answer.deviceId,accountEmail:answer.accountEmail,
+        shortId:answer.shortId||null,
+        ownerApproveEnabled:answer.ownerApproveEnabled===true,
+        ownerConsentRequired:!goldAbV2LabWallBOnly(),
+        pending:answer.pending.map(row=>({
+          requestId:row.requestId,attempt:row.attempt,
+          expiresAt:row.expiresAt,aCode:row.aCode
+        }))
+      };
+    };
+    const nativeApprove=async(owner,request)=>{
+      const preview=await nativePending(owner);
+      if(!preview.pending.some(p=>p.requestId===request.requestId&&
+         p.attempt===request.expectedAttempt))throw Error('desktop_abv2_request_changed');
+      return remoteAbV2OwnerApprove(hub,{
+        wallUsername:preview.accountEmail,
+        requestId:request.requestId,
+        expectedAttempt:request.expectedAttempt,
+        bCode:request.bCode,consentCode:request.consentCode
+      });
+    };
+    // IPC failure never takes down the existing device-local Wall/Agent.
+    // The Desktop will report unavailable instead of claiming a grant.
+    try{
+      desktopAbv2Ipc=await startDesktopAbv2NativeAgentIpcV4({
+        enabled:true,readEnrollment:nativeEnrollment,verifyOwner:nativeOwner,
+        preview:nativePending,approve:nativeApprove
+      });
+      console.log(JSON.stringify({event:'desktop_abv2_native_ready',transport:'os-private'}));
+    }catch{
+      console.log(JSON.stringify({event:'desktop_abv2_native_unavailable'}));
+    }
+  }
+
   console.log(JSON.stringify({event:'local_wall_started',url:localWall.url,deviceId:state.enrollment?.deviceId||null}));
   console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,sessionCeiling,waitMs,dormantPollMs,localWallUrl:localWall.url}));
   acknowledgeCoreUpdateHealth();
