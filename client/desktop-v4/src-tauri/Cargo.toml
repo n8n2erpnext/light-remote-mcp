@@ -14,7 +14,7 @@ tauri-build = { version = "2", features = [] }
 [features]
 default = []
 # Candidate native Owner bridge. The installed UI pilot does not enable this.
-desktop-owner-login = ["dep:keyring", "dep:base64", "dep:rand", "dep:sha2", "dep:reqwest", "dep:url", "dep:serde", "dep:serde_json"]
+desktop-owner-login = ["dep:keyring", "dep:base64", "dep:rand", "dep:sha2", "dep:reqwest", "dep:url", "dep:serde", "dep:serde_json", "dep:tokio"]
 
 [dependencies]
 tauri = { version = "2", features = [] }
@@ -28,6 +28,8 @@ url = { version = "2.5.7", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
 reqwest = { version = "0.12.24", default-features = false, features = ["blocking", "json", "rustls-tls"], optional = true }
+# Async bounded OS-private named pipe/Unix socket delivery. No HTTP bearer route.
+tokio = { version = "1", features = ["net", "io-util", "time"], optional = true }
 
 
 [profile.dev]

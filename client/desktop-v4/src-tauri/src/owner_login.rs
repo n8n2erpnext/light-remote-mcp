@@ -536,9 +536,145 @@ pub(crate) fn desktop_owner_logout(state:State<'_,OwnerRuntime>) -> Result<Owner
     state.view()
 }
 
+
+// T04b9c3b2: private Owner-generation-fenced Wall handoff. Only native
+// Rust can read this snapshot. No Tauri command is published and React
+// cannot pass an access/refresh token or receive a one-use Wall ticket.
+struct NativeOwnerWallSnapshot {
+    generation:u64,
+    account:String,
+    access:String,
+}
+fn wall_sso_denied() -> String {
+    "desktop_wall_sso_native_owner_unavailable".into()
+}
+impl OwnerRuntime {
+    fn wall_snapshot(&self) -> Result<NativeOwnerWallSnapshot,String> {
+        let s=self.inner.lock().map_err(|_|wall_sso_denied())?;
+        if s.phase!="verified" || s.status_inflight ||
+           s.access_deadline.map_or(true,|d|
+               d<=Instant::now()+OWNER_REFRESH_MARGIN) {
+            return Err(wall_sso_denied());
+        }
+        let account=s.account_id.as_deref().ok_or_else(wall_sso_denied)?;
+        let access=s.access_token.as_deref().ok_or_else(wall_sso_denied)?;
+        if !account_ok(account)||!token_ok(access) {
+            return Err(wall_sso_denied());
+        }
+        Ok(NativeOwnerWallSnapshot {
+            generation:s.generation,account:account.into(),access:access.into()
+        })
+    }
+    fn wall_snapshot_current(&self,snap:&NativeOwnerWallSnapshot) -> bool {
+        let Ok(s)=self.inner.lock() else{return false;};
+        s.phase=="verified" && !s.status_inflight &&
+            s.generation==snap.generation &&
+            s.account_id.as_deref()==Some(snap.account.as_str()) &&
+            s.access_token.as_deref()==Some(snap.access.as_str()) &&
+            s.access_deadline.is_some_and(|d|
+                d>Instant::now()+OWNER_REFRESH_MARGIN)
+    }
+    fn wall_expire_if_snapshot_current(&self,snap:&NativeOwnerWallSnapshot) {
+        if let Ok(mut s)=self.inner.lock(){
+            if s.generation==snap.generation &&
+               s.access_token.as_deref()==Some(snap.access.as_str()) {
+                s.expire();
+            }
+        }
+    }
+}
+
+/// Source-only native orchestration for a future explicit Owner UI action.
+/// Caller supplies *public* 43-character browser challenge + selected Device
+/// ID, never a ticket. The HTTPS issuer rechecks Owner enrollment and scope;
+/// the OS-local Agent IPC requires the actual enrolled Device signer and
+/// cannot be replaced with an HTTP endpoint. A stale generation cannot
+/// finish after Owner Sign out / refresh rotation.
+pub(crate) async fn approve_private_owner_wall_sso(
+    runtime:OwnerRuntime,challenge:String,device_id:String
+) -> Result<(),String> {
+    if !token_ok(&challenge)||!crate::owner_wall_ticket::device_id_ok(&device_id) {
+        return Err(wall_sso_denied());
+    }
+    let snap=runtime.wall_snapshot()?;
+    let account=snap.account.clone();
+    let access=snap.access.clone();
+    let verified=tauri::async_runtime::spawn_blocking(move||
+        verify_owner_session(&access,&account)
+    ).await.map_err(|_|wall_sso_denied())?;
+    if !verified{
+        runtime.wall_expire_if_snapshot_current(&snap);
+        return Err(wall_sso_denied());
+    }
+    if !runtime.wall_snapshot_current(&snap){return Err(wall_sso_denied());}
+    let token=snap.access.clone();
+    let selected=device_id.clone();
+    let ticket=tauri::async_runtime::spawn_blocking(move||
+        crate::owner_wall_ticket::request_native_wall_ticket(&token,&selected)
+    ).await.map_err(|_|wall_sso_denied())?
+        .map_err(|_|wall_sso_denied())?;
+    if !runtime.wall_snapshot_current(&snap) ||
+       ticket.device_id()!=device_id {
+        return Err(wall_sso_denied());
+    }
+    crate::owner_wall_ticket::relay_native_wall_ticket_to_agent(
+        &challenge,&ticket
+    ).await.map_err(|_|wall_sso_denied())?;
+    if !runtime.wall_snapshot_current(&snap){
+        return Err(wall_sso_denied());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn t04b9c3b2_wall_snapshot_does_not_promote_signed_out_owner() {
+        let runtime=OwnerRuntime::default();
+        assert!(runtime.wall_snapshot().is_err());
+    }
+    #[test]
+    fn t04b9c3b2_wall_owner_generation_and_refresh_fences() {
+        let runtime=OwnerRuntime::default();
+        {
+            let mut s=runtime.inner.lock().unwrap();
+            s.phase="verified".into();
+            s.account_id=Some("acct_dev".into());
+            s.access_token=Some("A".repeat(43));
+            s.generation=5;
+            s.last_verified=Some(Instant::now());
+            s.access_deadline=Some(Instant::now()+Duration::from_secs(550));
+        }
+        let current=runtime.wall_snapshot().unwrap();
+        assert!(runtime.wall_snapshot_current(&current));
+        {
+            let mut s=runtime.inner.lock().unwrap();
+            s.status_inflight=true;
+        }
+        assert!(!runtime.wall_snapshot_current(&current));
+        assert!(runtime.wall_snapshot().is_err());
+        {
+            let mut s=runtime.inner.lock().unwrap();
+            s.status_inflight=false;
+            s.generation=6;
+        }
+        assert!(!runtime.wall_snapshot_current(&current));
+    }
+    #[test]
+    fn t04b9c3b2_wall_session_near_expiry_cannot_issue_ticket() {
+        let runtime=OwnerRuntime::default();
+        {
+            let mut s=runtime.inner.lock().unwrap();
+            s.phase="verified".into();
+            s.account_id=Some("acct_dev".into());
+            s.access_token=Some("A".repeat(43));
+            s.access_deadline=Some(Instant::now()+Duration::from_secs(30));
+        }
+        assert!(runtime.wall_snapshot().is_err());
+    }
+
     #[test]
     fn url_is_exact_account_desktop_not_mcp_or_wall() {
         let u=auth_url("http://127.0.0.1:49152/desktop/v4/callback",

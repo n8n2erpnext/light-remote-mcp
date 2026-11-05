@@ -592,3 +592,11 @@ Current T04b7b source entry points: plugin-server/server.mjs → desktop-wall-ss
 - \`client/desktop-v4/src-tauri/src/main.rs\`: desktop-owner-login feature declares the module; no new IPC command or default/UI-only build behavior.
 - Four Rust module tests added for endpoint, valid identity/TTL, expiration/mismatch/extras, malformed input. CI/native compile PENDING. Runtime Lab unchanged and T04 SSO OFF.
 - Next source boundary: only a trusted native OS-vault Owner session may call the request; enrolled device must redeem using signed Ed25519 channel, and a secure true HTTPS or same-device loopback Wall must set its own browser-origin cookie. The existing nonloopback NetBird HTTP Lab Wall is NOT a valid SSO cookie endpoint.
+
+
+## 2026-11-05 — T04b9c3b2 native Rust Owner->Device Agent private IPC source candidate (NOT MOUNTED)
+
+- client/desktop-v4/src-tauri/src/owner_wall_ticket.rs: private Rust Tokio Unix socket / Windows Named Pipe delivery with fixed path, <=1536-byte exact challenge/ticket/device binding, 4s timeout, 45s issuer TTL/2s expiry margin, private success ACK only. Never an HTTP/browser URL or Tauri command.
+- client/desktop-v4/src-tauri/src/owner_login.rs: private approve_private_owner_wall_sso workflow; fresh independent HTTPS Owner session check before ticket issue and generation/account/access fences before/after issue and after local relay. Owner bearer/refresh stays in Rust/OS vault, no UI leakage. Three new unit tests for signed-out, generation/refresh and near-expiry fail closed.
+- client/desktop-v4/src-tauri/Cargo.toml: optional Tokio net/time/io-util added only under desktop-owner-login candidate. UI-only pilot remains unchanged; real Windows named pipe access/SID identity, physical Agent service integration and native credential rotation are OPEN. Do not expose command to React until secure Agent listener is validated.
+- Gold code branch independently sealed legacy browser ticket POST and added OS-private source Agent listener, not mounted. Next T04b9c3c explicit user-initiated browser challenge -> native -> enrolled Agent -> browser secure finish; physical Windows E2E and real Redis acceptance required. Native cross-OS CI pending.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C3A_SOURCE_173_OF_173_PACKAGED_WALL_PASS_GOLD_CI_4_OF_4_ACCEPTED_SSO_OFF",
+  "status": "T04B9C3B_LEGACY_BROWSER_TICKET_ALWAYS_404_NATIVE_OS_IPC_SOURCE_181_OF_181_NODE_PASS_CI_PENDING_SSO_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T04b9c3b: native OS-vault Owner ticket and explicit user-initiated browser challenge->enrolled Agent handoff; retire/seal legacy browser ticket POST /auth/desktop/sso/redeem, use true loopback/HTTPS browser finish and physical Windows E2E. Gold e8020156 CI 41972670571 4/4 PASS; Gold Docs/Truth PASS; Desktop d3048146 Docs/Truth PASS. Lab 5/5 HTTPS200 mTLS, SSO OFF, A/B/UAT/prod untouched.",
+  "nextAction": "T04b9c3c: physical Windows native UI challenge with explicit Owner intent, mount OS-private Node Agent pipe only with verified OS peer and enrollment identity, native Rust Owner server+generation fence; real Redis/Owner family signed challenge browser finish and Lab auto-OFF E2E. Current Gold SSO Node 181/181 PASS, 127 packaged files; Native Rust six new tests await CI; no Tauri IPC and no live Agent listener yet. GoldABV2 Lab SSO OFF, A/B UAT prod unchanged.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -171,10 +171,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "fa7d9157aa407cdc6aa35f323009f55ef1b9b41ef0e813110b96ba5c8d14dc61",
+    "treeDigest": "1bf63a9f84a7e5e4e6f8f4486be81b9a3230542c242740d2f286bf298b9e9d73",
     "trackedFiles": 1183,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T03:38:57.546Z"
+    "recordedAt": "2026-11-05T05:49:08.588Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -876,7 +876,7 @@
     "livingSince": "2026-11-04",
     "mandatoryForEveryTask": true,
     "mirrorByteIdenticalRequired": true,
-    "startingNextTask": "T04b9c3b",
+    "startingNextTask": "T04b9c3c",
     "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
     "introReceipt": "2026-11-04 H00",
     "firstGoldCommit": "c38e2e540fa66ce634ab5e2902ae628af3a905e8",
@@ -1337,5 +1337,16 @@
     "ci": "Gold Source Gate 41972670571 4/4 SUCCESS; Gold Truth 41972670326 SUCCESS; Gold Docs 41972670416 SUCCESS; Desktop Truth 41972698394 SUCCESS; Desktop Docs 41972698399 SUCCESS",
     "next": "T04b9c3b",
     "legacySecurityGate": "Legacy /auth/desktop/sso/redeem browser ticket POST MUST be retired or sealed before live SSO"
+  },
+  "t04b9c3bNativePrivateIpc": {
+    "state": "source_only_not_mounted",
+    "legacyBrowserRedeem": "unconditional HTTP404 regardless of feature flags",
+    "ipc": "Windows named pipe no broad grants; Unix socket 0600 private 0700 dir; strict 1536B, one-use challenge/ticket",
+    "nativeOwner": "verified HTTPS Owner + generation/access fence around issue and OS-local relay, no Tauri command",
+    "tests": "Gold T04 Node 181/181 PASS; private IPC 8 tests; legacy loopback HTTP challenge revoke PASS; packaged Wall 127 files PASS",
+    "rustTests": "6 added, native CI pending",
+    "risk": "Windows named pipe OS peer/SID ACL compatibility and physical same-user service identity NOT verified",
+    "runtime": "not deployed; Lab SSO OFF",
+    "next": "T04b9c3c"
   }
 }
