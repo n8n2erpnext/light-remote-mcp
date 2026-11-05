@@ -584,3 +584,11 @@ Current T04b7b source entry points: plugin-server/server.mjs → desktop-wall-ss
 - `plugin-server/server.mjs`: load server-only `LR_GOLD_ABV2_DESKTOP_WALL_SSO_EDGE_PROOF_V4` with NO default/logging; six existing independent SSO activation flags unchanged, default OFF.
 - `plugin-server/desktop-wall-sso-native-issue-v4.test.mjs`, `...native-router-v4.test.mjs`, `...native-transport-v4.test.mjs`: negative direct-localhost spoofed XFP Host, absent/invalid edge proof, no peer match, failure to register when proof absent, actual Node HTTP→Unix-socket 403 before Operator, positive trusted simulated path. Selected T04 **129/129 Node PASS**, Wall HTTP revoke loopback PASS; Gold CI pending.
 - **Deployment caution:** Traefik dynamic router currently contains NO edge-proof middleware. Static proof over plain HTTP between Traefik and LXD is susceptible to on-host sniff/replay; never activate in production solely because the source test passes. Next T04b8-A2 requires protected transport/backend isolation and actual TLS-only proxy overwrite verification; then bounded real Lab E2E with snapshot/auto-OFF.
+
+
+## 2026-11-05 — T04b9a Desktop Rust-only Wall ticket preparation (NOT MOUNTED)
+
+- \`client/desktop-v4/src-tauri/src/owner_wall_ticket.rs\`: fixed HTTPS native Owner ticket issuer candidate. Rust-only opaque 43-character token validation, exact selected device ID, 45-second expiration, 2KiB bounded exact-field reply; native reqwest no redirects/cookies. Never exposes ticket/Owner token to WebView, URL, browser or logging; no Tauri command invokes this helper yet.
+- \`client/desktop-v4/src-tauri/src/main.rs\`: desktop-owner-login feature declares the module; no new IPC command or default/UI-only build behavior.
+- Four Rust module tests added for endpoint, valid identity/TTL, expiration/mismatch/extras, malformed input. CI/native compile PENDING. Runtime Lab unchanged and T04 SSO OFF.
+- Next source boundary: only a trusted native OS-vault Owner session may call the request; enrolled device must redeem using signed Ed25519 channel, and a secure true HTTPS or same-device loopback Wall must set its own browser-origin cookie. The existing nonloopback NetBird HTTP Lab Wall is NOT a valid SSO cookie endpoint.

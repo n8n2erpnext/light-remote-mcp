@@ -9,6 +9,8 @@
 mod owner_vault;
 #[cfg(feature = "desktop-owner-login")]
 mod owner_login;
+#[cfg(feature = "desktop-owner-login")]
+mod owner_wall_ticket;
 
 // Only preapproved build-time profiles may open a Wall.
 // An isolated GoldABV2 Lab V4 pilot targets a NetBird overlay address.
