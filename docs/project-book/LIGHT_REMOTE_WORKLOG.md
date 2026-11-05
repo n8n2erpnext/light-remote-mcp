@@ -1254,3 +1254,8 @@ Gold 2edf175e Source Gate 41964026074 SUCCESS all 4 jobs including new enrolled-
 ## 2026-11-05 — T04b9c1 Agent→Plugin→Operator signed redeem HTTPS bridge SOURCE 148/148 PASS
 
 Added dedicated default-OFF public SSO route outside general device-channel whitelist, six exact flags, 404 before body parse, special 2KiB parser before 12MiB general and no generic SSO parser fallback. Added private immutable HTTPS Agent transport, no redirect/cookie/credentials, bounded response. Ten new Node tests with real Ed25519 EnrollmentRegistry + simulated HTTPS/Redis; selected T04 148/148 PASS. Gold Connection Source Gate extended. Not mounted/deployed on Lab, no live Owner/Windows SSO; all SSO flags OFF, public Lab 5/5 HTTPS200, UAT/prod A/B unchanged. Next T04b9c2 signed per-request Owner-family validation and secure Wall browser bootstrap. Exact CI run pending.
+
+
+## 2026-11-05 — T04b9c1 accepted Gold CI 4/4; Docs & Project Truth PASS
+
+Gold 3eedc8c7 Source Gate run 41965947690 SUCCESS 4/4; Gold Project Truth 41965947536 and Docs Integrity 41965947823 SUCCESS. Desktop mirror 95fdf75d Project Truth 41965978629 and Docs Integrity 41965978919 SUCCESS. GoldABV2 Lab 5/5 active, public TLS health 200 verification0; signed redeem publicly 404, SSO OFF. Local signed-route regression 148/148 PASS; real Redis, actual native Windows-to-Wall Owner SSO and browser bootstrap NOT tested. Next T04b9c2 signed Owner-family-current per request and true local/HTTPS secure Wall session. No runtime/A-B/UAT/production change.
