@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T05C_GOLDABV2_WINDOWS_QA_CI_PASS_SECOND_DEVICE_ENROLLMENT_PENDING_OWNER_APPROVAL_REAL_ABV2_B_GRANT_OPEN",
+  "status": "T05D_WINDOWS_GOLDABV2_ABV2_B_GRANT_AND_REAL_COMMAND_PASS_DESKTOP_GUI_B_PROVENANCE_OPEN_SSE_FIX_NODE_5_OF_5_PASS_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Owner must approve new GoldABV2 QA Windows device enrollment (enr_d86c2daa-259d-4808-8eec-70a03c8d5397 / code B2L9-DF4G, 600s validity). After approval poll and start QA Agent 5591/5592, use Light Remote AB V2 plugin to create A and test Desktop native Owner B Approve. Existing Gold untouched. T04 SSO separate.",
+  "nextAction": "Gold Windows CI regenerate isolated Agent QA ZIP after Local Wall SSE close crash fix; verify operator B grant via A/B V2 ready and real command (already PASS); independently verify Desktop V4 GUI Approve through native IPC (not confirmed by backend), then T04 two-way SSO and signed Sessions UI. Lab exact QA device allowlist autooff 21:08:12 ICT, no old Gold changes.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -174,7 +174,7 @@
     "treeDigest": "6f583600b76866696a9324123a51913e46e32570703fd6d3eb22938dc35440c3",
     "trackedFiles": 1189,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T13:08:38.798Z"
+    "recordedAt": "2026-11-05T13:39:09.222Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1507,5 +1507,24 @@
     "abiToolDiscovery": "0 matching QA device before enrollment",
     "realBGrant": "NOT TESTED",
     "oldGold": "UNCHANGED"
+  },
+  "t05dWindowsAbv2EndToEnd": {
+    "date": "2026-11-05",
+    "qaDeviceId": "dev_2b22462d8df5491f3b880fda",
+    "qaShortId": "CYD3BY",
+    "enrollment": "Owner approved",
+    "sameAccountAsLxd": true,
+    "cloudConnectionId": "dc_253f0d32-827d-427e-99c5-77ceee5ca0f8",
+    "abv2Grant": "PASS, Helper ready and list_devices granted QA device",
+    "abv2Session": "s_mw3l77zr_6e38d5244fcd49f7",
+    "realRemoteCommand": "PASS via newly authorized AB plugin session",
+    "desktopUiApprovalProvenance": "NOT INDEPENDENTLY VERIFIED",
+    "localWallSseBug": "stopActivityPumpIfIdle undefined; removed bad call in source and physically patched isolated QA runtime",
+    "regressionTests": "SSE 1/1, native IPC 4/4, total 5/5 PASS on Gold ARM; Windows CI pending",
+    "abv2OperatorLabAllowlist": "temporary exact QA device + original LXD only",
+    "allowlistAutooffIct": "2026-11-05T21:08:12+07:00",
+    "oldWindowsGold": "ports 5491/5492 and Agent untouched",
+    "qaPorts": "Wall 5591, Fleet 5592 not currently listening",
+    "sso": "NOT COMPLETE"
   }
 }
