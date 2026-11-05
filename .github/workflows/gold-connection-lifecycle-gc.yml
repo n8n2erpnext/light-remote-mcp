@@ -678,3 +678,9 @@ jobs:
           node deploy/scripts/selftest-gold-execution-epoch-agent-journal.mjs
           node deploy/scripts/selftest-gold-execution-epoch-native-process.mjs
           node deploy/scripts/selftest-gold-execution-epoch-wiring.mjs
+      - name: T04b9c3b2 Windows OS-private Agent Named Pipe SSO source contract
+        shell: pwsh
+        run: |
+          node --check device-agent/desktop-wall-sso-native-ipc-v4.mjs
+          node --check device-agent/desktop-wall-sso-native-ipc-v4.test.mjs
+          node --test device-agent/desktop-wall-sso-native-ipc-v4.test.mjs

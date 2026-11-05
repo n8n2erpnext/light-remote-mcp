@@ -972,3 +972,10 @@ deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs exports issueOwnerCaReco
 - device-agent/desktop-wall-sso-native-ipc-v4.test.mjs (8): socket ACL/mode, absent listener, invalid messages, wrong device, replay, unsafe parent/symlink, fixed path, no runtime mount. Selected Gold T04 Node 181/181 PASS; old static tests updated to require legacy sealing.
 - client/core-files.json: 127 core files, new native IPC module shipped without activating, stage/verify SHA256 + packaged Wall icon/status/pagerender PASS. Gold Connection Source Gate workflow tests and source paths updated, GitHub CI pending.
 - NEXT T04b9c3c: Owner-initiated UI challenge → Rust generation-fenced native ticket → OS-private IPC Agent signed redeem → Wall browser finish. NO live owner E2E yet; Windows service peer identity not independently proven; Lab flags OFF.
+
+
+## 2026-11-05 — T04b9c3b native Win/mac/Linux CI accepted; Windows named pipe source test added
+
+- Gold source 219726a5 41976425962 Source Gate 4/4 PASS (181/181 selected Node SSO and 127 core file packaged Wall), Truth 41976426058, Docs 41976425876 PASS.
+- Desktop source 7c5852bd CI 41976431257 7/7 PASS native Win/mac/Linux Owner LAB/UI-only, Rust vault/Owner unit tests SUCCESS, Truth 41976431454, Docs 41976431358 PASS. Not actual installed Owner SSO.
+- Gold Connection Source Gate Windows Agent job now runs private IPC Node test on windows-latest; separate new workflow CI PENDING to verify OS Named Pipe protocol. Actual installed Windows service identity ACL and browser user consent remain OPEN. SSO default OFF, no Agent mount or UAT/prod/A-B changes.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C3B_LEGACY_BROWSER_TICKET_ALWAYS_404_NATIVE_OS_IPC_SOURCE_181_OF_181_NODE_PASS_CI_PENDING_SSO_OFF",
+  "status": "T04B9C3B_GOLD_CI_4_OF_4_DESKTOP_NATIVE_CI_7_OF_7_PASS_WINDOWS_NAMED_PIPE_CI_PENDING_SSO_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b9c3c: physical Windows native UI challenge with explicit Owner intent, mount OS-private Node Agent pipe only with verified OS peer and enrollment identity, native Rust Owner server+generation fence; real Redis/Owner family signed challenge browser finish and Lab auto-OFF E2E. Current Gold SSO Node 181/181 PASS, 127 packaged files; Native Rust six new tests await CI; no Tauri IPC and no live Agent listener yet. GoldABV2 Lab SSO OFF, A/B UAT prod unchanged.",
+  "nextAction": "T04b9c3c: Windows Named Pipe Node runner CI new Gold workflow pending; then verify installed Windows same-account Agent/Owner SID ACL, explicit Owner challenge UI, Rust native ticket-to-Agent IPC, Ed25519 real Redis and browser same-device secure Wall finish. Gold Source run 41976425962 4/4 SUCCESS, Desktop native run 41976431257 7/7 SUCCESS; Lab SSO OFF, A/B/UAT/prod unaffected.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "32b02f61f99a2a85bf3743b627d96aad1d1d3c055b2cfcc098bf08da976cd3d0",
+    "treeDigest": "7c2e3b9b2a6e662dfd97747398334ae46bdac8af840dacb1ba84e4367b058d25",
     "trackedFiles": 1232,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T05:48:46.349Z"
+    "recordedAt": "2026-11-05T05:58:51.521Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1555,7 +1555,7 @@
     "legacySecurityGate": "Legacy /auth/desktop/sso/redeem browser ticket POST MUST be retired or sealed before live SSO"
   },
   "t04b9c3bNativePrivateIpc": {
-    "state": "source_only_not_mounted",
+    "state": "source_ci_pass_not_mounted",
     "legacyBrowserRedeem": "unconditional HTTP404 regardless of feature flags",
     "ipc": "Windows named pipe no broad grants; Unix socket 0600 private 0700 dir; strict 1536B, one-use challenge/ticket",
     "nativeOwner": "verified HTTPS Owner + generation/access fence around issue and OS-local relay, no Tauri command",
@@ -1563,6 +1563,9 @@
     "rustTests": "6 added, native CI pending",
     "risk": "Windows named pipe OS peer/SID ACL compatibility and physical same-user service identity NOT verified",
     "runtime": "not deployed; Lab SSO OFF",
-    "next": "T04b9c3c"
+    "next": "T04b9c3c",
+    "goldCi": "Source Gate 41976425962 4/4 SUCCESS; Truth 41976426058 SUCCESS; Docs 41976425876 SUCCESS",
+    "desktopCi": "UI and Tauri native 41976431257 7/7 SUCCESS Windows/macOS/Linux; Truth 41976431454 SUCCESS; Docs 41976431358 SUCCESS",
+    "winPipeCi": "new Windows Agent CI step pending new Gold workflow run"
   }
 }
