@@ -33,6 +33,7 @@ async function fixture(){
   const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-t04-ipc-'));
   fs.chmodSync(tmp,0o700);
   const wall={desktopSsoBootstrap:{
+    pendingForNative:()=>({challenge:C,expiresAt:Date.now()+45000}),
     async approveTrustedNative({challenge,ticket}){
       assert.equal(challenge,C);assert.equal(ticket,T);
       approved++;
@@ -164,4 +165,37 @@ test('T04b9c3b2 private IPC is never mounted in running Agent or browser',()=>{
   assert.equal(agent.includes("desktop-wall-sso-native-ipc-v4.mjs"),false);
   assert.equal(wall.includes('startNativeWallSsoAgentIpcV4'),false);
   assert.equal(wall.includes('approveTrustedNative(req'),false);
+});
+
+test('T04b9c3c private pending returns one challenge but never a ticket',async()=>{
+  const f=await fixture();
+  try{
+    const raw=await send(f.socketPath,{action:'pending'});
+    const row=JSON.parse(raw);
+    assert.deepEqual(Object.keys(row).sort(),
+      ['challenge','deviceId','expiresAt','ok','pending']);
+    assert.equal(row.challenge,C);
+    assert.equal(row.deviceId,DEVICE);
+    assert.equal(row.ok,true);
+    assert.equal(row.pending,true);
+    assert.ok(row.expiresAt>Date.now());
+    assert.equal(raw.includes(T),false);
+    assert.equal(raw.includes('accountId'),false);
+    assert.equal(f.approvals(),0);
+    for(const value of [
+      {action:'pending',ticket:T},
+      {action:'list'},
+      {action:'pending',agentGrant:'yes'}
+    ])assert.deepEqual(JSON.parse(await send(f.socketPath,value)),{ok:false});
+    assert.equal(f.approvals(),0);
+  }finally{await f.close();}
+});
+test('T04b9c3c revoked device cannot even read pending browser challenge',async()=>{
+  const f=await fixture();
+  try{
+    f.revoke();
+    assert.deepEqual(JSON.parse(await send(f.socketPath,{action:'pending'})),
+      {ok:false});
+    assert.equal(f.approvals(),0);
+  }finally{await f.close();}
 });

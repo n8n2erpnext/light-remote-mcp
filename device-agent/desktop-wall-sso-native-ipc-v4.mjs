@@ -63,6 +63,7 @@ export async function startNativeWallSsoAgentIpcV4({
     enabled:false,path:null,close:async()=>{}
   });
   if(typeof wall?.desktopSsoBootstrap?.approveTrustedNative!=='function'||
+     typeof wall?.desktopSsoBootstrap?.pendingForNative!=='function'||
      typeof getEnrollment!=='function'||typeof socketPath!=='string'||
      (process.platform==='win32'
        ?socketPath!==NATIVE_WALL_SSO_WIN_PIPE_V4
@@ -89,6 +90,26 @@ export async function startNativeWallSsoAgentIpcV4({
         try{
           if(newline!==buffer.length-1)throw denied();
           const row=JSON.parse(input);
+          // A native Owner can request the ONE current non-bearer browser
+          // challenge, but cannot list accounts, tickets or Wall cookies.
+          if(exact(row,['action'])&&row.action==='pending'){
+            const before=getEnrollment();
+            if(before?.revoked===true||before?.revokedAt||
+               !valid(ID,before?.accountId)||!valid(ID,before?.deviceId))
+              throw denied();
+            const pending=wall.desktopSsoBootstrap.pendingForNative();
+            const after=getEnrollment();
+            if(!pending||!valid(TOKEN,pending.challenge)||
+               !Number.isSafeInteger(pending.expiresAt)||
+               after?.revoked===true||after?.revokedAt||
+               after?.deviceId!==before.deviceId||
+               after?.accountId!==before.accountId)throw denied();
+            socket.end(JSON.stringify({
+              ok:true,pending:true,challenge:pending.challenge,
+              deviceId:before.deviceId,expiresAt:pending.expiresAt
+            })+'\n');
+            return;
+          }
           if(!exact(row,['challenge','ticket','deviceId'])||
              !valid(TOKEN,row.challenge)||!valid(TOKEN,row.ticket)||
              !valid(ID,row.deviceId))throw denied();

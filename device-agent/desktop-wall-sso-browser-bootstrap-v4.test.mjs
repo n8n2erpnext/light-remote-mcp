@@ -237,3 +237,45 @@ test('T04b9c3a default OFF and native approval never exposed as HTTP route',asyn
   assert.ok(src.includes('desktopSsoBootstrap.approveTrustedNative')===false);
   assert.ok(src.includes('desktopSsoBootstrap.finish(req)'));
 });
+test('T04b9c3c private pending lookup is single-choice and non-bearer',async()=>{
+  const svc=createDesktopWallSsoBrowserBootstrapV4({
+    wallSession:{
+      redeem:async()=>({cookie:'lr_wall_desktop_sso_v4=v1.A'}),
+      identity:async()=>null
+    }
+  });
+  assert.equal(svc.pendingForNative(),null);
+  const first=svc.begin();
+  assert.deepEqual(svc.pendingForNative(),{
+    challenge:first.challenge,expiresAt:first.expiresAt
+  });
+  svc.begin();
+  assert.equal(svc.pendingForNative(),null,'multiple browser tabs cannot be silently approved');
+});
+
+
+test('T04b9c3c local Wall renders challenge page only when native SSO opted in',async()=>{
+  const x=await wallFixture();
+  try{
+    const page=await fetch(x.base+'/auth/desktop/sso/browser');
+    assert.equal(page.status,200);
+    const html=await page.text();
+    assert.match(html,/Sign in with Desktop V4/);
+    assert.match(html,/app\.js/);
+    assert.equal(html.includes(TICKET),false);
+    assert.equal(html.includes(FAMILY),false);
+    const csp=page.headers.get('content-security-policy');
+    assert.match(csp,/script-src 'self'/);
+    assert.doesNotMatch(csp,/script-src[^;]*unsafe-inline/);
+    const js=await fetch(x.base+'/auth/desktop/sso/browser/app.js');
+    assert.equal(js.status,200);
+    const script=await js.text();
+    assert.match(script,/challenge\.slice\(0,8\)/);
+    assert.match(script,/browser\/begin/);
+    assert.match(script,/browser\/finish/);
+    assert.equal(script.includes(TICKET),false);
+    const login=await fetch(x.base+'/login');
+    assert.equal(login.status,200);
+    assert.match(await login.text(),/href="\/auth\/desktop\/sso\/browser"/);
+  }finally{await x.close();}
+});

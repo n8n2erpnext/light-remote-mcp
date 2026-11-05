@@ -984,3 +984,13 @@ deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs exports issueOwnerCaReco
 ## 2026-11-05 — T04b9c3b Windows Named Pipe test assertion portability
 
 - device-agent/desktop-wall-sso-native-ipc-v4.test.mjs: actual windows-latest runner test reached OS named pipe, seven of eight cases PASS in run 41977418584. The only failure compared a Unix forward-slash literal against Windows node:path normalized backslash path. Updated expected path to platform-matching path.join; no Agent IPC production transport, Named Pipe ACL, Owner scope or security policy change. Local 8/8 PASS; next Windows source CI pending.
+
+
+## 2026-11-05 — T04b9c3c1 browser public code and private pending Owner challenge (source only)
+
+- device-agent/desktop-wall-sso-browser-page-v4.mjs: new same-origin static HTML+JS with strict script CSP. GET /auth/desktop/sso/browser shows explicit Generate button; browser shows first 8 public challenge characters, polls /finish with private HttpOnly 60s cookie; no Owner token, ticket or family in JS/URL.
+- device-agent/local-wall.mjs: exact GET page/JS SSO routes before default 404 fallback, only with trusted SSO adapter and true loopback/real TLS; link added to login page only when SSO mounted. Legacy browser ticket POST remains unconditional404.
+- device-agent/desktop-wall-sso-browser-bootstrap-v4.mjs: private read-only pendingForNative() only for exactly one current pending challenge (multi-tab fails closed), returns public challenge+expiry only.
+- device-agent/desktop-wall-sso-native-ipc-v4.mjs: OS-private read-only pending action with enrolled Device/account recheck; returns only challenge, deviceId and expiry, never ticket. 10/10 IPC tests PASS and 10/10 browser bootstrap tests PASS; selected full SSO 185/185 PASS.
+- client/core-files.json now 128 files including browser-page module; /dev/shm stage-client-core verify SHA-256 and packaged Wall smoke PASS. Source Gate YAML watches new page/test, syntax and selected SSO tests. New CI pending.
+- Physical Windows read-only: Light Remote Agent and companion under SAME OS Admin account, localhost 5491/5492 APIs 401; real OS Named Pipe Agent runtime/peer SID ACL NOT exercised. Default OFF.

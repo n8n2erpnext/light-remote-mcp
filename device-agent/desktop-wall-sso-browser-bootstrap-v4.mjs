@@ -88,6 +88,16 @@ export function createDesktopWallSsoBrowserBootstrapV4({
       setCookie:cookie(WALL_SSO_BOOTSTRAP_COOKIE_V4,value,60,secure===true)
     });
   }
+  // Read-only local Owner candidate lookup through OS-private Agent IPC.
+  // Never return the browser cookie or Wall session. Ambiguous requests
+  // fail closed: the Owner must not approve the wrong browser tab.
+  function pendingForNative(){
+    prune();
+    const waiting=[...handoffs.values()].filter(row=>row.state==='pending');
+    if(waiting.length!==1)return null;
+    const row=waiting[0];
+    return Object.freeze({challenge:row.challenge,expiresAt:row.expiresAt});
+  }
   // A public challenge alone is NOT enough to acquire a browser session:
   // approval must come from native Owner+enrolled Agent AND finish requires
   // the separate HttpOnly browser cookie minted in begin().
@@ -138,7 +148,7 @@ export function createDesktopWallSsoBrowserBootstrapV4({
       expiresAt:boundIdentity.expiresAt
     });
   }
-  return Object.freeze({begin,approveTrustedNative,finish,
+  return Object.freeze({begin,pendingForNative,approveTrustedNative,finish,
     clearBootstrapCookie:secure=>cookie(
       WALL_SSO_BOOTSTRAP_COOKIE_V4,'',0,secure===true
     )});

@@ -64,6 +64,7 @@ on:
       - 'device-agent/local-wall.mjs'
       - 'device-agent/desktop-wall-sso-session*.mjs'
       - 'device-agent/desktop-wall-sso-browser-bootstrap-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-browser-page-v4*.mjs'
       - 'device-agent/desktop-wall-sso-native-ipc-v4*.mjs'
       - 'device-agent/desktop-wall-sso-agent-redemption-v4*.mjs'
       - 'device-agent/desktop-wall-sso-agent-transport-v4*.mjs'
@@ -283,6 +284,7 @@ on:
       - 'device-agent/local-wall.mjs'
       - 'device-agent/desktop-wall-sso-session*.mjs'
       - 'device-agent/desktop-wall-sso-browser-bootstrap-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-browser-page-v4*.mjs'
       - 'device-agent/desktop-wall-sso-native-ipc-v4*.mjs'
       - 'device-agent/desktop-wall-sso-agent-redemption-v4*.mjs'
       - 'device-agent/desktop-wall-sso-agent-transport-v4*.mjs'
@@ -352,6 +354,7 @@ jobs:
           node --check deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs
           node --test device-agent/desktop-wall-sso-session.test.mjs
           node --check device-agent/desktop-wall-sso-browser-bootstrap-v4.mjs
+          node --check device-agent/desktop-wall-sso-browser-page-v4.mjs
           node --check device-agent/desktop-wall-sso-browser-bootstrap-v4.test.mjs
           node --test device-agent/desktop-wall-sso-browser-bootstrap-v4.test.mjs
           node --check device-agent/desktop-wall-sso-native-ipc-v4.mjs
