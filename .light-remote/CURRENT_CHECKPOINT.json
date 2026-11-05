@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C3B_WINDOWS_PIPE_CI_7_OF_8_POSIX_PATH_TEST_ASSERT_FIXED_LOCAL_8_OF_8_RECHECK_PENDING_SSO_OFF",
+  "status": "T04B9C3B_GOLD_CI_4_OF_4_WIN_NAMED_PIPE_8_OF_8_DESKTOP_NATIVE_7_OF_7_PASS_SSO_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "Recheck new Gold Windows Agent CI after Node path.join test fix; previous run 41977418584 7/8: Windows Named Pipe server path worked, only hard-coded POSIX expected path assertion failed. Then T04b9c3c physical installed Windows same-user SID/ACL and explicit Owner challenge + native Rust ticket -> enrolled Agent real Redis signed SSO. No runtime Agent mount or Tauri command, SSO OFF.",
+  "nextAction": "T04b9c3c: real installed Windows Owner Desktop explicit non-bearer browser challenge user intent, OS-private Agent listener with verified Windows SID/ACL, native OS-vault + generation fence to one-use ticket, real enrolled Ed25519/Redis and true loopback/HTTPS Wall finish; then bounded Lab auto-OFF/rollback. Source CI Gold 41977849737 4/4, Windows Node IPC 8/8, Desktop native 41976431257 7/7 PASS. No Tauri command or Agent runtime mount; SSO OFF.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1339,7 +1339,7 @@
     "legacySecurityGate": "Legacy /auth/desktop/sso/redeem browser ticket POST MUST be retired or sealed before live SSO"
   },
   "t04b9c3bNativePrivateIpc": {
-    "state": "source_ci_pass_not_mounted",
+    "state": "source_ci_accepted_not_mounted",
     "legacyBrowserRedeem": "unconditional HTTP404 regardless of feature flags",
     "ipc": "Windows named pipe no broad grants; Unix socket 0600 private 0700 dir; strict 1536B, one-use challenge/ticket",
     "nativeOwner": "verified HTTPS Owner + generation/access fence around issue and OS-local relay, no Tauri command",
@@ -1348,8 +1348,8 @@
     "risk": "Windows named pipe OS peer/SID ACL compatibility and physical same-user service identity NOT verified",
     "runtime": "not deployed; Lab SSO OFF",
     "next": "T04b9c3c",
-    "goldCi": "Source Gate 41976425962 4/4 SUCCESS; Truth 41976426058 SUCCESS; Docs 41976425876 SUCCESS",
-    "desktopCi": "UI and Tauri native 41976431257 7/7 SUCCESS Windows/macOS/Linux; Truth 41976431454 SUCCESS; Docs 41976431358 SUCCESS",
-    "winPipeCi": "41977418584 7/8, single expected POSIX slash path fails on Windows; path.join test fix locally 8/8, new CI pending"
+    "goldCi": "Gold 41977849737 4/4 SUCCESS; Truth 41977849777 SUCCESS; Docs 41977849710 SUCCESS",
+    "desktopCi": "Desktop Rust/Owner LAB 41976431257 7/7 SUCCESS; mirror a01d7ba0 Truth 41977856720 PASS Docs 41977856726 PASS",
+    "winPipeCi": "Gold 41977849737, Windows Agent job 127080797526 SUCCESS; 8/8 Node Windows Named Pipe tests PASS"
   }
 }
