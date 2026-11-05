@@ -600,3 +600,9 @@ Current T04b7b source entry points: plugin-server/server.mjs → desktop-wall-ss
 - client/desktop-v4/src-tauri/src/owner_login.rs: private approve_private_owner_wall_sso workflow; fresh independent HTTPS Owner session check before ticket issue and generation/account/access fences before/after issue and after local relay. Owner bearer/refresh stays in Rust/OS vault, no UI leakage. Three new unit tests for signed-out, generation/refresh and near-expiry fail closed.
 - client/desktop-v4/src-tauri/Cargo.toml: optional Tokio net/time/io-util added only under desktop-owner-login candidate. UI-only pilot remains unchanged; real Windows named pipe access/SID identity, physical Agent service integration and native credential rotation are OPEN. Do not expose command to React until secure Agent listener is validated.
 - Gold code branch independently sealed legacy browser ticket POST and added OS-private source Agent listener, not mounted. Next T04b9c3c explicit user-initiated browser challenge -> native -> enrolled Agent -> browser secure finish; physical Windows E2E and real Redis acceptance required. Native cross-OS CI pending.
+
+
+## 2026-11-05 — T04b9c3b Desktop native 7/7 cross-OS CI accepted
+
+- Commit 7c5852bd workflow 41976431257 SUCCESS 7/7: Web, Windows/macOS/Linux UI-only native and unsigned Owner Login LAB native candidate builds. Rust Owner OS secure-vault compile/unit tests PASS in each UI-only job. Desktop Truth 41976431454, Docs 41976431358 PASS.
+- Gold Source 219726a5 CI 41976425962 4/4 PASS. New Gold Windows Agent Named Pipe Node test pending source workflow commit. Native Owner flow remains private, not Tauri IPC or user-visible UI; Agent socket not mounted. Real Windows account peer/SID ACL, actual Owner-browser E2E, signed Ed25519/Redis and loopback/HTTPS acceptance OPEN, Gold Lab flags OFF.
