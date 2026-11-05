@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T05A_GOLD_AGENT_SOURCE_CI_PASS_DESKTOP_FIRST_CI_TEST_TYPECHECK_FAIL_FIXED_RETRY_PENDING",
+  "status": "T05A_GOLD_SOURCE_PASS_DESKTOP_60_UI_PASS_MACOS_RUST_ASCII_FIX_RETRY_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T05A Desktop native CI rerun after TypeScript test fixture non-null correction. Gold Agent Source Gate 42018349829 PASS. Real same-host GoldABV2 Agent/Owner pending/B grant physical E2E and T04 two-way Wall SSO still OPEN.",
+  "nextAction": "T05A Desktop GitHub native Windows/macOS/Linux rerun after fixing owner_abv2.rs Rust ASCII validation. Gold Agent source Gate PASS. Real installed GoldABV2 Agent/Owner B grant E2E still OPEN and SSO two-way separate.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "9f495b6b0021cf342e2b1012afb94b743d718e80d76627e89eebe22da2134d15",
     "trackedFiles": 1235,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T11:23:32.317Z"
+    "recordedAt": "2026-11-05T11:27:08.273Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1648,5 +1648,13 @@
     "desktopFailure": "test-only strict TypeScript PENDING.pending[0] undefined; fixed with non-null assertions",
     "desktopRetry": "PENDING",
     "physicalWindowsABV2": "NOT TESTED"
+  },
+  "t05aRustAsciiCiFix": {
+    "date": "2026-11-05",
+    "initialRun": 42018640299,
+    "web": "60/60 UI tests and 25/25 Owner backend contract PASS",
+    "native": "macOS Owner build failed E0599 &str is_ascii_alphanumeric; source fixed",
+    "file": "client/desktop-v4/src-tauri/src/owner_abv2.rs",
+    "retry": "PENDING"
   }
 }

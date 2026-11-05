@@ -1331,3 +1331,6 @@ Native Rust Owner -> private same-host Agent IPC -> Owner verification -> enroll
 
 ## 2026-11-05 — T05A first CI triage
 Gold native A/B V2 bridge Source Gate 42018349829 PASS. Desktop first native CI 42018356265 failed strictly at TypeScript test fixture array[0] non-null requirement (3 call sites); fixed test only. Retry pending. No Windows Gold-old/GoldABV2 Lab runtime changes, physical B approval E2E open.
+
+## 2026-11-05 — T05A native Rust macOS CI compile fix
+Desktop run 42018640299 Web unit 60/60, Owner contract 25/25 and visual/packaging PASS, but macOS Owner candidate native build found &str is_ascii_alphanumeric invalid in new owner_abv2.rs. Fixed to s.bytes().all(byte check); rerun pending. No remote/production runtime touched.
