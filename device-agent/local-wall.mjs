@@ -4,6 +4,7 @@ import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { LOCAL_WALL_COOKIE } from './local-wall-auth.mjs';
 import { createDesktopWallSsoSession } from './desktop-wall-sso-session.mjs';
+import { createDesktopWallSsoBrowserBootstrapV4 } from './desktop-wall-sso-browser-bootstrap-v4.mjs';
 import { createWallStatusCache } from './wall-status-cache.mjs';
 import { notificationBellStyles,notificationBellMarkup,notificationBellScript } from './wall-account-notifications.mjs';
 import {goldAbV2LabV1Disabled,goldAbV2LabWallBOnly} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
@@ -2300,6 +2301,10 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       redeemSignedTicket:desktopWallSso.redeemSignedTicket,
       verifyLiveOwnerFamily:desktopWallSso.verifyLiveOwnerFamily
     }):null;
+  // T04b9c3a: independent browser challenge and HttpOnly cookie handoff.
+  // Native approval stays an in-process Device Agent method, never HTTP.
+  const desktopSsoBootstrap=desktopSsoSession
+    ?createDesktopWallSsoBrowserBootstrapV4({wallSession:desktopSsoSession}):null;
   if(desktopSsoSession){
     const originalAuth=auth;
     auth={...auth,
@@ -2399,6 +2404,57 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
     // and enrolled device before a local identity can be projected. No
     // cached Wall cookie can survive cloud revocation or a disconnected Owner.
     if(desktopSsoSession)await desktopSsoSession.identity(req);
+    // Browser-only half of the Owner SSO bootstrap. No ticket, credential,
+    // signed proof or capability ever enters the browser, body or URL. The
+    // native half is an IN-PROCESS method held by the trusted Device Agent.
+    if(url.pathname==='/auth/desktop/sso/browser/begin'||
+       url.pathname==='/auth/desktop/sso/browser/finish'){
+      if(!desktopSsoBootstrap)return json(res,404,{ok:false,error:'not_found'});
+      if(req.method!=='POST')return json(res,405,{ok:false,error:'method_not_allowed'});
+      const requestHost=String(req.headers.host||'').toLowerCase();
+      const configuredHost=(String(host).includes(':')?'['+String(host)+']':String(host)).toLowerCase()+':'+String(server.address()?.port??port);
+      const tls=Boolean(req.socket?.encrypted);
+      const origin=(tls?'https://':'http://')+configuredHost;
+      const fetchSite=String(req.headers['sec-fetch-site']||'').toLowerCase();
+      const type=String(req.headers['content-type']||'').split(';')[0].trim();
+      if(requestHost!==configuredHost||req.headers.origin!==origin||
+         (fetchSite&&fetchSite!=='same-origin')||
+         type!=='application/json'||(!loopback&&!tls)||
+         url.search||req.headers['x-forwarded-proto']&& !tls && !loopback)
+        return json(res,403,{ok:false,error:'desktop_wall_sso_origin_required'});
+      let data;
+      try{data=await body(req,256)}
+      catch{return json(res,400,{ok:false,error:'desktop_wall_sso_request_invalid'});}
+      if(!data||typeof data!=='object'||Array.isArray(data)||
+         Object.keys(data).length!==0)
+        return json(res,400,{ok:false,error:'desktop_wall_sso_request_invalid'});
+      try{
+        if(url.pathname.endsWith('/begin')){
+          const started=desktopSsoBootstrap.begin({secure:tls});
+          res.writeHead(200,{
+            'content-type':'application/json; charset=utf-8',
+            'cache-control':'no-store','referrer-policy':'no-referrer',
+            'x-content-type-options':'nosniff',
+            'set-cookie':started.setCookie
+          });
+          return res.end(JSON.stringify({
+            ok:true,challenge:started.challenge,expiresAt:started.expiresAt
+          }));
+        }
+        const complete=await desktopSsoBootstrap.finish(req);
+        res.writeHead(200,{
+          'content-type':'application/json; charset=utf-8',
+          'cache-control':'no-store','referrer-policy':'no-referrer',
+          'x-content-type-options':'nosniff',
+          'set-cookie':[complete.setCookie,complete.clearBootstrapCookie]
+        });
+        return res.end(JSON.stringify({ok:true,expiresAt:complete.expiresAt}));
+      }catch{return json(res,403,{ok:false,error:'desktop_wall_sso_bootstrap_denied'});}
+    }
+    // Unknown bootstrap paths must never fall through to the generic Wall
+    // page or expose an accidentally permissive native approval endpoint.
+    if(url.pathname.startsWith('/auth/desktop/sso/browser/'))
+      return json(res,404,{ok:false,error:'not_found'});
     if(url.pathname==='/auth/desktop/sso/redeem'){
       if(!desktopSsoSession)return json(res,404,{ok:false,error:'not_found'});
       if(req.method!=='POST')return json(res,405,{ok:false,error:'method_not_allowed'});
@@ -3026,5 +3082,5 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
     const access=url.pathname.match(/^\/api\/access\/(pa_[A-Za-z0-9_-]{20,80})\/(approve|deny)$/);if(req.method==='POST'&&access){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});const data=await body(req);const fn=access[2]==='approve'?accessApprove:accessDeny;if(typeof fn!=='function')return json(res,501,{ok:false,error:'access_control_unavailable'});const value=await fn(access[1],data||{});statusCache?.invalidate();return json(res,200,{ok:true,authorization:value});}
     return json(res,404,{ok:false,error:'not_found'});
   }catch(error){const code=String(error?.message||'local_wall_error');console.error(JSON.stringify({event:'local_wall_request_error',method:String(req.method||''),route:new URL(req.url||'/','http://local.wall').pathname,error:code.slice(0,240),headersSent:res.headersSent}));if(res.headersSent||res.writableEnded){if(!res.writableEnded)res.destroy();return;}return json(res,Number(error?.status)||400,{ok:false,error:code});}});
-  ensureActivityPump();server.listen(Number(port),host);return{server,host,port:Number(port),url:`http://${host}:${Number(port)}/`,close:()=>{shutdownActivityPump();return new Promise(resolve=>server.close(()=>resolve()));}};
+  ensureActivityPump();server.listen(Number(port),host);return{server,host,port:Number(port),url:`http://${host}:${Number(port)}/`,desktopSsoBootstrap,close:()=>{shutdownActivityPump();return new Promise(resolve=>server.close(()=>resolve()));}};
 }

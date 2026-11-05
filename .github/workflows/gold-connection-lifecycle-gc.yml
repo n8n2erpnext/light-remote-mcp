@@ -63,6 +63,7 @@ on:
       - 'operator-host/executor-routes-device-channel.mjs'
       - 'device-agent/local-wall.mjs'
       - 'device-agent/desktop-wall-sso-session*.mjs'
+      - 'device-agent/desktop-wall-sso-browser-bootstrap-v4*.mjs'
       - 'device-agent/desktop-wall-sso-agent-redemption-v4*.mjs'
       - 'device-agent/desktop-wall-sso-agent-transport-v4*.mjs'
       - 'device-agent/desktop-wall-sso-family-current-v4*.mjs'
@@ -280,6 +281,7 @@ on:
       - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
       - 'device-agent/local-wall.mjs'
       - 'device-agent/desktop-wall-sso-session*.mjs'
+      - 'device-agent/desktop-wall-sso-browser-bootstrap-v4*.mjs'
       - 'device-agent/desktop-wall-sso-agent-redemption-v4*.mjs'
       - 'device-agent/desktop-wall-sso-agent-transport-v4*.mjs'
       - 'device-agent/desktop-wall-sso-family-current-v4*.mjs'
@@ -347,6 +349,9 @@ jobs:
           node --check device-agent/desktop-wall-sso-session.test.mjs
           node --check deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs
           node --test device-agent/desktop-wall-sso-session.test.mjs
+          node --check device-agent/desktop-wall-sso-browser-bootstrap-v4.mjs
+          node --check device-agent/desktop-wall-sso-browser-bootstrap-v4.test.mjs
+          node --test device-agent/desktop-wall-sso-browser-bootstrap-v4.test.mjs
           node --check device-agent/desktop-wall-sso-agent-redemption-v4.mjs
           node --check device-agent/desktop-wall-sso-agent-redemption-v4.test.mjs
           node --test device-agent/desktop-wall-sso-agent-redemption-v4.test.mjs
@@ -357,6 +362,13 @@ jobs:
           node --check device-agent/desktop-wall-sso-family-current-v4.test.mjs
           node --test device-agent/desktop-wall-sso-family-current-v4.test.mjs
           node deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs
+          # T04b9c3a: local Wall now imports a browser bootstrap module.
+          # Catch missing packaged module/assets in Source Gate, not on Owner PC.
+          T04_BROWSER_PKG_DIR="$(mktemp -d)"
+          trap 'rm -rf "$T04_BROWSER_PKG_DIR"' EXIT
+          node deploy/scripts/stage-client-core.mjs "$T04_BROWSER_PKG_DIR"
+          node deploy/scripts/stage-client-core.mjs --verify "$T04_BROWSER_PKG_DIR"
+          node deploy/scripts/selftest-packaged-local-wall.mjs "$T04_BROWSER_PKG_DIR"
           node --check device-agent/wall-account-notifications.mjs
           node --check device-agent/fleet-wall-runtime.mjs
           node --check plugin-server/site-announcements.mjs

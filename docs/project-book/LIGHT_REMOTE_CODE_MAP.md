@@ -952,3 +952,13 @@ deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs exports issueOwnerCaReco
 - device-agent/desktop-wall-sso-family-current-v4.mjs: source-only immutable verified HTTPS Agent live Owner family callback with fresh signed nonce per protected Wall request; not imported by runtime operator-agent.mjs and no browser/IPC action.
 - operator-host/desktop-wall-sso-family-current-v4.test.mjs (9) and device-agent/desktop-wall-sso-family-current-v4.test.mjs (8) plus tightened sixth-flag regression. Selected SSO 165/165 PASS using real Ed25519 EnrollmentRegistry with simulated HTTPS/Owner family; no real Windows Owner/Redis E2E yet.
 - Next T04b9c3 secure browser same-origin true localhost/HTTPS bootstrap and real Windows Owner proof. SSO OFF.
+
+
+## 2026-11-05 — T04b9c3a Local Wall two-sided browser challenge bootstrap (SOURCE ONLY)
+
+- device-agent/desktop-wall-sso-browser-bootstrap-v4.mjs: private challenge+HttpOnly 60-second bootstrap cookie, 32 bounded RAM attempts, one-shot approval only from in-process trusted Agent (NOT an HTTP endpoint), approval consumes native one-use signed ticket through existing Wall session adapter and holds opaque Wall cookie. Browser finish requires its separately HMAC-protected bootstrap cookie plus fresh live Owner-family check, then sets the Wall scoped cookie.
+- device-agent/local-wall.mjs: gated POST /auth/desktop/sso/browser/begin and /finish; strict exact Host/Origin, same-origin fetch provenance, true loopback HTTP or real socket TLS, JSON {}, no query/ticket; other browser/* paths now 404. Default OFF when no trusted Agent integration, login and Agent A/B remain separate.
+- device-agent/desktop-wall-sso-browser-bootstrap-v4.test.mjs: 8/8 real ephemeral localhost HTTP tests; wrong origin/browser cookie, replay, forged forwarded TLS, concurrent native approvals, stale Owner and default OFF. Full selected T04 173/173 PASS. No real Windows/native/Redis E2E.
+- client/core-files.json: includes bootstrap module as imported dependency (126 total); temporary /dev/shm stage-client-core, --verify and selftest-packaged-local-wall pass (39 Material icons, 18 essential, /, permissions, approve, settings, status).
+- .github/workflows/gold-connection-lifecycle-gc.yml: watches new module+test, Source Gate runs Node syntax/tests and packaged Wall integrity. CI pending Git commit.
+- NEXT T04b9c3b: native OS-vault Owner ticket and explicit secure browser challenge bridge to trusted Agent, physical Windows localhost Wall, user-approved SSO; never ticket in URL/JS, do not allow NetBird remote HTTP login.

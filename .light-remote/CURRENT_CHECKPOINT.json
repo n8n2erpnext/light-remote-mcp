@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-05",
-  "status": "T04B9C2_SOURCE_165_OF_165_GOLD_CI_4_OF_4_PASS_SSO_OFF_T04B9C3_NEXT",
+  "status": "T04B9C3A_BROWSER_SAFE_CHALLENGE_SOURCE_173_OF_173_PACKAGED_WALL_PASS_SSO_OFF_CI_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T04b9c3: true localhost or verified HTTPS browser same-origin Wall SSO cookie bootstrap, native Owner OS-vault one-use ticket request and physical Windows signed Owner->Wall E2E. Gold bbab5075 Source CI run 41969938745 4/4 PASS, Gold Truth/Docs PASS, Desktop mirror b206e0df Truth/Docs PASS; Lab 5/5 active HTTPS200/TLSverify0, public family-current404, SSO OFF.",
+  "nextAction": "T04b9c3b: explicit user-initiated browser challenge->native Owner session trusted handoff, OS-vault/generation-fenced one-use ticket issue to enrolled Agent, local secure browser finish; physical Windows Owner SSO E2E. T04b9c3a 8/8 new +173/173 selected T04 source PASS, staged packaged Wall 126/126 files SHA verified; CI pending, runtime SSO OFF, NetBird remote HTTP not eligible.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "c6ec7f737ca099adb7b6c507bcab59b05e4fa09b497ba678e915cc1b7b32167a",
-    "trackedFiles": 1228,
+    "treeDigest": "818cb8c54255255300111a2c5f586a660e2a64c5bcfa46653127a956a367f6ca",
+    "trackedFiles": 1230,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T04:46:29.384Z"
+    "recordedAt": "2026-11-05T05:13:29.086Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1092,7 +1092,7 @@
     "livingSince": "2026-11-04",
     "mandatoryForEveryTask": true,
     "mirrorByteIdenticalRequired": true,
-    "startingNextTask": "T04b9c3",
+    "startingNextTask": "T04b9c3b",
     "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
     "introReceipt": "2026-11-04 H00",
     "firstGoldCommit": "c38e2e540fa66ce634ab5e2902ae628af3a905e8",
@@ -1543,5 +1543,14 @@
     "ci": "Gold Source Gate 41969938745 4/4 SUCCESS; Gold Truth 41969938830 SUCCESS; Gold Docs 41969938750 SUCCESS; Desktop Truth 41969967379 SUCCESS; Desktop Docs 41969967330 SUCCESS",
     "runtime": "none changed",
     "next": "T04b9c3"
+  },
+  "t04b9c3aBrowserBootstrap": {
+    "state": "gold_source_only_not_deployed",
+    "tests": "8 new loopback HTTP PASS, 173/173 selected T04 Node PASS",
+    "packagedWall": "126 files staged and SHA-256 verified, 39 icons, 18 essential icons, 4 pages and status PASS",
+    "security": "browser challenge non-bearer, HttpOnly 60s cookie, one-use native server-approved principal, Owner live check before finish, no ticket/refresh/URL/React",
+    "runtime": "not mounted by Agent, all SSO flags OFF, no Windows E2E",
+    "ci": "pending",
+    "next": "T04b9c3b"
   }
 }
