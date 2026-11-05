@@ -68,6 +68,9 @@ $EnvMap = @{
     OPERATOR_FLEET_WALL_PORT = "$QaFleetPort"
     LIGHT_REMOTE_UPDATE_STATE_DIR = (Join-Path $StateRoot 'update-runtime')
     OPERATOR_AGENT_MAX_SESSIONS = '1'
+    LR_GOLD_INSTANCE_ID = 'abv2lab01'
+    LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1 = '1'
+    LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY = '1'
     LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4 = $(if ($Action -eq 'daemon') {'1'} else {'0'})
 }
 # Compatible with Windows PowerShell 5.1; no shell command interpolation,
@@ -78,11 +81,19 @@ $Start.WorkingDirectory = (Join-Path $Root 'agent')
 $Start.UseShellExecute = $false
 $Start.CreateNoWindow = $false
 $Start.Arguments = ('"' + $Agent + '" ' + $Action +
-    $(if ($Action -eq 'login') {' --name "Windows GoldABV2 Desktop V4 QA"'} else {''}))
+    $(if ($Action -eq 'login') {' --name "Windows GoldABV2 Desktop V4 QA" --no-wait'} else {''}))
 foreach ($Name in $EnvMap.Keys) {$Start.EnvironmentVariables[$Name] = [string]$EnvMap[$Name]}
 $Child = [System.Diagnostics.Process]::Start($Start)
 if (-not $Child) {throw 'QA child process did not start.'}
 Write-Host "GoldABV2 QA Agent: $Action / PID $($Child.Id)"
 Write-Host "QA local ports $QaWallPort/$QaFleetPort; installed Gold 5491/5492 untouched."
 $Child.WaitForExit()
+if ($Action -eq 'login' -and $Child.ExitCode -eq 0 -and (Test-Path -LiteralPath $StateFile)) {
+    $Current = Get-Content -LiteralPath $StateFile -Raw | ConvertFrom-Json
+    $EnrollmentId = [string]$Current.pendingEnrollment.enrollmentId
+    if ($EnrollmentId -match '^enr_[A-Za-z0-9-]{20,80}$') {
+        Write-Host "PUBLIC Activation URL: $Base/enroll?id=$EnrollmentId"
+        Write-Host 'Ignore the LXD-internal 127.0.0.1 activation URL printed by the Lab Operator.'
+    }
+}
 exit $Child.ExitCode
