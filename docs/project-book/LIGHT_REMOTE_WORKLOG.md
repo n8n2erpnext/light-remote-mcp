@@ -1395,3 +1395,6 @@ Exact Desktop commit e6a7681d unified run 42181390342 SUCCESS 4/4; one Windows N
 
 ## 2026-11-06 — Desktop V4 handoff source redirect
 The full unified Desktop V4 handoff is on branch feat/desktop-v4-api-integration-20261103 at docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md (commit 776f3a40). Latest Windows full installer CI 42198200310 PASS; this historical Gold branch is not the current installer source. Owner Auth/Token ON and server V1 deny live on Lab; Owner Read OFF, physical Windows B approval and remaining APIs open.
+
+## 2026-11-06 — T07f2 Gold Living Master byte-identical Desktop sync
+Synced the exact canonical Living Master from Desktop integration branch docs commit a353be6f, without merging Desktop source into this Gold backend branch. Integrated Windows candidate code f5c4b574 full Windows Inno run 42245333752 SUCCESS, Setup artifact 13519530536; User's Windows installed physical validation and new Link/B E2E remain OPEN. Isolated Lab discovery of same-Owner R01KAP and S9X0R0 confirmed 2/2 online. Historical Gold-only continuation notice preserved inside new Master T07f2 receipt. Gold source/runtime/production not modified by this docs sync.
