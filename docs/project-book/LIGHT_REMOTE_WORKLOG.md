@@ -1188,3 +1188,7 @@ Static account/device ID allowlists removed from GoldABV2 signed Helper/Owner/Gr
 
 ## 2026-11-06 — T08/#617a GoldABV2 V1 DOM fully omitted and Windows POSIX test fixed
 Windows CI 42251367225 failed early on Linux-only chmod fixture introduced into Windows workflow. Kept Linux grant fixture separately, removed it from Windows step. GoldABV2 /approve V2-only no longer emits legacy V1 form, controls or script; other Gold legacy remains separate. New exact CI and physical QA open.
+
+## 2026-11-07 — T09 read-only ABV2/Desktop V4 audit; no remediation
+
+Owner requested findings and handoff only. Audited desktop source `0f3c2ee1c826aa6a9e85a99b96811cd8cb2b2a92` plus the companion branch; seven findings (1 P1, 6 P2), three performance proposals and cleanup notes are in [LIGHT_REMOTE_ABV2_DESKTOP_V4_AUDIT_HANDOFF_20261107.md](LIGHT_REMOTE_ABV2_DESKTOP_V4_AUDIT_HANDOFF_20261107.md). Offline in-memory probes reproduced projection/capacity issues, not live E2E. Existing exact Desktop CI 42252132492 SUCCESS; source/live/physical proof remain separate. Lab metadata was read only. Source, runtime, flags, data and installed apps unchanged. Living Master synchronized without discarding historical T08 receipts; checkpoint retains previous status. Next T09-F01 is review of A01, no automatic fix/deploy. New docs-only CI pending publication.
