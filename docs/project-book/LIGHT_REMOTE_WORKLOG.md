@@ -1368,3 +1368,6 @@ Added direct React form tests around actual NativeApprovalRequest and nativeAbv2
 ## 2026-11-05 — T05E final native Desktop build accepted (source 7/7)
 
 CI run 42043281542 completed SUCCESS all 7 jobs. 63/63 frontend tests including 3 native React B/Owner-consent/fail-closed form tests, 25/25 Owner API contracts; Windows/macOS/Linux Owner LAB and UI-only native builds PASS. Windows Owner LAB artifact 13423977055, EXE SHA256 7759A1422F707A0F44B09A33C038E71FD450528ED7D1E3E8FAF5D5E57418A523 independently verified and staged on physical Windows in separate T05E QA folder; NOT launched or installed over previous candidate. Physical button provenance remains open; old Gold untouched, T04 SSO and signed Active Grants/Sessions API pending.
+
+## 2026-11-06 — T06 native Desktop Owner data bridge (source only)
+On owner request to complete API integration, implemented default-OFF Owner snapshot source on Gold Plugin/Operator, native Rust + React allowlisted presentation, and tests. Local VPS-ARM Node targeted tests 18/18 PASS; Desktop GitHub CI pending. No Prod/UAT/LXD/installed Windows source switch. See canonical [Living Master](LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md) and [Code Map](LIGHT_REMOTE_CODE_MAP.md). Pending T04 SSO, signed mutators, remaining functional surfaces and physical UI acceptance.

@@ -146,7 +146,8 @@ registerDesktopOwnerTokenRoutes(app,{
     process.env.LR_GOLD_ABV2_DESKTOP_TOKEN_V4==='1',
   redis:goldStorage.redis,
   prefix:goldStorage.prefix,
-  consumeCode:desktopOwnerAuthV4.consumeCode
+  consumeCode:desktopOwnerAuthV4.consumeCode,
+  readEnabled:process.env.LR_GOLD_ABV2_DESKTOP_READ_V4==='1'
 });
 // Independent opt-in: Desktop Login / Token API flags alone never enable SSO.
 // The actual transport is the existing private Operator Unix socket only.

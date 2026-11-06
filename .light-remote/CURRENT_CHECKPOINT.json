@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
-  "updatedDate": "2026-11-05",
-  "status": "T05E_DESKTOP_NATIVE_B_APPROVE_UI_SOURCE_CI_7_OF_7_ACCEPTED_PHYSICAL_GUI_PROVENANCE_OPEN_T04_SSO_OPEN",
+  "updatedDate": "2026-11-06",
+  "status": "T06_DESKTOP_OWNER_SNAPSHOT_SOURCE_TEST_18_PASS_CI_PENDING_RUNTIME_OFF_T05E_GUI_AND_T04_SSO_OPEN",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Desktop 83e1629d native UI CI 42043281542 PASS 7/7 (63/63 frontend, 25/25 Owner). Windows Owner LAB EXE artifact 13423977055 SHA256 7759A1422F707A0F44B09A33C038E71FD450528ED7D1E3E8FAF5D5E57418A523 staged separately; physical Desktop B Approve invocation provenance remains unverified. Do not silently relaunch stopped QA Agent or change LXD temporary allowlist. Next signed Active Grants/Sessions API and T04 App↔same-device Local Wall SSO.",
+  "nextAction": "T06 source-level Owner snapshot contract implemented and Gold 18/18 Node tests PASS; complete exact GitHub Desktop V4 Tauri/React CI and Gold CI, then physical Owner LAB only with authorized same-host GoldABV2 Agent. Snapshot flags default OFF and no runtime data yet. NEXT granular per-Agent revoke/session-close and signed Jobs/Long Memory/Codex/Usage. T05E B GUI provenance and T04 two-way SSO remain OPEN; do not touch existing Gold 5491/5492 or LXD without a separate test window.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "1cb27d36cb6091993e1706b77984bea4de3954bf5bf19f507ebfb4887835396c",
-    "trackedFiles": 1240,
+    "treeDigest": "5538298885467665fd4d26e26e27e8be8dc65ce4bbfd2a2afb5998b54ed44423",
+    "trackedFiles": 1242,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-05T14:26:29.925Z"
+    "recordedAt": "2026-11-06T06:20:34.256Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1092,7 +1092,7 @@
     "livingSince": "2026-11-04",
     "mandatoryForEveryTask": true,
     "mirrorByteIdenticalRequired": true,
-    "startingNextTask": "T04b9c3c2",
+    "startingNextTask": "T06_OWNER_SNAPSHOT_CI_AND_PHYSICAL",
     "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
     "introReceipt": "2026-11-04 H00",
     "firstGoldCommit": "c38e2e540fa66ce634ab5e2902ae628af3a905e8",

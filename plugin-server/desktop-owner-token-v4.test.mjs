@@ -11,7 +11,7 @@ const PREFIX='lr:gold:goldabv2lab:';
 const SESSION='acctsess_123e4567-e89b-42d3-a456-426614174000';
 const ACCOUNT='owner_v4_42';
 const token='Q'.repeat(43);
-const setup=({verified=true}={})=>{
+const setup=({verified=true,operatorCall}={})=>{
   let now=1_000_000,sessionActive=verified;
   const data=new Map();
   const redis={
@@ -39,6 +39,7 @@ const setup=({verified=true}={})=>{
   };
   const service=createDesktopOwnerTokenService({
     redis,prefix:PREFIX,consumeCode:code,clock:()=>now,
+    operatorCall,
     verifyPortalSession:async(accountId,sessionId)=>sessionActive &&
       accountId===ACCOUNT && sessionId===SESSION
   });
@@ -61,6 +62,36 @@ test('default OFF mounts zero token routes even without Redis',()=>{
   const paths=[];const app={post:p=>paths.push(p),get:p=>paths.push(p)};
   assert.deepEqual(registerDesktopOwnerTokenRoutes(app),{enabled:false,routes:0});
   assert.deepEqual(paths,[]);
+});
+test('T06 signed Owner snapshot stays native-only and rechecks current Portal family',async()=>{
+  const calls=[];
+  const x=setup({operatorCall:async(method,path,body)=>{
+    calls.push({method,path,body});
+    return {ok:true,accountId:ACCOUNT,asOf:1234,
+      account:{email:'owner@example.test',plan:'pro',status:'active',emailVerified:true},
+      devices:[],sessions:[],grants:[]};
+  }});
+  const issued=await x.service.exchange(x.input);
+  const req={method:'POST',headers:{'content-type':'application/json',
+    authorization:'Bearer '+issued.access_token},body:{},query:{}};
+  const res=response();
+  await x.service.routeSnapshot(req,res);
+  assert.equal(res.code,200);
+  assert.equal(calls.length,1);
+  assert.deepEqual(calls[0],{
+    method:'POST',path:'/v1/accounts/desktop-v4/snapshot',
+    body:{accountId:ACCOUNT,accountSessionId:SESSION}
+  });
+  assert.equal(JSON.stringify(res.body).includes(SESSION),false);
+  const cookie=response();
+  await x.service.routeSnapshot({...req,headers:{...req.headers,cookie:'browser=bad'}},cookie);
+  assert.equal(cookie.code,403);
+  assert.equal(calls.length,1);
+  x.setPortalActive(false);
+  const revoked=response();
+  await x.service.routeSnapshot(req,revoked);
+  assert.equal(revoked.code,401);
+  assert.equal(calls.length,1);
 });
 test('opaque Desktop read-only exchange, PKCE one-use caller, refresh rotation and access projection',async()=>{
   const {service,input}=setup();

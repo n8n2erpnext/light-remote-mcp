@@ -1,7 +1,23 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
+import {createDesktopV4OwnerSnapshot} from './desktop-v4-owner-snapshot.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
   const {adminJobRecovery,deviceBootObservations,ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,flushGoldRegistries,goldShortIdAfterEnrollment,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleet,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
+    // Purpose-scoped native Desktop snapshot over the private Operator Unix
+    // socket. Default OFF. A portal cookie, MCP OAuth or a device grant cannot
+    // select another account or authorize this read.
+    if(url.pathname==='/v1/accounts/desktop-v4/snapshot'){
+      if(process.env.LR_GOLD_ABV2_DESKTOP_READ_V4!=='1')
+        return sendJson(res,404,{ok:false,error:'not_found'});
+      if(req.method!=='POST')
+        return sendJson(res,405,{ok:false,error:'method_not_allowed'});
+      const body=await readJson(req);
+      const snapshot=createDesktopV4OwnerSnapshot({
+        accounts,allDeviceViews,sessions:deps.sessions,
+        accessGrants,usage,planEntitlements
+      });
+      return sendJson(res,200,snapshot(body));
+    }
     // Stronger than the legacy internal /v1/admin APIs: verify the owner session
     // independently in Operator, not merely in the plugin /admin proxy.
     if(url.pathname==='/v1/admin/job-recovery'||
