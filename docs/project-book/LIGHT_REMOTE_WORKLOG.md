@@ -1389,3 +1389,6 @@ Owner clarified that UI-only and Owner-function builds must never be separate ap
 
 ## 2026-11-06 — T06b4a Owner session close authority boundary
 Added source-only exact per-Agent close adapter and regression tests; refused to expose mutation via `desktop:read` token. No endpoint or UI Close action enabled. One installer and all real API gates remain unfinished; no Windows installation performed.
+
+## 2026-11-06 — T06b4 one installer source CI PASS, full app release blocked
+Exact Desktop commit e6a7681d unified run 42181390342 SUCCESS 4/4; one Windows NSIS file 4,001,015 B (SHA256 3FC9F37CF0DF0FDF9F39356E45D2C3A1BA9B1BB8B326FF38C75A709712CB739A), artifact 13486541015. This is Tauri UI/Owner binary only; not a complete Agent/Wall installer and not physical E2E. Gold source-only close adapter 1a91b399 gates PASS but read-only OAuth does not authorize mutation. Continue full runtime/API integration before a single human acceptance.
