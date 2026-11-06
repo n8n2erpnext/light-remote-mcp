@@ -1052,3 +1052,6 @@ The Owner snapshot Operator adapter reads `usage.summary(accountId,{months:1})` 
 
 ### T06b3 — Native Owner Live Monitor snapshot
 Operator `desktop-v4-owner-snapshot.mjs` reads the in-memory job registry and bounded recent event ring, filters to current Owner's devices, and returns only IDs, states and times. Plugin and Tauri require these arrays; React `native-snapshot.ts` rechecks device scope and `FeatureScreens.tsx` presents read-only rows. This is not durable job history or command output, and `LR_GOLD_ABV2_DESKTOP_READ_V4` remains OFF by default.
+
+### T06b4 single Desktop native build topology
+One React App (`client/desktop-v4/src/App.tsx`) + native Rust (`src-tauri/src/main.rs`) + private Owner vault and Agent IPC compile into ONE executable in `unified-desktop` CI with feature `desktop-owner-login` ON. Windows packages exactly one NSIS installer (Tauri `bundle.active=true`); UI tests are not a separate user artifact. The installer still requires same-device enrolled Node Agent/Wall runtime; packaging the Agent and binding full Long Memory/Codex/Owner mutation APIs remain acceptance gates. No other backend control plane or V1 fallback added.
