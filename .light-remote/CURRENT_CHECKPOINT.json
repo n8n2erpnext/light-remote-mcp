@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
-  "updatedDate": "2026-11-06",
-  "status": "T07F2_GOLD_BACKEND_MASTER_SYNCED_DESKTOP_WINDOWS_CI_SUCCESS_PHYSICAL_OPEN",
+  "updatedDate": "2026-11-07",
+  "status": "T09_READONLY_AUDIT_COMPLETE_REMEDIATION_NOT_APPLIED",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T07f3 Gold documentation CI reference repair: Full Handoff now present, local 627 relative links PASS/catalog 186 PASS; next commit/push and verify Gold Docs/Truth CI. Integrated Windows run 42245333752 at f5c4b574 SUCCESS; Owner physical Link/Relink/B QA still OPEN.",
+  "nextAction": "T09-F01: review audit A01 missing Tauri Link IPC permissions and plan a narrow packaged-WebView regression; findings and optimizations are NOT applied. No implementation, native installation or deployment authorized by this audit.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1092,7 +1092,7 @@
     "livingSince": "2026-11-04",
     "mandatoryForEveryTask": true,
     "mirrorByteIdenticalRequired": true,
-    "startingNextTask": "T06_OWNER_SNAPSHOT_CI_AND_PHYSICAL",
+    "startingNextTask": "T09-F01_REVIEW_ONLY",
     "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
     "introReceipt": "2026-11-04 H00",
     "firstGoldCommit": "c38e2e540fa66ce634ab5e2902ae628af3a905e8",
@@ -1108,7 +1108,8 @@
       "feat/desktop-v4-api-integration-20261103"
     ],
     "workflowCI": "Gold project truth 41757247108 SUCCESS; Desktop project truth 41757254955 SUCCESS; Gold Docs 41757246951 SUCCESS; Desktop Docs 41757254998 SUCCESS",
-    "outcome": "H00 COMPLETE: mandatory dated living Master/Worklog/checkpoint task receipts, CI guard on both active branches, negative missing/undated tests PASS, mirror identical"
+    "outcome": "H00 COMPLETE: mandatory dated living Master/Worklog/checkpoint task receipts, CI guard on both active branches, negative missing/undated tests PASS, mirror identical",
+    "currentTask": "T09_READONLY_AUDIT"
   },
   "t04b8A1ObservedProxyAndSourceEdgeProof": {
     "date": "2026-11-04",
@@ -1781,5 +1782,33 @@
     "ci": "PENDING",
     "windowsCI": "42245333752 SUCCESS",
     "physical": "OPEN"
+  },
+  "readOnlyAudit20261107": {
+    "report": "docs/project-book/LIGHT_REMOTE_ABV2_DESKTOP_V4_AUDIT_HANDOFF_20261107.md",
+    "sourceSha": "f2aacc498fb3ad7e5fa99f3355c5a093f9980cee",
+    "desktopSourceSha": "0f3c2ee1c826aa6a9e85a99b96811cd8cb2b2a92",
+    "goldSourceSha": "f2aacc498fb3ad7e5fa99f3355c5a093f9980cee",
+    "status": "T09_READONLY_AUDIT_COMPLETE_REMEDIATION_NOT_APPLIED",
+    "findingCount": 7,
+    "p1": 1,
+    "p2": 6,
+    "optimizationsApplied": false,
+    "sourceChanged": false,
+    "runtimeChanged": false,
+    "physicalOwnerE2E": "NOT_TESTED",
+    "previousCheckpoint": {
+      "status": "T07F2_GOLD_BACKEND_MASTER_SYNCED_DESKTOP_WINDOWS_CI_SUCCESS_PHYSICAL_OPEN",
+      "nextAction": "T07f3 Gold documentation CI reference repair: Full Handoff now present, local 627 relative links PASS/catalog 186 PASS; next commit/push and verify Gold Docs/Truth CI. Integrated Windows run 42245333752 at f5c4b574 SUCCESS; Owner physical Link/Relink/B QA still OPEN.",
+      "updatedDate": "2026-11-06"
+    },
+    "existingExactDesktopCI": {
+      "windows": 42252132492,
+      "docs": 42252132563,
+      "truth": 42252132665,
+      "gc": 42252132604,
+      "conclusion": "success"
+    },
+    "liveEvidence": "READ_ONLY systemd metadata: Plugin/Operator/Wall active/running; t08-617 source directory names only, no bytes/flags/E2E attestation",
+    "documentationCI": "PENDING_AFTER_PUBLICATION"
   }
 }

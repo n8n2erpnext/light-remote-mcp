@@ -1401,3 +1401,7 @@ Synced the exact canonical Living Master from Desktop integration branch docs co
 
 ## 2026-11-06 — T07f3 Gold master reference doc CI repair
 Restored the Desktop full handoff document into Gold Project Book; local canonical 627 links and catalog 186 passed. This fixes missing relative reference on Gold. No runtime/source changes; physical Windows QA still open.
+
+## 2026-11-07 — T09 read-only ABV2/Desktop V4 audit; no remediation
+
+Owner requested findings and handoff only. Audited gold source `f2aacc498fb3ad7e5fa99f3355c5a093f9980cee` plus the companion branch; seven findings (1 P1, 6 P2), three performance proposals and cleanup notes are in [LIGHT_REMOTE_ABV2_DESKTOP_V4_AUDIT_HANDOFF_20261107.md](LIGHT_REMOTE_ABV2_DESKTOP_V4_AUDIT_HANDOFF_20261107.md). Offline in-memory probes reproduced projection/capacity issues, not live E2E. Existing exact Desktop CI 42252132492 SUCCESS; source/live/physical proof remain separate. Lab metadata was read only. Source, runtime, flags, data and installed apps unchanged. Living Master synchronized without discarding historical T08 receipts; checkpoint retains previous status. Next T09-F01 is review of A01, no automatic fix/deploy. New docs-only CI pending publication.
