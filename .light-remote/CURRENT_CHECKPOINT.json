@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T09_READONLY_AUDIT_COMPLETE_REMEDIATION_NOT_APPLIED",
+  "status": "T10_WALL_WINDOWS_AUDIT_COMPLETE_FINDINGS_ONLY_NO_FIXES",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T09-F01: review audit A01 missing Tauri Link IPC permissions and plan a narrow packaged-WebView regression; findings and optimizations are NOT applied. No implementation, native installation or deployment authorized by this audit.",
+  "nextAction": "T10-F01: review missing Wall V2 CSRF initializer and plan request-bound renderer plus browser-click regression. No code fix, module action, endpoint migration, updater or deployment authorized/applied by this audit.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -1092,7 +1092,7 @@
     "livingSince": "2026-11-04",
     "mandatoryForEveryTask": true,
     "mirrorByteIdenticalRequired": true,
-    "startingNextTask": "T09-F01_REVIEW_ONLY",
+    "startingNextTask": "T10-F01_REVIEW_ONLY",
     "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
     "introReceipt": "2026-11-04 H00",
     "firstGoldCommit": "c38e2e540fa66ce634ab5e2902ae628af3a905e8",
@@ -1109,7 +1109,7 @@
     ],
     "workflowCI": "Gold project truth 41757247108 SUCCESS; Desktop project truth 41757254955 SUCCESS; Gold Docs 41757246951 SUCCESS; Desktop Docs 41757254998 SUCCESS",
     "outcome": "H00 COMPLETE: mandatory dated living Master/Worklog/checkpoint task receipts, CI guard on both active branches, negative missing/undated tests PASS, mirror identical",
-    "currentTask": "T09_READONLY_AUDIT"
+    "currentTask": "T10_READONLY_WALL_WINDOWS_AUDIT"
   },
   "t04b8A1ObservedProxyAndSourceEdgeProof": {
     "date": "2026-11-04",
@@ -1825,6 +1825,35 @@
       "desktopRelativeLinks": 619,
       "projectTruth": "living-master-docs-coherent PASS",
       "masterMirror": "BYTE_IDENTICAL"
+    }
+  },
+  "wallWindowsAudit20261107": {
+    "report": "docs/project-book/LIGHT_REMOTE_WALL_WINDOWS_ASYNC_ENDPOINT_AUDIT_20261107.md",
+    "sourceSha": "f2aacc498fb3ad7e5fa99f3355c5a093f9980cee",
+    "startingDocsHead": "b9194bf4402351a6f565b526eee81541d543c96b",
+    "status": "T10_WALL_WINDOWS_AUDIT_COMPLETE_FINDINGS_ONLY_NO_FIXES",
+    "technicalFindings": 10,
+    "p1": 2,
+    "conditionalP1": 1,
+    "p2Technical": 8,
+    "ownerUxRequirements": 1,
+    "appliedFixes": false,
+    "runtimeChanged": false,
+    "installedWindowsChanged": false,
+    "selectedInstalledSourceParity": "6/6 EOL-normalized",
+    "configProposal": "docs/project-book/LIGHT_REMOTE_ENDPOINTS_PROPOSED_20261107.json",
+    "urlInventory": "docs/project-book/LIGHT_REMOTE_URL_INVENTORY_20261107.json",
+    "inventory": {
+      "files": 327,
+      "positions": 114,
+      "values": 77
+    },
+    "configInstalled": false,
+    "physicalE2E": "NOT_TESTED",
+    "documentationCI": "PENDING_PUBLICATION",
+    "previousCheckpoint": {
+      "status": "T09_READONLY_AUDIT_COMPLETE_REMEDIATION_NOT_APPLIED",
+      "nextAction": "T09-F01: review audit A01 missing Tauri Link IPC permissions and plan a narrow packaged-WebView regression; findings and optimizations are NOT applied. No implementation, native installation or deployment authorized by this audit."
     }
   }
 }
