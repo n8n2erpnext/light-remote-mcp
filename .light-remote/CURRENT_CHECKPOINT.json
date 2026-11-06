@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-06",
-  "status": "T07_GOLD_LATEST_DESKTOP_V4_MERGED_ONE_COMPLETE_WINDOWS_INNO_CI_PENDING",
+  "status": "T07B_FULL_INNO_SINGLE_SETUP_INSTALL_WALL_AGENT_RM_V4_CI_PASS_OWNER_API_LIVE_E2E_OPEN",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T06b3 Gold Source Gate 4/4 and Desktop V4 native CI 7/7 PASS; isolated Lab remains on source-9d996956, so next complete unified Desktop packaging and same-host Agent/Wall plus remaining APIs, then reconcile staged backend before one physical Windows acceptance. Snapshot flags remain OFF in running LAB. NEXT per-Agent session close/revoke and signed Long Memory/Codex module APIs; jobs/usage read-only source done. T05E B GUI provenance and T04 two-way SSO remain OPEN; do not touch existing Gold 5491/5492 or LXD without a separate test window.",
+  "nextAction": "T07b merged GoldABV2+Desktop V4 single full Inno x64 Setup PASSED Windows install/launch/rollback/uninstall CI run 42185548184. SHA256 0096333787c9840fb56cd4de6552a836edd6463da101934998fbf3d3bd66e206. ONE installer artifact 13487822216 contains V4+Agent+Wall+RM+Tray+updater. NEXT: deploy matching Owner read backend in isolated LAB behind explicit flags, complete Owner management auth for exact per-Agent close/revoke, New Link/Relink, Long Memory/Codex Bridge data/actions and T04 two-way Wall SSO, then real Owner login/B GUI physical acceptance without replacing current Gold until verified. No product-wide API completion claimed.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -174,7 +174,7 @@
     "treeDigest": "2786ef659cdc519b5435dfcc1b9c85cd52a62f1f371250869ee64abaa561d82c",
     "trackedFiles": 1304,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-06T08:08:02.707Z"
+    "recordedAt": "2026-11-06T08:27:59.628Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

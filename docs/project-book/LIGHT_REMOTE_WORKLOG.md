@@ -1095,3 +1095,6 @@ Exact Desktop commit e6a7681d unified run 42181390342 SUCCESS 4/4; one Windows N
 
 ## 2026-11-06 — T07 FULL Windows Setup integration, not UI preview
 Actual Git merge Gold latest Owner APIs/native A/B Agent into Desktop V4 codebase, and switched one Windows Inno Setup full installer workflow to embed native V4 and test installed Wall/Agent/RM/desktop process. No second UI-only NSIS artifact on current V4 branch. Gold/Desktop 37+23 source tests PASS; full integrated Windows install CI pending. Runtime feature gates remain OFF; do not claim Owner login/Approve B or all module APIs end-to-end PASS.
+
+## 2026-11-06 — T07b actual one-install Windows CI PASS
+GitHub Windows run 42185548184 PASS end-to-end full Inno setup from merged commit 56608ebf. Single x64 Setup.exe 180,879,427 bytes SHA256 0096333787c9840fb56cd4de6552a836edd6463da101934998fbf3d3bd66e206, artifact 13487822216. Installer contains V4+Agent+5491 Wall+RM+Tray+Updater, passed installed launch and uninstall/rollback on runner. API coverage and live Owner/B consent unverified; feature gates OFF. No physical owner machine installation.
