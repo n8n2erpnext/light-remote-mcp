@@ -689,7 +689,9 @@ pub(crate) async fn desktop_owner_snapshot(
            value.get("accountId").and_then(Value::as_str)!=Some(account.as_str())||
            !value.get("devices").is_some_and(Value::is_array)||
            !value.get("sessions").is_some_and(Value::is_array)||
-           !value.get("grants").is_some_and(Value::is_array) {
+           !value.get("grants").is_some_and(Value::is_array)||
+           !value.get("jobs").is_some_and(Value::is_array)||
+           !value.get("events").is_some_and(Value::is_array) {
             return Err("desktop_owner_data_unavailable".into());
         }
         Ok(value)

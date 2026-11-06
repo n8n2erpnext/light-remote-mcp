@@ -96,37 +96,50 @@ function Sessions({snapshot}:{snapshot:OwnerSnapshot|null}) {
     {!snapshot&&<SourceUnavailable description="Owner session listing unavailable. No session query or mutation was authorized." />}
   </div>;
 }
-function LiveMonitor({ status }: { status: SnapshotResult | null }) {
+function LiveMonitor({ status,snapshot }: { status: SnapshotResult | null; snapshot:OwnerSnapshot|null }) {
   const v = status?.state === 'ready' ? status.device : null;
   const connection = v?.connection === 'connected' ? 'Connected'
     : v?.connection === 'disconnected' ? 'Disconnected' : '—';
+  const rows=snapshot?.jobs||[],events=snapshot?.events||[];
   return <div className="screen-content feature-dashboard">
     <div className="feature-kpi-grid">
       <UnknownKpi label="LOCAL CONNECTION" hint={v ? 'Read-only Local Wall response' : 'Not verified'} icon={WifiOff} value={connection} />
-      <UnknownKpi label="RUNNING JOBS" hint="Signed job list unavailable" icon={Activity} />
-      <UnknownKpi label="EVENTS" hint="Verified event feed unavailable" icon={Clock3} />
+      <UnknownKpi label="RUNNING JOBS" hint="Current Owner-scoped jobs" icon={Activity} value={snapshot?String(rows.filter(j=>j.state==='running').length):'—'} />
+      <UnknownKpi label="EVENTS" hint="Recent Operator events" icon={Clock3} value={snapshot?String(events.length):'—'} />
     </div>
     <div className="feature-split">
       <Card>
         <div className="feature-section-title"><CardHeading description="Redacted signed events only">LIVE ACTIVITY</CardHeading>
-          <span className="feature-state-label">NO FEED</span></div>
-        <EmptyPanel title="Activity stream unverified">No activity or timeline is inferred from an unavailable feed.</EmptyPanel>
+          <span className="feature-state-label">{snapshot?'RECENT':'NO FEED'}</span></div>
+        {snapshot?<div className="feature-table feature-table-scroll" role="region" aria-label="Live activity events">
+          <table><thead><tr><th>Event</th><th>Device</th><th>Status</th><th>At</th></tr></thead>
+            <tbody>{events.length?events.slice(-20).map((e,i)=><tr key={i}>
+              <td>{e.eventType}</td><td>{snapshot.devices.find(d=>d.deviceId===e.deviceId)?.name||e.deviceId}</td>
+              <td>{e.status}</td><td>{timestamp(e.at)}</td>
+            </tr>):<tr><td colSpan={4}>No recent events</td></tr>}</tbody>
+          </table></div>:<EmptyPanel title="Activity stream unverified">No activity or timeline is inferred from an unavailable feed.</EmptyPanel>}
       </Card>
       <Card>
         <CardHeading description="Executor availability must come from the local Agent">EXECUTOR STATUS</CardHeading>
         <div className="feature-pairs">
           <div><span>Executor ready</span><strong>—</strong></div>
           <div><span>Connection</span><strong>{connection}</strong></div>
-          <div><span>Last authenticated event</span><strong>—</strong></div>
+          <div><span>Last Owner-scoped event</span><strong>{snapshot&&events.length?timestamp(events[events.length-1]?.at??null):'—'}</strong></div>
         </div>
       </Card>
     </div>
     <Card>
       <CardHeading description="RUNNING / QUEUED / STOP-REQUESTED / OK / ERROR / TIMEOUT / KILLED">JOB CONTROLLER</CardHeading>
-      <FeatureTable label="Agent jobs" columns={['Job', 'Device', 'Status', 'Started', 'Action']}
-        description="Job cancellation is unavailable until a signed execution controller is connected. Stop-requested is not a terminal state." />
+      {snapshot?<div className="feature-table feature-table-scroll" role="region" aria-label="Agent jobs">
+        <table><thead><tr><th>Job</th><th>Device</th><th>Status</th><th>Started</th><th>Action</th></tr></thead>
+          <tbody>{rows.length?rows.map(j=><tr key={j.jobId}>
+            <td>{j.jobId}</td><td>{snapshot.devices.find(d=>d.deviceId===j.deviceId)?.name||j.deviceId}</td>
+            <td>{j.state}</td><td>{timestamp(j.startedAt)}</td><td>Read only</td>
+          </tr>):<tr><td colSpan={5}>No jobs in current Owner registry</td></tr>}</tbody>
+        </table></div>:<FeatureTable label="Agent jobs" columns={['Job', 'Device', 'Status', 'Started', 'Action']}
+        description="Job cancellation is unavailable until a signed execution controller is connected. Stop-requested is not a terminal state." />}
     </Card>
-    <SourceUnavailable description="A Local Wall device snapshot cannot authorize job inspection, cancellation or execution. No synthetic records are displayed." />
+    {snapshot?<SourceUnavailable description="This is a bounded current Operator view, not complete durable history or execution authority. Job cancellation is not connected." />:<SourceUnavailable description="A Local Wall device snapshot cannot authorize job inspection, cancellation or execution. No synthetic records are displayed." />}
   </div>;
 }
 function Devices({snapshot}:{snapshot:OwnerSnapshot|null}) {
@@ -259,7 +272,7 @@ function Account({snapshot}:{snapshot:OwnerSnapshot|null}) {
 export function FeatureScreen({ route, status, snapshot }: { route: FeatureRoute; status: SnapshotResult | null; snapshot?: OwnerSnapshot | null }) {
   switch (route) {
     case 'sessions': return <Sessions snapshot={snapshot??null} />;
-    case 'live-monitor': return <LiveMonitor status={status} />;
+    case 'live-monitor': return <LiveMonitor status={status} snapshot={snapshot??null} />;
     case 'devices': return <Devices snapshot={snapshot??null} />;
     case 'long-memory': return <LongMemory />;
     case 'codex-bridge': return <CodexBridge />;

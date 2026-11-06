@@ -670,3 +670,6 @@ Fixed private IPC and enrolled Agent binding; no new HTTP, no auth in JS, no app
 
 ### T06b2 monthly device usage: existing UsageRegistry (2026-11-06)
 The Owner snapshot Operator adapter reads `usage.summary(accountId,{months:1})` and allowlists only current Owner's device IDs for month/toolCalls/onlineMs; client `lib/native-snapshot.ts` projects them, `FeatureScreens.tsx` Account renders usage rows. This is current-usage calendar month, not invented billing renewal dates or per-device quota. No new REST endpoint or permission expansion; `LR_GOLD_ABV2_DESKTOP_READ_V4` remains default OFF.
+
+### T06b3 — Native Owner Live Monitor snapshot
+Operator `desktop-v4-owner-snapshot.mjs` reads the in-memory job registry and bounded recent event ring, filters to current Owner's devices, and returns only IDs, states and times. Plugin and Tauri require these arrays; React `native-snapshot.ts` rechecks device scope and `FeatureScreens.tsx` presents read-only rows. This is not durable job history or command output, and `LR_GOLD_ABV2_DESKTOP_READ_V4` remains OFF by default.

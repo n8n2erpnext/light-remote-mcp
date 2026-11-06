@@ -47,7 +47,7 @@ describe('desktop V4 feature screen integrity', () => {
       entitlements:{plan:'pro',toolCallLimit:500},
       usage:{month:'2026-11',toolCallsThisMonth:22,byDevice:[{deviceId:'dev-a',toolCalls:19,onlineMs:7200000}]},
       devices:[{deviceId:'dev-a',name:'Workstation',shortId:'R01KAP',os:'windows',state:'online',lastSeenAt:100}],
-      sessions:[],grants:[]
+      sessions:[],grants:[],jobs:[],events:[]
     };
     render(<FeatureScreen route="account" status={null} snapshot={snapshot} />);
     expect(screen.getByText('owner@example.test')).toBeTruthy();
@@ -55,6 +55,25 @@ describe('desktop V4 feature screen integrity', () => {
     expect(screen.getByText('2026-11')).toBeTruthy();
     expect(screen.getByText('19')).toBeTruthy();
     expect(screen.getByText('2.0')).toBeTruthy();
+  });
+  it('renders only verified, sanitized Operator jobs and recent events',()=>{
+    const snapshot={
+      state:'ready' as const,accountId:'owner',asOf:1000,
+      account:{email:'owner@example.test',plan:'pro',status:'active',emailVerified:true},
+      entitlements:{plan:'pro',toolCallLimit:500},
+      usage:{month:'2026-11',toolCallsThisMonth:22,byDevice:[]},
+      devices:[{deviceId:'dev-a',name:'Workstation',shortId:'R01KAP',os:'windows',state:'online',lastSeenAt:100}],
+      sessions:[],grants:[],
+      jobs:[{jobId:'j-123',deviceId:'dev-a',agentId:'agent-a',sessionId:'s-1',state:'running',startedAt:1000,finishedAt:null,exitCode:null}],
+      events:[{deviceId:'dev-a',eventType:'job_started',status:'running',at:1001}]
+    };
+    render(<FeatureScreen route="live-monitor" status={null} snapshot={snapshot}/>);
+    expect(screen.getByRole('region',{name:'Agent jobs'})).toBeTruthy();
+    expect(screen.getByRole('region',{name:'Live activity events'})).toBeTruthy();
+    expect(screen.getByText('j-123')).toBeTruthy();
+    expect(screen.getByText('job_started')).toBeTruthy();
+    expect(screen.getByText('Read only')).toBeTruthy();
+    expect(screen.queryByText('Activity stream unverified')).toBeNull();
   });
   it('a known local device connection must not be taken as job or owner authority', () => {
     render(<FeatureScreen route="live-monitor" status={{

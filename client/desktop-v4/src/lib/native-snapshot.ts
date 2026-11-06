@@ -16,13 +16,20 @@ export type OwnerGrant = Readonly<{
   grantId:string;deviceId:string;agentId:string|null;
   approvedAt:number|null;expiresAt:number|null;absoluteExpiresAt:number|null;
 }>;
+export type OwnerJob = Readonly<{
+  jobId:string;deviceId:string;agentId:string|null;sessionId:string|null;
+  state:string;startedAt:number|null;finishedAt:number|null;exitCode:number|null;
+}>;
+export type OwnerEvent = Readonly<{
+  deviceId:string;eventType:string;status:string;at:number|null;
+}>;
 export type OwnerSnapshot = Readonly<{
   state:'ready';accountId:string;asOf:number;
   account:Readonly<{email:string|null;plan:string|null;status:string;emailVerified:boolean}>;
   entitlements:Readonly<{plan:string|null;toolCallLimit:number|null}>;
   usage:Readonly<{month:string|null;toolCallsThisMonth:number|null;byDevice:ReadonlyArray<Readonly<{deviceId:string;toolCalls:number|null;onlineMs:number|null}>>}>;
   devices:ReadonlyArray<OwnerDevice>;sessions:ReadonlyArray<OwnerSession>;
-  grants:ReadonlyArray<OwnerGrant>;
+  grants:ReadonlyArray<OwnerGrant>;jobs:ReadonlyArray<OwnerJob>;events:ReadonlyArray<OwnerEvent>;
 }>;
 export type SnapshotView=OwnerSnapshot | Readonly<{state:'unavailable';reason:string}>;
 const CLOSED:SnapshotView=Object.freeze({state:'unavailable',reason:'owner_api_unavailable'});
@@ -41,6 +48,8 @@ export function projectOwnerSnapshot(input:unknown,expectedAccountId:string):Sna
      asOf===null||!ac||ac.emailVerified!==true||ac.status!=='active'||!ent||!usage||
      !Array.isArray(r.devices)||!Array.isArray(r.sessions)||!Array.isArray(r.grants)||
      !Array.isArray(usage.byDevice)||usage.byDevice.length>200||
+     !Array.isArray(r.jobs)||!Array.isArray(r.events)||
+     r.jobs.length>200||r.events.length>200||
      r.devices.length>200||r.sessions.length>200||r.grants.length>200)return CLOSED;
   const devices:OwnerDevice[]=[],sessions:OwnerSession[]=[],grants:OwnerGrant[]=[];
   for(const value of r.devices){
@@ -75,12 +84,27 @@ export function projectOwnerSnapshot(input:unknown,expectedAccountId:string):Sna
       approvedAt:count(g.approvedAt),expiresAt:count(g.expiresAt),
       absoluteExpiresAt:count(g.absoluteExpiresAt)});
   }
+  const jobs:OwnerJob[]=[],events:OwnerEvent[]=[];
+  for(const value of r.jobs){
+    const job=record(value),jobId=id(job?.jobId),deviceId=id(job?.deviceId);
+    if(!job||!jobId||!deviceId||!owned.has(deviceId))return CLOSED;
+    jobs.push({jobId,deviceId,agentId:id(job.agentId),sessionId:id(job.sessionId),
+      state:string(job.state,32)||'unknown',startedAt:count(job.startedAt),
+      finishedAt:count(job.finishedAt),
+      exitCode:typeof job.exitCode==='number'&&Number.isSafeInteger(job.exitCode)?job.exitCode:null});
+  }
+  for(const value of r.events){
+    const event=record(value),deviceId=id(event?.deviceId);
+    if(!event||!deviceId||!owned.has(deviceId))return CLOSED;
+    events.push({deviceId,eventType:string(event.eventType,64)||'activity',
+      status:string(event.status,32)||'unknown',at:count(event.at)});
+  }
   return Object.freeze({state:'ready',accountId:expectedAccountId,asOf,
     account:Object.freeze({email:string(ac.email,254),plan:string(ac.plan,40),
       status:'active',emailVerified:true}),
     entitlements:Object.freeze({plan:string(ent.plan,40),toolCallLimit:count(ent.toolCallLimit)}),
     usage:Object.freeze({month,toolCallsThisMonth:count(usage.toolCallsThisMonth),byDevice}),
-    devices,sessions,grants});
+    devices,sessions,grants,jobs,events});
 }
 type NativeWindow=Window & {__TAURI_INTERNALS__?:{invoke?:(cmd:string)=>Promise<unknown>}};
 export function nativeOwnerSnapshotAvailable(host:Window=window){

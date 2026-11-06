@@ -8,7 +8,9 @@ const DATA={
  devices:[{deviceId:'dev-a',name:'Home',shortId:'R01KAP',os:'windows',state:'online',lastSeenAt:999,privateKey:'SECRET'}],
  sessions:[{sessionId:'s-1',deviceId:'dev-a',agentId:'agent-a',name:'Agent A',
    state:'active',createdAt:100,lastSeenAt:900,expiresAt:2000,holdReason:null,activeJobs:0,workspace:'SECRET'}],
- grants:[{grantId:'dag-1',deviceId:'dev-a',agentId:'agent-a',approvedAt:100,expiresAt:2000,absoluteExpiresAt:3000,rawToken:'SECRET'}]
+ grants:[{grantId:'dag-1',deviceId:'dev-a',agentId:'agent-a',approvedAt:100,expiresAt:2000,absoluteExpiresAt:3000,rawToken:'SECRET'}],
+ jobs:[{jobId:'job-a',deviceId:'dev-a',agentId:'agent-a',sessionId:'s-1',state:'running',startedAt:1000,finishedAt:null,exitCode:null,script:'SECRET'}],
+ events:[{deviceId:'dev-a',eventType:'job_started',status:'running',at:1000,detail:'SECRET'}]
 };
 describe('Owner snapshot is a bounded native-only projection',()=>{
  beforeEach(()=>{vi.stubEnv('VITE_LR_V4_OWNER_LOGIN','1');vi.stubEnv('VITE_LR_V4_OWNER_SNAPSHOT','1');});
@@ -24,6 +26,8 @@ describe('Owner snapshot is a bounded native-only projection',()=>{
      expect(result.usage.toolCallsThisMonth).toBe(22);
      expect(result.usage.month).toBe('2026-11');
      expect(result.usage.byDevice[0]?.toolCalls).toBe(19);
+     expect(result.jobs[0]?.state).toBe('running');
+     expect(result.events[0]?.eventType).toBe('job_started');
    }
  });
  it('denies wrong account, foreign session device, missing arrays, excessive records',()=>{
@@ -31,6 +35,8 @@ describe('Owner snapshot is a bounded native-only projection',()=>{
    expect(projectOwnerSnapshot({...DATA,devices:[]},'owner').state).toBe('unavailable');
    expect(projectOwnerSnapshot({...DATA,grants:Array(201).fill(DATA.grants[0])},'owner').state).toBe('unavailable');
    expect(projectOwnerSnapshot({...DATA,account:{...DATA.account,emailVerified:false}},'owner').state).toBe('unavailable');
+   expect(projectOwnerSnapshot({...DATA,jobs:[{...DATA.jobs[0],deviceId:'other'}]},'owner').state).toBe('unavailable');
+   expect(projectOwnerSnapshot({...DATA,events:[{...DATA.events[0],deviceId:'other'}]},'owner').state).toBe('unavailable');
  });
  it('uses exact Tauri IPC and never fetch, cookies or a URL from JS',async()=>{
    const invoke=vi.fn(async()=>DATA);
