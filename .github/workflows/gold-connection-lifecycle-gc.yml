@@ -7,12 +7,15 @@ on:
       - 'feat/gold-single-owner-transfer-20261101'
       - 'feat/goldabv2-device-local-activity-logs-20261102'
       - 'feat/goldabv2-desktop-owner-lab-20261103'
+      - 'feat/desktop-v4-api-integration-20261103'
     paths:
       - 'lib/gold-connection-job-reaper.mjs'
       - 'operator-host/gold-admin-job-recovery.mjs'
       - 'operator-host/executor-routes-account.mjs'
       - 'operator-host/desktop-v4-owner-snapshot*.mjs'
       - 'operator-host/desktop-v4-owner-close*.mjs'
+      - 'operator-host/gold-ab-v2-server-v1-lock.test.mjs'
+      - 'client/windows-native/GptOperator.Client/ConnectionConfig.cs'
       - 'operator-host/account-registry.mjs'
       - 'plugin-server/server.mjs'
       - 'plugin-server/desktop-auth-v4-*.mjs'
@@ -508,6 +511,7 @@ jobs:
           node deploy/scripts/selftest-gold-ab-v2-helper-recovery.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-noarg.mjs
           node deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs
+          node --test operator-host/gold-ab-v2-server-v1-lock.test.mjs
           node --check deploy/scripts/selftest-gold-ab-v2-recovery-redis.mjs
           node deploy/scripts/selftest-gold-agent-session-nickname.mjs
           node --check operator-host/pro-share-store.mjs

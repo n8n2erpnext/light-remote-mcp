@@ -341,6 +341,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res, 200, { ok:true, approval, device });
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-pair/begin') {
+      if(goldAbV2LabV1Disabled())throw new DevicePairingRegistryError('abv2_server_legacy_v1_disabled',423);
       const body=await readJson(req);
       const paired=pairingCodes.redeem(body.aCode,{connectionForDevice:deviceId=>connections.get(deviceId)});
       if(body.accountId!=null&&String(body.accountId)!==paired.accountId)throw new DevicePairingRegistryError('pairing_account_mismatch',403);
@@ -350,6 +351,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,201,{ok:true,access,pairing:{pairingId:paired.pairingId,deviceId:paired.deviceId}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/request') {
+      if(goldAbV2LabV1Disabled())throw new DevicePairingRegistryError('abv2_server_legacy_v1_disabled',423);
       const body=await readJson(req), deviceId=String(body.deviceId||'');
       const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
       const accountId=String(body.accountId||ACCOUNT_ID);
@@ -360,15 +362,18 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,access.state==='approved'?200:201,{ok:true,access});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/poll') {
+      if(goldAbV2LabV1Disabled())throw new DevicePairingRegistryError('abv2_server_legacy_v1_disabled',423);
       const body=await readJson(req);
       return sendJson(res,200,{ok:true,access:accessGrants.poll(body)});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/recover') {
+      if(goldAbV2LabV1Disabled())throw new DevicePairingRegistryError('abv2_server_legacy_v1_disabled',423);
       const body=await readJson(req);
       reapAccessGrants();
       return sendJson(res,200,{ok:true,access:accessGrants.recoverPairing({accountId:body.accountId,agentId:body.agentId})});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-access/recover-consume') {
+      if(goldAbV2LabV1Disabled())throw new DevicePairingRegistryError('abv2_server_legacy_v1_disabled',423);
       const body=await readJson(req);
       return sendJson(res,200,{ok:true,access:accessGrants.consumeRecoveredPairing({requestId:body.requestId,accountId:body.accountId,agentId:body.agentId})});
     }
@@ -385,6 +390,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const connection=connections.assertConnected(request.deviceId);
       if(connection.connectionId!==request.connectionId) throw new DeviceAccessGrantError('device_connection_changed',409);
       if(accessRequestMatch[2]==='approve'){
+        if(goldAbV2LabV1Disabled())throw new DevicePairingRegistryError('abv2_server_legacy_v1_disabled',423);
         const grant=accessGrants.approve(request.requestId,{deviceId:request.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt,idleGraceMs:connection.reconnectGraceMs});
         return sendJson(res,200,{ok:true,grant});
       }
@@ -729,6 +735,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,mainDeviceId:ctx.account.mainDeviceId,maintenance:queueHelperUpdate(target.deviceId,{source:'fleet-wall'})});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/pairing-code') {
+      if(goldAbV2LabV1Disabled())throw new DevicePairingRegistryError('abv2_server_legacy_v1_disabled',423);
       const body=await readJson(req), ctx=await verifiedChannelContext(body,'pairing-code');
       const connection=connections.assertConnected(ctx.device.deviceId);
       const spec={accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt};
@@ -749,6 +756,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       return sendJson(res,200,{ok:true,device:{displayName:ctx.device.displayName||ctx.device.deviceId},access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId)}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/access-approve') {
+      if(goldAbV2LabV1Disabled())throw new DevicePairingRegistryError('abv2_server_legacy_v1_disabled',423);
       const body=await readJson(req), ctx=await verifiedChannelContext(body,'access-approve');
       const connection=connections.assertConnected(ctx.device.deviceId);
       const grant=accessGrants.approve(ctx.payload.requestId,{deviceId:ctx.device.deviceId,connectionId:connection.connectionId,connectionExpiresAt:connection.hardExpiresAt,idleGraceMs:connection.reconnectGraceMs});
@@ -763,7 +771,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const body=await readJson(req), ctx=await verifiedChannelContext(body,'status');
       const connection=requireDeviceConnection(ctx.device.deviceId);
       const liveSessions=sessions.list({deviceId:ctx.device.deviceId}).filter(item=>item.state==='active'||item.state==='hold');
-      return sendJson(res,200,{ok:true,device:deviceView(ctx.device),connection:{...connections.get(ctx.device.deviceId),enforced:CONNECTION_LEASE_ENFORCE},sessions:liveSessions,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connection.connectionId),activeGrants:accessGrants.activeGrantsForDevice(ctx.device.deviceId,connection.connectionId).map(g=>({agentId:g.agentId||null,label:String(g.label||'Agent').slice(0,120),purpose:g.purpose||'device',approvedAt:g.approvedAt,expiresAt:g.expiresAt,absoluteExpiresAt:g.absoluteExpiresAt}))}});
+      return sendJson(res,200,{ok:true,pairingMode:goldAbV2LabV1Disabled()?'abv2_only':'legacy_allowed',device:deviceView(ctx.device),connection:{...connections.get(ctx.device.deviceId),enforced:CONNECTION_LEASE_ENFORCE},sessions:liveSessions,access:{pending:accessGrants.pendingForDevice(ctx.device.deviceId),activeGrant:accessGrants.activeForDevice(ctx.device.deviceId,connection.connectionId),activeGrants:accessGrants.activeGrantsForDevice(ctx.device.deviceId,connection.connectionId).map(g=>({agentId:g.agentId||null,label:String(g.label||'Agent').slice(0,120),purpose:g.purpose||'device',approvedAt:g.approvedAt,expiresAt:g.expiresAt,absoluteExpiresAt:g.absoluteExpiresAt}))}});
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-channel/session-close') {
       const body=await readJson(req), ctx=await verifiedChannelContext(body,'session-close');

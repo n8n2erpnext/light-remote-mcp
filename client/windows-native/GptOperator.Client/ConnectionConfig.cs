@@ -6,7 +6,13 @@ internal sealed record ConnectionSettings(string BridgeUrl, string HubUrl);
 
 internal static class ConnectionConfig
 {
+#if LIGHT_REMOTE_GOLDABV2_V4
+    // New V4 QA installs use the GoldABV2 backend. Existing saved enrollment
+    // URLs are NEVER silently migrated: Owner must explicitly relink devices.
+    public const string StablePublicEndpoint = "https://goldabv2.light-remote.thaiduy.digital";
+#else
     public const string StablePublicEndpoint = "https://gold.light-remote.thaiduy.digital";
+#endif
     public const string DefaultBridgeUrl = StablePublicEndpoint;
     public const string DefaultHubUrl = StablePublicEndpoint;
 
@@ -77,5 +83,11 @@ internal static class ConnectionConfig
     }
 
     private static string MigrateKnownDefault(string normalized, string[] legacy) =>
+#if LIGHT_REMOTE_GOLDABV2_V4
+        // Preserve a previously configured Gold/legacy endpoint verbatim.
+        // Switching authority with a stored device identity must be explicit.
+        normalized;
+#else
         legacy.Contains(normalized, StringComparer.OrdinalIgnoreCase) ? StablePublicEndpoint : normalized;
+#endif
 }

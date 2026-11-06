@@ -1098,3 +1098,6 @@ Actual Git merge Gold latest Owner APIs/native A/B Agent into Desktop V4 codebas
 
 ## 2026-11-06 — T07b actual one-install Windows CI PASS
 GitHub Windows run 42185548184 PASS end-to-end full Inno setup from merged commit 56608ebf. Single x64 Setup.exe 180,879,427 bytes SHA256 0096333787c9840fb56cd4de6552a836edd6463da101934998fbf3d3bd66e206, artifact 13487822216. Installer contains V4+Agent+5491 Wall+RM+Tray+Updater, passed installed launch and uninstall/rollback on runner. API coverage and live Owner/B consent unverified; feature gates OFF. No physical owner machine installation.
+
+## 2026-11-06 — T07c server-authoritative A/B V2 (source)
+Root-cause Windows screenshot: Tray default was gold.light-remote.thaiduy.digital, not isolated goldabv2.light-remote.thaiduy.digital. LAB R5 same UI source but operator server V1 issuance routes were not universally fenced. Fixed Operator-side deny + signed pairingMode in status; local Wall starts V1 hidden and no fallback on errors; V4 fresh-install endpoint GoldABV2 via compile symbol, saved Gold endpoint preserved pending explicit relink. New 3/3 server/Wall tests + Lab and R5 regressions PASS. No deployed server or Windows reinstall acceptance yet.
