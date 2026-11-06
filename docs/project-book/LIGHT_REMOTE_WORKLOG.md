@@ -1176,3 +1176,6 @@ Owner requested a single integrated bug fix. Source candidate consolidates nativ
 
 ## 2026-11-06 — T07f1 Windows first CI source fixture failure
 Run 42244160285 at efc221ee reached Windows Tauri compiler SUCCESS, then failed before Inno at stale Lab V2 approval hidden DOM assertion. Updated V1/V2 signed mode source regressions including fail closed unknown; local pass. Full Windows rerun PENDING; no Owner or production deployment.
+
+## 2026-11-06 — T07f2 Full integrated Windows candidate successfully built and installed on runner
+Desktop branch f5c4b574 Windows run 42245333752 SUCCESS. Full Inno Setup SHA256 6921e264b95d306ce73f8d1e54ff1be4d67238210d53482f97e485bef69f1067, 180926511 bytes, artifact 13519530536. Native Tauri/.NET + Agent/Wall/RM, single instance, shortcut relaunch, updater rollback and uninstall PASS. Owner physical test remains OPEN, no rollout.

@@ -366,3 +366,19 @@ NEXT: stage atomic source/docs/Project Truth, push Desktop integration branch, r
 Windows full installer CI of source efc221ee, run 42244160285, completed FAILURE at early step Server authoritative GoldABV2 V1 lock regression, specifically old selftest-gold-ab-v2-lab-v1-lock.mjs line54 expecting an A/B V2 preview fragment to be hidden. This outdated DOM assertion contradicted the new fail-closed runtime: V2-only signed mode must display its request/error surface, not hide it and expose V1. Windows Tauri/Rust compiler step, tray menu check, cross-platform typing and Long Memory tests already PASS; full .NET/Inno build/install NOT REACHED. No software deployed on owner Windows.
 
 Updated both selftest-gold-ab-v2-lab-v1-lock.mjs and selftest-gold-ab-v2-wall-preview.mjs: signed legacy_allowed renders only V1; signed abv2_only renders the R5 V2 panel and hides legacy; unknown mode hides legacy and displays unavailable; Lab V1 lock still 423. Added preview gate to full Windows workflow and push path filter. Local Node PASS both scripts plus unified one-app contract. Full Windows candidate CI rerun now required; exact new SHA and result pending. No runtime/production/PG/Owner changes in T07f1.
+
+
+## 2026-11-06 — T07f2 Full Windows Inno CI SUCCESS and Gold historical continuity
+
+**Authoritative verified code commit** f5c4b57438b445cc99ee0109af46bf58f5eb320c, Desktop integration branch feat/desktop-v4-api-integration-20261103. GitHub Actions Windows Tray Client run 42245333752: **SUCCESS**, job build-install-smoke **SUCCESS**. Exact runner evidence:
+- Native Windows Rust/Tauri Owner compile PASS, .NET Agent publish PASS, Windows native Tray and signed A/B V1 denial source gates PASS.
+- Unified package stage PASS: Tauri GUI 8,271,360 bytes; Agent A/B V2, Local Wall and Real Remote V2 present.
+- Inno full Setup.exe 180,926,511 bytes, SHA-256 **6921e264b95d306ce73f8d1e54ff1be4d67238210d53482f97e485bef69f1067**.
+- Actual installed Windows runner full integration PASS: Agent, Wall HTTP200, RM companion, Desktop Owner native binary compiled. Windows unified Desktop single-instance PASS; exiting native Tray and re-opening shortcut PASS; Agent and Wall survive closing UI PASS. Installed .NET selftest PASS; independent updater rollback/restore PASS; full installer uninstall roundtrip PASS.
+- GitHub Actions uploaded SINGLE complete Windows artifact ID **13519530536**, name light-remote-desktop-v4-COMPLETE-windows-x64-f5c4b57438b445cc99ee0109af46bf58f5eb320c; ZIP checksum is distinct from Setup checksum. Artifact at GitHub run https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42245333752.
+- Separate efc221ee Desktop V4 source QA 3/3 jobs Web/Linux/macOS SUCCESS; f5c4b574 Gold GC source gate 4/4 SUCCESS, documentation library and Project Truth SUCCESS.
+
+**NOT Windows Owner physical acceptance:** Windows installed QA on OWNER's actual machine, Tray signed ShortID S9X0R0, Owner PKCE restore, Device Link/Relink code selection/clipboard/reopen/countdown and local A/B B approval are still OPEN. No upgrade was deployed or executed on Owner PC; do not claim physical pass. LXD Lab runtime remains 3/3 healthy with two same-Owner devices discoverable 2/2. Retain previous a4b22f8a Setup as known-good rollback. Next: select this complete QA artifact and test in ONE controlled physical Windows upgrade while preserving enrollment. Do not deploy to production.
+
+### Historical Gold canonical-only notice preserved during byte-identical Living Master sync
+The Gold backend branch's previous last receipt cautioned that its source is not the integrated Desktop development authority; the paragraph is retained verbatim below for provenance, but its old 3a1d2e83 CI baseline is superseded by T07f2.
