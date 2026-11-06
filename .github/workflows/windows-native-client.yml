@@ -431,7 +431,25 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'G3 Local Wall executor readiness regression failed on Windows' }
           & $node deploy/scripts/selftest-g2-wall-headers-sent-crash.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Windows Local Wall double-response crash regression failed' }
-          $env:OPERATOR_AGENT_STATE = Join-Path $env:RUNNER_TEMP 'native-empty-device.json'
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            # QA V4 intentionally isolates enrollment under its dedicated state
+            # root. The old temp-path fixture must not bypass this boundary.
+            $env:OPERATOR_AGENT_STATE = Join-Path $env:USERPROFILE '.config\gpt-operator-agent-goldabv2\device.json'
+            $oldState=$env:OPERATOR_AGENT_STATE
+            $badState=Join-Path $env:RUNNER_TEMP 'native-production-state.json'
+            $env:OPERATOR_AGENT_STATE=$badState
+            $stateProbeOut=Join-Path $env:RUNNER_TEMP 'abv2-state-deny-out.txt'
+            $stateProbeErr=Join-Path $env:RUNNER_TEMP 'abv2-state-deny-err.txt'
+            try {
+              $stateProbe=Start-Process -FilePath $node -ArgumentList @($agent,'status') -PassThru -Wait -RedirectStandardOutput $stateProbeOut -RedirectStandardError $stateProbeErr
+            } finally { $env:OPERATOR_AGENT_STATE=$oldState }
+            if ($stateProbe.ExitCode -eq 0 -or -not ((Get-Content -LiteralPath $stateProbeErr -Raw) -match 'goldabv2_build_state_profile_mismatch')) {
+              throw 'GoldABV2 packaged Agent failed to reject foreign device state path'
+            }
+            Write-Host 'windows-goldabv2-bundled-agent-production-state-rejected=PASS'
+          } else {
+            $env:OPERATOR_AGENT_STATE = Join-Path $env:RUNNER_TEMP 'native-empty-device.json'
+          }
           Write-Host '--- bundled agent direct status ---'
           & $node $agent status
           if ($LASTEXITCODE -ne 0) { throw 'bundled agent direct status failed' }
