@@ -74,7 +74,7 @@ function Sessions({snapshot}:{snapshot:OwnerSnapshot|null}) {
       <UnknownKpi label="HELD / PENDING" hint={snapshot?'Live Agent lanes':'Lease state not verified'} icon={LockKeyhole}
         value={snapshot?String(hold):'—'} />
       <UnknownKpi label="NEXT EXPIRY" hint="Server-reported lease deadline" icon={Clock3}
-        value={snapshot&&expiries.length?timestamp(expiries[0]):'—'} />
+        value={snapshot&&expiries.length?timestamp(expiries[0]??null):'—'} />
     </div>
     <Card>
       <div className="feature-section-title">
