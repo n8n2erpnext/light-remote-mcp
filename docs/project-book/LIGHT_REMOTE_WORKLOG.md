@@ -1080,3 +1080,6 @@ After T06b1 Desktop native 7/7 CI PASS (run 42174200061), connected existing Ope
 
 ## 2026-11-06 — T06b3 Owner Live Monitor data
 Read-only T06 native Owner snapshot now projects current Operator jobs and recent events per owned device; frontend renders typed Live Monitor tables. T06b2 CI 7/7 passed, new T06b3 exact-SHA CI pending. No runtime changes.
+
+## 2026-11-06 — T06b3 CI accepted; live QA blocked on runtime source
+Exact Gold Source Gate 42178398647 SUCCESS 4/4 and Desktop native CI 42178431994 SUCCESS 7/7 for read-only Live Monitor job/event API. Isolated Lab still runs source-9d996956; no backend cutover, flag enablement or Windows physical proof. Next reconcile Lab source and rollback, then same-host Windows QA and remaining Owner mutators and module APIs.

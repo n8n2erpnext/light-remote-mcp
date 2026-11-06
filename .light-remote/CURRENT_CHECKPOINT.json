@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-06",
-  "status": "T06B3_OWNER_SNAPSHOT_LIVE_MONITOR_CI_PENDING_RUNTIME_OFF",
+  "status": "T06B3_GOLD_SOURCE_4_OF_4_DESKTOP_NATIVE_7_OF_7_CI_PASS_LAB_RUNTIME_STILL_OLD_T04_OPEN",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T06 source-level Owner snapshot contract implemented and Gold 18/18 Node tests PASS; complete exact GitHub Desktop V4 Tauri/React CI and Gold CI, then physical Owner LAB only with authorized same-host GoldABV2 Agent. Snapshot flags default OFF and no runtime data yet. NEXT granular per-Agent revoke/session-close and signed Jobs/Long Memory/Codex/Usage. T05E B GUI provenance and T04 two-way SSO remain OPEN; do not touch existing Gold 5491/5492 or LXD without a separate test window.",
+  "nextAction": "T06b3 Gold Source Gate 4/4 and Desktop V4 native CI 7/7 PASS; isolated Lab remains on source-9d996956, so next reconcile rollback and source deployment before physical Windows QA. Snapshot flags default OFF and no runtime data yet. NEXT per-Agent session close/revoke and signed Long Memory/Codex module APIs; jobs/usage read-only source done. T05E B GUI provenance and T04 two-way SSO remain OPEN; do not touch existing Gold 5491/5492 or LXD without a separate test window.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -174,7 +174,7 @@
     "treeDigest": "87cf8dbe04217a9de878f92a0a5d9270122601e522d1624b3bb746d59245a7e1",
     "trackedFiles": 1192,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-06T07:03:27.386Z"
+    "recordedAt": "2026-11-06T07:13:15.940Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
