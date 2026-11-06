@@ -1386,3 +1386,6 @@ Exact Gold Source Gate 42178398647 SUCCESS 4/4 and Desktop native CI 42178431994
 
 ## 2026-11-06 — T06b4 one-installable-Desktop correction
 Owner clarified that UI-only and Owner-function builds must never be separate applications. Consolidated GitHub Desktop CI into one native feature-enabled build per OS and exactly one Windows NSIS installer artifact (QA, unsigned). This is a packaging correction, not a claim of API or installed Agent integration completion. No production, LAB runtime, Windows existing Gold services or T04 SSO changes.
+
+## 2026-11-06 — T06b4a Owner session close authority boundary
+Added source-only exact per-Agent close adapter and regression tests; refused to expose mutation via `desktop:read` token. No endpoint or UI Close action enabled. One installer and all real API gates remain unfinished; no Windows installation performed.

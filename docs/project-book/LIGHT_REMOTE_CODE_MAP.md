@@ -1055,3 +1055,6 @@ Operator `desktop-v4-owner-snapshot.mjs` reads the in-memory job registry and bo
 
 ### T06b4 single Desktop native build topology
 One React App (`client/desktop-v4/src/App.tsx`) + native Rust (`src-tauri/src/main.rs`) + private Owner vault and Agent IPC compile into ONE executable in `unified-desktop` CI with feature `desktop-owner-login` ON. Windows packages exactly one NSIS installer (Tauri `bundle.active=true`); UI tests are not a separate user artifact. The installer still requires same-device enrolled Node Agent/Wall runtime; packaging the Agent and binding full Long Memory/Codex/Owner mutation APIs remain acceptance gates. No other backend control plane or V1 fallback added.
+
+### T06b4a source-only per-Agent Owner Close adapter
+`operator-host/desktop-v4-owner-close.mjs` calls proven `owner-session-close-abv2.mjs` only after exact verified Owner account session, Agent lane, enrolled device, live connection and zero active jobs. It is **not registered as a route** because Native Owner OAuth scope is `desktop:read`, not mutation authority. Tests `desktop-v4-owner-close.test.mjs` protect isolation; there is NO callable close API until a separately authorized Owner manage or signed local consent contract is accepted.
