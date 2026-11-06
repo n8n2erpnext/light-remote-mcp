@@ -1629,6 +1629,22 @@
       "conclusion": "success"
     },
     "liveEvidence": "READ_ONLY systemd metadata: Plugin/Operator/Wall active/running; t08-617 source directory names only, no bytes/flags/E2E attestation",
-    "documentationCI": "PENDING_AFTER_PUBLICATION"
+    "documentationCI": {
+      "status": "SUCCESS",
+      "goldCommit": "ff9a288216b6b261399f3852a33d03b77ec6c9f9",
+      "desktopCommit": "cb5c15fa388ebf54d86417de93402b164dfa022e",
+      "goldDocs": 42262419794,
+      "goldTruth": 42262419808,
+      "desktopDocs": 42262429087,
+      "desktopTruth": 42262429114,
+      "note": "Receipt publication only; source and native acceptance unchanged"
+    },
+    "documentationChecks": {
+      "catalogEntries": 186,
+      "goldRelativeLinks": 631,
+      "desktopRelativeLinks": 619,
+      "projectTruth": "living-master-docs-coherent PASS",
+      "masterMirror": "BYTE_IDENTICAL"
+    }
   }
 }
