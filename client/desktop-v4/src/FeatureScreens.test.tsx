@@ -26,8 +26,16 @@ describe('desktop V4 feature screen integrity', () => {
     for (const route of ['devices', 'long-memory', 'codex-bridge', 'account'] as FeatureRoute[]) {
       const view = render(<FeatureScreen route={route} status={null} />);
       const buttons = view.container.querySelectorAll('button');
-      expect(buttons.length).toBeGreaterThan(0);
-      buttons.forEach(button => expect(button.disabled).toBe(true));
+      if (route === 'devices') {
+        // Link/Relink is an OS-local Tray action, not an unverified Owner
+        // mutation on this inventory screen. Show the real navigation path.
+        expect(buttons.length).toBe(0);
+        expect(view.container.textContent).toContain('Windows Tray');
+        expect(view.container.textContent).toContain('Link / Relink device');
+      } else {
+        expect(buttons.length).toBeGreaterThan(0);
+        buttons.forEach(button => expect(button.disabled).toBe(true));
+      }
       view.unmount();
     }
   });

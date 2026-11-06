@@ -153,7 +153,7 @@ function Devices({snapshot}:{snapshot:OwnerSnapshot|null}) {
     <Card>
       <div className="feature-section-title">
         <CardHeading description="Owner-scoped device inventory with stable Short IDs">DEVICES</CardHeading>
-        <div className="feature-actions"><DisabledControl>New Link</DisabledControl><DisabledControl>Relink</DisabledControl></div>
+        <div className="feature-actions"><span className="muted">Link this PC: Windows Tray → More actions → Link / Relink device</span></div>
       </div>
       {snapshot?<div className="feature-table feature-table-scroll" role="region" aria-label="Devices inventory">
         <table><thead><tr><th>Device</th><th>Short ID</th><th>OS</th><th>Connection</th><th>Last seen</th></tr></thead>
@@ -164,7 +164,7 @@ function Devices({snapshot}:{snapshot:OwnerSnapshot|null}) {
         columns={['Device','Short ID','OS','Connection','Last seen']}
         description="Owner device collection has not been verified." />}
     </Card>
-    <SourceUnavailable description="New Link, Relink and device mutations require a separate signed Owner mutation contract." />
+    <SourceUnavailable description="This screen is Owner inventory, not a device mutation panel. To link this Windows PC, open the Light Remote system tray icon → More actions → Link / Relink device (disconnect first if connected). Approval opens in your browser. GoldABV2 V4 has a separate device profile and does not reuse Gold production enrollment." />
   </div>;
 }
 function LongMemory() {

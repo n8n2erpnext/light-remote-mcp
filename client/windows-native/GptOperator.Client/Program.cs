@@ -81,12 +81,14 @@ internal static class Program
                 && !SemanticVersion.IsNewer("0.9.0-beta.1", "0.9.0-beta.1")
                 && !SemanticVersion.IsNewer("0.9.0-beta.1", "0.9.0-rc.1");
             var trayLogicOk = TrayApplicationContext.SelfTest();
+            var targetProfileOk = ConnectionConfig.PackageTargetSelfTest();
             var trayIconOk = TrayIconFactory.SelfTest();
             var agentHostRecoveryOk = AgentHost.SelfTestRestartPolicy();
             var result = new {
-                ok = File.Exists(AppPaths.NodeExe) && File.Exists(AppPaths.AgentScript) && File.Exists(AppPaths.UpdatePublicKey) && semverOk && trayLogicOk && trayIconOk && agentHostRecoveryOk,
+                ok = File.Exists(AppPaths.NodeExe) && File.Exists(AppPaths.AgentScript) && File.Exists(AppPaths.UpdatePublicKey) && semverOk && trayLogicOk && targetProfileOk && trayIconOk && agentHostRecoveryOk,
                 semanticVersion = semverOk ? "pass" : "fail",
                 trayLogic = trayLogicOk ? "pass" : "fail",
+                targetProfile = targetProfileOk ? "pass" : "fail",
                 agentHostRecovery = agentHostRecoveryOk ? "pass" : "fail",
                 trayIcons = trayIconOk ? "pass" : "fail",
                 clientVersion = ClientVersion.Display,

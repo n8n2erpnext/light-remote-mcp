@@ -67,8 +67,25 @@ const REAL_REMOTE_AVAILABLE=realRemoteAvailable();
 const NATIVE_DESKTOP=new NativeDesktopBridge();
 const {normalizeDesktopInput}=realRemoteInputPolicy;
 const LIGHT_SCP=new LightScpRegistry({policy:()=>effectiveFilesystemPolicy(readState())});
-const DEFAULT_BASE=migrateLegacyEndpoint(process.env.OPERATOR_AGENT_BASE_URL,{kind:'base'});
-const DEFAULT_HUB=migrateLegacyEndpoint(process.env.OPERATOR_AGENT_HUB_URL,{kind:'hub'});
+// Only the isolated GoldABV2 V4 installer carries this profile marker.
+ // An Agent launched directly (without the Windows Tray) must still NEVER
+ // select a production or legacy server once bundled for GoldABV2.
+const GOLDABV2_PACKAGE_MARKER=path.join(path.dirname(fileURLToPath(import.meta.url)),'goldabv2-package-profile.json');
+const GOLDABV2_PACKAGE=fs.existsSync(GOLDABV2_PACKAGE_MARKER)
+  ?JSON.parse(fs.readFileSync(GOLDABV2_PACKAGE_MARKER,'utf8')):null;
+const GOLDABV2_PACKAGE_ORIGIN='https://goldabv2.light-remote.thaiduy.digital';
+if(GOLDABV2_PACKAGE&&
+  (GOLDABV2_PACKAGE.profile!=='goldabv2-desktop-v4'||GOLDABV2_PACKAGE.endpoint!==GOLDABV2_PACKAGE_ORIGIN))
+  throw new Error('invalid_goldabv2_package_profile');
+function effectiveEndpoint(value,{kind='base'}={}){
+  if(!GOLDABV2_PACKAGE)return migrateLegacyEndpoint(value,{kind});
+  const supplied=String(value||'').trim().replace(/\/+$/,'');
+  if(supplied&&supplied!==GOLDABV2_PACKAGE_ORIGIN)
+    throw new Error('goldabv2_build_wrong_server_endpoint');
+  return GOLDABV2_PACKAGE_ORIGIN;
+}
+const DEFAULT_BASE=effectiveEndpoint(process.env.OPERATOR_AGENT_BASE_URL,{kind:'base'});
+const DEFAULT_HUB=effectiveEndpoint(process.env.OPERATOR_AGENT_HUB_URL,{kind:'hub'});
 const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
 // Only terminal OS evidence; a missing terminal after Agent restart is UNKNOWN.
 const NATIVE_TERMINAL_SPOOL=new NativeTerminalReceiptSpool({directory:path.join(path.dirname(STATE_FILE),'terminal-journal')});
@@ -90,7 +107,7 @@ const UPDATE_REQUEST_FILE=path.join(UPDATE_RUNTIME_DIR,'request.json'),UPDATE_CH
 const MAX_OUTPUT=4*1024*1024;
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function sha256(value){return crypto.createHash('sha256').update(value).digest('hex');}
-function parseArgs(argv){const out={_:[]};for(let i=0;i<argv.length;i++){const v=argv[i];if(!v.startsWith('--'))out._.push(v);else{const k=v.slice(2);if(['no-wait','reenroll','relink'].includes(k))out[k]=true;else{const raw=argv[++i];out[k]=k==='base'?migrateLegacyEndpoint(raw,{kind:'base'}):k==='hub'?migrateLegacyEndpoint(raw,{kind:'hub'}):raw;}}}return out;}
+function parseArgs(argv){const out={_:[]};for(let i=0;i<argv.length;i++){const v=argv[i];if(!v.startsWith('--'))out._.push(v);else{const k=v.slice(2);if(['no-wait','reenroll','relink'].includes(k))out[k]=true;else{const raw=argv[++i];out[k]=k==='base'?effectiveEndpoint(raw,{kind:'base'}):k==='hub'?effectiveEndpoint(raw,{kind:'hub'}):raw;}}}return out;}
 const GOLD_WALL_MODULES=createGoldWallModules({
   file:path.join(path.dirname(STATE_FILE),'gold-wall-modules.sqlite'),
   scopeIdentity:()=>{const e=readState()?.enrollment;return e?.accountId&&e?.deviceId?{accountId:e.accountId,deviceId:e.deviceId}:null;}

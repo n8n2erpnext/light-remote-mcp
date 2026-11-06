@@ -178,6 +178,8 @@ jobs:
           # This early CI step runs before the later global dependency stage.
           npm ci --ignore-scripts --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 source regression dependency install failed' }
+          node deploy/scripts/selftest-goldabv2-desktop-target.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Desktop package target isolation regression' }
           node --test operator-host/gold-ab-v2-server-v1-lock.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Operator legacy pairing lock regression' }
           node deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs
@@ -270,6 +272,13 @@ jobs:
           node deploy/scripts/stage-client-core.mjs $agentRoot
           node deploy/scripts/stage-terminal-runtime.mjs $agentRoot win32 x64
           if ($LASTEXITCODE -ne 0) { throw 'canonical client core staging failed' }
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            # This signed-target QA package must not silently access Gold production.
+            # The bundled Node Agent enforces this marker even if invoked directly.
+            $profile = Join-Path $agentRoot 'device-agent\goldabv2-package-profile.json'
+            '{"profile":"goldabv2-desktop-v4","endpoint":"https://goldabv2.light-remote.thaiduy.digital"}' |
+              Set-Content -LiteralPath $profile -Encoding utf8
+          }
           Copy-Item device-agent/install-windows-task.ps1 $agentDir
           Copy-Item client/update-public.pem (Join-Path $configDir 'client-update-public.pem')
           Copy-Item LICENSE (Join-Path $stage 'LICENSE')
@@ -328,6 +337,27 @@ jobs:
           }
           Write-Host 'gold-windows-update-verified-prefetch-cache=PASS'
           node deploy/scripts/stage-client-core.mjs --verify $agentRoot
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            $profile = Join-Path $agentRoot 'device-agent\goldabv2-package-profile.json'
+            if (-not (Test-Path $profile)) { throw 'GoldABV2 package target marker absent' }
+            $profileJson = Get-Content -LiteralPath $profile -Raw | ConvertFrom-Json
+            if ($profileJson.profile -ne 'goldabv2-desktop-v4' -or $profileJson.endpoint -ne 'https://goldabv2.light-remote.thaiduy.digital') {
+              throw 'GoldABV2 package target marker mismatch'
+            }
+            $targetProbeOut=Join-Path $env:RUNNER_TEMP 'abv2-production-deny-out.txt'
+            $targetProbeErr=Join-Path $env:RUNNER_TEMP 'abv2-production-deny-err.txt'
+            $oldBase=$env:OPERATOR_AGENT_BASE_URL
+            $env:OPERATOR_AGENT_BASE_URL='https://gold.light-remote.thaiduy.digital'
+            try {
+              $probe=Start-Process -FilePath $node -ArgumentList @($agent,'status') -PassThru -Wait -RedirectStandardOutput $targetProbeOut -RedirectStandardError $targetProbeErr
+            } finally {
+              $env:OPERATOR_AGENT_BASE_URL=$oldBase
+            }
+            if ($probe.ExitCode -eq 0 -or -not((Get-Content -LiteralPath $targetProbeErr -Raw) -match 'goldabv2_build_wrong_server_endpoint')) {
+              throw 'Bundled GoldABV2 Agent did not reject production endpoint'
+            }
+            Write-Host 'windows-goldabv2-bundled-agent-production-origin-rejected=PASS'
+          }
           foreach ($memoryModule in @('gold-memory-ledger.mjs','gold-memory-scope.mjs','gold-memory-scope-admin.mjs','gold-memory-auto.mjs','gold-memory-sync.mjs','gold-memory-evidence.mjs','gold-memory-manual-evidence.mjs','gold-memory-key-permissions.mjs')) {
             if (-not (Test-Path (Join-Path $agentRoot ('device-agent\'+$memoryModule)))) { throw "Gold Windows Memory module missing: $memoryModule" }
           }
@@ -414,6 +444,9 @@ jobs:
           $json = Get-Content $result -Raw | ConvertFrom-Json
           if (-not $json.ok) { throw "self-test not ok: $(Get-Content $result -Raw)" }
           if ($json.platformAdapter -ne 'win32') { throw "expected win32 adapter, got $($json.platformAdapter)" }
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103' -and $json.targetProfile -ne 'pass') {
+            throw "GoldABV2 V4 must use separate device profile and GoldABV2-only endpoint; result=$($json.targetProfile)"
+          }
           $expectedVersion = (Get-Content VERSION -Raw).Trim()
           $coreMeta = Get-Content (Join-Path $agentRoot 'client-core.json') -Raw | ConvertFrom-Json
           if ($coreMeta.version -ne $expectedVersion) { throw "canonical client core version mismatch: $($coreMeta.version) expected=$expectedVersion" }
@@ -994,6 +1027,16 @@ jobs:
           if ($p.ExitCode -ne 0) { throw "installed client self-test failed exit=$($p.ExitCode)" }
           $json = Get-Content $result -Raw | ConvertFrom-Json
           if (-not $json.ok -or $json.platformAdapter -ne 'win32') { throw "installed client invalid: $(Get-Content $result -Raw)" }
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            if ($json.targetProfile -ne 'pass') { throw 'Installed Desktop V4 is not an isolated GoldABV2 profile' }
+            $installedProfile=Join-Path $env:WINDOWS_INSTALL_DIR 'agent\device-agent\goldabv2-package-profile.json'
+            if (-not (Test-Path $installedProfile)) { throw 'Installed GoldABV2 Agent package marker missing' }
+            $installedJson=Get-Content $installedProfile -Raw | ConvertFrom-Json
+            if ($installedJson.endpoint -ne 'https://goldabv2.light-remote.thaiduy.digital') {
+              throw 'Installed GoldABV2 Agent points to another backend'
+            }
+            Write-Host 'WINDOWS_INSTALLED_GOLDABV2_PROFILE_AND_ENDPOINT_PASS'
+          }
           $expectedVersion = (Get-Content VERSION -Raw).Trim()
           if ($json.agentVersion -ne $expectedVersion) { throw "installed agent version mismatch: $($json.agentVersion) expected=$expectedVersion" }
           # Verify the actual *installed* Agent, not just the source checkout.

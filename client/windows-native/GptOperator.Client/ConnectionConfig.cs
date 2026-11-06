@@ -32,6 +32,11 @@ internal static class ConnectionConfig
 
     public static ConnectionSettings Load()
     {
+#if LIGHT_REMOTE_GOLDABV2_V4
+        // No production fallback, no inherited production env, no previous Gold
+        // connection.json. This target's local enrollment is isolated by AppPaths.
+        return new ConnectionSettings(DefaultBridgeUrl, DefaultHubUrl);
+#else
         var envBridge = Environment.GetEnvironmentVariable("OPERATOR_AGENT_BASE_URL");
         var envHub = Environment.GetEnvironmentVariable("OPERATOR_AGENT_HUB_URL");
         if (!string.IsNullOrWhiteSpace(envBridge) || !string.IsNullOrWhiteSpace(envHub))
@@ -52,16 +57,37 @@ internal static class ConnectionConfig
         }
         catch { }
         return new ConnectionSettings(DefaultBridgeUrl, DefaultHubUrl);
+#endif
     }
 
     public static void Save(string bridgeUrl, string hubUrl)
     {
+#if LIGHT_REMOTE_GOLDABV2_V4
+        if (!String.Equals(RequireHttps(bridgeUrl, "Light Remote bridge URL"), StablePublicEndpoint, StringComparison.OrdinalIgnoreCase) ||
+            !String.Equals(RequireHttps(hubUrl, "Light Remote hub URL"), StablePublicEndpoint, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("goldabv2_wrong_server_endpoint");
+#endif
         var settings = new ConnectionSettings(
             MigrateKnownDefault(RequireHttps(bridgeUrl, "Light Remote bridge URL"), LegacyBridgeUrls),
             MigrateKnownDefault(RequireHttps(hubUrl, "Light Remote hub URL"), LegacyHubUrls));
         AppPaths.EnsureDirectories();
         var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(AppPaths.ConnectionFile, json + Environment.NewLine);
+    }
+
+    internal static bool PackageTargetSelfTest()
+    {
+#if LIGHT_REMOTE_GOLDABV2_V4
+        var effective = Load();
+        return effective.BridgeUrl == StablePublicEndpoint
+            && effective.HubUrl == StablePublicEndpoint
+            && StablePublicEndpoint == "https://goldabv2.light-remote.thaiduy.digital"
+            && AppPaths.ConnectionFile.Contains("LightRemoteGoldABV2", StringComparison.Ordinal)
+            && AppPaths.StateFile.Contains("gpt-operator-agent-goldabv2", StringComparison.Ordinal)
+            && !AppPaths.StateFile.Contains("gpt-operator-agent\\device.json", StringComparison.OrdinalIgnoreCase);
+#else
+        return true;
+#endif
     }
 
     public static string RequireHttps(string value, string label)
