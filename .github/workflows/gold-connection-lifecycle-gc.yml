@@ -4,18 +4,55 @@ on:
   push:
     branches:
       - 'feat/gold-connection-gc-reconciler-20261029'
+      - 'feat/gold-single-owner-transfer-20261101'
+      - 'feat/goldabv2-device-local-activity-logs-20261102'
+      - 'feat/goldabv2-desktop-owner-lab-20261103'
     paths:
       - 'lib/gold-connection-job-reaper.mjs'
       - 'operator-host/gold-admin-job-recovery.mjs'
       - 'operator-host/executor-routes-account.mjs'
+      - 'operator-host/desktop-v4-owner-snapshot*.mjs'
+      - 'operator-host/desktop-v4-owner-close*.mjs'
+      - 'operator-host/account-registry.mjs'
+      - 'plugin-server/server.mjs'
+      - 'plugin-server/desktop-auth-v4-*.mjs'
+      - 'plugin-server/desktop-owner-token-v4*.mjs'
+      - 'plugin-server/desktop-wall-sso-v4*.mjs'
+      - 'plugin-server/desktop-wall-sso-native-issue-v4*.mjs'
+      - 'plugin-server/desktop-wall-sso-native-router-v4*.mjs'
+      - 'plugin-server/desktop-wall-sso-mtls-edge-v4*.mjs'
+      - 'deploy/scripts/gold-abv2-mtls-certificate-gate*.mjs'
+      - 'deploy/scripts/gold-abv2-mtls-offline-issuance*.mjs'
+      - 'deploy/scripts/gold-abv2-mtls-expiry-watch*.mjs'
+      - 'deploy/scripts/gold-abv2-mtls-offline-ca-recovery*.mjs'
+      - 'deploy/scripts/gold-abv2-owner-ca-public-preflight*.mjs'
+      - 'deploy/scripts/gold-abv2-owner-ca-restore-challenge*.mjs'
+      - 'deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.mjs'
+      - 'deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.test.mjs'
+      - 'deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.service'
+      - 'deploy/scripts/gold-abv2-mtls-firewall-ensure.sh'
+      - 'deploy/scripts/gold-abv2-mtls-firewall-ensure.test.mjs'
+      - 'deploy/scripts/gold-abv2-mtls-firewall-ensure.service'
+      - 'deploy/scripts/gold-abv2-mtls-firewall-ensure.timer'
+      - 'plugin-server/desktop-wall-sso-native-transport-v4*.mjs'
+      - 'plugin-server/desktop-wall-sso-public-redeem-v4*.mjs'
+      - 'plugin-server/desktop-wall-sso-public-family-current-v4*.mjs'
+      - 'lib/gold-registry-persistence.mjs'
+      - 'lib/gold-native-account-aux.mjs'
+      - 'platform-v2/sql/045_gold_single_owner_authority.sql'
+      - 'deploy/scripts/selftest-gold-single-owner-transfer.mjs'
+      - 'deploy/scripts/selftest-gold-single-owner-sql.mjs'
       - 'plugin-server/admin-portal.mjs'
       - 'plugin-server/admin-portal/index.html'
+      - 'plugin-server/account-portal/portal.css'
+      - 'deploy/scripts/selftest-gold-owner-authority-ux.mjs'
       - 'plugin-server/admin-portal/job-recovery.js'
       - 'deploy/scripts/selftest-gold-admin-job-recovery.mjs'
       - 'deploy/scripts/selftest-gold-admin-gc-transaction.mjs'
       - 'deploy/scripts/selftest-gold-gc-revoked-ownerless.mjs'
       - 'lib/gold-execution-epoch.mjs'
       - 'lib/gold-device-short-id.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-enrollment-short-id-lifecycle.mjs'
       - 'lib/gold-ab-v2-pending-redis.mjs'
       - 'lib/gold-ab-v2-owner-pending-adapter.mjs'
       - 'lib/gold-ab-v2-wall-owner-consent.mjs'
@@ -27,6 +64,34 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-signed-approval.mjs'
       - 'operator-host/executor-routes-device-channel.mjs'
       - 'device-agent/local-wall.mjs'
+      - 'device-agent/desktop-wall-sso-session*.mjs'
+      - 'device-agent/desktop-wall-sso-browser-bootstrap-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-browser-page-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-native-ipc-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-agent-redemption-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-agent-transport-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-family-current-v4*.mjs'
+      - 'deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs'
+      - 'device-agent/local-activity-log.mjs'
+      - 'device-agent/update-settings-page.mjs'
+      - 'client/core-files.json'
+      - 'deploy/scripts/selftest-gold-device-local-activity-log.mjs'
+      - 'deploy/scripts/selftest-gold-wall-local-activity-http.mjs'
+      - 'device-agent/operator-agent.mjs'
+      - 'device-agent/relink-linux-server.py'
+      - 'device-agent/install-linux-service.sh'
+      - 'operator-host/enrollment-registry.mjs'
+      - 'operator-host/desktop-wall-sso-device-proof-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-signed-route-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-trusted-authority-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-operator-gate-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-family-current-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-internal-issue-v4*.mjs'
+      - 'operator-host/executor.mjs'
+      - 'operator-host/executor-routes-device-channel.mjs'
+      - 'operator-host/device-registry.mjs'
+      - 'deploy/scripts/selftest-linux-server-relink.mjs'
+      - 'deploy/scripts/selftest-device-agent-cli.mjs'
       - 'operator-host/gold-ab-v2-helper-target.mjs'
       - 'operator-host/gold-ab-v2-grant-coordinator.mjs'
       - 'operator-host/gold-ab-v2-grant-operator.mjs'
@@ -42,6 +107,14 @@ on:
       - 'deploy/scripts/selftest-gold-043-migrator-release-gate.mjs'
       - 'deploy/scripts/gold-ab-v2-043-release-preflight.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-043-release-readiness.mjs'
+      - 'deploy/scripts/gold-abv2-lab-cutover-preflight.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-lab-cutover-preflight.mjs'
+      - 'deploy/scripts/gold-abv2-lab-043-compatibility-review.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-lab-043-compatibility-review.mjs'
+      - 'deploy/scripts/gold-abv2-lab-043-prepared-artifact-audit.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-lab-043-prepared-artifact-audit.mjs'
+      - 'deploy/scripts/gold-abv2-lab-rollback-readiness.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-lab-rollback-readiness.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-owner-approve-http.mjs'
       - 'operator-host/executor.mjs'
       - 'operator-host/device-access-grant-registry.mjs'
@@ -52,6 +125,10 @@ on:
       - 'lib/gold-pro-share-guest-queue-proof.mjs'
       - 'operator-host/gold-ab-v2-helper-poll.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-poll.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-helper-recovery.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-helper-noarg.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-recovery-redis.mjs'
       - 'plugin-server/operator-adapter.mjs'
       - 'plugin-server/tools.mjs'
       - 'operator-host/session-manager.mjs'
@@ -122,10 +199,29 @@ on:
       - 'lib/gold-session-redis.mjs'
       - 'deploy/scripts/selftest-gold-agent-session-nickname.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-target.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-account-device-discovery.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-verified-grant.mjs'
       - 'device-agent/wall-ab-v2-preview.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs'
+      - 'device-agent/wall-ui-refinement.mjs'
+      - 'deploy/scripts/selftest-gold-wall-ui-refinement.mjs'
+      - 'deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs'
+      - 'deploy/scripts/selftest-gold-wall-r5-interactions.mjs'
+      - 'extensions/light-remote-lm-abv2/**'
+      - 'extensions/releases/Light-Remote-LM-GoldABV2-v0.3.0.zip'
+      - 'deploy/scripts/selftest-gold-lm-extension-abv2.mjs'
+      - 'assets/vendor/xterm/**'
+      - 'deploy/scripts/selftest-gold-wall-shared-navigation-dialog-v2.mjs'
+      - 'lib/web-typography.mjs'
+      - 'assets/fonts/web/GoogleSans-Variable.ttf'
+      - 'assets/fonts/web/GoogleSansCode-Variable.ttf'
+      - 'assets/fonts/web/GoogleSansCode-OFL-1.1.txt'
+      - 'assets/fonts/web/GoogleSans-OFL-1.1.txt'
+      - 'device-agent/update-settings-page.mjs'
+      - 'device-agent/local-process-page.mjs'
+      - 'deploy/scripts/selftest-gold-wall-google-typography.mjs'
       - 'plugin-server/device-public.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs'
@@ -134,6 +230,8 @@ on:
       - 'plugin-server/account-portal/index.html'
       - 'plugin-server/account-portal/ab-v2.js'
       - 'deploy/scripts/selftest-gold-ab-v2-account-portal.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-owner-approval-navigation.mjs'
+      - 'deploy/scripts/selftest-gold-abv2-wall-short-id-display.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-owner-http.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-owner-pending-adapter.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-source.mjs'
@@ -186,10 +284,35 @@ on:
       - 'device-agent/fleet-job-page.mjs'
       - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
       - 'device-agent/local-wall.mjs'
+      - 'device-agent/desktop-wall-sso-session*.mjs'
+      - 'device-agent/desktop-wall-sso-browser-bootstrap-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-browser-page-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-native-ipc-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-agent-redemption-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-agent-transport-v4*.mjs'
+      - 'device-agent/desktop-wall-sso-family-current-v4*.mjs'
+      - 'deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs'
+      - 'device-agent/operator-agent.mjs'
+      - 'device-agent/relink-linux-server.py'
+      - 'device-agent/install-linux-service.sh'
+      - 'operator-host/enrollment-registry.mjs'
+      - 'operator-host/desktop-wall-sso-device-proof-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-signed-route-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-trusted-authority-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-operator-gate-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-family-current-v4*.mjs'
+      - 'operator-host/desktop-wall-sso-internal-issue-v4*.mjs'
+      - 'operator-host/executor.mjs'
+      - 'operator-host/executor-routes-device-channel.mjs'
+      - 'operator-host/device-registry.mjs'
+      - 'deploy/scripts/selftest-linux-server-relink.mjs'
+      - 'deploy/scripts/selftest-device-agent-cli.mjs'
       - 'device-agent/wall-account-notifications.mjs'
       - 'device-agent/fleet-wall-runtime.mjs'
       - 'plugin-server/site-announcements.mjs'
       - 'plugin-server/admin-portal/index.html'
+      - 'plugin-server/account-portal/portal.css'
+      - 'deploy/scripts/selftest-gold-owner-authority-ux.mjs'
       - 'platform-v2/sql/042_gold_wall_announcements_channel.sql'
       - 'deploy/scripts/selftest-gold-site-native.mjs'
       - 'deploy/scripts/selftest-gold-wall-account-notifications.mjs'
@@ -228,9 +351,99 @@ jobs:
           node --check device-agent/fleet-job-page.mjs
           node deploy/scripts/selftest-gold-fleet-jobs-m6.mjs
           node --check device-agent/local-wall.mjs
+          node --check device-agent/desktop-wall-sso-session.mjs
+          node --check device-agent/desktop-wall-sso-session.test.mjs
+          node --check deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs
+          node --test device-agent/desktop-wall-sso-session.test.mjs
+          node --check device-agent/desktop-wall-sso-browser-bootstrap-v4.mjs
+          node --check device-agent/desktop-wall-sso-browser-page-v4.mjs
+          node --check device-agent/desktop-wall-sso-browser-bootstrap-v4.test.mjs
+          node --test device-agent/desktop-wall-sso-browser-bootstrap-v4.test.mjs
+          node --check device-agent/desktop-wall-sso-native-ipc-v4.mjs
+          node --check device-agent/desktop-wall-sso-native-ipc-v4.test.mjs
+          node --test device-agent/desktop-wall-sso-native-ipc-v4.test.mjs
+          node --check device-agent/desktop-wall-sso-agent-redemption-v4.mjs
+          node --check device-agent/desktop-wall-sso-agent-redemption-v4.test.mjs
+          node --test device-agent/desktop-wall-sso-agent-redemption-v4.test.mjs
+          node --check device-agent/desktop-wall-sso-agent-transport-v4.mjs
+          node --check device-agent/desktop-wall-sso-agent-transport-v4.test.mjs
+          node --test device-agent/desktop-wall-sso-agent-transport-v4.test.mjs
+          node --check device-agent/desktop-wall-sso-family-current-v4.mjs
+          node --check device-agent/desktop-wall-sso-family-current-v4.test.mjs
+          node --test device-agent/desktop-wall-sso-family-current-v4.test.mjs
+          node deploy/scripts/selftest-desktop-wall-sso-v4-http.mjs
+          # T04b9c3a: local Wall now imports a browser bootstrap module.
+          # Catch missing packaged module/assets in Source Gate, not on Owner PC.
+          T04_BROWSER_PKG_DIR="$(mktemp -d)"
+          trap 'rm -rf "$T04_BROWSER_PKG_DIR"' EXIT
+          node deploy/scripts/stage-client-core.mjs "$T04_BROWSER_PKG_DIR"
+          node deploy/scripts/stage-client-core.mjs --verify "$T04_BROWSER_PKG_DIR"
+          node deploy/scripts/selftest-packaged-local-wall.mjs "$T04_BROWSER_PKG_DIR"
           node --check device-agent/wall-account-notifications.mjs
           node --check device-agent/fleet-wall-runtime.mjs
           node --check plugin-server/site-announcements.mjs
+          node --check plugin-server/desktop-auth-v4-contract.mjs
+          node --check plugin-server/desktop-auth-v4-server.mjs
+          node --check plugin-server/desktop-owner-token-v4.mjs
+          node --check operator-host/desktop-v4-owner-snapshot.mjs
+          node --test operator-host/desktop-v4-owner-snapshot.test.mjs
+          node --test operator-host/desktop-v4-owner-close.test.mjs
+          node --check plugin-server/desktop-wall-sso-v4.mjs
+          node --check plugin-server/desktop-wall-sso-v4.test.mjs
+          node --check plugin-server/desktop-wall-sso-native-issue-v4.mjs
+          node --check plugin-server/desktop-wall-sso-native-issue-v4.test.mjs
+          node --check operator-host/desktop-wall-sso-internal-issue-v4.mjs
+          node --check plugin-server/desktop-wall-sso-native-router-v4.mjs
+          node --check plugin-server/desktop-wall-sso-native-router-v4.test.mjs
+          node --check plugin-server/desktop-wall-sso-native-transport-v4.test.mjs
+          node --check plugin-server/desktop-wall-sso-mtls-edge-v4.mjs
+          node --check plugin-server/desktop-wall-sso-mtls-edge-v4.test.mjs
+          node --check plugin-server/device-public.mjs
+          node --check plugin-server/server.mjs
+          node --check plugin-server/desktop-wall-sso-public-redeem-v4.mjs
+          node --check plugin-server/desktop-wall-sso-public-redeem-v4.test.mjs
+          node --test plugin-server/desktop-wall-sso-public-redeem-v4.test.mjs
+          node --check plugin-server/desktop-wall-sso-public-family-current-v4.mjs
+          node --test plugin-server/desktop-wall-sso-native-issue-v4.test.mjs plugin-server/desktop-wall-sso-native-router-v4.test.mjs plugin-server/desktop-wall-sso-native-transport-v4.test.mjs plugin-server/desktop-wall-sso-mtls-edge-v4.test.mjs
+          node --check deploy/scripts/gold-abv2-mtls-certificate-gate.mjs
+          node --check deploy/scripts/gold-abv2-mtls-certificate-gate.test.mjs
+          node --test deploy/scripts/gold-abv2-mtls-certificate-gate.test.mjs
+          node --check deploy/scripts/gold-abv2-mtls-offline-issuance.mjs
+          node --check deploy/scripts/gold-abv2-mtls-offline-issuance.test.mjs
+          node --test deploy/scripts/gold-abv2-mtls-offline-issuance.test.mjs
+          node --check deploy/scripts/gold-abv2-mtls-expiry-watch.mjs
+          node --check deploy/scripts/gold-abv2-mtls-expiry-watch.test.mjs
+          node --test deploy/scripts/gold-abv2-mtls-expiry-watch.test.mjs
+          node --check deploy/scripts/gold-abv2-mtls-offline-ca-recovery.mjs
+          node --check deploy/scripts/gold-abv2-mtls-offline-ca-recovery.test.mjs
+          node --test deploy/scripts/gold-abv2-mtls-offline-ca-recovery.test.mjs
+          node --check deploy/scripts/gold-abv2-owner-ca-public-preflight.mjs
+          node --check deploy/scripts/gold-abv2-owner-ca-public-preflight.test.mjs
+          node --test deploy/scripts/gold-abv2-owner-ca-public-preflight.test.mjs
+          node --check deploy/scripts/gold-abv2-owner-ca-restore-challenge.mjs
+          node --check deploy/scripts/gold-abv2-owner-ca-restore-challenge.test.mjs
+          node --test deploy/scripts/gold-abv2-owner-ca-restore-challenge.test.mjs
+          node --check deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.mjs
+          node --check deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.test.mjs
+          node --test deploy/scripts/gold-abv2-owner-ca-mtls-sidecar.test.mjs
+          bash -n deploy/scripts/gold-abv2-mtls-firewall-ensure.sh
+          node --check deploy/scripts/gold-abv2-mtls-firewall-ensure.test.mjs
+          node --test deploy/scripts/gold-abv2-mtls-firewall-ensure.test.mjs
+          node --check operator-host/desktop-wall-sso-device-proof-v4.mjs
+          node --check operator-host/desktop-wall-sso-device-proof-v4.test.mjs
+          node --check operator-host/desktop-wall-sso-signed-route-v4.mjs
+          node --check operator-host/desktop-wall-sso-signed-route-v4.test.mjs
+          node --check operator-host/executor-routes-device-channel.mjs
+          node --check operator-host/desktop-wall-sso-trusted-authority-v4.mjs
+          node --check operator-host/desktop-wall-sso-trusted-authority-v4.test.mjs
+          node --check operator-host/desktop-wall-sso-family-current-v4.mjs
+          node --check operator-host/desktop-wall-sso-family-current-v4.test.mjs
+          node --test operator-host/desktop-wall-sso-family-current-v4.test.mjs
+          node --check operator-host/desktop-wall-sso-operator-gate-v4.mjs
+          node --check operator-host/desktop-wall-sso-operator-gate-v4.test.mjs
+          node --check operator-host/executor.mjs
+          node --test operator-host/desktop-wall-sso-device-proof-v4.test.mjs operator-host/desktop-wall-sso-signed-route-v4.test.mjs operator-host/desktop-wall-sso-trusted-authority-v4.test.mjs operator-host/desktop-wall-sso-operator-gate-v4.test.mjs
+          node --test plugin-server/desktop-auth-v4-contract.test.mjs plugin-server/desktop-auth-v4-server.test.mjs plugin-server/desktop-owner-token-v4.test.mjs plugin-server/desktop-wall-sso-v4.test.mjs
           node deploy/scripts/selftest-gold-site-native.mjs
           node deploy/scripts/selftest-gold-wall-account-notifications.mjs
           node deploy/scripts/selftest-gold-wall-notifications-signed-proof.mjs
@@ -246,6 +459,14 @@ jobs:
           node --check lib/gold-abv2-043-release-readiness.mjs
           node --check deploy/scripts/gold-ab-v2-043-release-preflight.mjs
           node deploy/scripts/selftest-gold-ab-v2-043-release-readiness.mjs
+          node --check deploy/scripts/gold-abv2-lab-cutover-preflight.mjs
+          node deploy/scripts/selftest-gold-abv2-lab-cutover-preflight.mjs
+          node --check deploy/scripts/gold-abv2-lab-043-compatibility-review.mjs
+          node deploy/scripts/selftest-gold-abv2-lab-043-compatibility-review.mjs
+          node --check deploy/scripts/gold-abv2-lab-043-prepared-artifact-audit.mjs
+          node deploy/scripts/selftest-gold-abv2-lab-043-prepared-artifact-audit.mjs
+          node --check deploy/scripts/gold-abv2-lab-rollback-readiness.mjs
+          node deploy/scripts/selftest-gold-abv2-lab-rollback-readiness.mjs
           node --check lib/gold-043-migrator-release-gate.mjs
           node --check deploy/scripts/apply-gold-db.mjs
           node deploy/scripts/selftest-gold-043-migrator-release-gate.mjs
@@ -263,17 +484,31 @@ jobs:
           node --check device-agent/wall-ab-v2-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs
+          node deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs
+          node deploy/scripts/selftest-gold-wall-ui-refinement.mjs
+          node deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs
+          node deploy/scripts/selftest-gold-wall-r5-interactions.mjs
+          node deploy/scripts/selftest-gold-device-local-activity-log.mjs
+          node deploy/scripts/selftest-gold-wall-local-activity-http.mjs
+          node deploy/scripts/selftest-gold-lm-extension-abv2.mjs
+          node deploy/scripts/selftest-gold-wall-shared-navigation-dialog-v2.mjs
+          node deploy/scripts/selftest-gold-wall-google-typography.mjs
           node --check lib/gold-ab-v2-helper-proof.mjs
           node --check operator-host/gold-ab-v2-helper-target.mjs
           node --check plugin-server/operator-adapter.mjs
           node --check plugin-server/tools.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-target.mjs
+          node deploy/scripts/selftest-gold-abv2-account-device-discovery.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-tool.mjs
           node --check deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-issue.mjs
           node --check lib/gold-ab-v2-helper-poll-proof.mjs
           node --check operator-host/gold-ab-v2-helper-poll.mjs
           node deploy/scripts/selftest-gold-ab-v2-helper-poll.mjs
+          node deploy/scripts/selftest-gold-ab-v2-helper-recovery.mjs
+          node deploy/scripts/selftest-gold-ab-v2-helper-noarg.mjs
+          node deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs
+          node --check deploy/scripts/selftest-gold-ab-v2-recovery-redis.mjs
           node deploy/scripts/selftest-gold-agent-session-nickname.mjs
           node --check operator-host/pro-share-store.mjs
           node deploy/scripts/selftest-gold-pro-share-core.mjs
@@ -346,8 +581,11 @@ jobs:
           node --check plugin-server/account-portal.mjs
           node --check plugin-server/account-portal/ab-v2.js
           node deploy/scripts/selftest-gold-ab-v2-account-portal.mjs
+          node deploy/scripts/selftest-gold-abv2-owner-approval-navigation.mjs
+          node deploy/scripts/selftest-gold-abv2-wall-short-id-display.mjs
           node --check deploy/scripts/ci-gold-p2i1-short-id-pg.mjs
           node deploy/scripts/selftest-gold-p2i1-short-id.mjs
+          node deploy/scripts/selftest-gold-abv2-enrollment-short-id-lifecycle.mjs
           node --check lib/gold-db.mjs
           node --check deploy/scripts/apply-gold-db.mjs
           bash -n deploy/scripts/gold-g3-uat-cutover.sh
@@ -373,6 +611,11 @@ jobs:
           node deploy/scripts/selftest-gold-connection-job-gc.mjs
           node deploy/scripts/selftest-gold-admin-gc-transaction.mjs
           node deploy/scripts/selftest-gold-admin-job-recovery.mjs
+          LR_GOLD_SINGLE_OWNER_AUTHORITY=1 LR_GOLD_SINGLE_OWNER_TRANSFER=1 node deploy/scripts/selftest-gold-single-owner-transfer.mjs
+          node deploy/scripts/selftest-gold-single-owner-sql.mjs
+          node deploy/scripts/selftest-gold-owner-authority-ux.mjs
+          node deploy/scripts/selftest-linux-server-relink.mjs
+          node deploy/scripts/selftest-device-agent-cli.mjs
           node deploy/scripts/selftest-gold-gc-revoked-ownerless.mjs
           node deploy/scripts/selftest-gold-connection-gc-races.mjs
           node deploy/scripts/selftest-gold-reconnect-proof.mjs
@@ -443,3 +686,9 @@ jobs:
           node deploy/scripts/selftest-gold-execution-epoch-agent-journal.mjs
           node deploy/scripts/selftest-gold-execution-epoch-native-process.mjs
           node deploy/scripts/selftest-gold-execution-epoch-wiring.mjs
+      - name: T04b9c3b2 Windows OS-private Agent Named Pipe SSO source contract
+        shell: pwsh
+        run: |
+          node --check device-agent/desktop-wall-sso-native-ipc-v4.mjs
+          node --check device-agent/desktop-wall-sso-native-ipc-v4.test.mjs
+          node --test device-agent/desktop-wall-sso-native-ipc-v4.test.mjs

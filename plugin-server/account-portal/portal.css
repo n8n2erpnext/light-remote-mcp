@@ -454,3 +454,83 @@ html[data-theme="light"] .home-plan-grid p{color:#536477}
 html[data-theme="light"] .home-ecosystem p,
 html[data-theme="light"] .home-lightbi-link small{color:#4f6174}
 html[data-theme="light"] .home-footer{color:#586777}
+
+/* Gold Admin — single Owner UX v2.
+   Scoped: never inherit the generic three-column .admin-form layout. */
+#view-accounts .owner-authority-panel{margin:0 0 16px;border-radius:14px}
+#view-accounts .owner-authority-header{display:flex;align-items:center;gap:15px;padding:21px 24px;border-bottom:1px solid #27313c}
+#view-accounts .owner-authority-symbol{flex:0 0 43px;width:43px;height:43px;border-radius:13px;border:1px solid #53471f;background:rgba(255,204,0,.08);display:grid;place-items:center}
+#view-accounts .owner-authority-symbol img{width:23px;height:23px;filter:brightness(0) saturate(100%) invert(79%) sepia(89%) saturate(620%) hue-rotate(349deg) brightness(101%) contrast(102%)}
+#view-accounts .owner-authority-heading{flex:1;min-width:0}
+#view-accounts .owner-authority-heading h2{margin:2px 0 5px;font-size:17px;font-weight:750;letter-spacing:-.015em}
+#view-accounts .owner-authority-heading p{margin:0;max-width:720px;color:#a6b3c1;font-size:13px;line-height:1.5}
+#view-accounts .owner-eyebrow{font-size:10px;font-weight:750;letter-spacing:.13em;color:#e2bc47}
+#view-accounts .owner-authority-badge{flex:0 0 auto;border:1px solid #305a47;background:rgba(44,139,94,.12);color:#83dcac;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:650;white-space:nowrap}
+#view-accounts .owner-authority-summary{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(125px,.55fr) minmax(205px,.85fr);gap:22px;align-items:center;padding:20px 24px}
+#view-accounts .owner-current-identity,#view-accounts .owner-revision,#view-accounts .owner-summary-action{min-width:0;display:flex;flex-direction:column;gap:7px}
+#view-accounts .owner-current-identity strong{font-size:16px;line-height:1.4;font-weight:700;overflow-wrap:anywhere}
+#view-accounts .owner-revision strong{font-size:24px;font-variant-numeric:tabular-nums;line-height:1.3;font-weight:750}
+#view-accounts .owner-summary-label{color:#8695a7;font-size:10px;letter-spacing:.09em;font-weight:700}
+#view-accounts .owner-verified-label{color:#72d6a2;font-size:12px;line-height:1.45}
+#view-accounts .owner-revision small,#view-accounts .owner-summary-hint{color:#91a1b3;font-size:12px;line-height:1.5}
+#view-accounts .owner-summary-action{align-items:flex-start;justify-self:end;width:100%;max-width:265px}
+#view-accounts .owner-transfer-toggle{min-height:40px;width:100%;border-radius:10px;font-size:13px;font-weight:650}
+#view-accounts .owner-transfer-toggle:disabled{opacity:.65;cursor:not-allowed}
+#view-accounts .owner-transfer-editor{padding:24px;border-top:1px solid #303945;background:#0c131a}
+#view-accounts .owner-transfer-intro{max-width:835px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}
+#view-accounts .owner-transfer-intro h3{font-size:18px;letter-spacing:-.02em;margin:4px 0 7px}
+#view-accounts .owner-transfer-intro p{margin:0;color:#a6b3c1;line-height:1.5;font-size:13px;max-width:665px}
+#view-accounts .owner-transfer-intro .btn{flex:0 0 auto}
+#view-accounts .owner-transfer-form{max-width:835px;display:flex;flex-direction:column;gap:15px;align-items:stretch}
+#view-accounts .owner-transfer-stage{display:flex;align-items:center;gap:10px;font-size:13px;margin-top:3px}
+#view-accounts .owner-step-number{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(255,204,0,.11);border:1px solid #665526;color:#ffdc75;font-size:12px;font-weight:800}
+#view-accounts .owner-transfer-field{display:flex;flex-direction:column;gap:8px;min-width:0;color:#b9c5d2;font-size:12px;font-weight:550}
+#view-accounts .owner-transfer-field input,#view-accounts .owner-transfer-field select{width:100%;min-width:0;height:42px;border:1px solid #3b4958;border-radius:9px;background:#101820;color:#f3f6fa;padding:10px 12px;font:inherit;font-size:13px}
+#view-accounts .owner-transfer-field input:focus-visible,#view-accounts .owner-transfer-field select:focus-visible,#view-accounts .owner-transfer-toggle:focus-visible{outline:2px solid #ffcc00;outline-offset:2px}
+#view-accounts .owner-transfer-field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+#view-accounts .owner-transfer-warning{padding:14px 16px;border-radius:10px;border:1px solid #584823;background:rgba(255,204,0,.055);color:#e5c783;font-size:13px;line-height:1.55}
+#view-accounts .owner-expected-phrase{color:#e5d5a1;font-family:'Cascadia Code',ui-monospace,monospace;font-size:12px;overflow-wrap:anywhere}
+#view-accounts .owner-transfer-ack{display:flex!important;flex-direction:row!important;align-items:flex-start!important;gap:12px!important;padding:15px;border:1px solid #344251;border-radius:10px;background:#121b25;color:#c2ceda;font-size:13px;line-height:1.55}
+#view-accounts .owner-transfer-ack input{appearance:auto;flex:0 0 17px;width:17px;height:17px;margin:2px 0 0;accent-color:#ffcc00}
+#view-accounts .owner-transfer-actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:2px}
+#view-accounts .owner-transfer-actions .btn.danger{min-height:42px;padding:10px 18px;width:auto;white-space:normal}
+#view-accounts .owner-transfer-message{font-size:13px;color:#f4c3c8;line-height:1.45;overflow-wrap:anywhere}
+@media(max-width:1080px){
+ #view-accounts .owner-authority-summary{grid-template-columns:minmax(0,1fr) minmax(115px,.4fr);gap:16px}
+ #view-accounts .owner-summary-action{grid-column:1/-1;justify-self:stretch;max-width:none;flex-direction:row;align-items:center;gap:14px}
+ #view-accounts .owner-transfer-toggle{max-width:240px}
+}
+@media(max-width:650px){
+ #view-accounts .owner-authority-header{padding:18px;gap:11px;align-items:flex-start;flex-wrap:wrap}
+ #view-accounts .owner-authority-symbol{width:37px;height:37px;flex-basis:37px;border-radius:11px}
+ #view-accounts .owner-authority-badge{margin-left:48px}
+ #view-accounts .owner-authority-summary{grid-template-columns:minmax(0,1fr);padding:18px;gap:19px}
+ #view-accounts .owner-summary-action{grid-column:auto;display:flex;flex-direction:column;align-items:stretch}
+ #view-accounts .owner-transfer-toggle{max-width:none}
+ #view-accounts .owner-transfer-editor{padding:18px}
+ #view-accounts .owner-transfer-field-grid{grid-template-columns:1fr}
+ #view-accounts .owner-transfer-intro{flex-wrap:wrap}
+ #view-accounts .owner-transfer-actions .btn.danger{width:100%}
+}
+html[data-theme="light"] #view-accounts .owner-authority-header{border-color:#dfe5ec}
+html[data-theme="light"] #view-accounts .owner-authority-heading p,
+html[data-theme="light"] #view-accounts .owner-summary-hint,
+html[data-theme="light"] #view-accounts .owner-revision small{color:#546477}
+html[data-theme="light"] #view-accounts .owner-eyebrow{color:#896500}
+html[data-theme="light"] #view-accounts .owner-authority-symbol{background:#fff9dd;border-color:#dcca76}
+html[data-theme="light"] #view-accounts .owner-authority-badge{background:#e7f8ef;color:#166441;border-color:#a8dbc2}
+html[data-theme="light"] #view-accounts .owner-summary-label{color:#627084}
+html[data-theme="light"] #view-accounts .owner-verified-label{color:#1b7550}
+html[data-theme="light"] #view-accounts .owner-transfer-editor{background:#f8fafc;border-color:#e0e6ed}
+html[data-theme="light"] #view-accounts .owner-transfer-intro p,
+html[data-theme="light"] #view-accounts .owner-transfer-field{color:#526376}
+html[data-theme="light"] #view-accounts .owner-transfer-field input,
+html[data-theme="light"] #view-accounts .owner-transfer-field select{background:#fff;color:#17202b;border-color:#c4ced9}
+html[data-theme="light"] #view-accounts .owner-transfer-warning{background:#fff9e8;color:#7f5b08;border-color:#e2ce91}
+html[data-theme="light"] #view-accounts .owner-expected-phrase{color:#856300}
+html[data-theme="light"] #view-accounts .owner-transfer-ack{background:#f0f4f8;border-color:#d2dce6;color:#354455}
+html[data-theme="light"] #view-accounts .owner-transfer-message{color:#aa3743}
+
+#view-accounts .owner-row-badge{display:inline-block;vertical-align:middle;border:1px solid #73602e;background:rgba(255,204,0,.1);color:#f5d465;border-radius:6px;padding:3px 7px;font-size:10px;letter-spacing:.04em;font-weight:750;margin-left:7px}
+#view-accounts .admin-account-info .device-sub{line-height:1.6;overflow-wrap:anywhere}
+html[data-theme="light"] #view-accounts .owner-row-badge{background:#fff6d8;border-color:#dfc67e;color:#735600}

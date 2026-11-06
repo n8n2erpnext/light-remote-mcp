@@ -10,7 +10,7 @@ import {createDesktopPkceMaterial, DESKTOP_OWNER_RESOURCE} from './desktop-auth-
 
 const ORIGIN='https://goldabv2.light-remote.thaiduy.digital';
 const PREFIX='lr:gold:goldabv2lab:';
-const owner={verifiedBy:'account_portal_session',accountId:'owner_verified_42',
+const owner={verifiedBy:'account_portal_session',accountId:'owner_verified_42',isOwner:true,
   sessionFingerprint:'valid_portal_session_hash',
   accountSessionId:'acctsess_123e4567-e89b-42d3-a456-426614174000',
   accountSessionExpiresAt:Date.now()+7*24*60*60*1000};
@@ -161,6 +161,7 @@ test('feature-flagged browser flow requires consent, same origin and verified Ow
   assert.match(consent.body,/Continue to Desktop/);
   assert.match(consent.headers['Content-Security-Policy'],/frame-ancestors 'none'/);
   assert.equal(consent.headers['Cache-Control'],'no-store');
+  assert.equal(consent.headers['Referrer-Policy'],'origin');
   const csrf=consent.body.match(/name="csrf" value="([A-Za-z0-9_-]{43})"/)?.[1];
   assert.equal(csrf?.length,43);
   const headers={
@@ -188,6 +189,52 @@ test('feature-flagged browser flow requires consent, same origin and verified Ow
   await routes['POST /account/desktop/v4/authorize']({
     headers,owner,body:{csrf,decision:'approve'}
   },replay);
+  assert.equal(replay.code,410);
+});
+test('missing Origin and Fetch-Site on browser form requires one-time CSRF and current Owner',async()=>{
+  const handlers={};
+  const redis=fakeRedis();
+  registerDesktopOwnerV4Authorization({
+    get:(_p,h)=>{handlers.get=h;},post:(_p,h)=>{handlers.post=h;}
+  },{enabled:true,redis,prefix:PREFIX,publicOrigin:ORIGIN,
+      verifyOwner:async(req)=>req.owner||null});
+  const {req}=query();
+  const result=fakeRes();
+  await handlers.get({query:req,owner},result);
+  assert.equal(result.code,200);
+  const csrf=result.body.match(/name="csrf" value="([A-Za-z0-9_-]{43})"/)?.[1];
+  assert.equal(csrf?.length,43);
+  const headers={'content-type':'application/x-www-form-urlencoded'};
+  const missingCsrf=fakeRes();
+  await handlers.post({headers,owner,body:{decision:'approve'}},missingCsrf);
+  assert.equal(missingCsrf.code,403);
+  const badOrigin=fakeRes();
+  await handlers.post({
+    headers:{...headers,origin:'https://evil.example','sec-fetch-site':'same-origin'},
+    owner,body:{csrf,decision:'approve'}
+  },badOrigin);
+  assert.equal(badOrigin.code,403);
+  const crossSite=fakeRes();
+  await handlers.post({
+    headers:{...headers,'sec-fetch-site':'cross-site'},
+    owner,body:{csrf,decision:'approve'}
+  },crossSite);
+  assert.equal(crossSite.code,403);
+  const sameSite=fakeRes();
+  await handlers.post({
+    headers:{...headers,'sec-fetch-site':'same-site'},
+    owner,body:{csrf,decision:'approve'}
+  },sameSite);
+  assert.equal(sameSite.code,403);
+  const missingOwner=fakeRes();
+  await handlers.post({headers,body:{csrf,decision:'approve'}},missingOwner);
+  assert.equal(missingOwner.code,401);
+  const good=fakeRes();
+  await handlers.post({headers,owner,body:{csrf,decision:'approve'}},good);
+  assert.equal(good.code,303);
+  assert.equal(new URL(good.redirectTo).hostname,'127.0.0.1');
+  const replay=fakeRes();
+  await handlers.post({headers,owner,body:{csrf,decision:'approve'}},replay);
   assert.equal(replay.code,410);
 });
 test('anonymous GET is redirected only to same-origin Account Portal login',async () => {

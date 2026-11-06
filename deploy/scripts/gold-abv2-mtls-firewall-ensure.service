@@ -1,0 +1,10 @@
+[Unit]
+Description=GoldABV2 Lab precise mTLS Traefik firewall rule check (user-owned)
+Documentation=man:iptables(8)
+After=default.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/ubuntu/.local/bin/goldabv2-lab-mtls-firewall-ensure.sh
+TimeoutStartSec=25s
+NoNewPrivileges=false

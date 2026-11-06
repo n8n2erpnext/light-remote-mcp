@@ -32,6 +32,7 @@ import { AccountRegistry, AccountError } from './account-registry.mjs';
 import { UsageRegistry } from './usage-registry.mjs';
 import { AccountNotificationRegistry, AccountNotificationError } from './account-notification-registry.mjs';
 import { connectGoldStorage } from '../lib/gold-db.mjs';
+import {ensureGoldDeviceShortId,reconcileGoldOwnerDeviceShortIds} from '../lib/gold-device-short-id.mjs';
 import { GoldRegistryPersistence } from '../lib/gold-registry-persistence.mjs';
 import { GoldSessionRedis } from '../lib/gold-session-redis.mjs';
 import { GoldJobLedger, GoldOperationEffectError } from '../lib/gold-job-ledger.mjs';
@@ -72,6 +73,7 @@ import {createGoldAbV2HelperTarget} from './gold-ab-v2-helper-target.mjs';
 import {createGoldAbV2HelperPoll} from './gold-ab-v2-helper-poll.mjs';
 import { GoldDeviceBootObservations } from './gold-device-boot-observations.mjs';
 import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
+import { createDesktopWallSsoOperatorGateV4 } from './desktop-wall-sso-operator-gate-v4.mjs';
 import {GoldMemoryAccountSyncPolicy} from './gold-memory-account-sync-policy.mjs';
 import {GoldMemoryAccountDelete} from './gold-memory-account-delete.mjs';
 import { handleRuntimeRoutes } from './executor-routes-runtime.mjs';
@@ -1635,7 +1637,38 @@ async function dispatchFleetProcessStop({jobId,accountId,deviceIds}={}){
 const adminJobRecovery=new GoldAdminJobRecovery({pool:goldStorage.pool,reaper:connectionJobGcReaper});
 const deviceResourceSampleCache=new DeviceResourceSampleCache();
 const deviceBootObservations=new GoldDeviceBootObservations(goldStorage.pool);
+// Gold schema 043 is isolated behind the release gate. Never allocate a
+// public Short ID on older Gold/production databases. Persist the device
+// registry row first, then allocate idempotently in PG043; retries never reuse
+// retired codes. On restart, only reconcile devices of explicitly allowlisted
+// accounts, so an Owner transfer does not resurrect the disabled Owner's IDs.
+const goldShortIdActive=goldStorage.schema?.version>=43&&
+ process.env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY==='1';
+const goldShortIdAfterEnrollment=goldShortIdActive?
+ async deviceId=>{
+   await goldRegistries.flush();
+   return ensureGoldDeviceShortId(goldStorage.pool,{deviceId});
+ }:null;
+if(goldShortIdActive){
+ const authorized=String(process.env.LR_GOLD_AB_V2_OWNER_ALLOWED_ACCOUNTS||'')
+  .split(',').map(x=>x.trim()).filter(x=>/^[A-Za-z0-9._:-]{1,160}$/.test(x));
+ if(authorized.length){
+  const recovered=await reconcileGoldOwnerDeviceShortIds(goldStorage.pool,{
+   accountIds:authorized,maxDevices:50});
+  if(recovered.created)console.info('[gold-abv2-short-id-reconciled]',recovered.created);
+ }
+}
+
+// T04b6: independent, exact opt-in only. No flags in normal Lab/prod.
+// Desktop Owner Auth + Token gates alone NEVER enable signed Wall SSO.
+const desktopWallSsoOperatorGate=createDesktopWallSsoOperatorGateV4({
+  env:process.env,storage:goldStorage,accounts,enrollments
+});
+
 const routeDeps=()=>({
+  desktopWallSsoSignedRedeem:desktopWallSsoOperatorGate.signedRedeem,
+  desktopWallSsoInternalIssue:desktopWallSsoOperatorGate.internalIssue,
+  desktopWallSsoFamilyCurrent:desktopWallSsoOperatorGate.familyCurrent,
   ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,
   DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,DevicePairingRegistryError,EnrollmentError,
   FleetAuthorityError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,
@@ -1647,7 +1680,7 @@ const routeDeps=()=>({
   deviceHasHistoricalReferences:deviceId=>goldRegistries.native.accounts.deviceHasHistoricalReferences(deviceId),
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   executionEpochs,requiresExecutionEpoch,
-  fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),fs,fullOutputFromDisk,
+  fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),goldShortIdAfterEnrollment,fs,fullOutputFromDisk,
   ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,adminJobRecovery,deviceResourceSampleCache,deviceBootObservations,memorySyncPolicy,memoryAccountDelete,
   inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),
   abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),

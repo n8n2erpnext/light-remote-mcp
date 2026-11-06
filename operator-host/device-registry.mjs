@@ -150,14 +150,23 @@ export class DeviceRegistry {
     const prior = this.devices.get(deviceId);
     const nodeOwner=[...this.devices.values()].find(row=>row.nodeId===nodeId && row.deviceId!==deviceId);
     if (nodeOwner) throw new DeviceError('node_identity_conflict',409);
-    if (prior && (prior.accountId !== accountId || prior.publicIdentityKey !== input.publicIdentityKey)) throw new DeviceError('device_identity_conflict', 409);
+    // Explicit Revoke releases the old account's device claim, so another
+    // account can Link via Wall using its existing signed device key.
+    // An ACTIVE binding may NEVER change owner via the enrollment route:
+    // its only path is device-local Tray/App/Terminal Relink.
+    const ownerChanged=Boolean(prior&&prior.accountId!==accountId);
+    if(prior&&(prior.publicIdentityKey!==input.publicIdentityKey||
+       (ownerChanged&&!prior.revokedAt)))
+      throw new DeviceError('device_identity_conflict',409);
     const device = {
       accountId, deviceId, nodeId,
       displayName: boundedText(input.displayName || prior?.displayName || deviceId, 120),
       platform: boundedText(input.platform || prior?.platform || 'unknown', 40),
       architecture: boundedText(input.architecture || prior?.architecture || 'unknown', 40),
       agentVersion: boundedText(input.agentVersion || prior?.agentVersion || 'unknown', 40),
-      firstSeenAt: prior?.firstSeenAt || now, lastSeenAt: prior?.lastSeenAt || now, offlineAt: now, revokedAt: null,
+      firstSeenAt: ownerChanged?now:(prior?.firstSeenAt||now),
+      lastSeenAt: ownerChanged?now:(prior?.lastSeenAt||now),
+      offlineAt: now, revokedAt: null,
       publicIdentityKey: boundedText(input.publicIdentityKey || prior?.publicIdentityKey || '', 4096) || null,
       capabilities: cleanCapabilities(input.capabilities),
       policyProfile: boundedText(input.policyProfile || prior?.policyProfile || 'default', 120),

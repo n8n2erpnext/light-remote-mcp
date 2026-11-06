@@ -5,6 +5,7 @@ import { redactRestrictedText } from './response-sanitizer.mjs';
 import { helperOverview, helperGroup } from './tool-helper.mjs';
 import { cleanJob } from './job-view.mjs';
 import {goldAbV2HelperKey,signGoldAbV2HelperTarget} from '../lib/gold-ab-v2-helper-proof.mjs';
+import {goldAbV2LabV1Disabled} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import {signGoldAbV2HelperPoll} from '../lib/gold-ab-v2-helper-poll-proof.mjs';
 import {signGoldGuestQueueProof} from '../lib/gold-pro-share-guest-queue-proof.mjs';
 
@@ -58,6 +59,27 @@ export class AccountOperatorAdapter{
     const q=new URLSearchParams({accountId:this.identity.accountId}),row=await callOperatorJson('GET',`/v1/plugin/sessions?${q}`);
     return (row.sessions||[]).some(s=>s.accountId===this.identity.accountId&&s.agentId===this.agentId&&['active','hold'].includes(s.state));
   }
+  async discoverAbV2Devices({query='',onlineOnly=false}={}){
+    // Metadata only, signed with the OAuth account + independent purpose.
+    // This method never calls issue, poll, agent-client attach or sessions.
+    if(process.env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY!=='1')
+      return {status:'device_discovery_unavailable',total:0,onlineCount:0,
+       matches:[],helperReady:false,approvalState:'not_issued'};
+    const proof=signGoldAbV2HelperTarget({identity:this.identity,
+      targetQuery:String(query||'').trim(),onlineOnly:onlineOnly===true,
+      purpose:'discover',key:goldAbV2HelperKey()});
+    const row=await callOperatorJson('POST',
+      '/v1/plugin/abv2/device-discover',proof);
+    return {status:'device_discovery',query:row.query??null,
+      onlineOnly:row.onlineOnly===true,total:Number(row.total)||0,
+      matchedTotal:Number(row.matchedTotal)||0,
+      onlineCount:Number(row.onlineCount)||0,
+      offlineCount:Number(row.offlineCount)||0,
+      matches:Array.isArray(row.matches)?row.matches.slice(0,5):[],
+      hasMore:row.hasMore===true,complete:row.complete===true,
+      helperReady:false,approvalState:'not_issued',
+      requestCreated:false,nextAction:'select_exact_device_before_request'};
+  }
   async resolveAbV2Target(targetQuery,{guestShare=false}={}){
     // Only a verified OAuth identity reaches this method through guarded().
     // SOURCE GATE: cannot create A/B, grant or ready while PG043 is absent.
@@ -102,6 +124,37 @@ export class AccountOperatorAdapter{
       approvalState:response.approvalState||'not_issued',
       helperReady:false,reused:Boolean(response.reused),
       nextAction:response.nextAction||'request_not_ready'};
+  }
+  // The no-argument Helper recovers ONLY the current OAuth principal's
+  // unique V2 request. The private Operator derives the request binding from
+  // Redis; the model cannot pick "newest" or borrow another Agent's pending B.
+  async recoverAbV2Request(){
+    if(process.env.LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE!=='1'||
+       process.env.LR_GOLD_AB_V2_HELPER_POLL_ATTACH!=='1')return null;
+    const proof=signGoldAbV2HelperTarget({identity:this.identity,
+     targetQuery:'',purpose:'recover',key:goldAbV2HelperKey()});
+    const row=await callOperatorJson('POST',
+     '/v1/plugin/abv2/request-recover',proof);
+    if(row.status==='none')return null;
+    if(row.status==='ambiguous')return {status:'ambiguous_pending_requests',
+     helperReady:false,nextAction:'poll_exact_request_explicitly'};
+    if(!/^av2_[a-f0-9]{32}$/.test(row.requestId||'')||
+       !/^[0-9A-HJKMNP-TV-Z]{6}$/.test(row.shortId||'')||
+       !/^[A-Za-z0-9._:-]{1,160}$/.test(row.deviceId||''))
+      throw Error('abv2_helper_recovered_scope_invalid');
+    if(row.status==='pending'){
+     if(!/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(row.bCode||''))
+      throw Error('abv2_helper_recovered_b_invalid');
+     return {status:'approval_required',protocol:'abv2',code:row.bCode,
+      shortId:row.shortId,deviceId:row.deviceId,
+      expiresInSeconds:Math.max(0,Math.ceil((Number(row.expiresAt)-Date.now())/1000)),
+      approvalPath:'/account',resumeMode:'call_same_helper_without_arguments',
+      helperReady:false,nextAction:'owner_enter_b_in_account'};
+    }
+    if(!['approved','granted'].includes(row.status))
+     throw Error('abv2_helper_recovered_status_invalid');
+    return this.pollAbV2Request({requestId:row.requestId,
+      deviceId:row.deviceId,shortId:row.shortId});
   }
   async pollAbV2Request({requestId,deviceId,shortId,guestShare=false}={}){
     if((guestShare?process.env.LR_GOLD_PRO_SHARE_GUEST_AB_POLL:
@@ -214,13 +267,14 @@ export class AccountOperatorAdapter{
     if(row?.session?.accountId!==this.identity.accountId)throw new Error('session_account_mismatch');
     return {context:cleanContext(row.context),session:cleanSession(row.session)};
   }
-  async connectionHelper(requestedGroup=null){
+  async connectionHelper(requestedGroup=null,{agentNickname=null}={}){
+    const labV2Only=goldAbV2LabV1Disabled();
     const account=await this.accountRaw(),client=await this.clientRaw({required:false}),devices=client?await this.authorizedDeviceDetails():[],mainId=account.mainDeviceId||null,ready=devices.length>0,transient=!client&&await this.hasActiveSessionEvidence();
     let working=null;
-    if(ready){try{working=await this.workingContext({});}catch(error){if(!['agent_client_temporarily_unavailable','target_node_draining','node_session_capacity_reached','account_session_capacity_reached','session_capacity_reached'].includes(String(error?.message||'')))throw error;}}
+    if(ready){try{working=await this.workingContext({agentNickname});}catch(error){if(!['agent_client_temporarily_unavailable','target_node_draining','node_session_capacity_reached','account_session_capacity_reached','session_capacity_reached'].includes(String(error?.message||'')))throw error;}}
     const helper=ready?(requestedGroup?helperGroup(requestedGroup,working?.context||{}):helperOverview(working?.context||{})):null;
     const status=transient?'temporarily_unavailable':ready?'ready':'need_a_code';
-    return {product:'Light Remote',status,purpose:'Governed remote computing for AI agents on explicitly authorized user-owned devices.',account:safeAccount(account),productCapabilities:[...PRODUCT_CAPABILITIES],onboarding:{nextAction:transient?'retry_same_helper_no_repair':ready?'use_working_context_and_helper_menu':'ask_owner_for_local_wall_a_code',retryable:transient||undefined,retryAfterMs:transient?1500:undefined,normalFlow:['Open the target device Local Wall and copy the one-time A code.','Call this helper with that A code to create the B approval request.','Show only the B code to the owner.','The owner enters B at that same Local Wall /approve and chooses Approve.','Call this helper again with the returned continuation. Only then is the device available to this plugin client.'],trustBoundary:'OAuth signs the user into the account, but it does not authorize a device. Every target device must be A/B-approved into this plugin client. The MCP cannot mint A or bypass Local Wall /approve.'},topology:devices.map(d=>({deviceId:d.deviceId,name:d.displayName||d.name||d.deviceId,role:d.deviceId===mainId?'main':'device',platform:d.platform,architecture:d.architecture,state:d.state,routing:safeRouting(d.routing||{}),effectiveCapabilities:[...(d.effectiveCapabilities||d.capabilities||[])]})),context:working?.context||null,session:working?.session||null,toolHelper:helper,governance:{explicitTargetRequired:true,silentFallback:false,localPolicyFinalDeny:true,credentialsMustRemainLocal:true,deviceAuthorization:'local-wall-a-b'}};
+    return {product:'Light Remote',status,purpose:'Governed remote computing for AI agents on explicitly authorized user-owned devices.',account:safeAccount(account),productCapabilities:[...PRODUCT_CAPABILITIES],onboarding:{nextAction:transient?'retry_same_helper_no_repair':ready?'use_working_context_and_helper_menu':labV2Only?'discover_account_device_then_request_b':'ask_owner_for_local_wall_a_code',retryable:transient||undefined,retryAfterMs:transient?1500:undefined,normalFlow:labV2Only?['Ask about account-owned devices: Discovery is read-only, no B required.','When the owner requests CONNECTION, resolve exactly one online Short ID and call the Agent-initiated A/B V2 Helper with startAbV2=true.','Show the freshly issued B code to the owner; never request an A code from Wall.','Owner enters B and approves on authenticated Local Wall /approve OR signed-in /account.','Call the Helper again without A/continuation; only the committed 24-hour grant authorizes control.']:['Open the target device Local Wall and copy the one-time A code.','Call this helper with that A code to create the B approval request.','Show only the B code to the owner.','The owner enters B at that same Local Wall /approve and chooses Approve.','Call this helper again with the returned continuation. Only then is the device available to this plugin client.'],trustBoundary:labV2Only?'OAuth identity permits read-only account device Discovery, NOT execution. Agent may initiate A/B V2 only for the selected online device; human Owner must approve independent B on authenticated Local Wall or Account before a durable 24-hour grant and session.': 'OAuth signs the user into the account, but it does not authorize a device. Every target device must be A/B-approved into this plugin client. The MCP cannot mint A or bypass Local Wall /approve.'},sessionId:working?.session?.sessionId||null,sessionNickname:working?.session?.displayName||null,nicknameSource:working?.session?.nameSource||null,topology:devices.map(d=>({deviceId:d.deviceId,name:d.displayName||d.name||d.deviceId,role:d.deviceId===mainId?'main':'device',platform:d.platform,architecture:d.architecture,state:d.state,routing:safeRouting(d.routing||{}),effectiveCapabilities:[...(d.effectiveCapabilities||d.capabilities||[])]})),context:working?.context||null,session:working?.session||null,toolHelper:helper,governance:{explicitTargetRequired:true,silentFallback:false,localPolicyFinalDeny:true,credentialsMustRemainLocal:true,deviceAuthorization:labV2Only?'agent-initiated-abv2-local-wall-or-account-b':'local-wall-a-b'}};
   }
 
   async inspectDevice(deviceId){
@@ -248,7 +302,7 @@ export class AccountOperatorAdapter{
   async openSession({deviceId,openId=null,workspace='',gracePreset='60m',agentNickname=null}={}){
     const d=await this.deviceRaw(deviceId);if(d.state!=='online')throw new Error('device_offline');
     if(openId){
-      const row=await callOperatorJson('POST','/v1/plugin/sessions/open',{accountId:this.identity.accountId,openId,agentId:this.agentId,label:'ChatGPT Light Remote',workspace:String(workspace||'').slice(0,512),gracePreset,nodeId:d.nodeId});
+      const row=await callOperatorJson('POST','/v1/plugin/sessions/open',{accountId:this.identity.accountId,openId,agentId:this.agentId,label:goldAbV2LabV1Disabled()?'Light Remote Agent':'ChatGPT Light Remote',workspace:String(workspace||'').slice(0,512),gracePreset,nodeId:d.nodeId});
       if(row?.session?.accountId!==this.identity.accountId||row?.session?.deviceId!==d.deviceId)throw new Error('session_target_mismatch');
     }
     const working=await this.workingContext({deviceId:d.deviceId,workspace,gracePreset,agentNickname});

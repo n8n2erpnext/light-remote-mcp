@@ -9,10 +9,14 @@ const real=candidate043ManifestReview({sqlRoot:path.join(root,'platform-v2/sql')
 assert.equal(real.lockedThrough,42);
 assert.equal(real.release043Registered,false);
 assert.match(real.candidate043Sha256,/^[0-9a-f]{64}$/);
-const healthy={migrationCount:39,version:39,shortIdAbsent:true,guestAbsent:true};
+const healthy={migrationCount:42,version:42,shortIdAbsent:true,guestAbsent:true};
 const good={manifest:real,db:healthy,services:{everyActive:true},
  backup:{snapshotPresent:true,pgDumpChecksumVerified:true}};
-for(const values of [good,{...good,db:{...healthy,version:43}},
+assert.equal(evaluateAbv2043UatReadiness(good).reasons.includes('uat_schema_042_precondition_not_met'),false);
+for(const values of [good,
+ {...good,db:{...healthy,migrationCount:39,version:39}},
+ {...good,db:{...healthy,version:43}},
+ {...good,db:{...healthy,shortIdAbsent:false}},
  {...good,backup:{snapshotPresent:false,pgDumpChecksumVerified:true}},
  {...good,ownerApproval:{approved:true},realAgentE2E:{signedOwnerWallToHelper24hLease:true}}]){
  const r=evaluateAbv2043UatReadiness(values);

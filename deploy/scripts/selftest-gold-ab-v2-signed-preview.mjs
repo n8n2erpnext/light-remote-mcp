@@ -20,7 +20,13 @@ let enrollment={deviceId,accountId:owner,publicIdentityKey:'key1',revokedAt:null
 let connection={deviceId,accountId:owner,connectionId,hardExpiresAt:Date.now()+300000};
 let policy={accountId:owner,policyProfile:'default',approvedCapabilities:['filesystem']};
 const calls=[];
-const storage={prefix:'lr:gold:sourcefixture:',redis:{
+const storage={prefix:'lr:gold:sourcefixture:',pool:{
+ query:async(sql,params)=>{
+  assert.match(sql,/owner_account_id/);
+  assert.deepEqual(params,[deviceId,owner]);
+  return {rows:[{short_id:'R01KAP'}]};
+ }
+},redis:{
  zRange:async()=>connection.connectionId===connectionId?['av2_'+'a'.repeat(32)]:[],
  eval:async(_lua,{keys,arguments:args})=>{
   calls.push({keys,operation:args[0],scope:JSON.parse(args[1])});
@@ -43,6 +49,7 @@ try{
  const preview=make();
  const got=await preview(ctx);
  assert.equal(got.accountEmail,'owner@example.test');
+ assert.equal(got.shortId,'R01KAP');
  assert.equal(got.pending.length,1);
  assert.equal(got.pending[0].aCode,'ABCD02-GHFDX');
  assert.ok(!JSON.stringify(got).includes('FORBIDDEN'));

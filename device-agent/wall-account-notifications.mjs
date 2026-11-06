@@ -12,18 +12,18 @@ export const notificationBellStyles=`
 .wall-notification-toggle{position:relative;display:inline-flex;align-items:center;justify-content:center;border:1px solid #34475a;border-radius:9px;background:#101923;color:#d8e5f2;width:37px;height:35px;cursor:pointer}
 .wall-notification-toggle:hover,.wall-notification-toggle[aria-expanded="true"]{border-color:#7d9bb8;background:#182839}
 .wall-notification-toggle .mi{width:19px;height:19px}
-.wall-notification-badge{position:absolute;top:-7px;right:-7px;background:#f3c753;color:#171c24;min-width:19px;height:19px;border-radius:12px;font-size:10px;font-weight:750;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid #080a0c}
+.wall-notification-badge{position:absolute;top:-7px;right:-7px;background:#f3c753;color:#171c24;min-width:19px;height:19px;border-radius:12px;font-size:12px;font-weight:750;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid #080a0c}
 .wall-notification-badge[hidden],.wall-notification-panel[hidden]{display:none!important}
 .wall-notification-panel{position:fixed;z-index:7000;right:auto;left:10px;top:60px;width:min(360px,calc(100vw - 20px));max-height:min(390px,calc(100dvh - 20px));overflow-y:auto;background:#0d141d;border:1px solid #344253;border-radius:12px;box-shadow:0 16px 45px #000a}
 .wall-notification-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px;border-bottom:1px solid #2c3947;font-size:13px}
-.wall-notification-heading a{color:#a5d4f1;text-decoration:none;font-size:12px}
+.wall-notification-heading a{color:#a5d4f1;text-decoration:none;font-size:13px}
 .wall-notification-row{display:block;padding:12px;border-bottom:1px solid #23303c;text-decoration:none;color:#d7e1eb}
 .wall-notification-row:hover{background:#152332}
-.wall-notification-title{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700}
-.wall-notification-body{color:#9aa9b9;font-size:11px;line-height:1.5;margin-top:4px;overflow-wrap:anywhere}
-.wall-notification-new{font-size:10px;border-radius:4px;background:#314b60;color:#c3eaff;padding:2px 5px}
-.wall-notification-empty{color:#9baabc;padding:14px;font-size:12px}
-.wall-notification-secondary{font-size:11px;color:#dfeaf0;background:#172c3f;padding:4px 10px;border-radius:4px}
+.wall-notification-title{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
+.wall-notification-body{color:#9aa9b9;font-size:13px;line-height:1.5;margin-top:4px;overflow-wrap:anywhere}
+.wall-notification-new{font-size:12px;border-radius:4px;background:#314b60;color:#c3eaff;padding:2px 5px}
+.wall-notification-empty{color:#9baabc;padding:14px;font-size:13px}
+.wall-notification-secondary{font-size:13px;color:#dfeaf0;background:#172c3f;padding:4px 10px;border-radius:4px}
 .wall-client-banner{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;min-height:38px;padding:8px 45px;margin:0 0 12px;position:relative;border-radius:8px;background:#f5c843;color:#171f26;font:650 12px/1.5 system-ui,sans-serif;text-align:center}
 .wall-client-banner[hidden]{display:none!important}
 .wall-client-banner[data-kind="maintenance"],.wall-client-banner[data-kind="service"]{background:#fff0bb}

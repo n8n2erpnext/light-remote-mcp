@@ -20,6 +20,7 @@ on:
       - 'fix/gold-windows-relink-rm-stability-20261028' # RM and enrollment recovery stability UAT build
       - 'fix/gold-owner-filesystem-roots-20261023' # isolated Gold filesystem UAT build
       - 'feat/gold-connection-gc-reconciler-20261029' # isolated signed-epoch Windows x64 UAT build; artifact only
+      - 'feat/desktop-v4-api-integration-20261103' # one complete desktop + Agent/Wall/RM installer LAB
     tags:
       - 'v0.9.*'
     paths:
@@ -97,7 +98,7 @@ permissions:
 jobs:
   build-install-smoke:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 80
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -106,6 +107,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.23.2'
+      - name: Rust for embedded Desktop V4 on the full Windows installer branch
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache unified V4 native Rust build
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: client/desktop-v4/src-tauri -> target
       - name: Verify Moryqa Windows Tray theme and installer contract
         shell: pwsh
         run: |
@@ -645,6 +654,45 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Build and stage Desktop V4 in the SAME full Agent/Wall/RM installation
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        timeout-minutes: 35
+        shell: pwsh
+        env:
+          VITE_LR_V4_UI_TEST: '0'
+          VITE_LR_V4_OWNER_LOGIN: '1'
+          VITE_LR_V4_ABV2_NATIVE: '1'
+          VITE_LR_V4_OWNER_SNAPSHOT: '1'
+          VITE_LR_V4_WALL_SSO_CANDIDATE: '0'
+        run: |
+          Push-Location client/desktop-v4
+          try {
+            npm ci --no-audit --no-fund
+            if ($LASTEXITCODE -ne 0) { throw 'V4 frontend npm ci failed' }
+            npm run build
+            if ($LASTEXITCODE -ne 0) { throw 'V4 production frontend failed' }
+            npm test
+            if ($LASTEXITCODE -ne 0) { throw 'V4 Owner UI+API contract tests failed' }
+            node e2e/tauri-production-packaging-contract.mjs
+            if ($LASTEXITCODE -ne 0) { throw 'V4 native packaging contract failed' }
+            npm exec -- tauri build --no-bundle --features desktop-owner-login --ci
+            if ($LASTEXITCODE -ne 0) { throw 'V4 Tauri Owner + A/B + Local Wall native build failed' }
+          } finally { Pop-Location }
+          node --test device-agent/desktop-abv2-native-ipc-v4.test.mjs device-agent/desktop-wall-sso-native-ipc-v4.test.mjs plugin-server/desktop-owner-token-v4.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Complete bundle same-host Agent A/B / Owner source tests failed' }
+          $source=Join-Path $PWD 'client/desktop-v4/src-tauri/target/release/light-remote-desktop-v4-pilot.exe'
+          if (-not (Test-Path -LiteralPath $source)) { throw "V4 native executable missing: $source" }
+          $dest=Join-Path $PWD 'dist/windows/stage/desktop-v4'
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          $target=Join-Path $dest 'LightRemote.Desktop.exe'
+          Copy-Item -LiteralPath $source -Destination $target -Force
+          $bytes=(Get-Item -LiteralPath $target).Length
+          if ($bytes -lt 1000000) { throw "V4 Desktop executable suspiciously small: $bytes" }
+          $agent=Join-Path $PWD 'dist/windows/stage/agent/device-agent/desktop-abv2-native-ipc-v4.mjs'
+          $rm=Join-Path $PWD 'dist/windows/stage/realremote-v2/LightRemote.RM.exe'
+          foreach($required in @($agent,$rm)) { if (-not(Test-Path $required)) { throw "Same-installer A/B or RM missing: $required" } }
+          Write-Host "windows-unified-stage=PASS v4=$bytes Agent_ABV2=PASS Local_Wall=in_agent RM=PASS"
+          "WINDOWS_V4_DESKTOP=$target" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - name: Install Inno Setup
         shell: pwsh
         run: |
@@ -661,7 +709,14 @@ jobs:
           $out = Join-Path $PWD 'dist\windows\installer'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           $version = (Get-Content VERSION -Raw).Trim()
-          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=$version" "/DWatchdogExe=$env:WINDOWS_INSTALL_WATCHDOG" client/windows-native/installer/GptOperator.iss
+          $defines=@("/DStageDir=$stage","/DOutputDir=$out","/DAppVersion=$version","/DWatchdogExe=$env:WINDOWS_INSTALL_WATCHDOG")
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            if (-not (Test-Path 'dist/windows/stage/desktop-v4/LightRemote.Desktop.exe')) {
+              throw 'Complete installer cannot be built without staged Desktop V4'
+            }
+            $defines+= '/DUnifiedDesktopV4=1'
+          }
+          & $env:ISCC @defines client/windows-native/installer/GptOperator.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
           $installer = Join-Path $out 'Light-Remote-MCP-Setup-x64.exe'
           if (-not (Test-Path $installer)) { throw 'installer missing' }
@@ -670,6 +725,7 @@ jobs:
           "WINDOWS_INSTALLER=$installer" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build compact web installer
+        if: github.ref_name != 'feat/desktop-v4-api-integration-20261103'
         shell: pwsh
         run: |
           $stage = (Resolve-Path 'dist\windows\stage').Path
@@ -794,6 +850,27 @@ jobs:
           if (-not (Test-Path $rmv2Installed)) { throw "installed RM V2 companion missing: $rmv2Installed" }
           if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'installed RM V2 companion spawned while Core was idle' }
           Write-Host 'windows-rmv2-installed-idle-zero=PASS'
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            $desktop = Join-Path $installDir 'desktop-v4\LightRemote.Desktop.exe'
+            $agentAbv2 = Join-Path $installDir 'agent\device-agent\desktop-abv2-native-ipc-v4.mjs'
+            $wallSource = Join-Path $installDir 'agent\device-agent\local-wall.mjs'
+            foreach ($component in @($desktop,$agentAbv2,$wallSource,$rmv2Installed,$installedNode,$exe)) {
+              if (-not (Test-Path -LiteralPath $component)) { throw "Complete V4 installer missing: $component" }
+            }
+            $size=(Get-Item $desktop).Length
+            if ($size -lt 1000000) { throw "Installed V4 executable unexpectedly small: $size" }
+            $launched = Start-Process -FilePath $desktop -PassThru
+            try {
+              Start-Sleep -Seconds 3
+              $launched.Refresh()
+              if ($launched.HasExited) { throw "Unified Desktop V4 exited on launch: $($launched.ExitCode)" }
+              $wallResponse=Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:5491/' -TimeoutSec 7
+              if ($wallResponse.StatusCode -ne 200) { throw 'Installed Agent Local Wall failed HTTP 200' }
+              Write-Host "windows-unified-complete-install-and-launch=PASS v4=$size agent=PASS wall=HTTP200 rm=PASS owner-native=COMPILED"
+            } finally {
+              Stop-Process -Id $launched.Id -Force -ErrorAction SilentlyContinue
+            }
+          }
           & (Join-Path $installDir 'runtime\node.exe') deploy/scripts/selftest-packaged-local-wall.mjs (Join-Path $installDir 'agent')
           if ($LASTEXITCODE -ne 0) { throw 'installed full Windows Local Wall package missing icons or failed HTTP page checks' }
           Write-Host 'windows-full-installed-wall-assets=PASS'
@@ -1015,6 +1092,7 @@ jobs:
             Write-Host 'windows-native-installer-roundtrip=SKIP install-not-reached'
           }
       - name: Install compact web client and verify runtime cache
+        if: github.ref_name != 'feat/desktop-v4-api-integration-20261103'
         timeout-minutes: 10
         shell: pwsh
         run: |
@@ -1084,7 +1162,7 @@ jobs:
           "WINDOWS_COMPACT_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Uninstall compact Windows client
-        if: always()
+        if: always() && github.ref_name != 'feat/desktop-v4-api-integration-20261103'
         timeout-minutes: 3
         shell: pwsh
         run: |
@@ -1111,19 +1189,35 @@ jobs:
         shell: pwsh
         run: |
           $fullHash = (Get-FileHash $env:WINDOWS_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
-          $compactHash = (Get-FileHash $env:WINDOWS_COMPACT_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
           $sum = Join-Path (Split-Path $env:WINDOWS_INSTALLER -Parent) 'SHA256SUMS.txt'
-          @("$fullHash  Light-Remote-MCP-Setup-x64.exe","$compactHash  Light-Remote-MCP-Compact-Setup-x64.exe") | Set-Content -LiteralPath $sum -Encoding ascii
-          Write-Host "windows-native-installer-sha256=$fullHash"
-          Write-Host "windows-compact-installer-sha256=$compactHash"
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            @("$fullHash  Light-Remote-MCP-Setup-x64.exe") | Set-Content -LiteralPath $sum -Encoding ascii
+            Write-Host "windows-complete-desktop-agent-wall-rm-installer-sha256=$fullHash"
+          } else {
+            $compactHash = (Get-FileHash $env:WINDOWS_COMPACT_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
+            @("$fullHash  Light-Remote-MCP-Setup-x64.exe","$compactHash  Light-Remote-MCP-Compact-Setup-x64.exe") | Set-Content -LiteralPath $sum -Encoding ascii
+            Write-Host "windows-native-installer-sha256=$fullHash"
+            Write-Host "windows-compact-installer-sha256=$compactHash"
+          }
 
-      - name: Upload native Windows installer
+      - name: Upload legacy Windows installers (non-V4 branches only)
+        if: github.ref_name != 'feat/desktop-v4-api-integration-20261103'
         uses: actions/upload-artifact@v4
         with:
           name: light-remote-windows-x64-${{ github.sha }}
           path: |
             dist/windows/installer/Light-Remote-MCP-Setup-x64.exe
             dist/windows/installer/Light-Remote-MCP-Compact-Setup-x64.exe
+            dist/windows/installer/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload ONE complete Windows Desktop V4 + Agent + Wall + RM installer
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-desktop-v4-COMPLETE-windows-x64-${{ github.sha }}
+          path: |
+            dist/windows/installer/Light-Remote-MCP-Setup-x64.exe
             dist/windows/installer/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14

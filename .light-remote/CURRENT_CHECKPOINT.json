@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-06",
-  "status": "T06B4_ONE_NSIS_4_OF_4_CI_PASS_FULL_AGENT_API_PRODUCT_E2E_OPEN",
+  "status": "T07_GOLD_LATEST_DESKTOP_V4_MERGED_ONE_COMPLETE_WINDOWS_INNO_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -171,10 +171,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "532d5675d658290348ffd64a252515c1e0e6d43640d19574c89e6b4a01fa53b4",
-    "trackedFiles": 1192,
+    "treeDigest": "2786ef659cdc519b5435dfcc1b9c85cd52a62f1f371250869ee64abaa561d82c",
+    "trackedFiles": 1304,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-06T07:46:16.943Z"
+    "recordedAt": "2026-11-06T08:08:02.707Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

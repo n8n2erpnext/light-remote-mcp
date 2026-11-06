@@ -122,6 +122,8 @@ const portal=fs.readFileSync(new URL('../../plugin-server/account-portal/index.h
 const ui=fs.readFileSync(new URL('../../plugin-server/account-portal/ab-v2.js',import.meta.url),'utf8');
 const router=fs.readFileSync(new URL('../../plugin-server/account-portal.mjs',import.meta.url),'utf8');
 assert.match(portal,/id="abv2Panel" hidden style="display:none"/);
+assert.match(portal,/For <strong>A\/B V2<\/strong>/);
+assert.doesNotMatch(portal,/Approval with B will appear after the real grant bridge/);
 assert.match(portal,/src="\/account\/assets\/ab-v2\.js"/);
 assert.match(ui,/panel\.hidden=false;panel\.style\.display='';/);
 assert.match(router,/app\.get\('\/account\/assets\/ab-v2\.js'/);

@@ -61,6 +61,7 @@ export function validateDesktopOwnerAuthorizationIntent(input, authority, now = 
   if (!input || typeof input !== 'object' || Array.isArray(input))
     deny('desktop_request_invalid');
   if (!authority || authority.verifiedBy !== 'account_portal_session' ||
+      authority.isOwner !== true ||
       !SAFE_OWNER_ID.test(String(authority.accountId || '')))
     deny('verified_desktop_owner_required');
   if (Object.hasOwn(input, 'accountId') || Object.hasOwn(input, 'grantId') ||

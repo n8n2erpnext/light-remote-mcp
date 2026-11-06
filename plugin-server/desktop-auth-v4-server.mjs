@@ -43,8 +43,10 @@ export async function browserOwnerFromOperator(req) {
     const out = await callOperatorJson('GET', '/v1/accounts/me', null,
       {'x-light-account-session': token});
     const id = String(out?.account?.accountId || '');
-    if (!id) return null;
-    return {verifiedBy:'account_portal_session', accountId:id,
+    // A signed-in account is not necessarily the one current Gold Owner.
+    // Never issue Desktop Owner consent for a Free/Guest or former Owner.
+    if (!id || out?.account?.isOwner !== true) return null;
+    return {verifiedBy:'account_portal_session', accountId:id,isOwner:true,
       sessionFingerprint:sha(token),
       accountSessionId:String(out?.session?.sessionId||''),
       accountSessionExpiresAt:Number(out?.session?.expiresAt)||0};
@@ -63,12 +65,19 @@ function intentFromQuery(q) {
   };
 }
 function strictBrowserPost(req, origin) {
-  const site = String(req.headers?.['sec-fetch-site'] || '');
-  const requestOrigin = String(req.headers?.origin || '');
+  const site = String(req.headers?.['sec-fetch-site'] || '').toLowerCase();
+  const requestOrigin = String(req.headers?.origin || '').trim();
   const type = String(req.headers?.['content-type'] || '').split(';')[0].trim();
-  return type === 'application/x-www-form-urlencoded' &&
-    (requestOrigin === origin || (!requestOrigin && site === 'same-origin')) &&
-    site !== 'cross-site';
+  if (type !== 'application/x-www-form-urlencoded' ||
+      site === 'cross-site' || site === 'same-site') return false;
+  // A provided Origin must match exactly, regardless of Sec-Fetch-Site.
+  if (requestOrigin) return requestOrigin === origin;
+  if (site === 'same-origin') return true;
+  // Chrome/browser proxy may omit BOTH provenance headers for a form POST.
+  // Fail closed unless the form carries an unguessable one-use CSRF; the
+  // subsequent verifyOwner() checks the Secure SameSite=Strict Portal cookie
+  // against the CURRENT single Gold Owner before atomic CSRF consumption.
+  return site === '' && TOKEN_PATTERN.test(String(req.body?.csrf || ''));
 }
 function setPrivate(res) {
   res.set('Cache-Control','no-store');
@@ -147,7 +156,8 @@ export function createDesktopOwnerAuthorization({
         record.accountSessionId !== owner?.accountSessionId ||
         Number(record.accountSessionExpiresAt)<=clock() ||
         record.sessionFingerprint !== (owner?.sessionFingerprint || '') ||
-        owner?.verifiedBy !== 'account_portal_session')
+        owner?.verifiedBy !== 'account_portal_session' ||
+        owner?.isOwner !== true)
       fail('desktop_owner_mismatch');
     const callback = new URL(validateDesktopLoopbackCallback(record.redirectUri));
     callback.searchParams.set('state',record.state);
@@ -227,6 +237,7 @@ export function createDesktopOwnerAuthorization({
       }
       const ready = await begin(req.query, owner);
       const page = consentHtml(ready);
+      res.set('Referrer-Policy','origin');
       res.set('Content-Security-Policy',page.csp);
       return res.status(200).type('html').send(page.html);
     } catch (error) { return responseError(res,error); }

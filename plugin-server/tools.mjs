@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { z } from 'zod';
+import {goldAbV2LabV1Disabled} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import { AccountOperatorAdapter } from './operator-adapter.mjs';
 import { mintPairingContinuation, requireScopes, verifyPairingContinuation } from './oauth.mjs';
 import { redactRestrictedText, sanitizeForMcp } from './response-sanitizer.mjs';
@@ -37,8 +38,18 @@ export function result(value){
     || (structured.error==='filesystem_edit_conflict'
       && structured.layer==='filesystem_conflict' && structured.httpStatus===409)
   );
+  // A command that finished with a nonzero exit code is an EXECUTION result,
+  // not an MCP argument/protocol failure. Keep ok:false so agents cannot
+  // mistake it for successful work, but preserve the job receipt in-band.
+  const completedExecFailure=structured.ok===false &&
+    structured.error==='command_exit_nonzero' &&
+    structured.executionCompleted===true &&
+    structured.commandSucceeded===false &&
+    structured.job?.state==='error' && structured.job?.running===false &&
+    Number.isInteger(structured.job.exitCode) &&
+    structured.job.exitCode>=1 && structured.job.exitCode<=255;
   return {content:[{type:'text',text:JSON.stringify(safe,null,2)}],structuredContent:structured,
-    ...(structured.ok===false&&!completedDenial?{isError:true}:{})};
+    ...(structured.ok===false&&!completedDenial&&!completedExecFailure?{isError:true}:{})};
 }
 export function operationView(row){
   const ok=Boolean(row?.ok);
@@ -51,6 +62,23 @@ export function operationView(row){
   return {ok,data:row?.data??null,job:row?.job?{jobId:row.job.jobId,state:row.job.state||row.job.status||null,running:!row.job.finishedAt,exitCode:row.job.exitCode??null}:null,
     ...(failure?{error:failure.error,layer:failure.layer,retryable:failure.retryable,nextAction:failure.nextAction,
       ...(failure.httpStatus?{httpStatus:failure.httpStatus}:{})}:{})};
+}
+// Scope the compatibility to the dedicated exec tool, never all MCP tools.
+export function completedExecOutcome(row){
+  const view=operationView(row),job=view.job;
+  if(view.ok!==false || view.data!==null ||
+     job?.state!=='error' || job.running!==false ||
+     !Number.isInteger(job.exitCode) ||
+     job.exitCode<1 || job.exitCode>125 ||
+     // Device Agent reserves 72 (invalid cwd), 124 (timeout), 126
+     // (local policy/capability/adapter denial), 127 (spawn failure) and
+     // 130 (cancel). Without a signed spawn phase in the receipt, fail
+     // closed rather than falsely claiming the user command ran.
+     job.exitCode===72 || job.exitCode===124 ||
+     !/^[A-Za-z0-9._:-]{1,160}$/.test(String(job.jobId||'')))return view;
+  return {...view,error:'command_exit_nonzero',layer:'command_execution',
+    retryable:false,nextAction:'read_existing_job_output',
+    executionCompleted:true,commandSucceeded:false};
 }
 export function pluginToolErrorResult(error){
   // The original redacted text is intentionally retained for existing MCP
@@ -132,7 +160,7 @@ const legacySchemas={
   light_remote_process:z.object({sessionId:id,operation:z.enum(['start','input','output','list','stop']),operationId:opId,processId:z.string().max(160).optional(),script:z.string().max(1_000_000).optional(),shell:z.string().max(80).optional(),cwd:pathText.optional(),data:z.string().max(1_048_576).optional(),eof:z.boolean().optional(),stream:z.enum(['stdout','stderr']).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional(),force:z.boolean().optional(),timeoutMs:z.number().int().min(0).max(86_400_000).optional(),requiredCapabilities:z.array(z.string().min(1).max(80)).max(32).optional()}),
   light_remote_terminal:z.object({sessionId:id,operation:z.enum(['start','input','output','resize','signal','list','stop']),operationId:opId,terminalId:z.string().max(160).optional(),shell:z.string().max(80).optional(),cwd:pathText.optional(),term:z.string().max(64).optional(),data:z.string().max(1_048_576).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional(),cols:z.number().int().min(20).max(500).optional(),rows:z.number().int().min(5).max(200).optional(),signal:z.enum(['interrupt','terminate','kill']).optional(),force:z.boolean().optional()}),
   light_remote_scp_download:z.object({sessionId:id,operationId:opId,operation:z.enum(['download-begin','download-chunk','status','cancel']),transferId:z.string().max(160).optional(),source:pathText.optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional()}),
-  light_remote_scp:z.object({sessionId:id,operationId:opId,operation:z.enum(['upload-begin','upload-chunk','upload-commit','status','cancel']),transferId:z.string().max(160).optional(),destination:pathText.optional(),source:pathText.optional(),totalBytes:z.number().int().min(0).optional(),sha256:z.string().regex(/^[a-f0-9]{64}$/i).optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional(),data:z.string().max(6_000_000).optional(),overwrite:z.boolean().optional(),createParents:z.boolean().optional()}),
+  light_remote_scp:z.object({sessionId:id,operationId:opId,operation:z.enum(['upload-begin','upload-chunk','upload-commit','status','cancel']),transferId:z.string().max(160).optional(),destination:pathText.optional(),source:pathText.optional(),totalBytes:z.number().int().min(1).optional(),sha256:z.string().regex(/^[a-f0-9]{64}$/i).optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional(),data:z.string().max(6_000_000).optional(),overwrite:z.boolean().optional(),createParents:z.boolean().optional()}),
   light_remote_desktop:z.object({sessionId:id,operationId:opId,operation:z.enum(['status','attach','resume','detach','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close']),desktopSessionId:z.string().max(160).optional(),semanticSessionId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional(),screen:z.number().int().min(-1).max(31).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),minIntervalMs:z.number().int().min(0).max(5000).optional(),omitUnchanged:z.boolean().optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional(),provider:z.enum(['windows-uia','browser-cdp']).optional(),scope:z.string().max(160).optional(),cdpEndpoint:z.string().max(256).optional(),targetId:z.string().max(256).optional(),urlMatch:z.string().max(512).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),waitMs:z.number().int().min(0).max(7000).optional()}),
   light_remote_desktop_input:z.object({sessionId:id,operationId:opId,operation:z.enum(['act','input','run']),semanticSessionId:z.string().max(160).optional(),nodeId:z.string().max(512).optional(),action:z.string().max(80).optional(),value:z.any().optional(),events:z.array(jsonObject).max(128).optional(),displayTopologyId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),settleMs:z.number().int().min(0).max(15000).optional(),await:z.object({foregroundTitleContains:z.string().max(512).optional(),foregroundTitleEquals:z.string().max(512).optional(),focusedNameContains:z.string().max(512).optional(),timeoutMs:z.number().int().min(50).max(15000).optional()}).optional(),waitMs:z.number().int().min(0).max(7000).optional()})
 };
@@ -169,10 +197,13 @@ export async function callLegacyMultiplexedTool(identity,name,input={}){
 export function registerPluginTools(server,identity){
   add(server,'light_remote_connection_helper',{
     title:'Connect Light Remote with A/B approval',
-    description:'Start here. Handles Local Wall A/B pairing and, when ready, returns/reuses the working context plus a compact tool-family menu. Call again with helperGroup=workspace|files|shell|transfer|desktop only when detailed syntax for that family is needed. OAuth account login alone never authorizes a device.',
-    inputSchema:{targetQuery:z.string().min(1).max(120).optional(),startAbV2:z.boolean().optional(),guestShare:z.boolean().optional(),requestKey:z.string().regex(/^[a-f0-9]{32}$/).optional(),pollRequestId:z.string().regex(/^av2_[a-f0-9]{32}$/).optional(),pollDeviceId:id.optional(),pollShortId:z.string().regex(/^[0-9A-HJKMNP-TV-Z]{6}$/).optional(),aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
+    description:'Use for A/B V2 target search and connection. BEFORE B, light_remote_discover_devices is the preferred read-only account-device online/offline counter. If that newer tool is missing in your ChatGPT tool list, call THIS helper with no args: when no pending A/B request exists, it returns read-only account Discovery (not abv2_only or zero granted devices) in the A/B V2 Lab. targetQuery searches owned targets without B; only startAbV2=true with an exact selected target initiates B approval. When pending B, no-arg recovers that request first. light_remote_list_devices lists granted devices ONLY, never total account online. OAuth login alone does not authorize device control. Suggest, but never require, an Agent-chosen playful nickname (animal, fruit, insect, flower or place). Do not ask Owner, do not assume this is ChatGPT or guess the model. On the post-B Helper call pass optional agentNickname; if omitted, connection still succeeds. Read back the server-confirmed sessionNickname and sessionId. After approval call this helper again.',
+    inputSchema:{targetQuery:z.string().min(1).max(120).optional(),startAbV2:z.boolean().optional(),guestShare:z.boolean().optional(),requestKey:z.string().regex(/^[a-f0-9]{32}$/).optional(),pollRequestId:z.string().regex(/^av2_[a-f0-9]{32}$/).optional(),pollDeviceId:id.optional(),pollShortId:z.string().regex(/^[0-9A-HJKMNP-TV-Z]{6}$/).optional(),aCode:z.string().regex(/^[A-Za-z2-9]{4}-?[A-Za-z2-9]{4}$/).optional(),continuation:z.string().min(20).max(8192).optional(),label:z.string().min(1).max(120).optional(),agentNickname:z.string().min(3).max(96).optional(),helperGroup:z.enum(['workspace','files','shell','transfer','desktop']).optional()},
     securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:read'],async(a,x)=>{
+    const labV2Only=goldAbV2LabV1Disabled();
+    if(labV2Only&&(x.aCode||x.continuation))
+      throw new Error('abv2_lab_legacy_v1_temporarily_disabled');
     if(x.aCode&&x.continuation)throw new Error('pairing_input_conflict');
     if(x.pollRequestId||x.pollDeviceId||x.pollShortId){
       if(!x.pollRequestId||!x.pollDeviceId||!x.pollShortId||
@@ -189,10 +220,22 @@ export function registerPluginTools(server,identity){
     if(x.guestShare&&!x.targetQuery)throw new Error('pro_share_guest_exact_target_required');
     if(x.targetQuery&&(x.aCode||x.continuation||x.helperGroup))
       throw new Error('abv2_helper_target_query_conflict');
-    if(x.targetQuery)return x.startAbV2?
-      a.issueAbV2Request(x.targetQuery,{requestKey:x.requestKey||null,
-       guestShare:x.guestShare===true}):
-      a.resolveAbV2Target(x.targetQuery,{guestShare:x.guestShare===true});
+    if(x.targetQuery){
+      // Backward-compatible read-only Discovery for MCP hosts that still
+      // expose the old tool list without light_remote_discover_devices.
+      // Explicit connection requests always use the separate signed B path.
+      const lookup=String(x.targetQuery).trim().toLowerCase();
+      if(!x.startAbV2&&!x.guestShare&&
+         ['all','devices','all devices','online','online devices',
+          'arm64','aarch64','x64','amd64'].includes(lookup))
+        return a.discoverAbV2Devices({
+          query:['arm64','aarch64','x64','amd64'].includes(lookup)?lookup:'',
+          onlineOnly:lookup==='online'||lookup==='online devices'});
+      return x.startAbV2?
+        a.issueAbV2Request(x.targetQuery,{requestKey:x.requestKey||null,
+         guestShare:x.guestShare===true}):
+        a.resolveAbV2Target(x.targetQuery,{guestShare:x.guestShare===true});
+    }
     if(x.helperGroup&&(x.aCode||x.continuation))throw new Error('helper_group_pairing_conflict');
     if(x.aCode){
       const pending=await a.pairBegin(x.aCode,x.label||'ChatGPT'),continuation=await mintPairingContinuation(identity,{requestId:pending.requestId,pollToken:pending.pollToken,agentId:a.agentId,expiresAt:pending.expiresAt});
@@ -202,21 +245,63 @@ export function registerPluginTools(server,identity){
       const ctx=await verifyPairingContinuation(identity,x.continuation);if(ctx.agentId!==a.agentId)throw new Error('pairing_continuation_agent_mismatch');
       const paired=await a.pairPoll(ctx);
       if(paired.state!=='approved')return {status:'approval_required',continuation:x.continuation,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(paired.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
-      const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:paired.device?.displayName||paired.device?.deviceId||null};
+      const helper=await a.connectionHelper(null,{agentNickname:x.agentNickname||null});return {...helper,status:'ready',pairedDevice:paired.device?.displayName||paired.device?.deviceId||null};
     }
     if(!x.helperGroup){
+      const v2=await a.recoverAbV2Request();
+      if(v2){
+        if(v2.status==='ready'){
+          const helper=await a.connectionHelper(null,{agentNickname:x.agentNickname||null});
+          return {...helper,status:'ready',protocol:'abv2',
+           pairedDevice:v2.pairedDevice,recovered:true};
+        }
+        return v2;
+      }
+      if(labV2Only){
+        // An existing durable A/B grant survives pending request expiry and
+        // Operator restart. Reuse it before falling back to read-only Discovery.
+        const granted=await a.devices();
+        if(granted.length)return a.connectionHelper(null,{agentNickname:x.agentNickname||null});
+        // No active B request or grant: show signed OAuth account metadata.
+        // Never confuse the empty per-client granted-device list with 0 online.
+        const discovery=await a.discoverAbV2Devices();
+        return {...discovery,protocol:'abv2',
+          nextAction:discovery.status==='device_discovery'?
+           'select_exact_device_before_request':
+           'device_discovery_unavailable_refresh_plugin_metadata'};
+      }
       const recovered=await a.pairRecover();
       if(recovered?.state==='pending')return {status:'approval_required',code:recovered.request?.userCode||null,resumeMode:'call_same_helper_without_arguments',expiresInSeconds:Math.max(0,Math.ceil((Number(recovered.request?.expiresAt||Date.now())-Date.now())/1000)),approvalPath:'/approve'};
-      if(recovered?.state==='approved'){const helper=await a.connectionHelper();return {...helper,status:'ready',pairedDevice:recovered.device?.displayName||recovered.device?.deviceId||null,recovered:true};}
+      if(recovered?.state==='approved'){const helper=await a.connectionHelper(null,{agentNickname:x.agentNickname||null});return {...helper,status:'ready',pairedDevice:recovered.device?.displayName||recovered.device?.deviceId||null,recovered:true};}
     }
-    return a.connectionHelper(x.helperGroup||null);
+    return a.connectionHelper(x.helperGroup||null,{agentNickname:x.agentNickname||null});
   }));
+
+  add(server,'light_remote_discover_devices',{
+    title:'Find account devices online without A/B approval',
+    description:'Use this FIRST for questions such as "How many devices are online?", "Is VPS-ARM online?", "Any Windows machines online?", or "Find Short ID R01KAP". Read-only A/B V2 Discovery lists minimal metadata for devices owned by the OAuth account BEFORE B approval. Optional query matches device name, hostname, OS, architecture or Short ID; onlineOnly=true counts only currently online matches. Returns total, onlineCount, offlineCount and at most five matching devices, with no full-fleet dump. NEVER creates a pairing request, grants access, or opens a session. To CONNECT, use light_remote_connection_helper with exact target and startAbV2=true; the Owner must approve B.',
+    inputSchema:{query:z.string().max(120).optional(),onlineOnly:z.boolean().optional()},
+    securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>
+    a.discoverAbV2Devices({query:x.query||'',onlineOnly:x.onlineOnly===true})));
 
   add(server,'light_remote_list_devices',{
     title:'List A/B-authorized Light Remote devices',
-    description:'List only devices that this plugin client has explicitly paired through Local Wall A/B approval. Targeting remains explicit; no silent fallback.',
+    description:'items lists ONLY devices granted to THIS OAuth plugin client after Owner B approval. An empty list does NOT mean devices are offline or absent from the account. items:[] NEVER means no account devices online. In isolated A/B V2 Lab, accountDiscovery is a SEPARATE read-only account-scoped online/offline summary included for cached tool schemas. Prefer light_remote_discover_devices for pre-B status; if absent, use connection_helper with no args after checking for pending B. Never claim 0 online based on items. No silent target fallback.',
     securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
-  },guarded(identity,['remote:read'],a=>a.devices()));
+  },guarded(identity,['remote:read'],async a=>{
+    const granted=await a.devices();
+    if(!goldAbV2LabV1Disabled())return granted;
+    // Compatibility data is explicitly separate from granted-only items.
+    // It uses the same signed account-scoped read-only Discovery route.
+    // Never present a failed discovery as zero devices online.
+    let accountDiscovery;
+    try{accountDiscovery=await a.discoverAbV2Devices();}
+    catch{accountDiscovery={status:'device_discovery_unavailable',
+      helperReady:false,requestCreated:false,
+      nextAction:'check_discovery_or_refresh_plugin_metadata'};}
+    return {items:granted,accountDiscovery};
+  }));
 
   add(server,'light_remote_context',{
     title:'Recover or change the working Light Remote context',
@@ -388,7 +473,7 @@ export function registerPluginTools(server,identity){
     title:'Execute one bounded remote command job',
     description:'Run a command. Gold opt-in executionMode=auto launches probable long curl/wget/build/download/package jobs as owned managed processes; background forces that for any allowed script, foreground waits as before. A background exec jobId confirms launch ONLY; read returned processId using light_remote_process_output and stop with light_remote_stop_process. No policy permission is widened. Gold opt-in inlineStdout works on short foreground commands.',
     inputSchema:{sessionId:id,operationId:opId,script:z.string().min(1).max(1_000_000),shell:z.string().max(80).optional(),cwd:pathText.optional(),timeoutMs:z.number().int().min(1000).max(7_200_000).optional(),waitMs:z.number().int().min(0).max(7000).optional(),executionMode:z.enum(['auto','foreground','background']).optional(),requiredCapabilities:z.array(z.string().min(1).max(80)).max(32).optional(),inlineStdout:z.boolean().optional()},securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
-  },guarded(identity,['remote:execute'],async(a,x)=>maybeInlineExecStdout(operationView(await a.exec(x.sessionId,x.script,{shell:x.shell,cwd:x.cwd,operationId:x.operationId,timeoutMs:x.timeoutMs,waitMs:x.waitMs,executionMode:x.executionMode,requiredCapabilities:x.requiredCapabilities})),a,{inlineStdout:x.inlineStdout??goldAutoInlineStdout})));
+  },guarded(identity,['remote:execute'],async(a,x)=>maybeInlineExecStdout(completedExecOutcome(await a.exec(x.sessionId,x.script,{shell:x.shell,cwd:x.cwd,operationId:x.operationId,timeoutMs:x.timeoutMs,waitMs:x.waitMs,executionMode:x.executionMode,requiredCapabilities:x.requiredCapabilities})),a,{inlineStdout:x.inlineStdout??goldAutoInlineStdout})));
 
   add(server,'light_remote_process',{
     title:'Start a managed remote process',
@@ -489,7 +574,7 @@ export function registerPluginTools(server,identity){
   add(server,'light_remote_scp',{
     title:'Begin a large or binary file upload',
     description:'Begin one resumable Light SCP upload to an allowed destination. Data is staged until commit and integrity is verified with SHA-256.',
-    inputSchema:{sessionId:id,operationId:opId,destination:pathText,totalBytes:z.number().int().min(0),sha256:z.string().regex(/^[a-f0-9]{64}$/i),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),overwrite:z.boolean().optional(),createParents:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
+    inputSchema:{sessionId:id,operationId:opId,destination:pathText,totalBytes:z.number().int().min(1),sha256:z.string().regex(/^[a-f0-9]{64}$/i),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),overwrite:z.boolean().optional(),createParents:z.boolean().optional()},securitySchemes:security(['remote:write']),annotations:annotations(false,false,false,false)
   },guarded(identity,['remote:write'],(a,x)=>scpOperation(a,x,'upload-begin',['destination','totalBytes','sha256','chunkBytes','overwrite','createParents'])));
 
   add(server,'light_remote_scp_upload_chunk',{

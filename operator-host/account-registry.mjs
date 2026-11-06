@@ -56,13 +56,13 @@ function verifyPassword(password,encoded){
 export class AccountRegistry{
   constructor({stateFile=null,bootstrapAccountId='self-hosted-local',sessionTtlMs=7*24*60*60*1000,now=()=>Date.now(),emit=()=>{}}={}){
     if(!ACCOUNT_RE.test(String(bootstrapAccountId||'')))throw new AccountError('invalid_bootstrap_account_id');
-    this.stateFile=stateFile;this.bootstrapAccountId=String(bootstrapAccountId);this.sessionTtlMs=Math.max(30*60*1000,Math.min(Number(sessionTtlMs)||7*24*60*60*1000,30*24*60*60*1000));
+    this.stateFile=stateFile;this.bootstrapAccountId=String(bootstrapAccountId);this.ownerAccountId=this.bootstrapAccountId;this.ownerRevision=0;this.ownerTransferPending=false;this.ownerTransferRollback=null;this.sessionTtlMs=Math.max(30*60*1000,Math.min(Number(sessionTtlMs)||7*24*60*60*1000,30*24*60*60*1000));
     this.now=now;this.emit=emit;this.accounts=new Map();this.byEmail=new Map();this.sessions=new Map();this.ownerProofs=new Map();this.oneTimeTokens=new Map();this.upgradeRequests=new Map();this.pendingRegistrations=new Map();this.googleSignupIntents=new Map();this.groups=new Map();this.loadError=null;this._load();this._ensureGroups();this._prune();
   }
   _persist(){
     if(!this.stateFile)return;
     const dir=path.dirname(this.stateFile);fs.mkdirSync(dir,{recursive:true,mode:0o750});
-    const payload={schemaVersion:2,accounts:[...this.accounts.values()],sessions:[...this.sessions.values()],oneTimeTokens:[...this.oneTimeTokens.values()],upgradeRequests:[...this.upgradeRequests.values()],pendingRegistrations:[...this.pendingRegistrations.values()],googleSignupIntents:[...this.googleSignupIntents.values()],groups:[...this.groups.values()]};
+    const payload={schemaVersion:2,ownerAccountId:this.ownerAccountId,ownerRevision:this.ownerRevision,accounts:[...this.accounts.values()],sessions:[...this.sessions.values()],oneTimeTokens:[...this.oneTimeTokens.values()],upgradeRequests:[...this.upgradeRequests.values()],pendingRegistrations:[...this.pendingRegistrations.values()],googleSignupIntents:[...this.googleSignupIntents.values()],groups:[...this.groups.values()]};
     const tmp=`${this.stateFile}.${process.pid}.tmp`;fs.writeFileSync(tmp,`${JSON.stringify(payload,null,2)}\n`,{mode:0o600});fs.chmodSync(tmp,0o600);fs.renameSync(tmp,this.stateFile);
   }
   _load(){
@@ -71,6 +71,16 @@ export class AccountRegistry{
       const data=JSON.parse(fs.readFileSync(this.stateFile,'utf8'));
       if(![1,2].includes(Number(data?.schemaVersion))||!Array.isArray(data.accounts)||!Array.isArray(data.sessions))throw new Error('invalid_schema');
       for(const row of data.accounts){if(!ACCOUNT_RE.test(String(row.accountId||''))||!EMAIL_RE.test(String(row.email||''))||!row.passwordHash)throw new Error('invalid_account');this.accounts.set(row.accountId,row);this.byEmail.set(normalizeEmail(row.email),row.accountId);}
+      const storedOwner=String(data.ownerAccountId||this.bootstrapAccountId);
+      // Older hosted-account fixtures can contain account rows before the
+      // bootstrap admin has ever been registered. Reject a missing Owner only
+      // after an explicit transfer has been persisted.
+      if(!ACCOUNT_RE.test(storedOwner)||
+         ((data.ownerRevision??0)>0&&!this.accounts.has(storedOwner)))
+       throw new Error('single_owner_state_invalid');
+      if(!Number.isSafeInteger(Number(data.ownerRevision??0))||Number(data.ownerRevision??0)<0)
+       throw new Error('single_owner_revision_invalid');
+      this.ownerAccountId=storedOwner;this.ownerRevision=Number(data.ownerRevision??0);
       for(const row of data.sessions)if(row?.tokenHash&&this.accounts.has(row.accountId))this.sessions.set(row.tokenHash,row);
       for(const row of Array.isArray(data.oneTimeTokens)?data.oneTimeTokens:[])if(row?.tokenHash&&this.accounts.has(row.accountId))this.oneTimeTokens.set(row.tokenHash,row);
       for(const row of Array.isArray(data.upgradeRequests)?data.upgradeRequests:[])if(row?.requestId&&this.accounts.has(row.accountId))this.upgradeRequests.set(row.requestId,row);
@@ -100,17 +110,95 @@ export class AccountRegistry{
   }
   _groupFor(row){return this.groups.get(row.groupId)||this.groups.get('grp_default')||{groupId:'grp_default',name:'Default'};}
   _status(row){const raw=String(row.status||'active');return raw==='disabled'?'admin_disabled':ACCOUNT_STATUSES.has(raw)?raw:'active';}
-  _viewAccount(row){const entitlement=entitlementView(row,this.now()),fleetProvisioning=row.fleetProvisioning&&FLEET_PROVISION_STATES.has(row.fleetProvisioning.state)?{...row.fleetProvisioning}:null,providers=[],group=this._groupFor(row),status=this._status(row);if(row.passwordEnabled!==false)providers.push('password');if(row.googleSub)providers.push('google');return {accountId:row.accountId,email:row.email,emailVerified:Boolean(row.emailVerified),authProviders:providers,plan:entitlement.plan,entitlement,groupId:group.groupId,groupName:group.name,disableProtected:row.accountId===this.bootstrapAccountId,mainDeviceId:row.mainDeviceId||null,fleetProvisioning,status,statusReason:row.statusReason||null,dormantAt:row.dormantAt||null,disabledAt:row.disabledAt||null,disabledBy:row.disabledBy||null,disableReason:row.disableReason||null,reactivatedAt:row.reactivatedAt||null,lastDeviceAddedAt:row.lastDeviceAddedAt||null,createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
+  _viewAccount(row){const entitlement=entitlementView(row,this.now()),fleetProvisioning=row.fleetProvisioning&&FLEET_PROVISION_STATES.has(row.fleetProvisioning.state)?{...row.fleetProvisioning}:null,providers=[],group=this._groupFor(row),status=this._status(row);if(row.passwordEnabled!==false)providers.push('password');if(row.googleSub)providers.push('google');return {accountId:row.accountId,email:row.email,emailVerified:Boolean(row.emailVerified),authProviders:providers,plan:entitlement.plan,entitlement,groupId:group.groupId,groupName:group.name,disableProtected:row.accountId===this.ownerAccountId,isOwner:row.accountId===this.ownerAccountId&&!this.ownerTransferPending,mainDeviceId:row.mainDeviceId||null,fleetProvisioning,status,statusReason:row.statusReason||null,dormantAt:row.dormantAt||null,disabledAt:row.disabledAt||null,disabledBy:row.disabledBy||null,disableReason:row.disableReason||null,reactivatedAt:row.reactivatedAt||null,lastDeviceAddedAt:row.lastDeviceAddedAt||null,createdAt:row.createdAt,lastLoginAt:row.lastLoginAt||null};}
   _invalidateAccountSessions(accountId){let count=0;for(const [hash,session] of this.sessions)if(session.accountId===accountId){this.sessions.delete(hash);count++;}for(const [hash,item] of this.oneTimeTokens)if(item.accountId===accountId)this.oneTimeTokens.delete(hash);return count;}
   assertOperational(accountId){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const status=this._status(row);if(status==='admin_disabled')throw new AccountError('account_admin_disabled',403);if(status==='dormant')throw new AccountError('account_dormant',403);return this._viewAccount(row);}
   recordDeviceAdded(accountId,at=this.now()){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const ts=Number(at)||this.now();row.lastDeviceAddedAt=Math.max(Number(row.lastDeviceAddedAt)||0,ts);row.dormancyNoticeAnchor=null;row.dormancyNotice14At=null;row.dormancyNotice3At=null;this._persist();return this._viewAccount(row);}
   reactivateDormant(accountId,{source='self'}={}){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const status=this._status(row);if(status==='admin_disabled')throw new AccountError('account_admin_disabled',403);if(status!=='dormant')return this._viewAccount(row);const now=this.now();row.status='active';row.statusReason=null;row.dormantAt=null;row.reactivatedAt=now;row.dormancyNoticeAnchor=null;row.dormancyNotice14At=null;row.dormancyNotice3At=null;this._persist();this.emit({type:'account_reactivated',accountId:row.accountId,status:'active',source:String(source||'self').slice(0,40)});return this._viewAccount(row);}
-  setAdminStatus(accountId,{status='active',by='admin',reason=''}={}){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const next=String(status||'');if(!['active','admin_disabled'].includes(next))throw new AccountError('invalid_account_status');if(row.accountId===this.bootstrapAccountId&&next==='admin_disabled')throw new AccountError('account_disable_protected',409);const prior=this._status(row),now=this.now();if(next==='admin_disabled'){row.status='admin_disabled';row.statusReason='admin_disabled';row.disabledAt=now;row.disabledBy=String(by||'admin').slice(0,80);row.disableReason=String(reason||'').slice(0,240);this._invalidateAccountSessions(row.accountId);}else{row.status='active';row.statusReason=null;row.disabledAt=null;row.disabledBy=null;row.disableReason=null;row.dormantAt=null;row.reactivatedAt=now;row.dormancyNoticeAnchor=null;row.dormancyNotice14At=null;row.dormancyNotice3At=null;}this._persist();this.emit({type:'account_status_changed',accountId:row.accountId,status:next,fromStatus:prior,reason:String(reason||'').slice(0,120),by:String(by||'admin').slice(0,80)});return this._viewAccount(row);}
+  setAdminStatus(accountId,{status='active',by='admin',reason=''}={}){const row=this.accounts.get(String(accountId||''));if(!row)throw new AccountError('account_not_found',404);const next=String(status||'');if(!['active','admin_disabled'].includes(next))throw new AccountError('invalid_account_status');if(row.accountId===this.ownerAccountId&&next==='admin_disabled')throw new AccountError('account_disable_protected',409);const prior=this._status(row),now=this.now();if(next==='admin_disabled'){row.status='admin_disabled';row.statusReason='admin_disabled';row.disabledAt=now;row.disabledBy=String(by||'admin').slice(0,80);row.disableReason=String(reason||'').slice(0,240);this._invalidateAccountSessions(row.accountId);}else{row.status='active';row.statusReason=null;row.disabledAt=null;row.disabledBy=null;row.disableReason=null;row.dormantAt=null;row.reactivatedAt=now;row.dormancyNoticeAnchor=null;row.dormancyNotice14At=null;row.dormancyNotice3At=null;}this._persist();this.emit({type:'account_status_changed',accountId:row.accountId,status:next,fromStatus:prior,reason:String(reason||'').slice(0,120),by:String(by||'admin').slice(0,80)});return this._viewAccount(row);}
+  // Exactly one Owner authority is carried in the account registry and the
+  // canonical Gold owner singleton in PostgreSQL. This is a synchronous
+  // transition: the Gold persistence adapter then writes Owner + disabled
+  // accounts + revoked sessions in ONE PostgreSQL transaction.
+  transferOwner({fromAccountId,toAccountId,currentPassword,confirmText,
+    acknowledgeDeviceIsolation=false,previousOwnerDeviceCount=0}={}){
+    if(this.ownerTransferPending)throw new AccountError('owner_transfer_already_in_progress',409);
+    const from=String(fromAccountId||''),to=String(toAccountId||'');
+    if(from!==this.ownerAccountId)throw new AccountError('owner_transfer_not_current_owner',403);
+    if(!ACCOUNT_RE.test(to)||to===from)throw new AccountError('owner_transfer_target_invalid',400);
+    const source=this.accounts.get(from),target=this.accounts.get(to);
+    if(!source||this._status(source)!=='active')throw new AccountError('owner_transfer_source_inactive',409);
+    if(!target)throw new AccountError('owner_transfer_target_not_found',404);
+    if(this._status(target)!=='active')throw new AccountError('owner_transfer_target_inactive',409);
+    if(target.emailVerified!==true)throw new AccountError('owner_transfer_target_email_not_verified',403);
+    if(target.passwordEnabled!==true)throw new AccountError('owner_transfer_target_password_required',409);
+    if(!verifyPassword(String(currentPassword||''),source.passwordHash))
+      throw new AccountError('owner_transfer_current_password_invalid',401);
+    if(String(confirmText||'')!=='TRANSFER OWNER TO '+target.email)
+      throw new AccountError('owner_transfer_confirmation_mismatch',400);
+    const deviceCount=Number(previousOwnerDeviceCount);
+    if(!Number.isSafeInteger(deviceCount)||deviceCount<0)
+      throw new AccountError('owner_transfer_device_count_invalid',400);
+    if(deviceCount>0&&acknowledgeDeviceIsolation!==true)
+      throw new AccountError('owner_transfer_device_isolation_ack_required',409);
+    if(!Number.isSafeInteger(this.ownerRevision)||this.ownerRevision<0||
+       this.ownerRevision===Number.MAX_SAFE_INTEGER)
+      throw new AccountError('owner_transfer_revision_invalid',503);
+    const prior={
+      owner:this.ownerAccountId,rev:this.ownerRevision,
+      source:structuredClone(source),target:structuredClone(target),
+      sessions:new Map(this.sessions),tokens:new Map(this.oneTimeTokens)
+    };
+    const now=this.now();
+    try{
+      target.groupId='grp_internal';
+      source.groupId='grp_default';
+      source.status='admin_disabled';source.statusReason='admin_disabled';
+      source.disabledAt=now;source.disabledBy='owner_transfer';
+      source.disableReason='Ownership transferred to another verified account';
+      this._invalidateAccountSessions(from);
+      this._invalidateAccountSessions(to);
+      this.ownerAccountId=to;this.ownerRevision++;
+      this.ownerTransferPending=true;this.ownerTransferRollback=prior;
+      this._persist();
+    }catch(error){
+      this.ownerAccountId=prior.owner;this.ownerRevision=prior.rev;
+      this.accounts.set(from,prior.source);this.accounts.set(to,prior.target);
+      this.sessions=prior.sessions;this.oneTimeTokens=prior.tokens;
+      this.ownerTransferPending=false;this.ownerTransferRollback=null;
+      throw error;
+    }
+    return {ok:true,previousOwnerAccountId:from,newOwnerAccountId:to,
+      ownerRevision:this.ownerRevision,previousOwnerDisabled:true,
+      sessionsRevoked:true,devicesTransferred:false,
+      isolatedDeviceCount:deviceCount,requiresFreshLogin:true};
+  }
+  confirmOwnerTransfer(revision){
+    if(!this.ownerTransferPending||!this.ownerTransferRollback||
+       Number(revision)!==this.ownerRevision)
+      throw new AccountError('owner_transfer_commit_state_invalid',503);
+    const prior=this.ownerTransferRollback,previousOwner=prior.owner;
+    this.ownerTransferPending=false;this.ownerTransferRollback=null;
+    this.emit({type:'account_owner_transferred',fromAccountId:previousOwner,
+      toAccountId:this.ownerAccountId,revision:this.ownerRevision,status:'committed'});
+  }
+  rollbackOwnerTransfer(revision){
+    if(!this.ownerTransferPending||!this.ownerTransferRollback||
+       Number(revision)!==this.ownerRevision)
+      throw new AccountError('owner_transfer_rollback_state_invalid',503);
+    const prior=this.ownerTransferRollback,newOwner=this.ownerAccountId;
+    this.ownerAccountId=prior.owner;this.ownerRevision=prior.rev;
+    this.accounts.set(prior.owner,prior.source);this.accounts.set(newOwner,prior.target);
+    this.sessions=prior.sessions;this.oneTimeTokens=prior.tokens;
+    this.ownerTransferPending=false;this.ownerTransferRollback=null;
+    this.emit({type:'account_owner_transfer_failed',fromAccountId:prior.owner,
+      toAccountId:newOwner,status:'rolled_back'});
+  }
   evaluateDormancy(factsByAccount={}){
     const now=this.now(),notices=[],transitions=[];let changed=false;
     for(const row of this.accounts.values()){
       const status=this._status(row),entitlement=entitlementView(row,now),facts=factsByAccount[row.accountId]||{},deviceCount=Math.max(0,Number(facts.deviceCount)||0);
-      if(status!=='active'||entitlement.plan!=='free'||row.accountId===this.bootstrapAccountId||AUTO_DORMANT_EXEMPT_GROUPS.has(String(row.groupId||''))||deviceCount>0)continue;
+      if(status!=='active'||entitlement.plan!=='free'||row.accountId===this.ownerAccountId||AUTO_DORMANT_EXEMPT_GROUPS.has(String(row.groupId||''))||deviceCount>0)continue;
       const anchor=Math.max(Number(row.createdAt)||0,Number(row.reactivatedAt)||0,Number(row.lastDeviceAddedAt)||0,Number(facts.lastDeviceAddedAt)||0,Number(facts.lastToolCallAt)||0);
       if(!anchor)continue;
       if(Number(row.dormancyNoticeAnchor)!==anchor){row.dormancyNoticeAnchor=anchor;row.dormancyNotice14At=null;row.dormancyNotice3At=null;changed=true;}
@@ -133,6 +221,8 @@ export class AccountRegistry{
   }
   _issue(account){
     this._prune(false);if(this._status(account)==='admin_disabled')throw new AccountError('account_admin_disabled',403);
+    if(this.ownerTransferPending&&account.accountId===this.ownerAccountId)
+      throw new AccountError('owner_transfer_in_progress',503);
     const token=crypto.randomBytes(32).toString('base64url'),tokenHash=sha256(token),now=this.now();
     const row={sessionId:`acctsess_${crypto.randomUUID()}`,tokenHash,accountId:account.accountId,createdAt:now,lastSeenAt:now,expiresAt:now+this.sessionTtlMs};
     this.sessions.set(tokenHash,row);
@@ -143,7 +233,7 @@ export class AccountRegistry{
   issueOwnerProof({accountId,deviceId,ttlMs=OWNER_PROOF_TTL_MS}={}){
     const aid=String(accountId||''),did=String(deviceId||'');
     if(this.accounts.size>0)throw new AccountError('account_registration_closed',409);
-    if(aid!==this.bootstrapAccountId)throw new AccountError('owner_migration_account_mismatch',403);
+    if(aid!==this.ownerAccountId)throw new AccountError('owner_migration_account_mismatch',403);
     if(!ACCOUNT_RE.test(did))throw new AccountError('invalid_owner_proof_device');
     const now=this.now(),ttl=Math.max(60_000,Math.min(Number(ttlMs)||OWNER_PROOF_TTL_MS,10*60*1000));
     for(const [hash,row] of this.ownerProofs)if(row.deviceId===did||row.expiresAt<=now)this.ownerProofs.delete(hash);
@@ -311,13 +401,14 @@ export class AccountRegistry{
     if(touch){const now=this.now();if(now-session.lastSeenAt>=60_000){session.lastSeenAt=now;this._persist();}}
     return {account:this._viewAccount(account),session:{sessionId:session.sessionId,createdAt:session.createdAt,lastSeenAt:session.lastSeenAt,expiresAt:session.expiresAt}};
   }
-  // Internal Operator-only check: a Desktop family is bound to the exact
-  // existing Account Portal login session, not merely an accountId.
-  // Return no secret, token hash, or mutable reference to the session.
-  desktopOwnerSessionActive(accountId, sessionId){
+  // Desktop Owner tokens are tied to one currently active Account Portal
+  // session AND the current single Owner. Owner transfer invalidates them
+  // without trusting caller-provided account identifiers or browser state.
+  desktopOwnerSessionActive(accountId,sessionId){
     this._prune();
     const account=this.accounts.get(String(accountId||''));
-    if(!account||this._status(account)!=='active')return false;
+    if(!account||this._status(account)!=='active'||
+       account.accountId!==this.ownerAccountId||this.ownerTransferPending)return false;
     const id=String(sessionId||'');
     if(!/^acctsess_[a-f0-9-]{36}$/.test(id))return false;
     return [...this.sessions.values()].some(row=>

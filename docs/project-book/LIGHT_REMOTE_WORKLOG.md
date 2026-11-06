@@ -1092,3 +1092,6 @@ Added source-only exact per-Agent close adapter and regression tests; refused to
 
 ## 2026-11-06 — T06b4 one installer source CI PASS, full app release blocked
 Exact Desktop commit e6a7681d unified run 42181390342 SUCCESS 4/4; one Windows NSIS file 4,001,015 B (SHA256 3FC9F37CF0DF0FDF9F39356E45D2C3A1BA9B1BB8B326FF38C75A709712CB739A), artifact 13486541015. This is Tauri UI/Owner binary only; not a complete Agent/Wall installer and not physical E2E. Gold source-only close adapter 1a91b399 gates PASS but read-only OAuth does not authorize mutation. Continue full runtime/API integration before a single human acceptance.
+
+## 2026-11-06 — T07 FULL Windows Setup integration, not UI preview
+Actual Git merge Gold latest Owner APIs/native A/B Agent into Desktop V4 codebase, and switched one Windows Inno Setup full installer workflow to embed native V4 and test installed Wall/Agent/RM/desktop process. No second UI-only NSIS artifact on current V4 branch. Gold/Desktop 37+23 source tests PASS; full integrated Windows install CI pending. Runtime feature gates remain OFF; do not claim Owner login/Approve B or all module APIs end-to-end PASS.

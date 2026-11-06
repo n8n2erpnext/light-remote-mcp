@@ -52,7 +52,11 @@ DisableDirPage=yes
 DisableReadyPage=yes
 CloseApplications=yes
 RestartApplications=no
+#ifdef UnifiedDesktopV4
+UninstallDisplayIcon={app}\desktop-v4\LightRemote.Desktop.exe
+#else
 UninstallDisplayIcon={app}\GptOperator.Client.exe
+#endif
 UninstallDisplayName=Light Remote
 SetupIconFile={#StageDir}\Assets\light-remote.ico
 
@@ -70,14 +74,22 @@ Type: files; Name: "{app}\realremote-v2\GptOperator.RealRemoteV2.*"
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\GptOperator.Client.exe"" --background"; Flags: uninsdeletevalue
 
 [Icons]
+#ifdef UnifiedDesktopV4
+Name: "{group}\Light Remote"; Filename: "{app}\desktop-v4\LightRemote.Desktop.exe"
+Name: "{userdesktop}\Light Remote"; Filename: "{app}\desktop-v4\LightRemote.Desktop.exe"; Tasks: desktopicon
+#else
 Name: "{group}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"; Parameters: "--launch"
 Name: "{userdesktop}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"; Parameters: "--launch"; Tasks: desktopicon
+#endif
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Windows shortcuts:"
 
 [Run]
-Filename: "{app}\GptOperator.Client.exe"; Description: "Start Light Remote tray"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\GptOperator.Client.exe"; Description: "Start Light Remote Agent and tray"; Flags: nowait postinstall skipifsilent
+#ifdef UnifiedDesktopV4
+Filename: "{app}\desktop-v4\LightRemote.Desktop.exe"; Description: "Open Light Remote Desktop V4"; Flags: nowait postinstall skipifsilent
+#endif
 
 [Code]
 // Moryqa Windows installer/uninstaller v2: per-user setup, native light/dark

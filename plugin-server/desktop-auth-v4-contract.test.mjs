@@ -6,7 +6,7 @@ import {
   validateDesktopLoopbackCallback, validateDesktopOwnerAuthorizationIntent
 } from './desktop-auth-v4-contract.mjs';
 
-const authority = { verifiedBy: 'account_portal_session', accountId: 'owner_valid_123' };
+const authority = { verifiedBy: 'account_portal_session', accountId: 'owner_valid_123', isOwner:true };
 const make = () => {
   const p = createDesktopPkceMaterial();
   return {
@@ -57,7 +57,8 @@ test('intent is scoped to real browser Owner account with no A/B grant', () => {
 test('rejects unverified principals and client-supplied owner/Agent authority', () => {
   const input = make();
   for (const principal of [null, {}, { verifiedBy:'oauth_mcp', accountId:'owner_valid_123' },
-    { verifiedBy:'account_portal_session', accountId:'owner space' }])
+    { verifiedBy:'account_portal_session', accountId:'owner space', isOwner:true },
+    { verifiedBy:'account_portal_session', accountId:'valid_non_owner', isOwner:false }])
     assert.throws(() => validateDesktopOwnerAuthorizationIntent(input, principal));
   for (const dangerous of ['accountId', 'grantId', 'agentId', 'bCode', 'ownerConsentCode'])
     assert.throws(() => validateDesktopOwnerAuthorizationIntent({ ...input, [dangerous]: 'forged' }, authority));

@@ -1,0 +1,11 @@
+[Unit]
+Description=Recheck GoldABV2 Lab scoped mTLS firewall rule after boot and runtime changes
+
+[Timer]
+OnBootSec=45s
+OnUnitActiveSec=75s
+AccuracySec=10s
+Unit=goldabv2-lab-mtls-firewall-ensure.service
+
+[Install]
+WantedBy=timers.target

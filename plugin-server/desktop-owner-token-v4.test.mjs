@@ -11,7 +11,7 @@ const PREFIX='lr:gold:goldabv2lab:';
 const SESSION='acctsess_123e4567-e89b-42d3-a456-426614174000';
 const ACCOUNT='owner_v4_42';
 const token='Q'.repeat(43);
-const setup=({verified=true}={})=>{
+const setup=({verified=true,operatorCall}={})=>{
   let now=1_000_000,sessionActive=verified;
   const data=new Map();
   const redis={
@@ -39,6 +39,7 @@ const setup=({verified=true}={})=>{
   };
   const service=createDesktopOwnerTokenService({
     redis,prefix:PREFIX,consumeCode:code,clock:()=>now,
+    operatorCall,
     verifyPortalSession:async(accountId,sessionId)=>sessionActive &&
       accountId===ACCOUNT && sessionId===SESSION
   });
@@ -61,6 +62,36 @@ test('default OFF mounts zero token routes even without Redis',()=>{
   const paths=[];const app={post:p=>paths.push(p),get:p=>paths.push(p)};
   assert.deepEqual(registerDesktopOwnerTokenRoutes(app),{enabled:false,routes:0});
   assert.deepEqual(paths,[]);
+});
+test('T06 signed Owner snapshot stays native-only and rechecks current Portal family',async()=>{
+  const calls=[];
+  const x=setup({operatorCall:async(method,path,body)=>{
+    calls.push({method,path,body});
+    return {ok:true,accountId:ACCOUNT,asOf:1234,
+      account:{email:'owner@example.test',plan:'pro',status:'active',emailVerified:true},
+      devices:[],sessions:[],grants:[],jobs:[],events:[]};
+  }});
+  const issued=await x.service.exchange(x.input);
+  const req={method:'POST',headers:{'content-type':'application/json',
+    authorization:'Bearer '+issued.access_token},body:{},query:{}};
+  const res=response();
+  await x.service.routeSnapshot(req,res);
+  assert.equal(res.code,200);
+  assert.equal(calls.length,1);
+  assert.deepEqual(calls[0],{
+    method:'POST',path:'/v1/accounts/desktop-v4/snapshot',
+    body:{accountId:ACCOUNT,accountSessionId:SESSION}
+  });
+  assert.equal(JSON.stringify(res.body).includes(SESSION),false);
+  const cookie=response();
+  await x.service.routeSnapshot({...req,headers:{...req.headers,cookie:'browser=bad'}},cookie);
+  assert.equal(cookie.code,403);
+  assert.equal(calls.length,1);
+  x.setPortalActive(false);
+  const revoked=response();
+  await x.service.routeSnapshot(req,revoked);
+  assert.equal(revoked.code,401);
+  assert.equal(calls.length,1);
 });
 test('opaque Desktop read-only exchange, PKCE one-use caller, refresh rotation and access projection',async()=>{
   const {service,input}=setup();
@@ -156,6 +187,27 @@ test('native HTTPS routes reject Origin, cookies and cross-site browser submissi
     assert.equal(res.body.error,'desktop_native_client_required');
   }
 });
+test('invalid or already-used authorization code maps to 401, never false 503',async()=>{
+  for(const code of ['desktop_consent_missing','desktop_consent_invalid',
+    'desktop_code_invalid']){
+    const x=setup();
+    const service=createDesktopOwnerTokenService({
+      redis:x.redis,prefix:PREFIX,
+      consumeCode:async()=>{throw Object.assign(new Error(code),{code});},
+      verifyPortalSession:async()=>true
+    });
+    const res=response();
+    await service.routeExchange({
+      method:'POST',headers:{'content-type':'application/json'},
+      body:{code:'Q'.repeat(43),code_verifier:'V'.repeat(43),
+        redirect_uri:x.input.redirectUri,install_nonce:x.input.installNonce,
+        state:x.input.state}
+    },res);
+    assert.equal(res.code,401,code);
+    assert.equal(res.body.error,'desktop_owner_verification_required',code);
+    assert.equal(x.data.size,0,code);
+  }
+});
 test('Account Registry verifies exact active Owner browser session by id, logout and disable deny',()=>{
   const registry=new AccountRegistry({bootstrapAccountId:'owner_v4_42',stateFile:null});
   registry.accounts.set(ACCOUNT,{accountId:ACCOUNT,status:'active'});
@@ -167,4 +219,56 @@ test('Account Registry verifies exact active Owner browser session by id, logout
   assert.equal(registry.desktopOwnerSessionActive('other_account',SESSION),false);
   registry.accounts.get(ACCOUNT).status='admin_disabled';
   assert.equal(registry.desktopOwnerSessionActive(ACCOUNT,SESSION),false);
+  registry.accounts.get(ACCOUNT).status='active';
+  // Existing browser sessions never authorize an ex-Owner after a transfer,
+  // nor during a pending Owner commit.
+  registry.ownerAccountId='different_current_owner';
+  assert.equal(registry.desktopOwnerSessionActive(ACCOUNT,SESSION),false);
+  registry.ownerAccountId=ACCOUNT;
+  registry.ownerTransferPending=true;
+  assert.equal(registry.desktopOwnerSessionActive(ACCOUNT,SESSION),false);
+});
+
+test('T04b2 internal Owner family proof is exact and never exposed by WebView session projection',async()=>{
+  const x=setup();
+  const issued=await x.service.exchange(x.input);
+  const view=await x.service.inspect(issued.access_token);
+  assert.equal(Object.hasOwn(view,'familyId'),false);
+  const internal=await x.service.inspectForWallSso(issued.access_token);
+  assert.deepEqual(Object.keys(internal).sort(),[
+    'accountId','familyId','isOwner','resource','scope','verified'
+  ]);
+  assert.equal(internal.verified,true);
+  assert.equal(internal.isOwner,true);
+  assert.equal(internal.accountId,ACCOUNT);
+  assert.equal(internal.resource,DESKTOP_OWNER_RESOURCE);
+  assert.equal(internal.familyId.length,43);
+  assert.equal(await x.service.familyCurrentForWallSso(ACCOUNT,internal.familyId),true);
+  assert.equal(await x.service.familyCurrentForWallSso('acct_attacker',internal.familyId),false);
+  assert.equal(await x.service.familyCurrentForWallSso(ACCOUNT,'invalid'),false);
+  assert.equal(JSON.stringify(view).includes(internal.familyId),false);
+  await x.service.logout(issued.refresh_token);
+  assert.equal(await x.service.familyCurrentForWallSso(ACCOUNT,internal.familyId),false);
+  await assert.rejects(x.service.inspectForWallSso(issued.access_token));
+});
+
+test('T04b2 Portal logout/Owner transfer revokes server-internal Wall principal',async()=>{
+  const x=setup();
+  const issued=await x.service.exchange(x.input);
+  const proof=await x.service.inspectForWallSso(issued.access_token);
+  x.setPortalActive(false);
+  assert.equal(await x.service.familyCurrentForWallSso(ACCOUNT,proof.familyId),false);
+  await assert.rejects(x.service.inspectForWallSso(issued.access_token),
+    /desktop_session_revoked/);
+});
+
+test('T04b2 expired native access can never mint a Wall SSO ticket',async()=>{
+  const x=setup();
+  const issued=await x.service.exchange(x.input);
+  const proof=await x.service.inspectForWallSso(issued.access_token);
+  x.advance(DESKTOP_ACCESS_TTL_MS+1000);
+  await assert.rejects(x.service.inspectForWallSso(issued.access_token),
+    /desktop_token_invalid/);
+  assert.equal(await x.service.familyCurrentForWallSso(ACCOUNT,proof.familyId),true,
+    'valid Owner family remains independently revocable after access expires');
 });

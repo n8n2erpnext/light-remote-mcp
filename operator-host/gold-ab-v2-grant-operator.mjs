@@ -53,7 +53,7 @@ export function createGoldAbV2GrantOperator({
    deny('abv2_grant_enrollment_or_policy_denied',403);
   const connection=connections.assertConnected(deviceId);
   if(connection.accountId!==owner||connection.deviceId!==deviceId||
-     connection.state!=='connected'||!connection.connectionId||
+     connection.closedAt||!connection.connectionId||
      Number(connection.hardExpiresAt)<=Date.now())
    deny('abv2_grant_connection_denied',409);
   return {ownerAccountId:owner,deviceId,connectionId:connection.connectionId,

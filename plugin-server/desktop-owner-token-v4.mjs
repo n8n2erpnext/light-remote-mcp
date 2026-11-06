@@ -35,7 +35,8 @@ export async function verifyPortalSessionInternal(accountId, accountSessionId){
 }
 export function createDesktopOwnerTokenService({
   redis,prefix,consumeCode,verifyPortalSession=verifyPortalSessionInternal,
-  clock=Date.now,random=crypto.randomBytes
+  clock=Date.now,random=crypto.randomBytes,
+  operatorCall=callOperatorJson
 }={}){
   if(!redis||!['get','getDel','set','del'].every(fn=>typeof redis[fn]==='function') ||
      !/^lr:gold:[a-z0-9_-]+:$/.test(String(prefix||''))||
@@ -127,6 +128,54 @@ export function createDesktopOwnerTokenService({
     if(record.purpose!=='desktop_owner_v4')deny('desktop_token_invalid');
     return publicProjection(await principalFor(record));
   }
+  // T06: Native-only read model. The Owner access is checked against the
+  // live Redis family and the Portal session BEFORE reaching Operator, where
+  // the same Owner/session pair is checked independently once more.
+  async function snapshot(accessToken){
+    const record=await get('access',accessToken);
+    if(record.purpose!=='desktop_owner_v4')deny('desktop_token_invalid');
+    const family=await principalFor(record);
+    if(typeof operatorCall!=='function')
+      deny('desktop_snapshot_unavailable');
+    const result=await operatorCall('POST','/v1/accounts/desktop-v4/snapshot',{
+      accountId:family.accountId,accountSessionId:family.accountSessionId
+    });
+    if(result?.ok!==true||result.accountId!==family.accountId ||
+       !Array.isArray(result.devices)||!Array.isArray(result.sessions)||
+       !Array.isArray(result.grants)||!Array.isArray(result.jobs)||
+       !Array.isArray(result.events))
+      deny('desktop_snapshot_unavailable');
+    // Do not send raw Redis/Owner family identifiers or other token state.
+    return result;
+  }
+  // Server-internal T04 Owner-family proof. This is NEVER mounted as a
+  // browser or WebView HTTP response; public /session stays restricted to
+  // the sanitized projection without family identifiers or bearer secrets.
+  async function inspectForWallSso(accessToken){
+    const record=await get('access',accessToken);
+    if(record.purpose!=='desktop_owner_v4')deny('desktop_token_invalid');
+    const family=await principalFor(record);
+    return Object.freeze({
+      verified:true,isOwner:true,accountId:family.accountId,
+      familyId:family.familyId,
+      resource:DESKTOP_OWNER_RESOURCE,scope:DESKTOP_OWNER_SCOPE
+    });
+  }
+  async function familyCurrentForWallSso(accountId,familyId){
+    if(!ACCOUNT.test(String(accountId||''))||
+       !TOKEN.test(String(familyId||'')))return false;
+    try{
+      const family=await get('family',familyId);
+      if(family.purpose!=='desktop_owner_v4'||
+         family.accountId!==accountId||family.familyId!==familyId)
+        return false;
+      await principalFor({
+        accountId:family.accountId,accountSessionId:family.accountSessionId,
+        familyId:family.familyId
+      });
+      return true;
+    }catch{return false;}
+  }
   async function logout(token){
     // An expired access may be replaced by active refresh in the OS vault.
     // Family delete invalidates ALL access/refresh descendants.
@@ -138,7 +187,13 @@ export function createDesktopOwnerTokenService({
     return {ok:true,revoked:true};
   }
   function error(res,e){
-    const reason=String(e?.code||'');
+    // The authorization-code issuer and token exchange are separate modules.
+    // Expired, absent and malformed one-time codes all mean invalid
+    // credentials, not a service outage. Do not reveal which check failed.
+    const raw=String(e?.code||'');
+    const reason=['desktop_consent_missing','desktop_consent_invalid',
+      'desktop_code_invalid'].includes(raw)
+      ?'desktop_owner_verification_required':raw;
     const allowed=new Set([
       'desktop_token_invalid','desktop_session_revoked',
       'desktop_session_invalid','desktop_session_expired',
@@ -186,6 +241,18 @@ export function createDesktopOwnerTokenService({
       return res.status(200).json({ok:true,...await inspect(token)});
     }catch(e){return error(res,e)}
   }
+  async function routeSnapshot(req,res){
+    if(!nativeOnly(req,res))return;
+    try{
+      if(req.method!=='POST'||Object.keys(req.query||{}).length||
+         Object.keys(req.body||{}).length)
+        deny('desktop_native_client_required');
+      const auth=String(req.headers?.authorization||'');
+      if(!/^Bearer [A-Za-z0-9_-]{43}$/.test(auth))
+        deny('desktop_token_invalid');
+      return res.status(200).json(await snapshot(auth.slice(7)));
+    }catch(e){return error(res,e)}
+  }
   async function routeLogout(req,res){
     if(!nativeOnly(req,res))return;
     try{
@@ -195,8 +262,9 @@ export function createDesktopOwnerTokenService({
     }catch(e){return error(res,e)}
   }
   return Object.freeze({
-    exchange,refresh,inspect,logout,
-    routeExchange,routeRefresh,routeSession,routeLogout
+    exchange,refresh,inspect,logout,snapshot,
+    inspectForWallSso,familyCurrentForWallSso,
+    routeExchange,routeRefresh,routeSession,routeLogout,routeSnapshot
   });
 }
 export function registerDesktopOwnerTokenRoutes(app,options={}){
@@ -206,5 +274,8 @@ export function registerDesktopOwnerTokenRoutes(app,options={}){
   app.post('/account/desktop/v4/refresh',service.routeRefresh);
   app.get('/account/desktop/v4/session',service.routeSession);
   app.post('/account/desktop/v4/logout',service.routeLogout);
-  return {enabled:true,routes:4,service};
+  // Additional, independent feature gate. Source compilation is not a release.
+  if(options.readEnabled===true)
+    app.post('/account/desktop/v4/snapshot',service.routeSnapshot);
+  return {enabled:true,routes:options.readEnabled===true?5:4,service};
 }

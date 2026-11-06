@@ -51,7 +51,7 @@ assert.match(read('client/windows-native/GptOperator.Client/Program.cs'),/AgentH
 assert.match(tray,/AgentHost\.ConfigureRealRemoteEnvironment\(p\)/);
 assert.match(supervisor,/AgentHost\.ConfigureRealRemoteEnvironment\(psi\)/);
 assert.match(supervisor,/enrolled \? "login --reenroll --no-wait" : "login --no-wait"/);
-assert.match(agent,/if\(state\.enrollment\?\.deviceId&&!args\.reenroll\)/);
+assert.match(agent,/if\(state\.enrollment\?\.deviceId&&!args\.reenroll&&!args\.relink\)/);
 assert.match(agent,/if\(e\.state==='approved'\)/);
 assert.match(agent,/desiredConnected:false,state:'dormant'/);
 assert.match(wf,/runs-on: windows-latest/);

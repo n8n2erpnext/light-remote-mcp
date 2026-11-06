@@ -46,7 +46,7 @@ export function createGoldAbV2HelperPoll({env=process.env,storage,accounts,
    deny('abv2_poll_enrollment_or_policy_denied',403);
   const cn=connections.assertConnected(p.deviceId);
   if(cn.deviceId!==p.deviceId||cn.accountId!==p.accountId||
-     cn.state!=='connected'||!cn.connectionId||
+     cn.closedAt||!cn.connectionId||
      Number(cn.hardExpiresAt)<=now())
    deny('abv2_poll_connection_expired',409);
   return cn;

@@ -1,4 +1,4 @@
-<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Light Remote — Admin</title><link rel="icon" href="/account/assets/light-remote.ico" sizes="any"><script src="/account/assets/theme.js"></script><link rel="stylesheet" href="/account/assets/portal.css"></head><body><div class="app admin-app">
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Light Remote — Admin</title><link rel="icon" href="/account/assets/light-remote.ico" sizes="any"><script src="/account/assets/theme.js"></script><link rel="stylesheet" href="/account/assets/portal.css?rev=owner-authority-ux-v2"></head><body><div class="app admin-app">
 <aside class="sidebar"><div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Admin control plane</small></span></div><nav class="nav admin-nav-list">
 <button class="admin-nav active" data-view="overview"><img class="material-icon" src="/assets/icons/material/dashboard.svg" alt="">Overview</button>
 <button class="admin-nav" data-view="accounts"><img class="material-icon" src="/assets/icons/material/group.svg" alt="">Accounts</button>
@@ -15,6 +15,70 @@
 <section id="view-overview" class="admin-view"><div class="page-head"><div><div class="eyebrow">CONTROL PLANE</div><h1>Overview</h1><p>Accounts, groups, pending identities, devices and usage.</p></div><button id="refreshAdmin" class="btn"><img class="material-icon" src="/assets/icons/material/refresh.svg" alt=""> Refresh</button></div><div id="adminMetrics" class="usage-grid"></div><div class="admin-two"><section class="panel"><div class="panel-head"><h2>Plan mix</h2></div><div id="planMix" class="settings-body"></div></section><section class="panel"><div class="panel-head"><h2>Service status</h2></div><div id="serviceStatus" class="settings-body"></div></section></div></section>
 
 <section id="view-accounts" class="admin-view hide"><div class="page-head"><div><div class="eyebrow">IDENTITY</div><h1>Accounts</h1><p>Manage verified identities by group, plan and owned device state.</p></div><div class="admin-head-actions"><select id="groupFilter" class="admin-group-filter"><option value="">All groups</option></select><input id="accountSearch" class="admin-search" placeholder="Search email or account ID"></div></div>
+<section id="ownerTransferPanel" class="panel owner-authority-panel hide" aria-labelledby="ownerAuthorityHeading">
+  <div class="owner-authority-header">
+    <span class="owner-authority-symbol" aria-hidden="true"><img src="/assets/icons/material/security.svg" alt=""></span>
+    <div class="owner-authority-heading">
+      <div class="owner-eyebrow">ACCESS & CONTROL</div>
+      <h2 id="ownerAuthorityHeading">Owner authority</h2>
+      <p>One account holds administrator authority. Ownership is separate from groups and plans.</p>
+    </div>
+    <span class="owner-authority-badge">1 active owner</span>
+  </div>
+  <div class="owner-authority-summary">
+    <div class="owner-current-identity">
+      <span class="owner-summary-label">CURRENT OWNER</span>
+      <strong id="ownerAuthorityEmail">Loading account…</strong>
+      <span id="ownerAuthorityVerified" class="owner-verified-label">Checking verification…</span>
+    </div>
+    <div class="owner-revision">
+      <span class="owner-summary-label">AUTHORITY REVISION</span>
+      <strong id="ownerAuthorityRevision">—</strong>
+      <small id="ownerAuthorityHistory">No ownership transfers</small>
+    </div>
+    <div class="owner-summary-action">
+      <button id="ownerTransferToggle" type="button" class="btn owner-transfer-toggle" aria-expanded="false" aria-controls="ownerTransferEditor" disabled>Transfer ownership</button>
+      <span id="ownerAuthorityHint" class="owner-summary-hint">Checking eligible accounts…</span>
+    </div>
+  </div>
+  <div id="ownerTransferEditor" class="owner-transfer-editor hide">
+    <div class="owner-transfer-intro">
+      <div><div class="owner-eyebrow">OWNER HANDOFF</div>
+        <h3>Transfer to another verified account</h3>
+        <p>Requires the current Owner password. The handoff takes effect immediately and signs both accounts out.</p>
+      </div>
+      <button id="ownerTransferClose" class="btn" type="button" aria-label="Close transfer form">Cancel</button>
+    </div>
+    <form id="ownerTransferForm" class="owner-transfer-form" autocomplete="off">
+      <div class="owner-transfer-stage"><span class="owner-step-number">1</span><strong>Choose the next Owner</strong></div>
+      <label class="owner-transfer-field owner-transfer-destination">
+        <span>Verified destination account</span>
+        <select id="ownerTransferTarget" required><option value="">Select an eligible account</option></select>
+      </label>
+      <div id="ownerTransferDetails" class="owner-transfer-warning" role="note">Existing devices, sessions and billing entitlements are not transferred.</div>
+      <div class="owner-transfer-stage"><span class="owner-step-number">2</span><strong>Confirm this sensitive change</strong></div>
+      <div class="owner-transfer-field-grid">
+        <label class="owner-transfer-field">
+          <span>Current Owner password</span>
+          <input id="ownerTransferPassword" type="password" autocomplete="current-password" required placeholder="Enter current password">
+        </label>
+        <label class="owner-transfer-field">
+          <span>Type the exact confirmation phrase</span>
+          <input id="ownerTransferConfirmation" spellcheck="false" autocomplete="off" required placeholder="TRANSFER OWNER TO email@example.com">
+        </label>
+      </div>
+      <div id="ownerTransferExpected" class="owner-expected-phrase" aria-live="polite">Choose a destination to reveal the confirmation phrase.</div>
+      <label class="owner-transfer-ack">
+        <input id="ownerTransferDeviceAck" type="checkbox" required>
+        <span>I understand that the previous Owner will be disabled, both accounts will be signed out, and existing devices must be enrolled again under the new account.</span>
+      </label>
+      <div class="owner-transfer-actions">
+        <button id="ownerTransferButton" class="btn danger" type="submit">Confirm Owner transfer</button>
+        <span id="ownerTransferMessage" class="owner-transfer-message" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+  </div>
+</section>
 <section class="panel admin-group-manager"><div class="panel-head"><div><h2>Groups</h2><div class="muted">Organize accounts without changing authentication or entitlement.</div></div></div><form id="createGroup" class="admin-group-toolbar"><label>New group<input id="newGroupName" maxlength="50" placeholder="e.g. Beta testers" required></label><button class="btn" type="submit">Create group</button></form><div id="groupGrid" class="admin-group-grid"></div></section>
 <section class="panel"><div id="adminAccounts"><div class="empty">Loading accounts…</div></div></section></section>
 
@@ -75,13 +139,106 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const money=(minor,currency='USD')=>{try{return new Intl.NumberFormat(undefined,{style:'currency',currency:String(currency||'USD')}).format((Number(minor)||0)/100)}catch{return String(minor||0)+' '+String(currency||'USD')}};
 let accountRows=[],groupRows=[],pendingCache=[],upgradeRowsCache=[],billingRowsCache=[],billingMeta={};
 async function api(action,options={}){const r=await fetch('/admin/api?action='+encodeURIComponent(action)+(options.jobId?'&jobId='+encodeURIComponent(options.jobId):''),{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});let j={};try{j=await r.json()}catch{}if(r.status===401){location.href='/account/login';throw new Error('login_required')}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
-function show(view){if(view==='announcements')loadAnnouncements().catch(()=>{});if(view==='job-recovery')loadJobRecovery().catch(e=>jobRecoveryMessage.textContent=e.message);document.querySelectorAll('.admin-view').forEach(x=>x.classList.add('hide'));document.getElementById('view-'+view).classList.remove('hide');document.querySelectorAll('.admin-nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view))}
+function show(view){if(view==='announcements')loadAnnouncements().catch(()=>{});if(view==='job-recovery')loadJobRecovery().catch(e=>jobRecoveryMessage.textContent=e.message);if(view==='accounts')loadOwnerAuthority().catch(e=>ownerTransferMessage.textContent=e.message);document.querySelectorAll('.admin-view').forEach(x=>x.classList.add('hide'));document.getElementById('view-'+view).classList.remove('hide');document.querySelectorAll('.admin-nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view))}
 document.querySelectorAll('.admin-nav').forEach(b=>b.onclick=()=>show(b.dataset.view));
 function metric(label,value,note){return '<article class="metric-card"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+esc(value)+'</div><div class="metric-note">'+esc(note)+'</div></article>'}
 async function loadOverview(){const [r,m]=await Promise.all([api('overview'),api('mail-status')]),o=r.overview||{},st=o.statuses||{};adminMetrics.innerHTML=metric('Accounts',fmt(o.accounts),'Verified identities')+metric('Pending',fmt(o.pendingRegistrations),'Awaiting email verification')+metric('Dormant',fmt(st.dormant),'Self-reactivatable FREE accounts')+metric('Disabled',fmt(st.admin_disabled),'Disabled by administrator')+metric('Groups',fmt(o.groups),'Account groups')+metric('Devices',fmt(o.devices),'Owned device identities')+metric('Online',fmt(o.onlineDevices),'Devices currently online')+metric('Tool calls',fmt(o.toolCallsThisMonth),'Current UTC month');planMix.innerHTML=Object.entries(o.plans||{}).map(([k,v])=>'<span class="badge admin-plan-badge">'+esc(k.toUpperCase())+' · '+fmt(v)+'</span>').join('')||'<span class="muted">No accounts.</span>';serviceStatus.innerHTML='<div class="status-line"><span>SMTP</span><span class="badge '+(m.configured?'online':'')+'">'+(m.configured?'Configured':'Not configured')+'</span></div><div class="status-line"><span>Google Login</span><span class="badge '+(m.google?.configured?'online':'')+'">'+(m.google?.configured?'Configured':'Waiting')+'</span></div><div class="status-line"><span>Direct MCP</span><span class="badge online">Online</span></div>'}
 function groupOptions(current){return groupRows.map(g=>'<option value="'+esc(g.groupId)+'"'+(g.groupId===current?' selected':'')+'>'+esc(g.name)+'</option>').join('')}
-function accountRow(row){const a=row.account||{},u=row.usage||{},ds=row.devices||[],status=String(a.status||'active'),statusLabel=status==='admin_disabled'?'DISABLED':status==='dormant'?'DORMANT':'ACTIVE',lastTool=u.lastToolCallAt?fmtWhen(u.lastToolCallAt):'never';let plans='';for(const p of ['free','pro','vip'])plans+='<option value="'+p+'"'+(a.plan===p?' selected':'')+'>'+p.toUpperCase()+'</option>';const lifecycle='<span class="badge admin-status-badge '+esc(status)+'">'+statusLabel+'</span>'+(a.disableProtected?'<button class="btn admin-lifecycle-btn" disabled title="Bootstrap administrator cannot be disabled">Protected</button>':status==='active'?'<button class="btn danger admin-lifecycle-btn" data-disable-account="'+esc(a.accountId)+'">Disable</button>':'<button class="btn admin-lifecycle-btn" data-enable-account="'+esc(a.accountId)+'">Enable</button>');const check='<img class="material-icon" src="/assets/icons/material/check_circle.svg" alt="">';return '<div class="admin-account-row"><div class="admin-account-info"><div class="device-name">'+esc(a.email)+'</div><div class="device-sub">'+esc(a.accountId)+' · '+fmt(u.toolCallsThisMonth)+' calls · '+fmt(ds.length)+' devices · last tool '+esc(lastTool)+' · '+(a.emailVerified?'verified email':'legacy account')+' · '+esc(a.groupName||'Default')+(a.disableReason?' · '+esc(a.disableReason):'')+'</div></div><div class="admin-account-actions"><span class="admin-account-lifecycle">'+lifecycle+'</span><span class="admin-control-group" title="Account group"><select data-group="'+esc(a.accountId)+'" aria-label="Account group">'+groupOptions(a.groupId)+'</select><button class="btn admin-apply-btn" data-apply-group="'+esc(a.accountId)+'" aria-label="Apply group" title="Apply group">'+check+'</button></span><span class="admin-control-group" title="Account plan"><select data-plan="'+esc(a.accountId)+'" aria-label="Account plan">'+plans+'</select><button class="btn admin-apply-btn" data-apply-plan="'+esc(a.accountId)+'" aria-label="Apply plan" title="Apply plan">'+check+'</button></span></div></div>'}
+function accountRow(row){const a=row.account||{},u=row.usage||{},ds=row.devices||[],status=String(a.status||'active'),statusLabel=status==='admin_disabled'?'DISABLED':status==='dormant'?'DORMANT':'ACTIVE',lastTool=u.lastToolCallAt?fmtWhen(u.lastToolCallAt):'never';let plans='';for(const p of ['free','pro','vip'])plans+='<option value="'+p+'"'+(a.plan===p?' selected':'')+'>'+p.toUpperCase()+'</option>';const lifecycle='<span class="badge admin-status-badge '+esc(status)+'">'+statusLabel+'</span>'+(a.disableProtected?'<button class="btn admin-lifecycle-btn" disabled title="Current Owner cannot be disabled">Protected</button>':status==='active'?'<button class="btn danger admin-lifecycle-btn" data-disable-account="'+esc(a.accountId)+'">Disable</button>':'<button class="btn admin-lifecycle-btn" data-enable-account="'+esc(a.accountId)+'">Enable</button>');const check='<img class="material-icon" src="/assets/icons/material/check_circle.svg" alt="">';return '<div class="admin-account-row"><div class="admin-account-info"><div class="device-name">'+esc(a.email)+(a.isOwner?' <span class="badge owner-row-badge">OWNER</span>':'')+'</div><div class="device-sub">'+esc(a.accountId)+' · '+fmt(u.toolCallsThisMonth)+' calls · '+fmt(ds.length)+' devices · last tool '+esc(lastTool)+' · '+(a.emailVerified?'verified email':'legacy account')+' · '+esc(a.groupName||'Default')+(a.disableReason?' · '+esc(a.disableReason):'')+'</div></div><div class="admin-account-actions"><span class="admin-account-lifecycle">'+lifecycle+'</span><span class="admin-control-group" title="Account group"><select data-group="'+esc(a.accountId)+'" aria-label="Account group">'+groupOptions(a.groupId)+'</select><button class="btn admin-apply-btn" data-apply-group="'+esc(a.accountId)+'" aria-label="Apply group" title="Apply group">'+check+'</button></span><span class="admin-control-group" title="Account plan"><select data-plan="'+esc(a.accountId)+'" aria-label="Account plan">'+plans+'</select><button class="btn admin-apply-btn" data-apply-plan="'+esc(a.accountId)+'" aria-label="Apply plan" title="Apply plan">'+check+'</button></span></div></div>'}
 function bindAccountActions(){document.querySelectorAll('[data-apply-plan]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.applyPlan,sel=document.querySelector('[data-plan="'+CSS.escape(id)+'"]');btn.disabled=true;try{await api('set-plan',{method:'POST',body:JSON.stringify({accountId:id,plan:sel.value})});await Promise.all([loadAccounts(),loadOverview()])}catch(e){btn.textContent=e.message}finally{btn.disabled=false}});document.querySelectorAll('[data-apply-group]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.applyGroup,sel=document.querySelector('[data-group="'+CSS.escape(id)+'"]');btn.disabled=true;try{await api('set-group',{method:'POST',body:JSON.stringify({accountId:id,groupId:sel.value})});await Promise.all([loadAccounts(),loadGroups(),loadOverview()])}catch(e){btn.textContent=e.message}finally{btn.disabled=false}});document.querySelectorAll('[data-disable-account]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.disableAccount,reason=prompt('Reason for disabling this account?','Administrative action');if(reason===null)return;btn.disabled=true;try{await api('set-status',{method:'POST',body:JSON.stringify({accountId:id,status:'admin_disabled',reason:reason.trim()})});await Promise.all([loadAccounts(),loadOverview()])}catch(e){alert(e.message)}finally{btn.disabled=false}});document.querySelectorAll('[data-enable-account]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.enableAccount;if(!confirm('Enable this account?'))return;btn.disabled=true;try{await api('set-status',{method:'POST',body:JSON.stringify({accountId:id,status:'active',reason:'admin_reenabled'})});await Promise.all([loadAccounts(),loadOverview()])}catch(e){alert(e.message)}finally{btn.disabled=false}})}
+let ownerTransferCandidates=[],ownerTransferDeviceCount=0;
+function ownerTransferSelected(){
+ const target=ownerTransferCandidates.find(a=>a.accountId===ownerTransferTarget.value);
+ const expected=target?'TRANSFER OWNER TO '+target.email:'';
+ ownerTransferExpected.textContent=expected?
+   'Exact confirmation: '+expected:'Select a verified account to see the confirmation phrase.';
+ ownerTransferConfirmation.placeholder=expected||'TRANSFER OWNER TO email@example.com';
+ return target;
+}
+function setOwnerTransferExpanded(expanded){
+ const shouldExpand=expanded&&ownerTransferCandidates.length>0;
+ ownerTransferEditor.classList.toggle('hide',!shouldExpand);
+ ownerTransferToggle.setAttribute('aria-expanded',String(shouldExpand));
+ ownerTransferToggle.textContent=shouldExpand?'Close transfer form':'Transfer ownership';
+ if(!shouldExpand){
+  ownerTransferPassword.value='';
+  ownerTransferConfirmation.value='';
+  ownerTransferDeviceAck.checked=false;
+  ownerTransferMessage.textContent='';
+ }
+ if(shouldExpand)ownerTransferTarget.focus();
+}
+ownerTransferToggle.onclick=()=>setOwnerTransferExpanded(ownerTransferEditor.classList.contains('hide'));
+ownerTransferClose.onclick=()=>setOwnerTransferExpanded(false);
+async function loadOwnerAuthority(){
+ try{
+  const result=await api('owner-authority');
+  ownerTransferPanel.classList.remove('hide');
+  ownerTransferCandidates=result.candidates||[];
+  ownerTransferDeviceCount=Number(result.previousOwnerDeviceCount)||0;
+  const ownerEmail=String(result.ownerEmail||'Current administrator');
+  const revision=Number(result.ownerRevision)||0;
+  ownerAuthorityEmail.textContent=ownerEmail;
+  ownerAuthorityVerified.textContent=result.ownerEmailVerified?
+    'Verified email · protected administrator':'Protected administrator · legacy email';
+  ownerAuthorityRevision.textContent=fmt(revision);
+  ownerAuthorityHistory.textContent=revision>0?
+    (revision===1?'1 completed ownership transfer':fmt(revision)+' completed ownership transfers'):
+    'Original Owner · no transfers';
+  const prev=ownerTransferTarget.value;
+  ownerTransferTarget.innerHTML='<option value="">Select an eligible account</option>'+
+   ownerTransferCandidates.map(a=>'<option value="'+esc(a.accountId)+'">'+esc(a.email)+'</option>').join('');
+  if(ownerTransferCandidates.some(a=>a.accountId===prev))ownerTransferTarget.value=prev;
+  ownerTransferToggle.disabled=ownerTransferCandidates.length===0;
+  ownerAuthorityHint.textContent=ownerTransferCandidates.length===0?
+    'No other verified accounts eligible for transfer.':
+    (fmt(ownerTransferCandidates.length)+' verified account'+(ownerTransferCandidates.length===1?'':'s')+' eligible.');
+  ownerTransferDetails.textContent='This Owner currently has '+fmt(ownerTransferDeviceCount)+
+    ' device identities. Devices, billing and plans stay with their original accounts.'+
+    ' The prior Owner will be disabled and both accounts signed out after transfer.';
+  ownerTransferSelected();
+  if(ownerTransferCandidates.length===0)setOwnerTransferExpanded(false);
+ }catch(error){
+  if(error.message==='owner_handoff_feature_disabled'){
+   ownerTransferPanel.classList.add('hide');return;
+  }
+  ownerTransferPanel.classList.add('hide');
+  throw error;
+ }
+}
+ownerTransferTarget.onchange=ownerTransferSelected;
+ownerTransferForm.onsubmit=async event=>{
+ event.preventDefault();
+ const target=ownerTransferSelected();
+ if(!target){ownerTransferMessage.textContent='Choose an eligible verified account.';return;}
+ const expected='TRANSFER OWNER TO '+target.email;
+ if(ownerTransferConfirmation.value!==expected){
+  ownerTransferMessage.textContent='Confirmation phrase does not match.';return;
+ }
+ if(!ownerTransferDeviceAck.checked){
+  ownerTransferMessage.textContent='Acknowledge device isolation before transferring.';return;
+ }
+ if(!confirm('Transfer the ONLY Owner to '+target.email+
+  '? The current administrator will be disabled and signed out immediately. '+
+  ownerTransferDeviceCount+' existing device identities remain on the old account.')){
+  return;
+ }
+ ownerTransferButton.disabled=true;ownerTransferMessage.textContent='Transferring Owner authority...';
+ try{
+  const outcome=await api('owner-transfer',{method:'POST',body:JSON.stringify({
+   toAccountId:target.accountId,currentPassword:ownerTransferPassword.value,
+   confirmText:ownerTransferConfirmation.value,
+   acknowledgeDeviceIsolation:ownerTransferDeviceAck.checked
+  })});
+  ownerTransferPassword.value='';
+  if(!outcome.ok)throw new Error('owner_transfer_not_confirmed');
+  location.href='/account/login?owner-transfer=completed';
+ }catch(error){
+  ownerTransferMessage.textContent=error.message;
+  ownerTransferPassword.value='';
+  ownerTransferButton.disabled=false;
+ }
+};
 function renderAccounts(){const q=accountSearch.value.trim().toLowerCase(),group=groupFilter.value,rows=accountRows.filter(x=>(!q||String(x.account?.email||'').toLowerCase().includes(q)||String(x.account?.accountId||'').toLowerCase().includes(q))&&(!group||x.account?.groupId===group));adminAccounts.innerHTML=rows.map(accountRow).join('')||'<div class="empty">No matching accounts.</div>';bindAccountActions()}
 async function loadAccounts(){const r=await api('accounts');accountRows=r.accounts||[];renderAccounts()}accountSearch.oninput=renderAccounts;groupFilter.onchange=renderAccounts;
 function renderGroups(){const selected=groupFilter.value;groupFilter.innerHTML='<option value="">All groups</option>'+groupRows.map(g=>'<option value="'+esc(g.groupId)+'">'+esc(g.name)+' · '+fmt(g.accountCount)+'</option>').join('');if(groupRows.some(g=>g.groupId===selected))groupFilter.value=selected;groupGrid.innerHTML=groupRows.map(g=>'<div class="admin-group-chip"><strong>'+esc(g.name)+'</strong><span>'+fmt(g.accountCount)+' accounts</span><button class="btn" data-rename-group="'+esc(g.groupId)+'">Rename</button>'+(g.protected?'':'<button class="btn danger" data-delete-group="'+esc(g.groupId)+'">Delete</button>')+'</div>').join('');document.querySelectorAll('[data-rename-group]').forEach(b=>b.onclick=async()=>{const g=groupRows.find(x=>x.groupId===b.dataset.renameGroup),name=prompt('Rename group',g?.name||'');if(!name||name.trim()===g?.name)return;await api('rename-group',{method:'POST',body:JSON.stringify({groupId:g.groupId,name:name.trim()})});await Promise.all([loadGroups(),loadAccounts()])});document.querySelectorAll('[data-delete-group]').forEach(b=>b.onclick=async()=>{const g=groupRows.find(x=>x.groupId===b.dataset.deleteGroup);if(!g||!confirm('Delete group "'+g.name+'"? Accounts will move to Default.'))return;await api('delete-group',{method:'POST',body:JSON.stringify({groupId:g.groupId,moveTo:'grp_default'})});await Promise.all([loadGroups(),loadAccounts(),loadOverview()])})}

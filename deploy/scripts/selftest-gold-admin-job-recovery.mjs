@@ -64,7 +64,7 @@ oneClaim=true;
 class AccountError extends Error{constructor(message,status=400){super(message);this.status=status}}
 const deps=(accountId,adminJobRecovery=live)=>{
  let calls=0;
- return {requireAccount:()=>({account:{accountId}}),AccountError,
+ return {requireAccount:()=>({account:{accountId,isOwner:accountId===ADMIN}}),AccountError,
   adminJobRecovery:{
     list:async q=>{calls++;return adminJobRecovery.list(q)},
     retire:async q=>{calls++;return adminJobRecovery.retire(q)}

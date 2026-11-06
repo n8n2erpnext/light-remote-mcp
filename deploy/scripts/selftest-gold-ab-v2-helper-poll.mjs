@@ -95,7 +95,7 @@ const make=(e=env)=>createGoldAbV2HelperPoll({env:e,storage,
   policyView:()=>({accountId:'acct1',policyRevision:1,policyProfile:policyEnabled?'default':'disabled',
    approvedCapabilities:['filesystem']})},
  connections:{assertConnected:()=>({deviceId:'dev1',accountId:'acct1',
-  connectionId,state:'connected',hardExpiresAt:connectionExpires})},
+  connectionId,closedAt:null,hardExpiresAt:connectionExpires})},
  accessGrants:access,agentClients,goldRegistries:{flush:async()=>{clientFlushCount++;}},
  readJson:async req=>req.data,sendJson:(res,status,payload)=>{res.status=status;res.body=payload},now:()=>now
 });

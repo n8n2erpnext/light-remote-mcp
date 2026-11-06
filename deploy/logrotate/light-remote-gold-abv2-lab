@@ -1,0 +1,11 @@
+# Isolated GoldABV2 Lab Operator diagnostic log, not device-local Wall data.
+/var/log/light-remote-gold-uat/operations.jsonl {
+    su gold-uat gold-uat
+    size 50M
+    rotate 3
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}

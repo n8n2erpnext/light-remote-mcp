@@ -9,6 +9,14 @@ import { registerPublicDeviceRoutes, prunePublicRateState, initializePublicRateR
 import { registerAccountPortal } from './account-portal.mjs';
 import { registerDesktopOwnerV4Authorization } from './desktop-auth-v4-server.mjs';
 import { registerDesktopOwnerTokenRoutes } from './desktop-owner-token-v4.mjs';
+import { callOperatorJson } from './operator-client.mjs';
+import { registerDesktopWallSsoNativeIssuerV4,
+  desktopWallSsoIssuerEnabledV4,DESKTOP_WALL_SSO_TICKET_PATH_V4,
+  DESKTOP_WALL_SSO_MAX_BODY_BYTES_V4
+} from './desktop-wall-sso-native-router-v4.mjs';
+import {createDesktopWallSsoMtlsEdgeV4} from './desktop-wall-sso-mtls-edge-v4.mjs';
+import {DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4} from './desktop-wall-sso-public-redeem-v4.mjs';
+import {WALL_SSO_FAMILY_PUBLIC_PATH_V4} from './desktop-wall-sso-public-family-current-v4.mjs';
 import { initializeGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
@@ -78,7 +86,34 @@ app.use(hostHeaderValidation(PUBLIC_ALLOWED_HOSTS));
 app.disable('x-powered-by');
 app.set('trust proxy','loopback, linklocal, uniquelocal');
 registerPaddleWebhook(app,express.raw({type:'application/json',limit:'512kb'}));
-app.use(express.json({limit:'12mb'}));
+// T04b7b: when explicitly opted in, parse the native issuer request with
+// a 2-KiB ceiling BEFORE the product-wide 12-MiB JSON parser. By default
+// this path is neither parsed specially nor registered as an endpoint.
+if(desktopWallSsoIssuerEnabledV4(process.env)){
+  app.use(DESKTOP_WALL_SSO_TICKET_PATH_V4,
+    express.json({limit:DESKTOP_WALL_SSO_MAX_BODY_BYTES_V4,strict:true}));
+}
+// T04b9c1: SSO device-signed public redeem must not be parsed by the
+// broad 12-MiB device-channel body parser. OFF rejects *before* body read.
+// ON uses exactly 2 KiB, with separate rate + signature checks downstream.
+const publicSsoRedeemEnabledV4=desktopWallSsoIssuerEnabledV4(process.env);
+app.use(DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4,(req,res,next)=>{
+  if(!publicSsoRedeemEnabledV4||req.method!=='POST')
+    return res.status(404).json({ok:false,error:'not_found'});
+  next();
+},express.json({limit:'2048b',strict:true}));
+// T04b9c2: live Owner-family checks use an equally narrow signed route.
+// Each protected request creates a NEW Ed25519 nonce; never trust a cached
+// browser cookie when the remote Owner family has been revoked.
+app.use(WALL_SSO_FAMILY_PUBLIC_PATH_V4,(req,res,next)=>{
+  if(!publicSsoRedeemEnabledV4||req.method!=='POST')
+    return res.status(404).json({ok:false,error:'not_found'});
+  next();
+},express.json({limit:'2048b',strict:true}));
+const generalJsonBodyParser=express.json({limit:'12mb'});
+app.use((req,res,next)=>(req.path===DESKTOP_WALL_SSO_PUBLIC_REDEEM_PATH_V4||
+  req.path===WALL_SSO_FAMILY_PUBLIC_PATH_V4)
+  ?next():generalJsonBodyParser(req,res,next));
 app.use(express.urlencoded({extended:false,limit:'128kb'}));
 const PUBLIC_INDEXABLE_PATHS=new Set(['/','/downloads','/downloads/','/support','/privacy','/terms','/cookies','/robots.txt','/sitemap.xml','/site.webmanifest','/favicon.ico']);
 app.use((req,res,next)=>{
@@ -98,24 +133,34 @@ installSiteAnalytics(app);
 registerOAuth(app);
 registerWebAssets(app);
 registerAccountPortal(app);
-// GoldABV2 Desktop Owner V4 account consent. Feature OFF by default.
-// Does NOT expose token exchange/refresh, App-Wall SSO, or an MCP grant.
+// GoldABV2 Desktop Owner V4: separate read-only consent and token gates,
+// both OFF by default. Never reuse ChatGPT MCP credentials or A/B authority.
 const desktopOwnerAuthV4=registerDesktopOwnerV4Authorization(app,{
   enabled:process.env.LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4==='1',
   redis:goldStorage.redis,
   prefix:goldStorage.prefix,
   publicOrigin:PUBLIC_ORIGIN
 });
-// Separate default-OFF native token gate. Even enabling browser consent alone
-// does not issue app tokens. Native vault/callback and E2E required before ON.
 registerDesktopOwnerTokenRoutes(app,{
   enabled:process.env.LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4==='1' &&
     process.env.LR_GOLD_ABV2_DESKTOP_TOKEN_V4==='1',
   redis:goldStorage.redis,
   prefix:goldStorage.prefix,
-  consumeCode:desktopOwnerAuthV4.consumeCode
+  consumeCode:desktopOwnerAuthV4.consumeCode,
+  readEnabled:process.env.LR_GOLD_ABV2_DESKTOP_READ_V4==='1'
 });
-
+// Independent opt-in: Desktop Login / Token API flags alone never enable SSO.
+// The actual transport is the existing private Operator Unix socket only.
+registerDesktopWallSsoNativeIssuerV4(app,{
+  env:process.env,publicOrigin:PUBLIC_ORIGIN,
+  proxyPeers:process.env.LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4
+    ?process.env.LR_GOLD_ABV2_DESKTOP_WALL_SSO_PROXY_PEERS_V4.split(','):[],
+  // Required when SSL terminates at Traefik/LXD: an explicit 256-bit
+  // edge attestation value must be injected only by the TLS-only router.
+  // Never log, default, generate or expose this private value in the UI.
+  edgeProofSecret:process.env.LR_GOLD_ABV2_DESKTOP_WALL_SSO_EDGE_PROOF_V4,
+  operatorCall:callOperatorJson
+});
 registerSupportBackoffice(app,{outbox:supportOutbox});
 registerDistributionPortal(app);
 registerAdminPortal(app);
@@ -181,6 +226,14 @@ app.use((error,req,res,_next)=>{
   }
 });
 
+// Isolated Lab mTLS transport: OFF by default, always binds inside the
+// container to loopback, and NEVER grants Owner/Agent permissions by itself.
+const mtlsEdge=createDesktopWallSsoMtlsEdgeV4({env:process.env,app});
+const mtlsServer=mtlsEdge.enabled
+  ?mtlsEdge.server.listen(mtlsEdge.port,mtlsEdge.host,()=>{
+    console.log(JSON.stringify({event:'gold_desktop_wall_sso_mtls_edge_listen',
+      host:mtlsEdge.host,port:mtlsEdge.port}));
+  }):null;
 const server=app.listen(PUBLIC_PORT,PUBLIC_HOST,()=>{
   console.log(JSON.stringify({event:'direct_plugin_listen',origin:PUBLIC_ORIGIN,host:PUBLIC_HOST,port:PUBLIC_PORT,version:VERSION}));
 });
@@ -189,8 +242,11 @@ function shutdown(signal){
   if(shuttingDown)return;shuttingDown=true;clearInterval(pruner);
   console.log(JSON.stringify({event:'direct_plugin_shutdown',signal}));
   server.closeIdleConnections?.();
+  mtlsServer?.closeIdleConnections?.();
+  mtlsServer?.close();
   const deadline=setTimeout(()=>{
     server.closeAllConnections?.();
+    mtlsServer?.closeAllConnections?.();
     process.exit(0);
   },4000);
   deadline.unref();

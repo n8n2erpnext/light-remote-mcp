@@ -105,6 +105,28 @@ export class AgentClientRegistry {
     this.emit({type:'agent_client_context_bound',accountId:row.accountId,agentId:row.agentId,clientSessionId:row.clientSessionId,deviceId:did,sessionId:sid,status:'ready'});
     return {...binding.workingContext,deviceId:did,clientSessionId:row.clientSessionId,agentId:row.agentId};
   }
+  // Remove ONLY the exact Owner-closed B grant from this Agent client.
+  // Other devices, other Agents and a newer re-approved grant are preserved.
+  detachGrant(clientSessionId,{agentId,accountId,deviceId,grantId,
+    reason='owner_closed_from_wall'}={}){
+    const row=this._row(clientSessionId,{agentId,accountId});
+    const did=validId(deviceId,'invalid_agent_client_device');
+    const gid=validId(grantId,'invalid_agent_client_grant');
+    const binding=row.bindings?.[did];
+    if(!binding||binding.grantId!==gid)
+      throw new AgentClientRegistryError('agent_client_grant_binding_mismatch',409);
+    delete row.bindings[did];
+    if(row.defaultDeviceId===did)
+      row.defaultDeviceId=Object.keys(row.bindings)[0]||null;
+    if(!Object.keys(row.bindings).length){
+      row.closedAt=this.now();row.closeReason=reason;
+    }
+    this._persist();
+    this.emit({type:'agent_client_device_unbound',accountId:row.accountId,
+      agentId:row.agentId,clientSessionId:row.clientSessionId,deviceId:did,
+      grantId:gid,status:'removed',reason});
+    return this.viewUnsafe(row);
+  }
   removeDevice(deviceId,reason='device_access_closed'){
     const did=validId(deviceId,'invalid_agent_client_device');let count=0;
     for(const row of this.rows.values())if(!row.closedAt&&row.bindings?.[did]){delete row.bindings[did];if(row.defaultDeviceId===did)row.defaultDeviceId=Object.keys(row.bindings||{})[0]||null;count++;this.emit({type:'agent_client_device_unbound',accountId:row.accountId,agentId:row.agentId,clientSessionId:row.clientSessionId,deviceId:did,status:'removed',reason:String(reason||'removed').slice(0,80)});}

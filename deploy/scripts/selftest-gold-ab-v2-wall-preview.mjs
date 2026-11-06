@@ -4,6 +4,9 @@ import fs from 'node:fs';
 import {handleDeviceChannelRoutes} from '../../operator-host/executor-routes-device-channel.mjs';
 import {startLocalWall} from '../../device-agent/local-wall.mjs';
 import {wallAbV2PreviewFragment} from '../../device-agent/wall-ab-v2-preview.mjs';
+import {goldAbV2LabWallBOnly} from '../../lib/gold-ab-v2-lab-v1-lock.mjs';
+const labKeys=['LR_GOLD_INSTANCE_ID','LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1','LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY'];
+const previousLabEnv=Object.fromEntries(labKeys.map(k=>[k,process.env[k]]));
 
 const requestId='av2_'+'b'.repeat(32);
 const preview={ok:true,deviceId:'dev1',accountEmail:'owner@example.invalid',
@@ -76,7 +79,8 @@ try{
   },getAbV2Approve:async data=>{
    approvals++;
    assert.deepEqual(data,{wallUsername:'owner@example.invalid',
-    requestId,expectedAttempt:1,bCode:'ABCD-2345',consentCode:'a'.repeat(32)});
+    requestId,expectedAttempt:1,bCode:'ABCD-2345',
+    consentCode:goldAbV2LabWallBOnly()?undefined:'a'.repeat(32)});
    return {ok:true,state:'granted',requestId,agentId:'agent-one',
     expiresAt:Date.now()+200000,absoluteExpiresAt:Date.now()+86400000};
   }});
@@ -110,7 +114,13 @@ try{
  for(const fragment of html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
   if(fragment[1].trim())new vm.Script(fragment[1],{filename:'abv2-wall-approve-inline.js'});
  assert.match(wallAbV2PreviewFragment,/ownerApproveEnabled===true/);
- assert.match(wallAbV2PreviewFragment,/\/api\/abv2\/approve/);
+ assert.match(wallAbV2PreviewFragment,/class="card ab2-shell"/);
+ assert.match(wallAbV2PreviewFragment,/className='btn primary'/);
+ assert.doesNotMatch(wallAbV2PreviewFragment,/background:#205dc5|background:#111b27/);
+ assert.doesNotMatch(wallAbV2PreviewFragment,/this Windows device/);
+
+ assert.match(wallAbV2PreviewFragment,/B code from requesting Agent/);
+ assert.match(wallAbV2PreviewFragment,/fetch\('\/api\/abv2\/approve'/);
  assert.ok(!wallAbV2PreviewFragment.includes('result.bCode'));
  const post=async (owner,csrf,body)=>fetch(url+'/api/abv2/approve',{
   method:'POST',headers:{'content-type':'application/json','x-test-owner':owner,
@@ -127,6 +137,20 @@ try{
  assert.equal(grant.status,200);
  assert.equal((await grant.json()).state,'granted');
  assert.equal(approvals,1);
+ // Same real Local Wall handler, but strictly isolated Lab Owner login + B.
+ process.env.LR_GOLD_INSTANCE_ID='abv2lab01';
+ process.env.LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1='1';
+ process.env.LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY='1';
+ assert.equal(goldAbV2LabWallBOnly(),true);
+ assert.equal((await post('owner',null,{requestId,expectedAttempt:1,bCode:'ABCD-2345'})).status,403);
+ assert.equal((await post('', 'fixture-csrf',{requestId,expectedAttempt:1,bCode:'ABCD-2345'})).status,401);
+ assert.equal((await post('owner','fixture-csrf',{requestId,expectedAttempt:1,bCode:'INVALID'})).status,400);
+ const localBOnly=await post('owner','fixture-csrf',{requestId,expectedAttempt:1,bCode:'ABCD-2345'});
+ assert.equal(localBOnly.status,200);
+ assert.equal((await localBOnly.json()).state,'granted');
+ assert.equal(approvals,2);
+ assert.equal((await (await fetch(url+'/api/abv2/pending',{headers:{'x-test-owner':'owner'}})).json()).ownerConsentRequired,false);
+ assert.match(wallAbV2PreviewFragment,/if\(consentRequired\)card.append\(consent\)/);
  await wall.close();wall=null;
  const fail=startLocalWall({host:'127.0.0.1',port:0,auth,
   getAbV2Pending:async()=>{throw Object.assign(Error('not_found'),{status:404});}});
@@ -139,7 +163,11 @@ try{
  const unavailable=await fetch('http://127.0.0.1:'+wall.server.address().port+'/api/abv2/pending',
   {headers:{'x-test-owner':'owner'}});
  assert.equal(unavailable.status,404);
-}finally{if(wall)await wall.close();}
+}finally{if(wall)await wall.close();
+ for(const [k,v] of Object.entries(previousLabEnv)){
+  if(v==null)delete process.env[k];else process.env[k]=v;
+ }
+}
 const agent=fs.readFileSync(new URL('../../device-agent/operator-agent.mjs',import.meta.url),'utf8');
 const router=fs.readFileSync(new URL('../../plugin-server/device-public.mjs',import.meta.url),'utf8');
 assert.match(agent,/channelRequest\(state,hub,'abv2-pending-preview',\{\}\)/);

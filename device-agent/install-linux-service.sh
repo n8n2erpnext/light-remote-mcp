@@ -46,6 +46,10 @@ else
 fi
 sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/device-agent/platform-adapters /opt/gpt-operator-agent/lib /opt/gpt-operator-agent/assets/branding /opt/gpt-operator-agent/assets/fonts/web /opt/gpt-operator-agent/assets/icons/material
 sudo install -m 0755 "$ROOT_DIR/device-agent/operator-agent.mjs" /opt/gpt-operator-agent/device-agent/operator-agent.mjs
+# Keep the original Wall Link for NEW/REVOKED devices. ACTIVE devices can
+# only change owner from the local OS administrator terminal (including SSH
+# with sudo), via this root-owned helper. Wall never starts that Relink.
+sudo install -m 0700 -o root -g root "$ROOT_DIR/device-agent/relink-linux-server.py" /usr/local/sbin/light-remote-device
 sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall.mjs" /opt/gpt-operator-agent/device-agent/local-wall.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall-auth.mjs" /opt/gpt-operator-agent/device-agent/local-wall-auth.mjs
 sudo install -m 0644 "$ROOT_DIR/device-agent/update-settings-page.mjs" /opt/gpt-operator-agent/device-agent/update-settings-page.mjs

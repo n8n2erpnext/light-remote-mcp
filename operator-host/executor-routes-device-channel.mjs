@@ -5,11 +5,15 @@ import { DEVICE_DUPLEX_PROTOCOL } from './device-duplex-transport.mjs';
 import { handleDeviceDuplexSession } from './device-duplex-session.mjs';
 import { ownerFleetJobRows } from './fleet-job-view.mjs';
 import { ownerDeviceResourceMetrics } from '../lib/gold-device-resource-metrics.mjs';
+import { goldAbV2LabV1Disabled } from '../lib/gold-ab-v2-lab-v1-lock.mjs';
+import { closeOwnerSessionAndGrant } from './owner-session-close-abv2.mjs';
 import { scanOwnerStaleClaims } from '../lib/gold-stale-claim-detector.mjs';
+import { handleDesktopWallSsoSignedRedeemV4 } from './desktop-wall-sso-signed-route-v4.mjs';
+import { handleDesktopWallSsoInternalIssueV4 } from './desktop-wall-sso-internal-issue-v4.mjs';
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,deviceResourceSampleCache,deviceBootObservations,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,requiresExecutionEpoch,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams,goldAbV2SignedPreview,goldAbV2SignedApproval}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,deviceResourceSampleCache,deviceBootObservations,goldShortIdAfterEnrollment,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,requiresExecutionEpoch,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams,goldAbV2SignedPreview,goldAbV2SignedApproval}=deps;
   // Boot telemetry uses the authenticated device channel, never the M4
   // scheduler. Errors are isolated from command ACK and cannot free claims.
   const persistBoot=async(ctx,value,agentVersion)=>{
@@ -23,6 +27,41 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         status:'error',reason:'boot_store_unavailable'});
     }
   };
+  // T04b7b: Plugin talks to Operator using its existing mode-0660 Unix
+  // socket. This private issuer needs SIX exact flags; it is not a browser,
+  // Agent A/B grant or a public certificate bypass.
+  if(req.method==='POST'&&url.pathname==='/v1/internal/desktop-wall-sso/issue'){
+    return handleDesktopWallSsoInternalIssueV4(req,res,{
+      readJson,sendJson,issueTrusted:deps.desktopWallSsoInternalIssue
+    });
+  }
+  // T04b4: Operator signed channel SSO ticket redemption is DEFAULT OFF.
+  // Do NOT invoke verifiedChannelContext here: the T04 enrolled Ed25519
+  // signedRedeem verifier consumes its anti-replay nonce exactly once.
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/desktop-wall-sso-redeem'){
+    return handleDesktopWallSsoSignedRedeemV4(req,res,{
+      readJson,sendJson,signedRedeem:deps.desktopWallSsoSignedRedeem
+    });
+  }
+  // T04b9c2: signed enrolled-Device Agent asks whether its current Owner
+  // family is still live, once per protected Wall request. DEFAULT OFF:
+  // 404 BEFORE reading caller body when all six SSO gates are not active.
+  // The dedicated T04 verifier consumes the signed nonce exactly ONCE.
+  if(req.method==='POST'&&url.pathname==='/v1/device-channel/desktop-wall-sso-family-current'){
+    if(typeof deps.desktopWallSsoFamilyCurrent!=='function')
+      return sendJson(res,404,{ok:false,error:'not_found'});
+    res.setHeader?.('Cache-Control','no-store');
+    try{
+      const envelope=await readJson(req);
+      const value=await deps.desktopWallSsoFamilyCurrent(envelope);
+      if(value?.ok!==true||value.current!==true||
+         value.deviceId!==envelope?.deviceId)
+        throw Error('family_denied');
+      return sendJson(res,200,value);
+    }catch{
+      return sendJson(res,403,{ok:false,error:'desktop_wall_sso_family_current_denied'});
+    }
+  }
   // Enrolled-Agent signed, owner-scoped, READ-ONLY V2 preview.
   // No account cookie or unverified deviceId, no B plaintext, no approve.
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/abv2-pending-preview'){
@@ -297,6 +336,8 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const approval = enrollments.approve(body);
       const binding = enrollments.binding(approval.deviceId);
       const device = devices.enroll({ accountId:binding.accountId, deviceId:binding.deviceId, nodeId:binding.deviceId, displayName:binding.displayName, platform:binding.platform, architecture:binding.architecture, agentVersion:binding.agentVersion, publicIdentityKey:binding.publicIdentityKey, capabilities:binding.approvedCapabilities, policyProfile:binding.policyProfile });
+      if(typeof goldShortIdAfterEnrollment==='function')
+        await goldShortIdAfterEnrollment(device.deviceId);
       return sendJson(res, 200, { ok:true, approval, device });
     }
     if (req.method === 'POST' && url.pathname === '/v1/device-pair/begin') {
@@ -420,7 +461,7 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
         const gracePreset=String(body.gracePreset||binding.workingContext?.gracePreset||'60m');
         let session=null;
         if(binding.workingContext?.sessionId){try{const prior=sessions.get(binding.workingContext.sessionId,binding.agentId);if(['active','hold'].includes(prior.state))session=prior;}catch{}}
-        if(!session)session=sessions.open({accountId:grant.accountId,agentId:binding.agentId,label:'ChatGPT Light Remote',workspace,gracePreset,nodeId:device.nodeId,deviceId:device.deviceId,maxActiveForNode:route.sessionCeiling,maxActiveForAccount:planEntitlements(accounts.account(grant.accountId)).sessionLimit??null});
+        if(!session)session=sessions.open({accountId:grant.accountId,agentId:binding.agentId,label:process.env.LR_GOLD_INSTANCE_ID==='abv2lab01'&&process.env.LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1==='1'?'Light Remote Agent':'ChatGPT Light Remote',workspace,gracePreset,nodeId:device.nodeId,deviceId:device.deviceId,maxActiveForNode:route.sessionCeiling,maxActiveForAccount:planEntitlements(accounts.account(grant.accountId)).sessionLimit??null});
         if(process.env.LR_GOLD_SESSION_AGENT_NICKNAME==='1'&&typeof body.agentNickname==='string'){
           // Optional, nonblocking display metadata: never gate A/B or session ready.
           try{session=sessions.setDisplayName(session.sessionId,{accountId:grant.accountId,
@@ -730,6 +771,16 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
       const sessionId=String(ctx.payload.sessionId||'').trim(), agentId=String(ctx.payload.agentId||'').trim();
       const current=sessions.get(sessionId,agentId);
       if(current.deviceId!==ctx.device.deviceId)throw new EnrollmentError('session_device_mismatch',409);
+      const ownerClose=String(ctx.payload.reason||'owner_closed_from_wall')==='owner_closed_from_wall';
+      if(goldAbV2LabV1Disabled()&&ownerClose){
+        const connection=connections.assertConnected(ctx.device.deviceId);
+        const result=closeOwnerSessionAndGrant({
+          sessionId,agentId,accountId:ctx.binding.accountId,
+          deviceId:ctx.device.deviceId,connectionId:connection.connectionId,
+          sessions,accessGrants,agentClients
+        });
+        return sendJson(res,200,{ok:true,...result});
+      }
       const session=sessions.close(sessionId,agentId,String(ctx.payload.reason||'owner_closed_from_wall').slice(0,80));
       return sendJson(res,200,{ok:true,session});
     }

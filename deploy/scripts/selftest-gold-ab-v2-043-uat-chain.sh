@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
-# Strictly read-only Gold UAT 039 export; candidate 040-043 only in disposable
-# local no-NIC PostgreSQL 17. Never an installer or --apply entrypoint.
+# Strictly read-only Gold UAT 039/042 schema export; candidate 043 only in a
+# disposable no-NIC PostgreSQL 17 (040-042 only for legacy 039 baselines).
+# Never an installer or --apply entrypoint.
 set -eu
 [ "$#" -eq 0 ] || { echo "This fixture does not support arguments or --apply" >&2;exit 2; }
 [ "${LR_GOLD_ABV2_043_SCHEMA_CHAIN_TEST:-0}" = 1 ] || {
@@ -23,9 +24,12 @@ result=$(lxc exec "$container" -- runuser -u postgres -- psql -X -At  -d light_r
  to_regclass('public.lr_gold_device_short_ids') IS NULL,
  to_regclass('public.lr_gold_pro_share_guest_jobs') IS NULL
  FROM public.lr_schema_migrations")
-[ "$result" = '39|39|t|t' ] || {
- echo "Gold UAT version/schema changed: abort" >&2;exit 3; }
-echo GOLD_ABV2_043_CHAIN_UAT039_READ_ONLY=PASS
+case "$result" in
+ '39|39|t|t') baseline=039;migrations='040 041 042 043';;
+ '42|42|t|t') baseline=042;migrations='043';;
+ *) echo "Gold UAT schema is neither signed 039 nor signed 042 without 043: abort" >&2;exit 3;;
+esac
+echo "GOLD_ABV2_043_CHAIN_UAT${baseline}_READ_ONLY=PASS"
 # Lock 040-042 to exact shipped signed manifest; 043 is a candidate, NOT
 # approved or inserted in migrations.lock.json.
 node - "$repo" <<'JS'
@@ -53,8 +57,13 @@ until docker exec "$name" pg_isready -U postgres >/dev/null 2>&1;do
 done
 docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q  -c 'CREATE ROLE lr_gold_app LOGIN' postgres
 docker exec "$name" psql -X -U postgres -v ON_ERROR_STOP=1 -q  -f /schema.sql postgres >/dev/null
-echo GOLD_ABV2_UAT039_SCHEMA_RESTORED_NO_DATA=PASS
-for n in 040 041 042 043;do
+echo "GOLD_ABV2_UAT${baseline}_SCHEMA_RESTORED_NO_DATA=PASS"
+# Assert the source schema has no Short ID table before applying candidate 043.
+missing=$(docker exec "$name" psql -X -U postgres -Atq -v ON_ERROR_STOP=1 \
+ -c "SELECT to_regclass('public.lr_gold_device_short_ids') IS NULL" postgres)
+[ "$missing" = t ] || { echo 'Short ID already exists in restored source schema' >&2;exit 8; }
+echo GOLD_ABV2_042_TO_043_STRICT_BOUNDARY=PASS
+for n in $migrations;do
  case "$n" in
   040) filename=040_gold_connection_job_gc_fences.sql;;
   041) filename=041_gold_device_execution_epoch.sql;;
@@ -87,4 +96,4 @@ JS
 result=$(docker exec "$name" psql -X -U postgres -Atq -v ON_ERROR_STOP=1  -c "$probe" postgres)
 [ "$result" = 't|t' ] || { echo "043 startup probe failed: $result" >&2;exit 9; }
 echo GOLD_ABV2_NATIVE_043_SOURCE_STARTUP_SCHEMA_PROBE=PASS
-echo GOLD_ABV2_039_040_041_042_043_DISPOSABLE_NO_NIC=PASS
+echo "GOLD_ABV2_${baseline}_TO_043_DISPOSABLE_NO_NIC=PASS"

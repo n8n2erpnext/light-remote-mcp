@@ -5,6 +5,7 @@
 // policy, connection and PG 2-phase durability. Not a Helper ready endpoint.
 import {GoldAbV2PendingRedis,AB_V2_B_RE} from '../lib/gold-ab-v2-pending-redis.mjs';
 import {GoldAbV2WallOwnerConsent} from '../lib/gold-ab-v2-wall-owner-consent.mjs';
+import {goldAbV2LabWallBOnly} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import {goldAbV2OwnerHttpConfig} from './gold-ab-v2-owner-http.mjs';
 import {GoldAbV2GrantBridgeError,createGoldAbV2GrantCoordinator}
  from './gold-ab-v2-grant-coordinator.mjs';
@@ -24,6 +25,7 @@ export function createGoldAbV2SignedApproval({
     env.LR_GOLD_AB_V2_HELPER_REQUEST_ISSUE!=='1'||
     env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY!=='1')
   deny('abv2_wall_approve_requires_owner_grant_gate',503);
+ const labWallBOnly=goldAbV2LabWallBOnly(env);
  const cfg=goldAbV2OwnerHttpConfig(env);
  if(!cfg.enabled||!storage?.pool?.query||!storage?.redis?.eval||!storage.prefix||
     !accounts||!devices||!connections||!enrollments||!accessGrants||
@@ -62,7 +64,7 @@ export function createGoldAbV2SignedApproval({
    deny('abv2_wall_enrollment_or_policy_denied',403);
   const connection=connections.assertConnected(deviceId);
   if(connection.deviceId!==deviceId||connection.accountId!==owner||
-     connection.state!=='connected'||!IDENT.test(connection.connectionId||'')||
+     connection.closedAt||!IDENT.test(connection.connectionId||'')||
      !Number.isFinite(Number(connection.hardExpiresAt))||
      Number(connection.hardExpiresAt)<=now())
    deny('abv2_wall_connection_changed',409);
@@ -93,12 +95,14 @@ export function createGoldAbV2SignedApproval({
   if(!p||p.action!=='approve'||!REQUEST.test(p.requestId||'')||
      !Number.isSafeInteger(p.expectedAttempt)||p.expectedAttempt<1||
      !AB_V2_B_RE.test(String(p.bCode||''))||
-     !/^[A-Za-z0-9_-]{32}$/.test(String(p.consentCode||'')))
+     (!labWallBOnly&&!/^[A-Za-z0-9_-]{32}$/.test(String(p.consentCode||''))))
    deny('abv2_wall_approval_payload_invalid',400);
   const owner=await authorizeOwner(ctx);
-  // Server-issued one-time consent, minted under authenticated /account
-  // session+CSRF; device-signed ownerLoggedIn alone is NEVER authority.
-  await consent.consume({...owner,requestId:p.requestId,
+  // Outside the isolated Lab, independent one-time Owner Account consent is
+  // mandatory. In the explicitly gated Lab-only flow, signed authenticated
+  // Local Wall Owner + CSRF + exact B + current device/connection/policy
+  // is required. The mere device-signed ownerLoggedIn flag never grants access.
+  if(!labWallBOnly)await consent.consume({...owner,requestId:p.requestId,
    expectedAttempt:p.expectedAttempt,consentCode:p.consentCode});
   const out=await coordinator(ctx,{deviceId:owner.deviceId,requestId:p.requestId,
    expectedAttempt:p.expectedAttempt,bCode:p.bCode});

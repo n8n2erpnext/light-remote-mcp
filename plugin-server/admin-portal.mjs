@@ -15,7 +15,7 @@ function parseCookies(header=''){const out={};for(const part of String(header).s
 function token(req){return String(parseCookies(req.headers?.cookie||'')[COOKIE]||'');}
 function headers(value){return {'x-light-account-session':value};}
 function sameOrigin(req){const site=String(req.headers?.['sec-fetch-site']||'').toLowerCase();if(site==='cross-site')return false;if(site==='same-origin')return true;const origin=String(req.headers?.origin||'').trim();if(!origin)return true;try{return new URL(origin).origin===PUBLIC_ORIGIN;}catch{return false;}}
-async function identity(req){const value=token(req);if(!value)return {ok:false,status:401,error:'account_session_required'};try{const me=await callOperatorJson('GET','/v1/accounts/me',null,headers(value));if(String(me.account?.accountId||'')!==ADMIN_ACCOUNT_ID)return {ok:false,status:403,error:'admin_account_required'};return {ok:true,token:value,me};}catch(error){return {ok:false,status:Number(error?.status)||401,error:error?.payload?.error||error?.message||'account_session_required'};}}
+async function identity(req){const value=token(req);if(!value)return {ok:false,status:401,error:'account_session_required'};try{const me=await callOperatorJson('GET','/v1/accounts/me',null,headers(value));if(me.account?.isOwner!==true)return {ok:false,status:403,error:'admin_account_required'};return {ok:true,token:value,me};}catch(error){return {ok:false,status:Number(error?.status)||401,error:error?.payload?.error||error?.message||'account_session_required'};}}
 async function requireAdmin(req,res,{html=false}={}){const row=await identity(req);if(row.ok)return row;if(html&&row.status===401){res.redirect(303,'/account/login');return null;}if(html){res.status(row.status).type('text').send('Admin account required.');return null;}res.status(row.status).json({ok:false,error:row.error});return null;}
 function sendAdmin(res){return res.type('html').send(fs.readFileSync(adminFile('index.html')));}
 function validEmail(value){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||'').trim());}
@@ -27,7 +27,7 @@ export function registerAdminPortal(app){
   app.all('/admin/api',async(req,res)=>{
     const admin=await requireAdmin(req,res);if(!admin)return;
     const action=String(req.query?.action||'').trim();
-    const mutations=new Set(['notification-publish','notification-cancel','announcement-create','announcement-update','announcement-delete','set-plan','set-group','set-status','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config','paddle-refund','job-recovery-retire']);
+    const mutations=new Set(['owner-transfer','notification-publish','notification-cancel','announcement-create','announcement-update','announcement-delete','set-plan','set-group','set-status','create-group','rename-group','delete-group','cancel-pending','issue-license','revoke-license','resolve-upgrade','mail-test','google-config','paddle-refund','job-recovery-retire']);
     if(mutations.has(action)&&!sameOrigin(req))return res.status(403).json({ok:false,error:'cross_site_request_denied'});
     try{
       if(action==='notifications'&&req.method==='GET')
@@ -75,6 +75,23 @@ export function registerAdminPortal(app){
       }
       if(action==='overview'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/overview'));
       if(action==='accounts'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/accounts'));
+      if(action==='owner-authority'&&req.method==='GET')
+        return res.json(await callOperatorJson('GET','/v1/admin/owner-authority',null,headers(admin.token)));
+      if(action==='owner-transfer'&&req.method==='POST'){
+        // Password reauthentication, exact Origin and Operator-side Owner
+        // session checks are mandatory. A successful transfer revokes THIS
+        // account session so the caller must sign in using the new account.
+        if(String(req.headers?.origin||'')!==PUBLIC_ORIGIN)
+          return res.status(403).json({ok:false,error:'owner_transfer_origin_required'});
+        const result=await callOperatorJson('POST','/v1/admin/owner-transfer',{
+          toAccountId:req.body?.toAccountId,
+          currentPassword:req.body?.currentPassword,
+          confirmText:req.body?.confirmText,
+          acknowledgeDeviceIsolation:req.body?.acknowledgeDeviceIsolation===true
+        },headers(admin.token));
+        res.set('Cache-Control','no-store');
+        return res.json(result);
+      }
       if(action==='groups'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/groups'));
       if(action==='pending'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/pending-registrations'));
       if(action==='licenses'&&req.method==='GET')return res.json(await callOperatorJson('GET','/v1/admin/licenses'));

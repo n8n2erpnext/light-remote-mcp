@@ -51,6 +51,7 @@ const must={
  light_remote_process:['remote:execute',false,true],
  light_remote_terminal_input:['remote:terminal',false,true],
  light_remote_list_devices:['remote:read',true,false],
+ light_remote_discover_devices:['remote:read',true,false],
  light_remote_inspect_device:['remote:read',true,false],
  light_remote_recent_activity:['remote:read',true,false],
  light_remote_read_file:['remote:read',true,false],
@@ -66,4 +67,19 @@ for(const [name,[scope,readOnly,destructive]] of Object.entries(must)){
  assert.equal(config.annotations.readOnlyHint,readOnly,name+':read_only_mismatch');
  assert.equal(config.annotations.destructiveHint,destructive,name+':destructive_mismatch');
 }
+// Empty-file uploads are rejected by the device SCP implementation. The
+// public MCP schema must reject zero bytes BEFORE dispatch, not promise a
+// transfer which the Agent cannot commit.
+for(const toolName of ['light_remote_scp']){
+ const schema=registered.get(toolName)?.inputSchema?.totalBytes;
+ assert.ok(schema,toolName+':transfer_size_schema_missing');
+ assert.equal(schema.safeParse(0).success,false,toolName+':zero_bytes_must_reject');
+ assert.equal(schema.safeParse(-1).success,false,toolName+':negative_bytes_must_reject');
+ assert.equal(schema.safeParse(1).success,true,toolName+':positive_bytes_must_accept');
+}
+const discovery=registered.get('light_remote_discover_devices');
+assert.match(discovery.description,/BEFORE B approval/);
+assert.match(discovery.description,/onlineOnly/);
+assert.match(registered.get('light_remote_list_devices').description,
+ /An empty list does NOT mean devices are offline/);
 console.log('G1_GOLD_MCP_TOOL_METADATA_CONTRACT=PASS registered='+registered.size);
