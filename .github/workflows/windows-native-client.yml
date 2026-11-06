@@ -115,11 +115,16 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: client/desktop-v4/src-tauri -> target
-      - name: Verify Moryqa Windows Tray theme and installer contract
+      - name: Verify Windows Tray UI contract (native V4, legacy V3 elsewhere)
         shell: pwsh
         run: |
-          node deploy/scripts/selftest-windows-moryqa-tray-v3.mjs
-          if ($LASTEXITCODE -ne 0) { throw 'Moryqa Tray assets, automatic theme and Windows installer contract failed' }
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            node deploy/scripts/selftest-goldabv2-native-tray-menu.mjs
+            if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 native Windows menu contract failed' }
+          } else {
+            node deploy/scripts/selftest-windows-moryqa-tray-v3.mjs
+            if ($LASTEXITCODE -ne 0) { throw 'Legacy Moryqa Tray UI contract failed' }
+          }
       - name: Verify cross-platform physical typing route
         shell: pwsh
         run: |
