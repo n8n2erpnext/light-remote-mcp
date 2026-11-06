@@ -39,7 +39,16 @@ const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
 const windowsInstaller=read('client/windows-native/installer/GptOperator.iss');
 need(!exists('client/windows-native/GptOperator.Client/MainForm.cs')&&!exists('client/windows-native/GptOperator.Client/ConnectionSwitch.cs')&&!exists('client/windows-native/GptOperator.Client/ConnectionSettingsDialog.cs')&&!csproj.includes('<Compile Remove='),'desktop-no-native-window');
 need(csproj.includes('net8.0-windows10.0.17763.0'),'windows-10-11-target');
-need(winTray.includes('Open Local Wall')&&winTray.includes('Exit Tray UI')&&winTray.includes('Stop Light Remote'),'windows-tray-controls');
+const nativeWindowsTray = winTray.includes('new("Open Wall")') &&
+ winTray.includes('new("Open Light Remote")') &&
+ winTray.includes('new("Link / Relink")') &&
+ winTray.includes('new("Stop")') &&
+ winTray.includes('new("Exit")') &&
+ winTray.includes('ContextMenuStrip = menu') &&
+ !winTray.includes('new TrayPopoverForm(');
+const legacyWindowsTray = winTray.includes('Open Local Wall') &&
+ winTray.includes('Exit Tray UI') && winTray.includes('Stop Light Remote');
+need(nativeWindowsTray || legacyWindowsTray, 'windows-tray-controls');
 need(winInstall.includes("LightRemoteDeviceAgent")&&winInstall.includes("LightRemoteUpdater")&&winInstall.includes('-Execute $Updater')&&winInstall.includes('Light Remote\\Updater'),'windows-independent-runtime-updater');
 need(winInstall.includes('-Execute $Tray')&&winInstall.includes("--agent-host"),'windows-hidden-agent-task-host');
 need(winProgram.includes('--agent-host')&&winHost.includes('CreateNoWindow = true'),'windows-agent-no-console-window');

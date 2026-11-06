@@ -34,7 +34,12 @@ expect(program.includes('--open-wall')&&program.includes('--launch')&&program.in
 expect(!program.includes('--scheduled-update')&&!program.includes('--apply-update')&&!program.includes('--verify-update-fixture'),'replaceable_app_still_owns_updater');
 expect(!exists('client/windows-native/GptOperator.Client/UpdateClient.cs')&&!exists('client/windows-native/GptOperator.Client/UpdateApplier.cs'),'legacy_app_updater_sources_remain');
 expect(program.includes('if (!firstInstance) { if (launcher) OpenWall(); return; }'),'desktop_launcher_contract_missing');
-for(const token of ['NotifyIcon','Open Local Wall','Restart Light Remote','Check for updates','Stop Light Remote','Exit Tray UI','LightRemoteDeviceAgent','LightRemoteUpdater'])expect(tray.includes(token),`tray_contract_missing:${token}`);
+const legacyMenu=['NotifyIcon','Open Local Wall','Restart Light Remote','Check for updates','Stop Light Remote','Exit Tray UI','LightRemoteDeviceAgent','LightRemoteUpdater']
+  .every(token=>tray.includes(token));
+const nativeMenu=['NotifyIcon','Open Light Remote','Open Wall','Link / Relink','Check Update',
+  'Stop','Exit','LightRemoteDeviceAgent','LightRemoteUpdater','ContextMenuStrip = menu']
+  .every(token=>tray.includes(token)) && !tray.includes('new TrayPopoverForm(');
+expect(legacyMenu||nativeMenu,'windows_native_or_legacy_tray_contract_missing');
 expect(tray.includes('ExitThread()')&&!tray.includes('StopServiceAsync'),'quit_tray_must_not_stop_agent');
 expect(trayIcon.includes('BrandAssets.Mark'),'tray_brand_mark_missing');
 expect(updaterProject.includes('<AssemblyName>LightRemote.Updater</AssemblyName>')&&updaterProject.includes('<OutputType>WinExe</OutputType>'),'independent_updater_project_missing');
