@@ -29,6 +29,7 @@ const AUTHORIZE: &str = "https://goldabv2.light-remote.thaiduy.digital/account/d
 const TOKEN: &str = "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/token";
 const REFRESH: &str = "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/refresh";
 const SESSION: &str = "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/session";
+const SNAPSHOT: &str = "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/snapshot";
 const LOGOUT: &str = "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/logout";
 const RESOURCE: &str = "urn:light-remote:desktop-owner:v4";
 const CLIENT_ID: &str = "light-remote-desktop-v4";
@@ -656,6 +657,48 @@ pub(crate) async fn desktop_owner_wall_sso_approve(
     runtime.view()
 }
 
+
+// T06: Owner-only read snapshot from the public GoldABV2 HTTPS endpoint.
+// Native Rust alone handles the 10-minute token. A stale Owner generation,
+// missing server family or invalid response never reaches the React workspace.
+#[tauri::command]
+pub(crate) async fn desktop_owner_snapshot(
+    state:State<'_,OwnerRuntime>
+) -> Result<Value,String> {
+    let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
+    let snap=runtime.wall_snapshot().map_err(|_|"desktop_owner_data_unavailable")?;
+    let account=snap.account.clone();
+    let access=snap.access.clone();
+    let result=tauri::async_runtime::spawn_blocking(move|| {
+        if !verify_owner_session(&access,&account) {
+            return Err("desktop_owner_data_unavailable".to_string());
+        }
+        let response=http().map_err(|_|"desktop_owner_data_unavailable".to_string())?
+            .post(SNAPSHOT).bearer_auth(&access).json(&json!({}))
+            .send().map_err(|_|"desktop_owner_data_unavailable".to_string())?;
+        if !response.status().is_success() {
+            return Err("desktop_owner_data_unavailable".into());
+        }
+        let bytes=response.bytes().map_err(|_|"desktop_owner_data_unavailable".to_string())?;
+        if bytes.len()>262_144 {
+            return Err("desktop_owner_data_unavailable".into());
+        }
+        let value:Value=serde_json::from_slice(&bytes)
+            .map_err(|_|"desktop_owner_data_unavailable".to_string())?;
+        if value.get("ok").and_then(Value::as_bool)!=Some(true)||
+           value.get("accountId").and_then(Value::as_str)!=Some(account.as_str())||
+           !value.get("devices").is_some_and(Value::is_array)||
+           !value.get("sessions").is_some_and(Value::is_array)||
+           !value.get("grants").is_some_and(Value::is_array) {
+            return Err("desktop_owner_data_unavailable".into());
+        }
+        Ok(value)
+    }).await.map_err(|_|"desktop_owner_data_unavailable".to_string())??;
+    if !runtime.wall_snapshot_current(&snap) {
+        return Err("desktop_owner_data_unavailable".into());
+    }
+    Ok(result)
+}
 
 // T05: Real owner-bound pending A/B V2 and B approval via OS-local Agent.
 // The native Owner bearer is sent ONLY to its local Agent's private socket;

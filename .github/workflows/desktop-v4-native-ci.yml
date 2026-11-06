@@ -160,6 +160,7 @@ jobs:
       VITE_LR_V4_UI_TEST: '0'
       VITE_LR_V4_OWNER_LOGIN: '1'
       VITE_LR_V4_ABV2_NATIVE: '1' # signed Owner + same-host Agent IPC, not Wall/LXD
+      VITE_LR_V4_OWNER_SNAPSHOT: '1' # native signed Owner read model; backend separately OFF by default
       VITE_LR_V4_WALL_SSO_CANDIDATE: '0' # separate T04 local Wall SSO not accepted
     defaults:
       run:

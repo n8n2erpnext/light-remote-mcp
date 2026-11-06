@@ -107,7 +107,8 @@ fn main() {
             owner_login::desktop_owner_restore, owner_login::desktop_owner_logout,
             owner_login::desktop_owner_wall_sso_approve,
             owner_login::desktop_owner_abv2_pending,
-            owner_login::desktop_owner_abv2_approve
+            owner_login::desktop_owner_abv2_approve,
+            owner_login::desktop_owner_snapshot
         ])
         .run(tauri::generate_context!())
         .expect("Light Remote V4 Owner Login candidate startup failed");

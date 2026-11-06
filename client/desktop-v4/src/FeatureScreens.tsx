@@ -8,6 +8,7 @@ import { Button } from './components/ui/button';
 import { Card, CardHeading } from './components/ui/card';
 import type { RouteKey } from './lib/routes';
 import type { SnapshotResult } from './lib/status';
+import type { OwnerSnapshot } from './lib/native-snapshot';
 
 export type FeatureRoute = Extract<RouteKey,
   'sessions' | 'live-monitor' | 'devices' | 'long-memory' | 'codex-bridge' | 'account'>;
@@ -56,23 +57,43 @@ function FilterBar({ label, action }: { label: string; action?: string }) {
     {action ? <DisabledControl>{action}</DisabledControl> : null}
   </div>;
 }
-function Sessions() {
+function timestamp(value:number|null) {
+  return value===null?'—':new Date(value).toLocaleString();
+}
+function Sessions({snapshot}:{snapshot:OwnerSnapshot|null}) {
+  const rows=snapshot?.sessions||[];
+  const active=rows.filter(s=>s.state==='active').length;
+  const hold=rows.filter(s=>s.state==='hold').length;
+  const expiries=rows.filter(s=>s.expiresAt!==null&&
+    (s.state==='active'||s.state==='hold'))
+    .map(s=>s.expiresAt as number).sort((a,b)=>a-b);
   return <div className="screen-content feature-dashboard">
     <div className="feature-kpi-grid">
-      <UnknownKpi label="ACTIVE SESSIONS" hint="Signed sessions required" icon={Users} />
-      <UnknownKpi label="HELD / PENDING" hint="Lease state not verified" icon={LockKeyhole} />
-      <UnknownKpi label="NEXT EXPIRY" hint="No verified lease deadline" icon={Clock3} />
+      <UnknownKpi label="ACTIVE SESSIONS" hint={snapshot?'Owner verified':'Signed sessions required'} icon={Users}
+        value={snapshot?String(active):'—'} />
+      <UnknownKpi label="HELD / PENDING" hint={snapshot?'Live Agent lanes':'Lease state not verified'} icon={LockKeyhole}
+        value={snapshot?String(hold):'—'} />
+      <UnknownKpi label="NEXT EXPIRY" hint="Server-reported lease deadline" icon={Clock3}
+        value={snapshot&&expiries.length?timestamp(expiries[0]):'—'} />
     </div>
     <Card>
       <div className="feature-section-title">
-        <CardHeading description="Sessions, nicknames, 24-hour leases and server receipts">AI SESSIONS</CardHeading>
-        <span className="feature-state-label">UNVERIFIED</span>
+        <CardHeading description="Owner-scoped signed session registry">AI SESSIONS</CardHeading>
+        <span className="feature-state-label">{snapshot?'VERIFIED':'UNVERIFIED'}</span>
       </div>
-      <FilterBar label="Search verified sessions" action="Filter status" />
-      <FeatureTable label="AI sessions" columns={['Agent / nickname', 'Device', 'Lease', 'State', 'Action']}
-        description="A signed session collection is required before displaying rows, expiry times or close controls." />
+      {snapshot?<div className="feature-table feature-table-scroll" role="region" aria-label="AI sessions">
+        <table><thead><tr><th>Agent / nickname</th><th>Device</th><th>Lease</th><th>State</th><th>Action</th></tr></thead>
+          <tbody>{rows.length?rows.map(row=><tr key={row.sessionId}>
+            <td>{row.name||row.agentId||'Agent'}<small className="muted"> {row.sessionId}</small></td>
+            <td>{snapshot.devices.find(d=>d.deviceId===row.deviceId)?.name||row.deviceId}</td>
+            <td>{timestamp(row.expiresAt)}</td><td>{row.state}</td>
+            <td>Owner close API not connected</td>
+          </tr>):<tr><td colSpan={5}>No sessions in verified Owner registry</td></tr>}</tbody>
+        </table>
+      </div>:<FeatureTable label="AI sessions" columns={['Agent / nickname','Device','Lease','State','Action']}
+         description="Signed Owner session API unavailable. No session list can be inferred." />}
     </Card>
-    <SourceUnavailable description="Session listing and manual close require Owner authorization. No session query or mutation was sent." />
+    {!snapshot&&<SourceUnavailable description="Owner session listing unavailable. No session query or mutation was authorized." />}
   </div>;
 }
 function LiveMonitor({ status }: { status: SnapshotResult | null }) {
@@ -108,23 +129,29 @@ function LiveMonitor({ status }: { status: SnapshotResult | null }) {
     <SourceUnavailable description="A Local Wall device snapshot cannot authorize job inspection, cancellation or execution. No synthetic records are displayed." />
   </div>;
 }
-function Devices() {
+function Devices({snapshot}:{snapshot:OwnerSnapshot|null}) {
+  const rows=snapshot?.devices||[];
   return <div className="screen-content feature-dashboard">
     <div className="feature-kpi-grid">
-      <UnknownKpi label="MY DEVICES" hint="Owner device list unavailable" icon={Monitor} />
-      <UnknownKpi label="ONLINE DEVICES" hint="Full fleet state not verified" icon={Server} />
-      <UnknownKpi label="PENDING LINKS" hint="Enrollment requests unavailable" icon={KeyRound} />
+      <UnknownKpi label="MY DEVICES" hint={snapshot?'Verified Owner inventory':'Owner device list unavailable'} icon={Monitor} value={snapshot?String(rows.length):'—'} />
+      <UnknownKpi label="ONLINE DEVICES" hint="Signed account inventory" icon={Server} value={snapshot?String(rows.filter(d=>d.state==='online').length):'—'} />
+      <UnknownKpi label="PENDING LINKS" hint="Enrollment requests not bound" icon={KeyRound} />
     </div>
     <Card>
       <div className="feature-section-title">
         <CardHeading description="Owner-scoped device inventory with stable Short IDs">DEVICES</CardHeading>
         <div className="feature-actions"><DisabledControl>New Link</DisabledControl><DisabledControl>Relink</DisabledControl></div>
       </div>
-      <FilterBar label="Search verified devices" action="Filter devices" />
-      <FeatureTable label="Devices inventory" columns={['Device', 'Short ID', 'OS', 'Connection', 'Last seen', 'Action']}
-        description="No devices can be enumerated from this pilot. New Link and Relink require signed enrollment with identity preservation." />
+      {snapshot?<div className="feature-table feature-table-scroll" role="region" aria-label="Devices inventory">
+        <table><thead><tr><th>Device</th><th>Short ID</th><th>OS</th><th>Connection</th><th>Last seen</th></tr></thead>
+          <tbody>{rows.length?rows.map(d=><tr key={d.deviceId}><td>{d.name||d.deviceId}</td>
+            <td>{d.shortId||'—'}</td><td>{d.os||'—'}</td><td>{d.state}</td>
+            <td>{timestamp(d.lastSeenAt)}</td></tr>):<tr><td colSpan={5}>No Owner devices</td></tr>}</tbody>
+        </table></div>:<FeatureTable label="Devices inventory"
+        columns={['Device','Short ID','OS','Connection','Last seen']}
+        description="Owner device collection has not been verified." />}
     </Card>
-    <SourceUnavailable description="A/B V2 code refresh, enrollment polling, device changes and Owner recovery are blocked pending verified capability contracts." />
+    <SourceUnavailable description="New Link, Relink and device mutations require a separate signed Owner mutation contract." />
   </div>;
 }
 function LongMemory() {
@@ -190,45 +217,44 @@ function CodexBridge() {
     <SourceUnavailable description="The bridge is optional and this pilot has no process authority or task provider." />
   </div>;
 }
-function Account() {
+function Account({snapshot}:{snapshot:OwnerSnapshot|null}) {
   return <div className="screen-content feature-dashboard">
     <div className="feature-split">
-      <Card>
-        <CardHeading description="Owner identity verified by the actual account service">MY ACCOUNT</CardHeading>
-        <div className="feature-identity"><div className="feature-avatar" aria-hidden="true">?</div>
-          <div><strong>Identity not verified</strong><p>No Owner profile loaded</p></div></div>
-        <DisabledControl>Sign in to account</DisabledControl>
+      <Card><CardHeading description="Owner identity verified by native HTTPS + Operator">MY ACCOUNT</CardHeading>
+        <div className="feature-identity"><div className="feature-avatar" aria-hidden="true">{snapshot?.account.email?.[0]?.toUpperCase()||'?'}</div>
+          <div><strong>{snapshot?.account.email||'Identity not verified'}</strong>
+            <p>{snapshot?'Verified Owner session':'No Owner profile loaded'}</p></div></div>
+        {!snapshot&&<DisabledControl>Sign in to account</DisabledControl>}
       </Card>
-      <Card>
-        <CardHeading description="Free / Pro / VIP from server only">CURRENT PLAN</CardHeading>
+      <Card><CardHeading description="Server-issued plan only">CURRENT PLAN</CardHeading>
         <div className="feature-pairs">
-          <div><span>Plan</span><strong>—</strong></div>
-          <div><span>Monthly call allowance</span><strong>—</strong></div>
-          <div><span>Remaining calls</span><strong>—</strong></div>
+          <div><span>Plan</span><strong>{snapshot?.account.plan||'—'}</strong></div>
+          <div><span>Monthly call allowance</span><strong>{snapshot?.entitlements.toolCallLimit??'—'}</strong></div>
+          <div><span>Calls this month</span><strong>{snapshot?.usage.toolCallsThisMonth??'—'}</strong></div>
         </div>
       </Card>
     </div>
     <div className="feature-kpi-grid">
-      <UnknownKpi label="CALLS THIS MONTH" hint="No account-scoped totals" icon={Activity} />
-      <UnknownKpi label="DEVICES IN ACCOUNT" hint="Owner device inventory absent" icon={Monitor} />
-      <UnknownKpi label="CURRENT BILLING PERIOD" hint="Not verified" icon={Clock3} />
+      <UnknownKpi label="CALLS THIS MONTH" hint="Server-issued usage" icon={Activity}
+        value={snapshot?String(snapshot.usage.toolCallsThisMonth??'—'):'—'} />
+      <UnknownKpi label="DEVICES IN ACCOUNT" hint="Verified Owner inventory" icon={Monitor}
+        value={snapshot?String(snapshot.devices.length):'—'} />
+      <UnknownKpi label="CURRENT BILLING PERIOD" hint="Billing dates not bound" icon={Clock3} />
     </div>
-    <Card>
-      <CardHeading description="Only server-issued call counts per verified device">USAGE BY DEVICE</CardHeading>
-      <FeatureTable label="Usage by device" columns={['Device', 'Month', 'Calls', 'Allowance', 'Plan']}
-        description="Unknown call counts remain blank. No free/Pro/VIP identity is inferred from Local Wall status." />
+    <Card><CardHeading description="Owner usage via purpose-scoped native API">USAGE BY DEVICE</CardHeading>
+      <FeatureTable label="Usage by device" columns={['Device','Month','Calls','Allowance','Plan']}
+        description="Per-device usage remains unavailable until a separately projected server response is implemented." />
     </Card>
-    <SourceUnavailable description="Account identity, logout, billing, upgrade and usage need verified account APIs, which are not connected." />
+    {!snapshot&&<SourceUnavailable description="Account identity, billing and usage need verified Owner data. No local Wall status is treated as login." />}
   </div>;
 }
-
-export function FeatureScreen({ route, status }: { route: FeatureRoute; status: SnapshotResult | null }) {
+export function FeatureScreen({ route, status, snapshot }: { route: FeatureRoute; status: SnapshotResult | null; snapshot?: OwnerSnapshot | null }) {
   switch (route) {
-    case 'sessions': return <Sessions />;
+    case 'sessions': return <Sessions snapshot={snapshot??null} />;
     case 'live-monitor': return <LiveMonitor status={status} />;
-    case 'devices': return <Devices />;
+    case 'devices': return <Devices snapshot={snapshot??null} />;
     case 'long-memory': return <LongMemory />;
     case 'codex-bridge': return <CodexBridge />;
-    case 'account': return <Account />;
+    case 'account': return <Account snapshot={snapshot??null} />;
   }
 }

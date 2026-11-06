@@ -18,6 +18,8 @@ import { nativeOwnerAvailable, nativeOwnerBegin, nativeOwnerStatus,
 import {nativeWallSsoCandidateAvailable,nativeApproveWallCode} from './lib/native-wall-sso';
 import {nativeAbv2Available,nativeAbv2Pending,nativeAbv2Approve,
   type NativeAbv2Status,type NativeAbv2Request} from './lib/native-abv2';
+import {nativeOwnerSnapshotAvailable,nativeOwnerSnapshot,
+  type OwnerSnapshot,type SnapshotView} from './lib/native-snapshot';
 
 const iconMap: Record<(typeof navRoutes)[number]['icon'], LucideIcon> = {
   house: House,
@@ -247,25 +249,28 @@ function AuthorizationPolicy({native}:{native:NativeAbv2Status|null}) {
   );
 }
 
-function ActiveGrants({native}:{native:NativeAbv2Status|null}) {
-  return (
-    <Card className="grants-card">
-      <CardHeading description="Per-Agent lease, nickname and verified revocation state">
-        ACTIVE AGENT GRANTS
-      </CardHeading>
-      <div className="grants-surface">
-        <h3>{native?.state==='ready'?'Signed grant listing not yet connected':'No verified grants'}</h3>
-        <p>Approvals above are real Agent/Operator actions when enabled. Active session and grant rows require a separate signed collection API.</p>
-        <p>Revocation or renewal requires authenticated Owner authority.</p>
-        <span className="status-tag">{native?.state==='ready'?'Waiting for grant registry API':'Awaiting verified Owner API'}</span>
-      </div>
-    </Card>
-  );
+function ActiveGrants({snapshot}:{snapshot:OwnerSnapshot|null}) {
+  return <Card className="grants-card">
+    <CardHeading description="Verified Owner and Operator per-Agent registry">ACTIVE AGENT GRANTS</CardHeading>
+    {snapshot?<div className="feature-table feature-table-scroll" role="region" aria-label="Active Agent Grants">
+      <table><thead><tr><th>Agent</th><th>Device</th><th>Approved</th><th>Expires</th></tr></thead>
+        <tbody>{snapshot.grants.length?snapshot.grants.map(g=><tr key={g.grantId}>
+          <td>{g.agentId||g.grantId}</td>
+          <td>{snapshot.devices.find(d=>d.deviceId===g.deviceId)?.name||g.deviceId}</td>
+          <td>{g.approvedAt===null?'—':new Date(g.approvedAt).toLocaleString()}</td>
+          <td>{g.expiresAt===null?'—':new Date(g.expiresAt).toLocaleString()}</td>
+        </tr>):<tr><td colSpan={4}>No active grants in verified Owner registry</td></tr>}</tbody>
+      </table></div>:<div className="grants-surface">
+      <h3>No verified grants</h3>
+      <p>Owner-scoped grant API is disabled or could not be verified. No grants are inferred.</p>
+    </div>}
+    <p className="muted">Per-Agent revoke and renewal require a separately authorized mutation API.</p>
+  </Card>;
 }
-
-function AiAccess({ status,native,refresh,approving,onApprove }: {
+function AiAccess({ status,native,refresh,approving,onApprove,snapshot }: {
   status:LoadState;
   native:NativeAbv2Status|null;
+  snapshot:OwnerSnapshot|null;
   refresh:()=>void;
   approving:boolean;
   onApprove:(request:NativeAbv2Request,bCode:string,consentCode:string)=>Promise<boolean>;
@@ -276,17 +281,18 @@ function AiAccess({ status,native,refresh,approving,onApprove }: {
         <PendingApprovals native={native} refresh={refresh} approving={approving} onApprove={onApprove} />
         <AuthorizationPolicy native={native} />
       </div>
-      <ActiveGrants native={native} />
+      <ActiveGrants snapshot={snapshot} />
       <DataBoundaryNotice status={status} />
     </div>
   );
 }
 
-function Overview({ status, navigate, wallProbe, abv2 }: {
+function Overview({ status, navigate, wallProbe, abv2, snapshot }: {
   status: LoadState;
   navigate: (route: RouteKey) => void;
   wallProbe: NativeWallProbe;
   abv2: NativeAbv2Status|null;
+  snapshot: OwnerSnapshot|null;
 }) {
   const verified = status.result?.state === 'ready' ? status.result.device : null;
   return (
@@ -302,8 +308,8 @@ function Overview({ status, navigate, wallProbe, abv2 }: {
         </Card>
         <Card className="metric-card">
           <CardHeading>AI SESSIONS</CardHeading>
-          <strong className="metric-value">—</strong>
-          <span className="muted">Authenticated session list not bound</span>
+          <strong className="metric-value">{snapshot?snapshot.sessions.filter(s=>s.state==='active'||s.state==='hold').length:'—'}</strong>
+          <span className="muted">{snapshot?'Verified Owner session registry':'Authenticated session list unavailable'}</span>
         </Card>
         <Card className="metric-card">
           <CardHeading>PENDING APPROVALS</CardHeading>
@@ -322,7 +328,7 @@ function Overview({ status, navigate, wallProbe, abv2 }: {
         </Card>
         <Card>
           <CardHeading description="Signed leases and verified terminal states">AGENT SESSIONS</CardHeading>
-          <div className="inset"><h3>No verified sessions to display</h3><p>Sessions appear after Owner approval.</p></div>
+          <div className="inset"><h3>{snapshot?`${snapshot.sessions.length} verified session(s)`:'No verified sessions to display'}</h3><p>{snapshot?'View Owner session registry for per-Agent state.':'Sessions appear after Owner approval.'}</p><Button variant="secondary" onClick={()=>navigate('sessions')}>View Sessions</Button></div>
         </Card>
         <Card>
           <CardHeading description="Jobs · output · execution evidence">LIVE MONITOR</CardHeading>
@@ -447,6 +453,23 @@ export function App() {
   const nativeOwnerVerified = nativeLoginAvailable && nativeOwner.phase === 'verified';
   const nativeAbv2Pilot=!UI_DESIGN_PREVIEW&&nativeOwnerVerified&&nativeAbv2Available();
   const [abv2,setAbv2]=useState<NativeAbv2Status>({state:'unavailable',reason:'not_checked'});
+  const [ownerData,setOwnerData]=useState<SnapshotView>({state:'unavailable',reason:'not_checked'});
+  const snapshot=ownerData.state==='ready' && nativeOwnerVerified &&
+    ownerData.accountId===nativeOwner.accountId?ownerData:null;
+  useEffect(()=>{
+    if(!nativeOwnerVerified||!nativeOwner.accountId||!nativeOwnerSnapshotAvailable()){
+      setOwnerData({state:'unavailable',reason:'owner_api_unavailable'});
+      return;
+    }
+    let alive=true;
+    const accountId=nativeOwner.accountId;
+    const load=()=>{void nativeOwnerSnapshot(accountId).then(next=>{
+      if(alive)setOwnerData(next);
+    });};
+    load();
+    const interval=window.setInterval(load,20_000);
+    return ()=>{alive=false;window.clearInterval(interval);};
+  },[nativeOwnerVerified,nativeOwner.accountId]);
   const [abv2Approving,setAbv2Approving]=useState(false);
   const refreshAbv2=useCallback(()=>{
     if(!nativeAbv2Pilot)return;
@@ -636,10 +659,10 @@ export function App() {
             {wallSsoResult && <p role="status">{wallSsoResult}</p>}
           </section>
         )}
-        {route === 'overview' ? <Overview status={status} navigate={navigate} wallProbe={wallProbe} abv2={nativeAbv2Pilot?abv2:null} />
-          : route === 'ai-access' ? <AiAccess status={status} native={nativeAbv2Pilot?abv2:null} refresh={refreshAbv2} approving={abv2Approving} onApprove={approveAbv2} />
+        {route === 'overview' ? <Overview status={status} navigate={navigate} wallProbe={wallProbe} abv2={nativeAbv2Pilot?abv2:null} snapshot={snapshot} />
+          : route === 'ai-access' ? <AiAccess status={status} native={nativeAbv2Pilot?abv2:null} snapshot={snapshot} refresh={refreshAbv2} approving={abv2Approving} onApprove={approveAbv2} />
             : route === 'settings' ? <SettingsPage theme={theme} choose={choose} status={status} openWall={requestOpenWall} canOpenWall={canOpenWall} />
-              : <FeatureScreen route={route} status={status.result} />}
+              : <FeatureScreen route={route} status={status.result} snapshot={snapshot} />}
         <footer className="page-footer">
           <CircleHelp size={14} aria-hidden="true" />
           {inDesignPreview ? 'Desktop V4 UI preview · not authenticated · no Owner grants or Agent mutations' : 'Desktop Owner verified - Local Wall and Agent A/B authorization remain separate'}
