@@ -24,7 +24,7 @@ const data=({verified=true,devices=null,sessions=null,grants=null}={})=>{
     account:(id)=>({...state,accountId:id})},
   allDeviceViews:()=>actualDevices,sessions:{list:()=>actualSessions},
   accessGrants:{activeGrantsForDevice:()=>actualGrants},
-  usage:{summary:()=>({toolCallsThisMonth:12,rawSecret:'NEVER'})},
+  usage:{summary:()=>({currentMonth:'2026-11',toolCallsThisMonth:12,rawSecret:'NEVER',devices:[{deviceId:'dev-a',toolCalls:9,onlineMs:3600000,secret:'NEVER'},{deviceId:'dev-foreign',toolCalls:2,onlineMs:10}]})},
   planEntitlements:()=>({plan:'pro',toolCallLimit:500,rawSecret:'NEVER'}),
   now:()=>1234
  });
@@ -37,6 +37,8 @@ test('native Owner read model excludes foreign devices/Agent, secret fields and 
  assert.equal(result.grants.length,1);
  assert.equal(result.account.email,'owner@example.test');
  assert.equal(result.usage.toolCallsThisMonth,12);
+ assert.equal(result.usage.month,'2026-11');
+ assert.deepEqual(result.usage.byDevice,[{deviceId:'dev-a',toolCalls:9,onlineMs:3600000}]);
  assert.ok(!JSON.stringify(result).includes('TOP_SECRET'));
  assert.ok(!JSON.stringify(result).includes('NEVER'));
  assert.ok(!JSON.stringify(result).includes('/private/work'));

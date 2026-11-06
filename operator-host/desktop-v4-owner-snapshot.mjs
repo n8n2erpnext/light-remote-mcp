@@ -55,6 +55,13 @@ export function createDesktopV4OwnerSnapshot({
    }
   }
   const rawUsage=usage.summary(accountId,{months:1});
+  if(!Array.isArray(rawUsage?.devices)||rawUsage.devices.length>maxDevices)
+    deny('desktop_snapshot_usage_unavailable',503);
+  const usageMonth=/^\d{4}-(0[1-9]|1[0-2])$/.test(String(rawUsage.currentMonth||''))
+    ?rawUsage.currentMonth:null;
+  const byDevice=rawUsage.devices.filter(row=>owned.has(row?.deviceId))
+    .map(row=>({deviceId:row.deviceId,toolCalls:finite(row.toolCalls),
+      onlineMs:finite(row.onlineMs)}));
   const ent=planEntitlements(account);
   // Typed fields only: account password hashes, registration metadata,
   // device credentials, raw workspace paths and usage internals are omitted.
@@ -63,7 +70,7 @@ export function createDesktopV4OwnerSnapshot({
     status:'active',emailVerified:true},
    entitlements:{plan:string(ent?.plan,40),
     toolCallLimit:finite(ent?.toolCallLimit)},
-   usage:{toolCallsThisMonth:finite(rawUsage?.toolCallsThisMonth)},
+   usage:{month:usageMonth,toolCallsThisMonth:finite(rawUsage?.toolCallsThisMonth),byDevice},
    devices,sessions:sessionRows,grants});
  };
 }
