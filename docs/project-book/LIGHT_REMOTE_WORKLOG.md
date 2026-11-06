@@ -1101,3 +1101,6 @@ GitHub Windows run 42185548184 PASS end-to-end full Inno setup from merged commi
 
 ## 2026-11-06 — T07c server-authoritative A/B V2 (source)
 Root-cause Windows screenshot: Tray default was gold.light-remote.thaiduy.digital, not isolated goldabv2.light-remote.thaiduy.digital. LAB R5 same UI source but operator server V1 issuance routes were not universally fenced. Fixed Operator-side deny + signed pairingMode in status; local Wall starts V1 hidden and no fallback on errors; V4 fresh-install endpoint GoldABV2 via compile symbol, saved Gold endpoint preserved pending explicit relink. New 3/3 server/Wall tests + Lab and R5 regressions PASS. No deployed server or Windows reinstall acceptance yet.
+
+## 2026-11-06 — GoldABV2 isolated Operator V1 lock live PASS, Windows CI dependency fix
+Operator-only LXD Lab runtime now `source-9d996956-desktop-owner-operator-v1lock-0ce120cb-STAGED`; direct Unix V1 probes 423 5/5 PASS and 3 services active. Backup /opt/light-remote-abv2-lab/rollback/operator-before-v1lock-0ce120cb-20261106.conf. Current Wall R5 unchanged. Windows run 42194760685 failed before install because early LAB selftest lacked zod (npm ci occurs later); moved dependency install to that test step. No new user installer delivered or old Windows enrollment auto-migrated.

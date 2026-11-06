@@ -174,6 +174,10 @@ jobs:
         if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
         shell: pwsh
         run: |
+          # The Lab V1 regression imports plugin-server/tools.mjs (zod).
+          # This early CI step runs before the later global dependency stage.
+          npm ci --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 source regression dependency install failed' }
           node --test operator-host/gold-ab-v2-server-v1-lock.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Operator legacy pairing lock regression' }
           node deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs
