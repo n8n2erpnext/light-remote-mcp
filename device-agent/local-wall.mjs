@@ -425,9 +425,9 @@ async function refreshAbV2WallMode(){
     const legacy=document.querySelector('.paircontrol');
     if(legacy)legacy.style.display='none';
     pairingA='';pairingExpiresAt=0;pairingVisible=false;renderPairing();
-    const shortId=/^[0-9A-HJKMNP-TV-Z]{6}$/.test(String(data.shortId||''))?String(data.shortId):'—';
+    const shortId=/^[0-9A-HJKMNP-TV-Z]{6}$/.test(String(data.shortId||''))?String(data.shortId):null;
     const short=document.getElementById('abV2ShortId');
-    if(short)short.textContent=shortId;
+    if(short&&shortId)short.textContent=shortId;
     const badge=document.getElementById('abV2WallStatus');
     if(badge)badge.style.display='inline-flex';
     // Only Operator pending state and expiry controls the display. No client grant or A code generation.
@@ -522,6 +522,12 @@ function ingest(e,queue=true){if(!e||eventSeen(e))return;if(paused&&queue){const
     j.status='running';
   }else if(e.type==='stdout'||e.type==='stderr'){if(!j)return;const chunk=safeOutputChunk(e.chunk);if(chunk&&!(chunk===LEGACY_BINARY_MARKER&&j[e.type].endsWith(LEGACY_BINARY_MARKER)))j[e.type]=(j[e.type]+chunk).slice(-32768);}else if(e.type==='job_finished'){if(!j){j={jobId:e.jobId,requestId:e.requestId,sessionId:e.sessionId,agentId:e.agentId,status:e.status||'ok',cwd:e.cwd||'',script:e.script||'',note:e.note||'',toolMeta:e.toolMeta||null,requiredCapabilities:e.requiredCapabilities||[],resultSummary:e.resultSummary||'',stdout:'',stderr:'',at:e.at};jobs.set(e.jobId,j);}Object.assign(j,{status:e.status,stopRequested:false,exitCode:e.exitCode,durationMs:e.durationMs,cwd:e.cwd??j.cwd,script:e.script??j.script,note:e.note??j.note,requiredCapabilities:e.requiredCapabilities||j.requiredCapabilities||[],resultSummary:e.resultSummary||j.resultSummary||'',toolMeta:e.toolMeta||j.toolMeta||null});}else if(e.type?.startsWith('session_')||e.type?.startsWith('device_')||e.type?.startsWith('device_access_'))refreshStatus(e.type==='device_access_approved');rememberEvent(e);while(jobs.size>200){const oldest=[...jobs.values()].find(x=>!['running','queued','stopping'].includes(x.status));if(!oldest)break;jobs.delete(oldest.jobId);document.getElementById('j-'+oldest.jobId)?.remove();}if(j)scheduleRender(j.jobId);}
 let statusEpoch=0;async function refreshStatus(fresh=false){const epoch=statusEpoch;try{const r=await fetch('/api/status'+(fresh?'?fresh=1':''),{cache:'no-store'}),d=await r.json();if(epoch!==statusEpoch)return;localState=d.local||null;remoteState=d.remote||null;
+  // The signed Operator status supplies this device's immutable Short ID even
+  // when the separately allowlisted pending-approval preview is unavailable.
+  if(/^[0-9A-HJKMNP-TV-Z]{6}$/.test(String(remoteState?.shortId||''))){
+    const short=document.getElementById('abV2ShortId');
+    if(short)short.textContent=remoteState.shortId;
+  }
   if(remoteState?.pairingMode==='abv2_only'){serverPairingMode='abv2_only';abV2ModeLatched=true;}
   else if(serverPairingMode!=='abv2_only'&&remoteState?.pairingMode==='legacy_allowed')serverPairingMode='legacy_allowed';
   // The server can lock V1; a transient response cannot downgrade to V1.

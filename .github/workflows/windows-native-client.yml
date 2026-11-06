@@ -180,6 +180,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 source regression dependency install failed' }
           node deploy/scripts/selftest-goldabv2-desktop-target.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Desktop package target isolation regression' }
+          node deploy/scripts/selftest-goldabv2-native-tray-menu.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 native Windows menu and signed Short ID / Main regression' }
           node --test operator-host/gold-ab-v2-server-v1-lock.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Operator legacy pairing lock regression' }
           node deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs

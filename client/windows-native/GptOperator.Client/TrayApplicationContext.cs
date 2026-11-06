@@ -15,7 +15,10 @@ internal sealed record TrayAgentSnapshot(
     bool FleetHealthy,
     string? FleetUrl,
     string? PendingEnrollmentId = null,
-    string DeviceName = ""
+    string DeviceName = "",
+    string? ShortId = null,
+    bool IsMain = false,
+    int PendingUpdates = 0
 );
 
 internal sealed class TrayApplicationContext : ApplicationContext
@@ -23,26 +26,24 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private const string AgentTask = "LightRemoteDeviceAgent";
     private const string UpdateTask = "LightRemoteUpdater";
     private const string WallUrl = "http://127.0.0.1:5491/";
-    private const string AccountUrl = "https://light-remote.thaiduy.digital/account";
+    private static string AccountUrl => ConnectionConfig.Load().BridgeUrl.TrimEnd('/') + "/account";
     private const string LocalFleetUrl = "http://127.0.0.1:5492/";
 
     private readonly NotifyIcon _tray;
-    private readonly TrayPopoverForm _popover;
-    private readonly ContextMenuStrip _advancedMenu;
+    // Genuine Windows native context menu. The old 500x740 custom popup is
+    // intentionally NOT constructed or shown.
+    private readonly ContextMenuStrip _nativeMenu;
     private readonly ToolStripMenuItem _state = new("Starting...") { Enabled = false };
     private readonly ToolStripMenuItem _deviceInfo = new("Windows device") { Enabled = false };
-    private readonly ToolStripMenuItem _sessions = new("Authorized AI sessions");
-    private readonly ToolStripMenuItem _viewSessions = new("View sessions in Local Wall");
-
-    private readonly ToolStripMenuItem _openWall = new("Open Local Wall");
+    private readonly ToolStripMenuItem _openApp = new("Open Light Remote");
+    private readonly ToolStripMenuItem _openWall = new("Open Wall");
     private readonly ToolStripMenuItem _openFleet = new("Open Fleet") { Visible = false, Enabled = false };
     private readonly ToolStripMenuItem _account = new("Manage Account");
-    private readonly ToolStripMenuItem _relink = new("Relink this Windows PC…");
-    private readonly ToolStripMenuItem _connect = new("Connect");
-    private readonly ToolStripMenuItem _restart = new("Restart Light Remote");
-    private readonly ToolStripMenuItem _update = new("Check for updates");
-    private readonly ToolStripMenuItem _serviceToggle = new("Stop Light Remote");
-    private readonly ToolStripMenuItem _quit = new("Exit Tray UI");
+    private readonly ToolStripMenuItem _relink = new("Link / Relink");
+    private readonly ToolStripMenuItem _restart = new("Restart");
+    private readonly ToolStripMenuItem _update = new("Check Update");
+    private readonly ToolStripMenuItem _serviceToggle = new("Stop");
+    private readonly ToolStripMenuItem _quit = new("Exit");
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 5000 };
 
     private bool _busy;
@@ -56,35 +57,27 @@ internal sealed class TrayApplicationContext : ApplicationContext
     {
         ClientEvent("tray_started", new { version = Application.ProductVersion });
 
+        // Standard Windows ContextMenuStrip, not the custom popover/web UI.
         var menu = new ContextMenuStrip();
-        UiTheme.StyleMenu(menu);
-        menu.Items.Add(_state);
         menu.Items.Add(_deviceInfo);
-        _sessions.DropDownItems.Add(_viewSessions);
-        menu.Items.Add(_sessions);
+        menu.Items.Add(_state);
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(_openApp);
         menu.Items.Add(_openWall);
         menu.Items.Add(_openFleet);
         menu.Items.Add(_account);
         menu.Items.Add(_relink);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(_connect);
         menu.Items.Add(_restart);
         menu.Items.Add(_serviceToggle);
         menu.Items.Add(_update);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_quit);
-
-        // Refresh palette each time the user opens the menu: Windows can change
-        // AppsUseLightTheme without restarting the Agent or tray.
-        menu.Opening += (_, _) => UiTheme.StyleMenu(menu);
-        _state.Font = UiTheme.Font(10f, FontStyle.Bold);
+        _openApp.Click += (_, _) => OpenDesktopApp();
         _openWall.Click += async (_, _) => await OpenWallAsync();
-        _viewSessions.Click += async (_, _) => await OpenWallAsync();
         _openFleet.Click += (_, _) => OpenFleet();
         _account.Click += (_, _) => OpenUrl(AccountUrl, "account_open_failed");
         _relink.Click += async (_, _) => await RelinkWindowsAsync();
-        _connect.Click += async (_, _) => await ToggleConnectionAsync();
         _restart.Click += async (_, _) => await RestartLightRemoteAsync();
         _serviceToggle.Click += async (_, _) => await ToggleServiceAsync();
         _update.Click += async (_, _) => await CheckForUpdatesAsync();
@@ -94,37 +87,17 @@ internal sealed class TrayApplicationContext : ApplicationContext
         {
             Visible = true,
             Text = "Light Remote",
-            ContextMenuStrip = null,
+            ContextMenuStrip = menu,
             Icon = TrayIconFactory.Create(TrayVisualState.Stopped)
         };
-        _advancedMenu = menu;
-        _popover = new TrayPopoverForm(async action =>
-        {
-            switch (action)
-            {
-                case "wall": await OpenWallAsync(); break;
-                case "approval": OpenUrl(WallUrl + "approve", "owner_access_open_failed"); break;
-                case "fleet": OpenFleet(); break;
-                case "account": OpenUrl(AccountUrl, "account_open_failed"); break;
-                case "connect": await ToggleConnectionAsync(); break;
-                case "relink": await RelinkWindowsAsync(); break;
-                case "restart": await RestartLightRemoteAsync(); break;
-                case "service": await ToggleServiceAsync(); break;
-                case "updates": await CheckForUpdatesAsync(); break;
-                case "quit": ExitThread(); break;
-                // "more" and "overview" are handled internally by TrayPopoverForm.
-                case "more": break;
-            }
-        });
-        // Both mouse buttons open the branded V3 tray. Advanced native actions
-        // live under More actions; the user should never land in the old menu
-        // as the primary right-click experience.
+        _nativeMenu = menu;
+        // Windows opens the native menu on right-click automatically. Left
+        // click opens the same menu; double-click opens the unified V4 app.
         _tray.MouseClick += (_, e) =>
         {
-            if (e.Button == MouseButtons.Left || e.Button == MouseButtons.Right)
-                _popover.Toggle(Cursor.Position);
+            if (e.Button == MouseButtons.Left) _nativeMenu.Show(Cursor.Position);
         };
-        _tray.DoubleClick += async (_, _) => await OpenWallAsync();
+        _tray.DoubleClick += (_, _) => OpenDesktopApp();
 
         _timer.Tick += async (_, _) => await RefreshAsync();
         _timer.Start();
@@ -398,12 +371,20 @@ internal sealed class TrayApplicationContext : ApplicationContext
         return "Disconnected";
     }
 
+    internal static string DeviceHeader(string hostname, string? shortId)
+    {
+        var host = string.IsNullOrWhiteSpace(hostname) ? "Windows" : hostname.Trim();
+        var code = shortId is not null && Regex.IsMatch(shortId, "^[0-9A-HJKMNP-TV-Z]{6}$")
+            ? shortId : "------";
+        return host + " - Short ID : " + code;
+    }
+
     private static string TrimTrayText(string text)
         => text.Length <= 63 ? text : text[..63];
 
     private static string? FleetUrl(TrayAgentSnapshot status)
     {
-        if (!status.StatusAvailable || !status.Enrolled) return null;
+        if (!status.StatusAvailable || !status.Enrolled || !status.IsMain) return null;
         return status.FleetHealthy ? (string.IsNullOrWhiteSpace(status.FleetUrl) ? LocalFleetUrl : status.FleetUrl) : null;
     }
 
@@ -430,7 +411,23 @@ internal sealed class TrayApplicationContext : ApplicationContext
         }
         var deviceName = root.TryGetProperty("deviceName", out var dn)
             && dn.ValueKind == JsonValueKind.String ? dn.GetString() ?? "" : "";
-        return new(true, enrolled, desired, cloudState, plan, lastError, fleetHealthy, fleetUrl, pendingId, deviceName);
+        var shortId = root.TryGetProperty("shortId", out var sid) && sid.ValueKind == JsonValueKind.String
+            ? sid.GetString() : null;
+        if (shortId is null || !Regex.IsMatch(shortId, "^[0-9A-HJKMNP-TV-Z]{6}$"))
+            shortId = null;
+        var isMain = root.TryGetProperty("isMain", out var main) && main.ValueKind == JsonValueKind.True;
+        var pendingUpdates = 0;
+        if (root.TryGetProperty("update", out var update) && update.ValueKind == JsonValueKind.Object)
+        {
+            var state = update.TryGetProperty("state", out var us) ? us.GetString() : null;
+            var target = update.TryGetProperty("targetVersion", out var uv) ? uv.GetString() : null;
+            var current = update.TryGetProperty("currentVersion", out var uc) ? uc.GetString() : null;
+            if (state == "ready" && !string.IsNullOrWhiteSpace(target)
+                && !string.Equals(target, current, StringComparison.OrdinalIgnoreCase))
+                pendingUpdates = 1;
+        }
+        return new(true, enrolled, desired, cloudState, plan, lastError, fleetHealthy, fleetUrl,
+            pendingId, deviceName, shortId, isMain, pendingUpdates);
     }
 
     private void SetActionStatus(string message, int seconds = 8)
@@ -467,29 +464,21 @@ internal sealed class TrayApplicationContext : ApplicationContext
             var label = EffectiveLabel(hasPendingEnrollment ? "Waiting for account approval" : LabelFor(wallOnline, taskRunning, status));
             _state.Text = label;
             _state.Tag = visual;
-            _deviceInfo.Text = status.StatusAvailable
-                ? (string.IsNullOrWhiteSpace(status.DeviceName) ? "Windows device" : status.DeviceName)
-                  + (string.IsNullOrWhiteSpace(status.Plan) ? "" : "  ·  " + status.Plan.ToUpperInvariant())
-                : "Windows device · status unavailable";
-            _sessions.Enabled = wallOnline && status.StatusAvailable && status.Enrolled;
-            // The Agent status endpoint does not expose a signed list of AI
-            // leases; the authenticated Local Wall is the source of truth.
-            _sessions.Text = "Authorized AI sessions";
-            _connect.Text = connected ? "Disconnect" : "Connect";
-            _connect.Enabled = wallOnline && status.StatusAvailable && status.Enrolled;
+            _deviceInfo.Text = DeviceHeader(Environment.MachineName, status.ShortId);
             _restart.Enabled = wallOnline;
-            _serviceToggle.Text = wallOnline ? "Stop Light Remote" : "Start Light Remote";
-            _account.Text = status.Enrolled ? "Manage Account" : "Sign in / Manage Account";
-            _relink.Text = status.Enrolled ? "Relink this Windows PC…" : "Link this Windows PC…";
-            // Relink must never appear as the primary action while connected.
-            _relink.Visible = !connected;
-            _relink.Enabled = status.StatusAvailable && !connected
+            _serviceToggle.Text = wallOnline ? "Stop" : "Start";
+            _account.Text = "Manage Account";
+            _relink.Text = "Link / Relink";
+            // Keep this action visible, including when connected. The action
+            // explains the safe disconnect prerequisite before any mutation.
+            _relink.Visible = true;
+            _relink.Enabled = status.StatusAvailable
                 && !hasPendingEnrollment && !_enrollmentStarting;
+            _update.Text = status.PendingUpdates > 0 ? "Check Update (1)" : "Check Update";
 
             _fleetUrl = FleetUrl(status);
-            _openFleet.Visible = _fleetUrl is not null;
+            _openFleet.Visible = status.IsMain;
             _openFleet.Enabled = _fleetUrl is not null;
-            _popover.UpdateState(status, visual, wallOnline, connected, _fleetUrl is not null);
 
             var title = TrimTrayText("Light Remote - " + label);
             _tray.Text = title;
@@ -502,15 +491,13 @@ internal sealed class TrayApplicationContext : ApplicationContext
             var wallOnline = WallPortListening();
             _state.Text = EffectiveLabel(wallOnline ? "Status unavailable" : "Stopped");
             _state.Tag = wallOnline ? TrayVisualState.Disconnected : TrayVisualState.Stopped;
-            _deviceInfo.Text = "Windows device · status unavailable";
-            _sessions.Enabled = false;
-            _popover.UpdateState(new(false,false,false,"","","",false,null),
-                wallOnline ? TrayVisualState.Disconnected : TrayVisualState.Stopped,
-                wallOnline,false,false);
-            _connect.Enabled = false;
+            _deviceInfo.Text = DeviceHeader(Environment.MachineName, null);
+            _openFleet.Visible = false;
+            _openFleet.Enabled = false;
+            _fleetUrl = null;
             _relink.Enabled = false;
             _restart.Enabled = wallOnline;
-            _serviceToggle.Text = wallOnline ? "Stop Light Remote" : "Start Light Remote";
+            _serviceToggle.Text = wallOnline ? "Stop" : "Start";
             var old = _tray.Icon;
             _tray.Icon = TrayIconFactory.Create(wallOnline ? TrayVisualState.Disconnected : TrayVisualState.Stopped);
             old?.Dispose();
@@ -580,6 +567,15 @@ internal sealed class TrayApplicationContext : ApplicationContext
             if (!string.IsNullOrWhiteSpace(status.PendingEnrollmentId))
             {
                 SetActionStatus("Device approval already pending", 8);
+                return;
+            }
+            if (status.Enrolled && status.CloudDesiredConnected
+                && status.CloudState.Equals("connected", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(
+                    "Disconnect this PC from Local Wall before Relink. Active approved Agent sessions must not be silently transferred.",
+                    "Light Remote — Link / Relink",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
             if (status.Enrolled)
@@ -806,6 +802,20 @@ internal sealed class TrayApplicationContext : ApplicationContext
         }
     }
 
+    private void OpenDesktopApp()
+    {
+        var exe = Path.Combine(AppContext.BaseDirectory, "desktop-v4", "LightRemote.Desktop.exe");
+        if (!File.Exists(exe))
+        {
+            ClientEvent("desktop_v4_missing");
+            MessageBox.Show("Light Remote Desktop V4 is not installed in this package.",
+                "Light Remote", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        try { Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true }); }
+        catch (Exception ex) { ClientEvent("desktop_v4_launch_failed", new { error = ex.GetType().Name }); }
+    }
+
     private async Task OpenWallAsync()
     {
         if (_busy) return;
@@ -883,7 +893,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     internal static bool SelfTest()
     {
-        var connected = new TrayAgentSnapshot(true, true, true, "connected", "vip", "", true, "https://fleet.example/");
+        var connected = new TrayAgentSnapshot(true, true, true, "connected", "vip", "", true, "https://fleet.example/",
+            DeviceName: "WORKSTATION", ShortId: "R01KAP", IsMain: true, PendingUpdates: 1);
         var dormant = connected with { CloudDesiredConnected = false, CloudState = "dormant" };
         var disconnected = connected with { CloudState = "error" };
         return RelinkRuntimeSelfTest()
@@ -895,7 +906,10 @@ internal sealed class TrayApplicationContext : ApplicationContext
             && LabelFor(true, true, connected) == "Connected | VIP"
             && LabelFor(true, true, dormant) == "Wall online | Cloud dormant"
             && LabelFor(true, true, disconnected) == "Disconnected"
+            && DeviceHeader("WORKSTATION","R01KAP") == "WORKSTATION - Short ID : R01KAP"
+            && DeviceHeader("WORKSTATION",null) == "WORKSTATION - Short ID : ------"
             && FleetUrl(connected) == "https://fleet.example/"
+            && FleetUrl(connected with { IsMain = false }) is null
             && FleetUrl(connected with { FleetUrl = null }) == LocalFleetUrl
             && FleetUrl(connected with { FleetHealthy = false }) is null
             && FleetUrl(connected with { Enrolled = false, FleetHealthy = false }) is null
@@ -911,8 +925,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _tray.Visible = false;
         _tray.Icon?.Dispose();
         _tray.Dispose();
-        _advancedMenu.Dispose();
-        _popover.Dispose();
+        _nativeMenu.Dispose();
         base.ExitThreadCore();
     }
 }

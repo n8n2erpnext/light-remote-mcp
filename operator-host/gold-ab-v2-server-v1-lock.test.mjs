@@ -55,6 +55,12 @@ test('signed Operator status announces server V2 policy rather than a client fla
   accessGrants:{activeForDevice:()=>null,activeGrantsForDevice:()=>[],pendingForDevice:()=>[]},
   connections:{get:()=>({connectionId:'connection-a'})},
   deviceView:()=>({deviceId:'device-a'}),
+  accounts:{account:()=>({mainDeviceId:'device-a'})},
+  goldShortIdByDevice:async({deviceId,accountId})=>{
+   assert.equal(deviceId,'device-a');
+   assert.equal(accountId,'owner');
+   return 'R01KAP';
+  },
   sendJson:(_res,status,value)=>({status,...value})
  };
  const route=new URL('http://localhost/v1/device-channel/status');
@@ -62,6 +68,8 @@ test('signed Operator status announces server V2 policy rather than a client fla
  const locked=await withPolicy(true,()=>handleDeviceChannelRoutes(req,{},route,params));
  assert.equal(locked.status,200);
  assert.equal(locked.pairingMode,'abv2_only');
+ assert.equal(locked.shortId,'R01KAP');
+ assert.equal(locked.isMain,true);
  const legacy=await withPolicy(false,()=>handleDeviceChannelRoutes(req,{},route,params));
  assert.equal(legacy.pairingMode,'legacy_allowed');
 });
@@ -76,6 +84,8 @@ test('Wall hides V1 until signed Operator explicitly authorizes legacy pairing',
    assert.match(html,/class="paircontrol" style="display:none"/);
    assert.match(html,/let serverPairingMode='unknown'/);
    assert.match(html,/remoteState\?\.pairingMode==='abv2_only'/);
+   assert.match(html,/remoteState\?\.shortId/);
+   assert.match(html,/if\(short&&shortId\)short\.textContent=shortId/);
    assert.match(html,/serverPairingMode==='legacy_allowed'&&v2===false/);
    assert.match(html,/serverPairingMode!=='legacy_allowed'\|\|abV2ModeLatched/);
   }finally{await new Promise(resolve=>wall.server.close(resolve));}

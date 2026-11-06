@@ -1665,7 +1665,20 @@ const desktopWallSsoOperatorGate=createDesktopWallSsoOperatorGateV4({
   env:process.env,storage:goldStorage,accounts,enrollments
 });
 
+const goldShortIdByDevice=async({deviceId,accountId})=>{
+ if(goldStorage.schema?.version<43)return null;
+ try{
+  const result=await goldStorage.pool.query(
+    "SELECT s.short_id FROM lr_gold_device_short_ids s "+
+    "JOIN lr_devices d ON d.device_id=s.device_id "+
+    "WHERE s.device_id=$1 AND d.owner_account_id=$2 AND d.state<>'revoked' LIMIT 1",
+    [deviceId,accountId]);
+  const code=String(result.rows?.[0]?.short_id||'');
+  return /^[0-9A-HJKMNP-TV-Z]{6}$/.test(code)?code:null;
+ }catch{return null;}
+};
 const routeDeps=()=>({
+  goldShortIdByDevice,
   desktopWallSsoSignedRedeem:desktopWallSsoOperatorGate.signedRedeem,
   desktopWallSsoInternalIssue:desktopWallSsoOperatorGate.internalIssue,
   desktopWallSsoFamilyCurrent:desktopWallSsoOperatorGate.familyCurrent,

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-06",
-  "status": "T07D4_FULL_WINDOWS_INNO_42214902399_PASS_GOLDABV2_PROFILE_ONLY_NO_PHYSICAL_LINK_YET",
+  "status": "T07E_NATIVE_WINDOWS_TRAY_MENU_SIGNED_SHORT_ID_MAIN_SOURCE_PASS_FULL_INNO_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "READ FIRST T07d4 in docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md. Latest actual ONE full Windows Inno Setup CI run 42214902399 SUCCESS at code SHA 3cef5e38b05a194ee800d99d6f5ea5419558d05f; artifact ID 13501606019; EXE SHA256 8c2b0e4757db2bb0bf03f60118fa567541acbd42fe0232ee8ad47df30ba2514e. CI confirms built+installed isolated GoldABV2 profile and marker, production endpoint and old state overrides rejected, V4/Agent/Wall HTTP200/RM installed, rollback and uninstall PASS. Physical QA with Owner Link/PKCE/B not performed. Existing production Gold enrollment state remains on disk and is not imported; same Inno AppId/task/port means installer is NOT side-by-side with production; don't install over owner's running Gold client without explicit consent. Link from Tray More actions when disconnected; V4 Devices shows the instructions but lacks a working Link native action. Lab Operator V1 423 PASS, Plugin Auth/Token ON, Owner READ OFF; complete actual Owner API/SSO and signed B acceptance separately.",
+  "nextAction": "READ FIRST T07e 2026-11-06 in docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md. Native Windows OS ContextMenuStrip source replaces custom tray popup; includes Link / Relink, verified Hostname-ShortID, Open Fleet only when exact enrolled device is Main per signed Operator status, Check Update (1 only ready), all user menu actions. Live GoldABV2 Lab PG43 already has Short IDs (multiple devices share hostname); the current Windows Wall dash is signed metadata delivery, not justification to create another DB ID. Operator signed status now returns owner/device-scoped immutable shortId and isMain; Agent CLI and Local Wall R5 render those. Source regressions PASS; NEXT full one-installer Windows CI build, then minimal isolated LAB Operator patch with rollback; physical Windows test and B approval remain OPEN. Do not deploy over production or erase enrollment. Previous successful 42214902399 Setup is pre-menu source, not verification of this fix.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "b0ceadb004f5311a7c45dcf8609c6c5340052c66a375b9441ac2e722f86abd10",
-    "trackedFiles": 1306,
+    "treeDigest": "4ebc2d723002ee7facc9437f8bd3938abd00b978c66d8a15e6aa422565fe2225",
+    "trackedFiles": 1307,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-06T12:16:22.362Z"
+    "recordedAt": "2026-11-06T12:53:27.776Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
