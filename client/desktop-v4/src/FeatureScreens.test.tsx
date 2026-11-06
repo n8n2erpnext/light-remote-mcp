@@ -39,6 +39,23 @@ describe('desktop V4 feature screen integrity', () => {
       view.unmount();
     }
   });
+
+  it('shows only Owner-reported per-device usage in Account',()=>{
+    const snapshot={
+      state:'ready' as const,accountId:'owner',asOf:1000,
+      account:{email:'owner@example.test',plan:'pro',status:'active',emailVerified:true},
+      entitlements:{plan:'pro',toolCallLimit:500},
+      usage:{month:'2026-11',toolCallsThisMonth:22,byDevice:[{deviceId:'dev-a',toolCalls:19,onlineMs:7200000}]},
+      devices:[{deviceId:'dev-a',name:'Workstation',shortId:'R01KAP',os:'windows',state:'online',lastSeenAt:100}],
+      sessions:[],grants:[]
+    };
+    render(<FeatureScreen route="account" status={null} snapshot={snapshot} />);
+    expect(screen.getByText('owner@example.test')).toBeTruthy();
+    expect(screen.getByText('Workstation')).toBeTruthy();
+    expect(screen.getByText('2026-11')).toBeTruthy();
+    expect(screen.getByText('19')).toBeTruthy();
+    expect(screen.getByText('2.0')).toBeTruthy();
+  });
   it('a known local device connection must not be taken as job or owner authority', () => {
     render(<FeatureScreen route="live-monitor" status={{
       state: 'ready', device: { verifiedAt: 42, deviceName: 'Test', connection: 'connected', cloudState: 'connected' }

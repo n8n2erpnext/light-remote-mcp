@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-06",
-  "status": "T06B1_GOLD_SOURCE_CI_SUCCESS_DESKTOP_TS_STRICT_FIX_NATIVE_CI_RETRY_PENDING_RUNTIME_OFF",
+  "status": "T06B2_T06_DESKTOP_NATIVE_7_OF_7_CI_PASS_PER_DEVICE_USAGE_SOURCE_CI_PENDING_RUNTIME_OFF",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -171,10 +171,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "570b8e75b34c96e327e76bb72040670180846cb19ee773dcab4bc14c1b8071a6",
+    "treeDigest": "dbaaa9e5558534e2b89918ad574b98debe711ffb57ef2968f0888d1466bffd1a",
     "trackedFiles": 1192,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-06T06:24:08.236Z"
+    "recordedAt": "2026-11-06T06:36:57.362Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

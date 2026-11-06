@@ -1074,3 +1074,6 @@ On owner request to complete API integration, implemented default-OFF Owner snap
 
 ## 2026-11-06 — T06b1 native CI TypeScript finding
 GitHub Desktop V4 run 42173925101 stopped at TS2345 in Sessions expiry display; Gold Source Gate run 42173891221 PASS. Source-only Desktop correction now explicitly handles undefined expiry. Native CI rerun pending; no release or runtime change.
+
+## 2026-11-06 — T06b2 per-device monthly usage integration
+After T06b1 Desktop native 7/7 CI PASS (run 42174200061), connected existing Operator UsageRegistry's monthly per-device calls/online durations into authenticated Owner read snapshot and Desktop Account table. Tests updated for scoping. New code CI pending; no deployed Owner snapshot/Windows physical acceptance.

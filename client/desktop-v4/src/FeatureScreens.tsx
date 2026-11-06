@@ -241,9 +241,17 @@ function Account({snapshot}:{snapshot:OwnerSnapshot|null}) {
         value={snapshot?String(snapshot.devices.length):'—'} />
       <UnknownKpi label="CURRENT BILLING PERIOD" hint="Billing dates not bound" icon={Clock3} />
     </div>
-    <Card><CardHeading description="Owner usage via purpose-scoped native API">USAGE BY DEVICE</CardHeading>
-      <FeatureTable label="Usage by device" columns={['Device','Month','Calls','Allowance','Plan']}
-        description="Per-device usage remains unavailable until a separately projected server response is implemented." />
+    <Card><CardHeading description="Server-issued monthly usage by Owner device">USAGE BY DEVICE</CardHeading>
+      {snapshot?<div className="feature-table feature-table-scroll" role="region" aria-label="Usage by device">
+        <table><thead><tr><th>Device</th><th>Month</th><th>Calls</th><th>Online hours</th><th>Plan</th></tr></thead>
+          <tbody>{snapshot.usage.byDevice.length?snapshot.usage.byDevice.map(row=><tr key={row.deviceId}>
+            <td>{snapshot.devices.find(d=>d.deviceId===row.deviceId)?.name||row.deviceId}</td>
+            <td>{snapshot.usage.month||'—'}</td><td>{row.toolCalls??'—'}</td>
+            <td>{row.onlineMs===null?'—':(row.onlineMs/3600000).toFixed(1)}</td>
+            <td>{snapshot.account.plan||'—'}</td>
+          </tr>):<tr><td colSpan={5}>No measured usage for this month</td></tr>}</tbody>
+        </table></div>:<FeatureTable label="Usage by device" columns={['Device','Month','Calls','Online hours','Plan']}
+        description="Per-device usage requires a verified Owner snapshot." />}
     </Card>
     {!snapshot&&<SourceUnavailable description="Account identity, billing and usage need verified Owner data. No local Wall status is treated as login." />}
   </div>;

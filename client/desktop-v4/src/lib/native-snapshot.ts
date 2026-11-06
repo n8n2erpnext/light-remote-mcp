@@ -20,7 +20,7 @@ export type OwnerSnapshot = Readonly<{
   state:'ready';accountId:string;asOf:number;
   account:Readonly<{email:string|null;plan:string|null;status:string;emailVerified:boolean}>;
   entitlements:Readonly<{plan:string|null;toolCallLimit:number|null}>;
-  usage:Readonly<{toolCallsThisMonth:number|null}>;
+  usage:Readonly<{month:string|null;toolCallsThisMonth:number|null;byDevice:ReadonlyArray<Readonly<{deviceId:string;toolCalls:number|null;onlineMs:number|null}>>}>;
   devices:ReadonlyArray<OwnerDevice>;sessions:ReadonlyArray<OwnerSession>;
   grants:ReadonlyArray<OwnerGrant>;
 }>;
@@ -40,6 +40,7 @@ export function projectOwnerSnapshot(input:unknown,expectedAccountId:string):Sna
   if(r?.ok!==true||!id(expectedAccountId)||r.accountId!==expectedAccountId||
      asOf===null||!ac||ac.emailVerified!==true||ac.status!=='active'||!ent||!usage||
      !Array.isArray(r.devices)||!Array.isArray(r.sessions)||!Array.isArray(r.grants)||
+     !Array.isArray(usage.byDevice)||usage.byDevice.length>200||
      r.devices.length>200||r.sessions.length>200||r.grants.length>200)return CLOSED;
   const devices:OwnerDevice[]=[],sessions:OwnerSession[]=[],grants:OwnerGrant[]=[];
   for(const value of r.devices){
@@ -49,6 +50,14 @@ export function projectOwnerSnapshot(input:unknown,expectedAccountId:string):Sna
       os:string(d.os,60),state:string(d.state,40)||'unknown',lastSeenAt:count(d.lastSeenAt)});
   }
   const owned=new Set(devices.map(d=>d.deviceId));
+  const byDevice:Array<{deviceId:string;toolCalls:number|null;onlineMs:number|null}>=[];
+  for(const value of usage.byDevice){
+    const row=record(value),deviceId=id(row?.deviceId);
+    if(!row||!deviceId||!owned.has(deviceId))return CLOSED;
+    byDevice.push({deviceId,toolCalls:count(row.toolCalls),onlineMs:count(row.onlineMs)});
+  }
+  const month=typeof usage.month==='string'&&/^\d{4}-(0[1-9]|1[0-2])$/.test(usage.month)?
+    usage.month:null;
   for(const value of r.sessions){
     const s=record(value),sessionId=id(s?.sessionId),deviceId=id(s?.deviceId);
     if(!s||!sessionId||!deviceId||!owned.has(deviceId))return CLOSED;
@@ -70,7 +79,7 @@ export function projectOwnerSnapshot(input:unknown,expectedAccountId:string):Sna
     account:Object.freeze({email:string(ac.email,254),plan:string(ac.plan,40),
       status:'active',emailVerified:true}),
     entitlements:Object.freeze({plan:string(ent.plan,40),toolCallLimit:count(ent.toolCallLimit)}),
-    usage:Object.freeze({toolCallsThisMonth:count(usage.toolCallsThisMonth)}),
+    usage:Object.freeze({month,toolCallsThisMonth:count(usage.toolCallsThisMonth),byDevice}),
     devices,sessions,grants});
 }
 type NativeWindow=Window & {__TAURI_INTERNALS__?:{invoke?:(cmd:string)=>Promise<unknown>}};
