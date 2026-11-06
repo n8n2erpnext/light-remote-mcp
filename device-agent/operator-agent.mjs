@@ -86,7 +86,12 @@ function effectiveEndpoint(value,{kind='base'}={}){
 }
 const DEFAULT_BASE=effectiveEndpoint(process.env.OPERATOR_AGENT_BASE_URL,{kind:'base'});
 const DEFAULT_HUB=effectiveEndpoint(process.env.OPERATOR_AGENT_HUB_URL,{kind:'hub'});
-const STATE_FILE=process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
+const GOLDABV2_STATE_FILE=path.join(os.homedir(),'.config','gpt-operator-agent-goldabv2','device.json');
+if(GOLDABV2_PACKAGE&&process.env.OPERATOR_AGENT_STATE&&
+   path.resolve(process.env.OPERATOR_AGENT_STATE).toLowerCase()!==path.resolve(GOLDABV2_STATE_FILE).toLowerCase())
+  throw new Error('goldabv2_build_state_profile_mismatch');
+const STATE_FILE=GOLDABV2_PACKAGE?GOLDABV2_STATE_FILE:
+  process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
 // Only terminal OS evidence; a missing terminal after Agent restart is UNKNOWN.
 const NATIVE_TERMINAL_SPOOL=new NativeTerminalReceiptSpool({directory:path.join(path.dirname(STATE_FILE),'terminal-journal')});
 const EXTERNAL_IDENTITY_FILE=String(process.env.OPERATOR_AGENT_IDENTITY_FILE||'').trim();

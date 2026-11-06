@@ -21,27 +21,32 @@ assert.match(connection,/goldabv2_wrong_server_endpoint/);
 assert.match(workflow,/goldabv2-package-profile\.json/);
 assert.match(workflow,/goldabv2_build_wrong_server_endpoint/);
 assert.ok(!fs.existsSync(marker),'The developer source tree must not permanently carry an install-only profile marker');
-const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'goldabv2-profile-test-'));
 try{
   fs.writeFileSync(marker,JSON.stringify({profile:'goldabv2-desktop-v4',
     endpoint:'https://goldabv2.light-remote.thaiduy.digital'})+'\n');
-  const common={...process.env,OPERATOR_AGENT_STATE:path.join(tmp,'nonexistent.json'),
-    OPERATOR_AGENT_IDENTITY_FILE:''};
+  const common={...process.env,OPERATOR_AGENT_IDENTITY_FILE:''};
+  delete common.OPERATOR_AGENT_STATE;
+  const target='https://goldabv2.light-remote.thaiduy.digital';
   const bad=spawnSync(process.execPath,[agent,'status'],{
     cwd:root,env:{...common,OPERATOR_AGENT_BASE_URL:'https://gold.light-remote.thaiduy.digital',
-      OPERATOR_AGENT_HUB_URL:'https://goldabv2.light-remote.thaiduy.digital'},
+      OPERATOR_AGENT_HUB_URL:target},
     encoding:'utf8',timeout:20000});
   assert.notEqual(bad.status,0);
   assert.match(bad.stderr,/goldabv2_build_wrong_server_endpoint/);
+  const badState=spawnSync(process.execPath,[agent,'status'],{
+    cwd:root,env:{...common,OPERATOR_AGENT_BASE_URL:target,
+      OPERATOR_AGENT_HUB_URL:target,
+      OPERATOR_AGENT_STATE:path.join(os.tmpdir(),'legacy-gold','device.json')},
+    encoding:'utf8',timeout:20000});
+  assert.notEqual(badState.status,0);
+  assert.match(badState.stderr,/goldabv2_build_state_profile_mismatch/);
   const good=spawnSync(process.execPath,[agent,'status'],{
-    cwd:root,env:{...common,OPERATOR_AGENT_BASE_URL:'https://goldabv2.light-remote.thaiduy.digital',
-      OPERATOR_AGENT_HUB_URL:'https://goldabv2.light-remote.thaiduy.digital'},
+    cwd:root,env:{...common,OPERATOR_AGENT_BASE_URL:target,
+      OPERATOR_AGENT_HUB_URL:target},
     encoding:'utf8',timeout:20000});
   assert.equal(good.status,0,'Valid GoldABV2 origin must allow local status inspection');
-  assert.doesNotMatch(good.stderr,/goldabv2_build_wrong_server_endpoint/);
-  assert.match(good.stdout,/"enrolled": false/);
+  assert.doesNotMatch(good.stderr,/goldabv2_build_wrong_server_endpoint|goldabv2_build_state_profile_mismatch/);
 }finally{
   fs.rmSync(marker,{force:true});
-  fs.rmSync(tmp,{recursive:true,force:true});
 }
 console.log('GOLDABV2_DESKTOP_SINGLE_TARGET_AND_ISOLATED_PROFILE_PASS');
