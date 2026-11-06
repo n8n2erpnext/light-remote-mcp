@@ -1392,3 +1392,6 @@ Added source-only exact per-Agent close adapter and regression tests; refused to
 
 ## 2026-11-06 — T06b4 one installer source CI PASS, full app release blocked
 Exact Desktop commit e6a7681d unified run 42181390342 SUCCESS 4/4; one Windows NSIS file 4,001,015 B (SHA256 3FC9F37CF0DF0FDF9F39356E45D2C3A1BA9B1BB8B326FF38C75A709712CB739A), artifact 13486541015. This is Tauri UI/Owner binary only; not a complete Agent/Wall installer and not physical E2E. Gold source-only close adapter 1a91b399 gates PASS but read-only OAuth does not authorize mutation. Continue full runtime/API integration before a single human acceptance.
+
+## 2026-11-06 — Desktop V4 handoff source redirect
+The full unified Desktop V4 handoff is on branch feat/desktop-v4-api-integration-20261103 at docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md (commit 776f3a40). Latest Windows full installer CI 42198200310 PASS; this historical Gold branch is not the current installer source. Owner Auth/Token ON and server V1 deny live on Lab; Owner Read OFF, physical Windows B approval and remaining APIs open.

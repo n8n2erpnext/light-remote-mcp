@@ -23,3 +23,6 @@ Read in this order before implementation or documentation work:
 Historical Light Remote handoffs in `/home/ubuntu/handoffs` are still external operational evidence, not silently promoted to canonical repository authority. Do not move or overwrite them en masse.
 
 The first governance edition follows the **patterns**, not the content or product details, of LightBI Project Book, Document Library, Code Map, Source Catalog, Worklog and micro-checkpoint. Its historical reference was inspected read-only in `/home/ubuntu/n8n2erpnext/LightBI-docs-cli-lightbi/docs/project-book` on 2026-10-30.
+
+## Desktop V4 continuation moved to unified branch (2026-11-06)
+The current complete Windows Desktop V4 product source is **not this backend-only Gold branch**. Read the canonical [Full GoldABV2/Desktop V4 Handoff on the unified branch](https://github.com/n8n2erpnext/light-remote-mcp/blob/776f3a406705f640605ee65bf122504bd183ac17/docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md) and use branch `feat/desktop-v4-api-integration-20261103`. Last single full installer Windows CI 42198200310 PASS. Keep this older branch for historical backend development only; no UI-only or separately packaged V4 builds.
