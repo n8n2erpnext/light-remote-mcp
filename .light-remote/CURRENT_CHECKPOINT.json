@@ -1850,10 +1850,26 @@
     },
     "configInstalled": false,
     "physicalE2E": "NOT_TESTED",
-    "documentationCI": "PENDING_PUBLICATION",
+    "documentationCI": {
+      "status": "SUCCESS",
+      "goldCommit": "527e82a1f89bd5f585453b797ece91b100e6c0eb",
+      "desktopCommit": "525b7eaf41e982e78f4a99ed00c2638fa1c1f8e8",
+      "goldDocs": 42266330285,
+      "goldTruth": 42266330287,
+      "desktopDocs": 42266341150,
+      "desktopTruth": 42266341059
+    },
     "previousCheckpoint": {
       "status": "T09_READONLY_AUDIT_COMPLETE_REMEDIATION_NOT_APPLIED",
       "nextAction": "T09-F01: review audit A01 missing Tauri Link IPC permissions and plan a narrow packaged-WebView regression; findings and optimizations are NOT applied. No implementation, native installation or deployment authorized by this audit."
+    },
+    "documentationChecks": {
+      "goldLinks": 640,
+      "desktopLinks": 628,
+      "catalogEntries": 186,
+      "jsonParse": "PASS",
+      "projectTruth": "PASS",
+      "masterMirror": "BYTE_IDENTICAL"
     }
   }
 }

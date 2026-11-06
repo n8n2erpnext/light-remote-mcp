@@ -31,8 +31,8 @@
       "credentialBinding": [
         "productId",
         "selectedProfile",
-        "ownerOrigin",
-        "deviceChannelOrigin"
+        "cloudOrigins.owner",
+        "cloudOrigins.deviceChannel"
       ],
       "legacyAliases": []
     }

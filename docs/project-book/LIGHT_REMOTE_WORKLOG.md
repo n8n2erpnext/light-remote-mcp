@@ -1413,3 +1413,7 @@ Gold ff9a2882 Docs 42262419794 / Truth 42262419808 SUCCESS; Desktop cb5c15fa Doc
 ## 2026-11-07 — T10 Wall/Windows read-only audit and endpoint JSON proposal
 
 Reviewed gold source `f2aacc498fb3ad7e5fa99f3355c5a093f9980cee` plus Windows selected file parity6/6 and Lab read-only overlay/flags. Ten technical findings (2 P1 including conditional updater risk,8 P2) plus Owner LM Enable/Disable UX requirement: [LIGHT_REMOTE_WALL_WINDOWS_ASYNC_ENDPOINT_AUDIT_20261107.md](LIGHT_REMOTE_WALL_WINDOWS_ASYNC_ENDPOINT_AUDIT_20261107.md). Four source/VM probe groups reproduce B CSRF loss, module revision rollback, wrong-work preview and terminal downgrade; no real app/grant. Design JSON and URL inventory327files/114positions/77values are documentation only, not installed config. Source/runtime/settings/Windows install unchanged; Master mirrored, checkpoint updated. Next T10-F01 review only. Docs CI pending publication.
+
+## 2026-11-07 — T10 documentation CI accepted; no remediation
+
+Gold527e82a1 Docs42266330285/Truth42266330287 SUCCESS; Desktop525b7eaf Docs42266341150/Truth42266341059 SUCCESS. Links/catalog/JSON/stagedTruth/whitespace/mirror PASS. Precision review clarified updater recovery check and proposal field names. Documentation only; T10-F01 review next, code/config/runtime changes NOT APPLIED.

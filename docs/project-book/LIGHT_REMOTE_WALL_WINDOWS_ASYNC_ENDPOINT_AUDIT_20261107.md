@@ -102,7 +102,7 @@ GoldABV2 client khóa cloud riêng (`ConnectionConfig.cs:9–17,35–38`), nhưn
 
 ### T10-09 — P2: Node đổi được port nhưng App/updater vẫn mở và probe 5491/5492
 
-Agent đọc `OPERATOR_AGENT_WALL_HOST/PORT`, Fleet tương tự (`operator-agent.mjs:103–107`). Rust `main.rs:25–26,52–53`, .NET `TrayApplicationContext.cs:28–30,184–207,283–295`, updater health `UpdateApplier.cs:66–71` và watchdog `Program.cs:272` lại hardcode5491; Fleet fallback5492.
+Agent đọc `OPERATOR_AGENT_WALL_HOST/PORT`, Fleet tương tự (`operator-agent.mjs:103–107`). Rust `main.rs:25–26,52–53`, .NET `TrayApplicationContext.cs:28–30,184–207,283–295`, updater restart/recovery presence `UpdateApplier.cs:66–71` và watchdog `Program.cs:272` lại hardcode5491; Fleet fallback5492.
 
 Đổi Agent Wall sang5499 bằng cấu hình được hỗ trợ thì App có thể mở nhầm5491 hoặc báo recovery lỗi dù Agent5499 hoạt động. Đây là mismatch source, không thay port thực trong audit.
 
@@ -110,7 +110,7 @@ Agent đọc `OPERATOR_AGENT_WALL_HOST/PORT`, Fleet tương tự (`operator-agen
 
 ### T10-10 — P2: có listener 5491 bị coi là Wall/Agent đúng instance
 
-`WallPortListening()` `TrayApplicationContext.cs:184–189` nhận **bất kỳ TCP listener** trên port5491. `StartAgentTaskVerified :285` trả success ngay; status bridge `:933–942` chọn Stop/Start dựa vào nó, open-wall `:1042–1044` có thể mở service khác. Updater health dùng port-only gate tương tự.
+`WallPortListening()` `TrayApplicationContext.cs:184–189` nhận **bất kỳ TCP listener** trên port5491. `StartAgentTaskVerified :285` trả success ngay; status bridge `:933–942` chọn Stop/Start dựa vào nó, open-wall `:1042–1044` có thể mở service khác. Kiểm tra presence khi updater restart/recovery dùng port-only gate tương tự; nghiệm thu update đầy đủ còn có installed-client selftest và core ACK, không chỉ port check.
 
 **Đề xuất:** phân biệt port occupied / service responding / expected product+install instance healthy. Bounded nonsecret identity handshake và PID/install-path ownership; conflict phải báo rõ. Không giết listener ngoài phạm vi quản lý. `KillStaleWallListener` hiện có path check cần giữ. Test fixture listener không liên quan và wrong-profile Wall, không dùng máy Owner để tạo xung đột.
 
