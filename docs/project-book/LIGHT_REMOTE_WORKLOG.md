@@ -1107,3 +1107,6 @@ Operator-only LXD Lab runtime now `source-9d996956-desktop-owner-operator-v1lock
 
 ## 2026-11-06 — T07c2 Full Windows installer CI selftest fix
 Failure `42195803932` is a native Tray selftest fixture regression (hardcoded old Gold public activation URL vs new GoldABV2 default), not Wall or Agent runtime build. Fixed `TrayApplicationContext.RelinkRuntimeSelfTest` to use configured bridge and added explicit cross-origin rejection coverage. Await full Inno CI for actual installer.
+
+## 2026-11-06 — T07c3 FULL HANDOFF completed for next session
+Canonical full continuation: docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md (276 lines). Single Windows Inno Setup full V4/Agent/Wall/RM installer QA run 42198200310 success from 3a1d2e83, artifact 13492509192, EXE SHA256 9b70d625ada54bd88f1af5b9eabd2b8c50cf3a7a278dcb9ee44d42df8c09fc97. Live LXD GoldABV2 Lab Operator/Plugin/Wall active, Operator V1 deny verified HTTP423, Auth/Token V4 ON, Owner Read OFF. Physical Windows GoldABV2 relink, B local approval, Owner snapshot source deploy and remaining V4 mutation/module APIs OPEN. Full document lists CI failure/fix lineage, source pins, rollback, exact tests and next work. Do not restart UI-only V4 pilot.

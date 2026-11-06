@@ -23,3 +23,6 @@ Read in this order before implementation or documentation work:
 Historical Light Remote handoffs in `/home/ubuntu/handoffs` are still external operational evidence, not silently promoted to canonical repository authority. Do not move or overwrite them en masse.
 
 The first governance edition follows the **patterns**, not the content or product details, of LightBI Project Book, Document Library, Code Map, Source Catalog, Worklog and micro-checkpoint. Its historical reference was inspected read-only in `/home/ubuntu/n8n2erpnext/LightBI-docs-cli-lightbi/docs/project-book` on 2026-10-30.
+
+## Current Desktop V4 + GoldABV2 continuation — 2026-11-06
+Before working on the unified Windows Desktop V4 (UI + Agent + Wall R5 + A/B V2 + RM + updater), read [LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md](LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md). It has the exact latest installed Windows CI, current staged server source, historical mistakes/fixes, disabled APIs and next tasks. Older Gold P2 and pilot handoffs are background, not the current Desktop product baseline. Never release separate UI-only or Owner-only test apps.
