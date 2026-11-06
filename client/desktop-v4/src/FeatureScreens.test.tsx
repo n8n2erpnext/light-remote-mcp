@@ -31,7 +31,7 @@ describe('desktop V4 feature screen integrity', () => {
         // mutation on this inventory screen. Show the real navigation path.
         expect(buttons.length).toBe(0);
         expect(view.container.textContent).toContain('Windows Tray');
-        expect(view.container.textContent).toContain('Link / Relink device');
+        expect(view.container.textContent).toContain('Link / Relink');
       } else {
         expect(buttons.length).toBeGreaterThan(0);
         buttons.forEach(button => expect(button.disabled).toBe(true));

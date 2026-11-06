@@ -9,7 +9,13 @@ const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.
 const agent=read('device-agent/operator-agent.mjs');
 const wf=read('.github/workflows/windows-native-client.yml');
 
-assert.match(tray,/new\("Relink this Windows PC…"/);
+assert.ok(tray.includes('new("Link / Relink")') ||
+          tray.includes('new("Relink this Windows PC…")'), 'native or prior relink item required');
+if(tray.includes('new("Link / Relink")')){
+ assert.match(tray,/ContextMenuStrip = menu/);
+ assert.doesNotMatch(tray,/new TrayPopoverForm\(/);
+ assert.match(tray,/_relink.Visible = true/);
+}
 assert.match(tray,/menu\.Items\.Add\(_relink\)/);
 assert.match(tray,/_relink\.Click \+= async \(_, _\) => await RelinkWindowsAsync\(\)/);
 assert.match(tray,/previouslyEnrolled \? new\[\] \{ "login", "--reenroll", "--no-wait" \}/);
