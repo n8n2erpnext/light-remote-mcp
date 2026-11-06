@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "Read latest T07f2 Living Master. Gold backend branch remains source-isolated. Desktop source code f5c4b574, Windows Inno CI 42245333752 SUCCESS, artifact 13519530536. Owner physical Windows upgrade/link/relink/A/B E2E OPEN. Device Discovery R01KAP and S9X0R0 both online on GoldABV2 Lab. No production deployments. Further source changes to integrated Windows app go to Desktop branch only.",
+  "nextAction": "T07f3 Gold documentation CI reference repair: Full Handoff now present, local 627 relative links PASS/catalog 186 PASS; next commit/push and verify Gold Docs/Truth CI. Integrated Windows run 42245333752 at f5c4b574 SUCCESS; Owner physical Link/Relink/B QA still OPEN.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "8eb83c20fa97a28f5e3e126546db2ee5345a235449f4a86e66c5a5b47fd9fc6e",
     "trackedFiles": 1244,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-06T15:52:37.234Z"
+    "recordedAt": "2026-11-06T15:56:39.160Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1774,5 +1774,12 @@
     "sync": "MASTER_BYTE_IDENTICAL",
     "sourceChanged": false,
     "productionTouched": false
+  },
+  "t07f3": {
+    "linkCheck": "627 PASS",
+    "catalog": "186 PASS",
+    "ci": "PENDING",
+    "windowsCI": "42245333752 SUCCESS",
+    "physical": "OPEN"
   }
 }

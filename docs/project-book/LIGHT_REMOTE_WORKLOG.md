@@ -1398,3 +1398,6 @@ The full unified Desktop V4 handoff is on branch feat/desktop-v4-api-integration
 
 ## 2026-11-06 — T07f2 Gold Living Master byte-identical Desktop sync
 Synced the exact canonical Living Master from Desktop integration branch docs commit a353be6f, without merging Desktop source into this Gold backend branch. Integrated Windows candidate code f5c4b574 full Windows Inno run 42245333752 SUCCESS, Setup artifact 13519530536; User's Windows installed physical validation and new Link/B E2E remain OPEN. Isolated Lab discovery of same-Owner R01KAP and S9X0R0 confirmed 2/2 online. Historical Gold-only continuation notice preserved inside new Master T07f2 receipt. Gold source/runtime/production not modified by this docs sync.
+
+## 2026-11-06 — T07f3 Gold master reference doc CI repair
+Restored the Desktop full handoff document into Gold Project Book; local canonical 627 links and catalog 186 passed. This fixes missing relative reference on Gold. No runtime/source changes; physical Windows QA still open.
