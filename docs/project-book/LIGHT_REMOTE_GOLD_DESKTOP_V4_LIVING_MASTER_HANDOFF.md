@@ -1175,3 +1175,6 @@ Desktop adds Rust native Owner generation-fenced pending/Approve commands and IP
 
 ## 2026-11-06 — T06b3 Live Monitor source integration
 Owner snapshot now includes bounded, account-scoped current jobs and recent events. Only identifiers, states and timestamps are projected. Desktop Live Monitor displays read-only rows. No runtime deployment. T06b2 native 7/7 CI passed; T06b3 source CI and physical Windows proof remain open. T04 SSO and per-Agent mutation APIs remain open.
+
+## 2026-11-06 — T06b3 exact-source CI accepted, physical integration open
+Gold commit 81cb1851: Source Gate run 42178398647 SUCCESS 4/4; Docs/Project Truth SUCCESS. Desktop commit 01633589: CI run 42178431994 SUCCESS 7/7 (web/Chromium, Windows/macOS/Linux UI-only and Owner LAB). Unsigned Windows Owner LAB artifact 13485005072 (ZIP SHA256 e73cbc606f75240ed63279b1403ca517c4cf0505863149c5097b22fdf87a271a). On 2026-11-06 the isolated running Lab Operator/Plugin service WorkingDirectories still pointed to source-9d996956; hence this CI acceptance does NOT mean the new API is deployed, enabled or physically exercised. Preserve Gold UAT/Windows 5491/5492, independent A/B V2 and T04 SSO default OFF. Next: isolated source provenance/rollback inspection and physical same-host Windows QA, then narrow session close and remaining module APIs.
