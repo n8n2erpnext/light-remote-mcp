@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-06",
-  "status": "T07D3_GOLDABV2_ONLY_PROFILE_AGENT_TARGET_HARDENED_NATIVE_WINDOWS_TEST_FIX_CI_PENDING",
+  "status": "T07D4_FULL_WINDOWS_INNO_42214902399_PASS_GOLDABV2_PROFILE_ONLY_NO_PHYSICAL_LINK_YET",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "READ FIRST T07d addendum in docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md. Source fixed production endpoint leak in QA Desktop V4: isolated GoldABV2 AppPaths LocalData/device identity, compiled Agent/Tray single ABV2 endpoint, package marker rejects Gold production origin, and V4 Devices now explicitly directs to native Tray More actions Link/Relink (V4 internal action still not wired). Unit source and 69/69 V4 tests PASS; NEW Windows full Inno CI still pending; previous build run 42198200310 is superseded for endpoint/profile security but remains historical package CI PASS. Do not install QA over currently running Gold production device because same Inno AppId/task/local Wall port, despite separate identity storage; require explicit Owner consent. Next run full CI and validate stage+installed targetProfile and GoldABV2 marker, then fresh GoldABV2 Link with Owner approval. Live Lab Operator V1 423 PASS, Plugin Auth/Token ON, Read OFF, Wall R5 unaffected. Complete remaining API/SSO stages only after approved QA.",
+  "nextAction": "READ FIRST T07d4 in docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md. Latest actual ONE full Windows Inno Setup CI run 42214902399 SUCCESS at code SHA 3cef5e38b05a194ee800d99d6f5ea5419558d05f; artifact ID 13501606019; EXE SHA256 8c2b0e4757db2bb0bf03f60118fa567541acbd42fe0232ee8ad47df30ba2514e. CI confirms built+installed isolated GoldABV2 profile and marker, production endpoint and old state overrides rejected, V4/Agent/Wall HTTP200/RM installed, rollback and uninstall PASS. Physical QA with Owner Link/PKCE/B not performed. Existing production Gold enrollment state remains on disk and is not imported; same Inno AppId/task/port means installer is NOT side-by-side with production; don't install over owner's running Gold client without explicit consent. Link from Tray More actions when disconnected; V4 Devices shows the instructions but lacks a working Link native action. Lab Operator V1 423 PASS, Plugin Auth/Token ON, Owner READ OFF; complete actual Owner API/SSO and signed B acceptance separately.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -175,7 +175,7 @@
     "treeDigest": "b0ceadb004f5311a7c45dcf8609c6c5340052c66a375b9441ac2e722f86abd10",
     "trackedFiles": 1306,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-06T12:04:15.011Z"
+    "recordedAt": "2026-11-06T12:16:22.362Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
