@@ -90,6 +90,7 @@ on:
       - 'deploy/scripts/selftest-v10-desktop-productization.mjs'
       - 'deploy/scripts/selftest-gold-windows-tray-relink.mjs'
       - 'deploy/scripts/selftest-goldabv2-native-tray-menu.mjs'
+      - 'deploy/scripts/selftest-goldabv2-unified-one-app.mjs'
       - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
       - 'device-agent/filesystem-volume-inventory.mjs'
       - '.github/workflows/windows-native-client.yml'
@@ -205,6 +206,11 @@ jobs:
       - name: Gold Windows tray Relink regression
         shell: pwsh
         run: node deploy/scripts/selftest-gold-windows-tray-relink.mjs
+
+      - name: GoldABV2 unified one-app lifecycle + link/Wall source regression
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        shell: pwsh
+        run: node deploy/scripts/selftest-goldabv2-unified-one-app.mjs
 
       - name: Publish native tray client
         shell: pwsh
@@ -999,16 +1005,40 @@ jobs:
           $agentNodes = @(Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $runtimeNode })
           if (-not $agentNodes) { throw 'hidden agent node process missing' }
           if ($agentNodes | Where-Object { $_.MainWindowHandle -ne 0 }) { throw 'agent node unexpectedly owns a visible console window' }
-          $trayProbe = Start-Process -FilePath $exe -PassThru
-          Start-Sleep -Milliseconds 900
-          Stop-Process -Id $trayProbe.Id -Force -ErrorAction SilentlyContinue
-          Start-Sleep -Milliseconds 500
-          if ((Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent').State -ne 'Running') { throw 'closing tray stopped background agent task' }
-          if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'closing tray stopped Local Wall 5491' }
-          $relaunchedTray = Start-Process -FilePath $exe -ArgumentList @('--launch') -PassThru
-          Start-Sleep -Milliseconds 1200
-          if ($relaunchedTray.HasExited) { throw 'desktop launcher did not restore the tray process' }
-          if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'desktop launcher disturbed Local Wall 5491' }
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            $desktop = Join-Path $installDir 'desktop-v4\LightRemote.Desktop.exe'
+            $original = Start-Process -FilePath $desktop -PassThru
+            Start-Sleep -Seconds 2
+            $duplicate = Start-Process -FilePath $desktop -PassThru
+            if (-not $duplicate.WaitForExit(15000)) {
+              Stop-Process -Id $duplicate.Id -Force -ErrorAction SilentlyContinue
+              throw 'second Desktop V4 instance did not exit after focusing existing window'
+            }
+            $original.Refresh()
+            if ($original.HasExited) { throw 'existing unified Desktop died during second launch' }
+            Write-Host 'windows-unified-desktop-single-instance=PASS'
+            Stop-Process -Id $original.Id -Force
+            Start-Sleep -Milliseconds 600
+            if ((Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent').State -ne 'Running') { throw 'exiting unified app stopped Agent background task' }
+            if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'exiting unified app stopped Wall' }
+            $relaunched = Start-Process -FilePath $desktop -PassThru
+            Start-Sleep -Milliseconds 1200
+            $relaunched.Refresh()
+            if ($relaunched.HasExited) { throw 'Windows shortcut target cannot relaunch unified app' }
+            Stop-Process -Id $relaunched.Id -Force
+            Write-Host 'windows-unified-tray-owner-and-shortcut-relaunch=PASS'
+          } else {
+            $trayProbe = Start-Process -FilePath $exe -PassThru
+            Start-Sleep -Milliseconds 900
+            Stop-Process -Id $trayProbe.Id -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 500
+            if ((Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent').State -ne 'Running') { throw 'closing tray stopped background agent task' }
+            if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'closing tray stopped Local Wall 5491' }
+            $relaunchedTray = Start-Process -FilePath $exe -ArgumentList @('--launch') -PassThru
+            Start-Sleep -Milliseconds 1200
+            if ($relaunchedTray.HasExited) { throw 'desktop launcher did not restore the tray process' }
+          }
+          if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'launcher disturbed Local Wall 5491' }
           Write-Host 'windows-agent-hidden-console=PASS'
           Write-Host 'windows-tray-exit-agent-survival=PASS'
           Write-Host 'windows-tray-relaunch=PASS'

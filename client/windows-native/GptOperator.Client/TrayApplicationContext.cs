@@ -802,7 +802,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         }
     }
 
-    private void OpenDesktopApp()
+    internal static void OpenDesktopApp()
     {
         var exe = Path.Combine(AppContext.BaseDirectory, "desktop-v4", "LightRemote.Desktop.exe");
         if (!File.Exists(exe))
@@ -916,6 +916,183 @@ internal sealed class TrayApplicationContext : ApplicationContext
             && EnrollmentCommand(true).SequenceEqual(new[] { "login", "--reenroll", "--no-wait" })
             && EnrollmentCommand(false).SequenceEqual(new[] { "login", "--no-wait" });
     }
+
+#if LIGHT_REMOTE_GOLDABV2_V4
+    // Headless local bridge used by the ONE Tauri Desktop/Tray process.
+    // No Window, NotifyIcon or Owner bearer is created here.
+    internal static async Task<int> DesktopBridgeAsync(string action)
+    {
+        try
+        {
+            object response;
+            switch (action)
+            {
+                case "status":
+                {
+                    var s = await ReadSnapshotAsync();
+                    var wall = WallPortListening();
+                    response = new {
+                        ok = s.StatusAvailable, state = "status", s.Enrolled,
+                        s.ShortId, s.IsMain, s.DeviceName,
+                        connected = s.Enrolled && s.CloudDesiredConnected
+                            && s.CloudState.Equals("connected", StringComparison.OrdinalIgnoreCase),
+                        cloudState = s.CloudState, wallOnline = wall,
+                        pending = !string.IsNullOrEmpty(s.PendingEnrollmentId),
+                        s.PendingUpdates, fleetUrl = FleetUrl(s),
+                        serviceLabel = wall ? "Stop" : "Start"
+                    };
+                    break;
+                }
+                case "preview":
+                {
+                    var p = await AgentAsync("link-preview");
+                    if (p.Code != 0)
+                    {
+                        response = new {ok=false, state="none"};
+                        break;
+                    }
+                    using var parsed = JsonDocument.Parse(p.Out);
+                    var root = parsed.RootElement;
+                    var expiresAt = root.TryGetProperty("expiresAt", out var ex) && ex.TryGetInt64(out var ms) ? ms : 0L;
+                    var code = root.TryGetProperty("deviceCode", out var cc) ? cc.GetString() : null;
+                    var raw = root.TryGetProperty("activationUrl", out var ur) ? ur.GetString() : null;
+                    var trusted = TrustedEnrollmentActivationUrl(raw ?? "", ConnectionConfig.Load().BridgeUrl);
+                    response = new {
+                        ok = true,
+                        state = root.TryGetProperty("state", out var st) ? st.GetString() : "expired",
+                        deviceCode = trusted is not null && Regex.IsMatch(code ?? "", @"^[A-Z0-9]{4}-[A-Z0-9]{4}$")
+                            ? code : null,
+                        expiresAt, activationUrl = trusted?.AbsoluteUri
+                    };
+                    break;
+                }
+                case "link":
+                {
+                    var s = await ReadSnapshotAsync();
+                    if (!s.StatusAvailable) {response = new {ok=false,state="agent_unavailable"};break;}
+                    if (!string.IsNullOrWhiteSpace(s.PendingEnrollmentId))
+                    {
+                        return await DesktopBridgeAsync("preview");
+                    }
+                    if (s.Enrolled && s.CloudDesiredConnected
+                        && s.CloudState.Equals("connected", StringComparison.OrdinalIgnoreCase))
+                    {
+                        response = new {ok=false,state="disconnect_required"};
+                        break;
+                    }
+                    var r = await AgentAsync(EnrollmentCommand(s.Enrolled));
+                    if (r.Code != 0)
+                    {
+                        response = new {ok=false,state="link_failed"};
+                        break;
+                    }
+                    return await DesktopBridgeAsync("preview");
+                }
+                case "poll":
+                {
+                    var p = await AgentAsync("poll");
+                    if (p.Code != 0) {response = new {ok=false,state="poll_unavailable"};break;}
+                    using var parsed = JsonDocument.Parse(p.Out);
+                    var state = parsed.RootElement.TryGetProperty("state", out var sv) ? sv.GetString() : "";
+                    if (state != "approved") {response = new {ok=true,state};break;}
+                    var restarted = await Task.Run(RestartAgentTransactional);
+                    if (!restarted.Ok)
+                    {
+                        response = new {ok=true,state="approved_restart_required"};
+                        break;
+                    }
+                    var cn = await AgentAsync("connect");
+                    response = new {ok=true,state=cn.Code==0?"approved":"approved_connect_required"};
+                    break;
+                }
+                case "disconnect":
+                {
+                    var s = await ReadSnapshotAsync();
+                    if (!s.StatusAvailable || !s.Enrolled)
+                    {
+                        response = new {ok=false,state="device_not_enrolled"};
+                        break;
+                    }
+                    var disconnected = await AgentAsync("disconnect");
+                    response = new {ok=disconnected.Code==0,
+                        state=disconnected.Code==0?"disconnected":"disconnect_failed"};
+                    break;
+                }
+                case "service":
+                {
+                    var stop = WallPortListening();
+                    var result = await Task.Run(() => stop ? StopAgentTaskVerified() : StartAgentTaskVerified());
+                    response = new {ok=result.Ok,state=result.Ok?(stop?"stopped":"started"):"service_failed"};
+                    break;
+                }
+                case "restart":
+                {
+                    var result = await Task.Run(RestartAgentTransactional);
+                    response = new {ok=result.Ok,state=result.Ok?"restarted":"restart_failed"};
+                    break;
+                }
+                case "update":
+                {
+                    var code = await Task.Run(() => Schtasks("/Run","/TN",UpdateTask));
+                    response = new {ok=code==0,state=code==0?"update_requested":"update_failed"};
+                    break;
+                }
+                case "open-wall":
+                {
+                    var started = WallPortListening() || (await Task.Run(StartAgentTaskVerified)).Ok;
+                    if (started) OpenUrl(WallUrl, "desktop_wall_open_failed");
+                    response = new {ok=started,state=started?"browser_opened":"wall_unavailable"};
+                    break;
+                }
+                case "open-account":
+                {
+                    OpenUrl(AccountUrl, "desktop_account_open_failed");
+                    response = new {ok=true,state="browser_opened"};
+                    break;
+                }
+                case "open-fleet":
+                {
+                    var status = await ReadSnapshotAsync();
+                    var url = FleetUrl(status);
+                    if (status.IsMain && url is not null)
+                    {
+                        OpenUrl(url,"desktop_fleet_open_failed");
+                        response = new {ok=true,state="browser_opened"};
+                    }
+                    else response = new {ok=false,state="fleet_not_authorized"};
+                    break;
+                }
+                case "open-activation":
+                {
+                    var p = await AgentAsync("link-preview");
+                    if (p.Code != 0) {response = new {ok=false,state="no_pending_enrollment"};break;}
+                    using var parsed = JsonDocument.Parse(p.Out);
+                    var root = parsed.RootElement;
+                    var raw = root.TryGetProperty("activationUrl", out var u) ? u.GetString() : null;
+                    var trusted = TrustedEnrollmentActivationUrl(raw ?? "", ConnectionConfig.Load().BridgeUrl);
+                    var expiry = root.TryGetProperty("expiresAt", out var ex) && ex.TryGetInt64(out var ms) ? ms : 0L;
+                    if (trusted is null || expiry <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
+                    {
+                        response = new {ok=false,state="link_expired"};
+                        break;
+                    }
+                    OpenUrl(trusted.AbsoluteUri, "desktop_link_open_failed");
+                    response = new {ok=true,state="browser_opened"};
+                    break;
+                }
+                default: response = new {ok=false,state="action_not_allowed"};break;
+            }
+            Console.WriteLine(JsonSerializer.Serialize(response));
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            ClientEvent("desktop_bridge_failed",new {action, error=ex.GetType().Name});
+            Console.WriteLine(JsonSerializer.Serialize(new {ok=false,state="desktop_bridge_unavailable"}));
+            return 1;
+        }
+    }
+#endif
 
     protected override void ExitThreadCore()
     {

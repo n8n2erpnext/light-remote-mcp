@@ -71,7 +71,11 @@ Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs c
 Type: files; Name: "{app}\realremote-v2\GptOperator.RealRemoteV2.*"
 
 [Registry]
+#ifdef UnifiedDesktopV4
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\desktop-v4\LightRemote.Desktop.exe"""; Flags: uninsdeletevalue
+#else
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\GptOperator.Client.exe"" --background"; Flags: uninsdeletevalue
+#endif
 
 [Icons]
 #ifdef UnifiedDesktopV4
@@ -86,9 +90,12 @@ Name: "{userdesktop}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Windows shortcuts:"
 
 [Run]
-Filename: "{app}\GptOperator.Client.exe"; Description: "Start Light Remote Agent and tray"; Flags: nowait postinstall skipifsilent
 #ifdef UnifiedDesktopV4
-Filename: "{app}\desktop-v4\LightRemote.Desktop.exe"; Description: "Open Light Remote Desktop V4"; Flags: nowait postinstall skipifsilent
+// The scheduled Agent task is installed separately; this launches exactly
+// ONE user-facing Tauri GUI + its built-in native Windows Tray.
+Filename: "{app}\desktop-v4\LightRemote.Desktop.exe"; Description: "Open Light Remote"; Flags: nowait postinstall skipifsilent
+#else
+Filename: "{app}\GptOperator.Client.exe"; Description: "Start Light Remote Agent and tray"; Flags: nowait postinstall skipifsilent
 #endif
 
 [Code]

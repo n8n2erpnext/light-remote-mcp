@@ -41,7 +41,7 @@ const nativeMenu=['NotifyIcon','Open Light Remote','Open Wall','Link / Relink','
   .every(token=>tray.includes(token)) && !tray.includes('new TrayPopoverForm(');
 expect(legacyMenu||nativeMenu,'windows_native_or_legacy_tray_contract_missing');
 expect(tray.includes('ExitThread()')&&!tray.includes('StopServiceAsync'),'quit_tray_must_not_stop_agent');
-expect(trayIcon.includes('BrandAssets.Mark'),'tray_brand_mark_missing');
+expect(trayIcon.includes('BrandAssets.Mark')||(trayIcon.includes('GetManifestResourceStream(name)')&&trayIcon.includes('LightRemoteTray.')),'tray_brand_asset_missing');
 expect(updaterProject.includes('<AssemblyName>LightRemote.Updater</AssemblyName>')&&updaterProject.includes('<OutputType>WinExe</OutputType>'),'independent_updater_project_missing');
 expect(!updaterProgram.includes('JsonSerializer.Serialize')&&!applier.includes('JsonSerializer.Serialize'),'trimmed_updater_reflection_json_forbidden');
 expect(project.includes('<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>')&&updaterProject.includes('<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>'),'windows_single_file_compression_missing');

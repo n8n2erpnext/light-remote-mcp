@@ -5,6 +5,7 @@ import {
   ShieldAlert, ExternalLink, ScrollText, type LucideIcon
 } from 'lucide-react';
 import { FeatureScreen } from './FeatureScreens';
+import {DeviceLinkDialog,nativeLinkAvailable,pollNativeLinkIntent} from './DeviceLinkDialog';
 import { Button } from './components/ui/button';
 import { Card, CardHeading } from './components/ui/card';
 import { navRoutes, parseRoute, routeHref, type RouteKey } from './lib/routes';
@@ -446,6 +447,15 @@ const titles: Record<RouteKey, { title: string; subtitle: string }> = {
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => parseRoute(window.location.hash));
+  const [showDeviceLink,setShowDeviceLink]=useState(false);
+  useEffect(()=>{
+    if(!nativeLinkAvailable())return;
+    let live=true;
+    const id=window.setInterval(()=>{
+      void pollNativeLinkIntent().then(requested=>{if(live&&requested)setShowDeviceLink(true);});
+    },850);
+    return()=>{live=false;window.clearInterval(id);};
+  },[]);
   const [inDesignPreview, setInDesignPreview] = useState(false);
   const [nativeOwner, setNativeOwner] = useState<NativeOwnerView>({phase:'unavailable',accountId:null});
   const { theme, choose } = useTheme();
@@ -601,12 +611,20 @@ export function App() {
   // native localhost probe can skip this gate. Only explicit UI-test builds
   // expose a non-authoritative preview; no credential is persisted.
   if (!workspaceUnlocked) {
-    return <AuthEntry
-      allowDesignPreview={UI_DESIGN_PREVIEW}
-      onPreviewWorkspace={() => { if (UI_DESIGN_PREVIEW) setInDesignPreview(true); }}
-      nativePhase={nativeLoginAvailable ? nativeOwner.phase : undefined}
-      onBrowserSignIn={nativeLoginAvailable ? beginNativeOwner : undefined}
-      onCancelSignIn={nativeLoginAvailable ? cancelNativeOwner : undefined} />;
+    // Enrollment is a local physical-device action, not an Agent grant.
+    // The Owner has to be able to open the Tray Link dialog even BEFORE
+    // Desktop OAuth login; no JS bearer or saved login is accessed here.
+    return <>
+      <AuthEntry
+        allowDesignPreview={UI_DESIGN_PREVIEW}
+        onPreviewWorkspace={() => { if (UI_DESIGN_PREVIEW) setInDesignPreview(true); }}
+        nativePhase={nativeLoginAvailable ? nativeOwner.phase : undefined}
+        onBrowserSignIn={nativeLoginAvailable ? beginNativeOwner : undefined}
+        onCancelSignIn={nativeLoginAvailable ? cancelNativeOwner : undefined} />
+      {nativeLinkAvailable()&&<Button type="button" variant="secondary"
+        onClick={()=>setShowDeviceLink(true)}>Link / Relink this device</Button>}
+      {showDeviceLink&&nativeLinkAvailable()&&<DeviceLinkDialog onClose={()=>setShowDeviceLink(false)}/>}
+    </>;
   }
 
   return (
@@ -623,6 +641,8 @@ export function App() {
               onClick={inDesignPreview ? () => setInDesignPreview(false) : cancelNativeOwner}>
               {inDesignPreview ? 'Exit UI preview' : 'Sign out'}
             </Button>
+            {nativeLinkAvailable()&&<Button type="button" variant="secondary"
+              onClick={()=>setShowDeviceLink(true)}>Link / Relink</Button>}
             <Button variant="secondary" className="open-wall-button" disabled={!canOpenWall}
               title={canOpenWall ? 'Open this device Local Wall in the default browser' : 'Available only inside the native Desktop app'}
               onClick={() => requestOpenWall('home')} aria-label="Open Wall">
@@ -668,6 +688,7 @@ export function App() {
           {inDesignPreview ? 'Desktop V4 UI preview · not authenticated · no Owner grants or Agent mutations' : 'Desktop Owner verified - Local Wall and Agent A/B authorization remain separate'}
         </footer>
       </main>
+      {showDeviceLink&&nativeLinkAvailable()&&<DeviceLinkDialog onClose={()=>setShowDeviceLink(false)} />}
     </div>
   );
 }

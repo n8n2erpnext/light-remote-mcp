@@ -2,7 +2,7 @@
  // Only rendered after authenticated local Owner; never generates A/B.
 // Signed Operator preview; human B + authenticated Owner mandatory. Outside the isolated Lab, an independent Owner consent is additionally required.
 export const wallAbV2PreviewFragment = `
-<section id="abV2OwnerPreview" hidden class="card ab2-shell" aria-label="A/B V2 Agent approval">
+<section id="abV2OwnerPreview" class="card ab2-shell" aria-label="A/B V2 Agent approval">
  <style>
  /* Use the SAME native .wrap / .card / .btn / .primary tokens as V1 Wall.
     Only layout utilities are scoped here; no second blue theme or overlay. */
@@ -85,8 +85,13 @@ export const wallAbV2PreviewFragment = `
   refreshInFlight=true;refresh.disabled=true;
   try{
    const resp=await fetch('/api/abv2/pending',{credentials:'same-origin',cache:'no-store'});
-   if(resp.status===404){host.hidden=true;return;}
-   if(!resp.ok){host.hidden=true;return;}
+   if(!resp.ok){
+     // Never reveal legacy V1 approval as a fallback for failed V2 preview.
+     host.hidden=false;items.replaceChildren();pending=[];
+     state.textContent='Signed A/B V2 requests unavailable';
+     status.textContent='Cannot verify the current request list. Check Owner login and Cloud connection, then Refresh.';
+     return;
+   }
    const data=await resp.json();
    if(data?.ok!==true||!Array.isArray(data.pending))throw Error('Invalid signed request feed');
    // Don't steal focus or erase a partially entered B code during 12s signed-feed refresh.

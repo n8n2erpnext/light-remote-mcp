@@ -54,12 +54,27 @@ internal static class Program
         }
 
         if (args.Contains("--agent-host", StringComparer.OrdinalIgnoreCase)) { Environment.ExitCode = AgentHost.Run(); return; }
+#if LIGHT_REMOTE_GOLDABV2_V4
+        if (args.Length == 2 && args[0].Equals("--desktop-bridge", StringComparison.OrdinalIgnoreCase))
+        {
+            Environment.ExitCode = TrayApplicationContext.DesktopBridgeAsync(args[1]).GetAwaiter().GetResult();
+            return;
+        }
+#endif
         if (args.Contains("--open-wall", StringComparer.OrdinalIgnoreCase)) { OpenWall(); return; }
+#if LIGHT_REMOTE_GOLDABV2_V4
+        // Desktop V4 is the ONLY user-facing GUI and native Tray owner.
+        // This .NET binary remains only the internal scheduled Agent host and
+        // explicitly bounded local Desktop bridge, never a second Tray app.
+        TrayApplicationContext.OpenDesktopApp();
+        return;
+#else
         var launcher = args.Contains("--launch", StringComparer.OrdinalIgnoreCase);
         using var mutex = new Mutex(true, @"Local\GPT_OPERATOR_CLIENT_V09", out var firstInstance);
         if (!firstInstance) { if (launcher) OpenWall(); return; }
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayApplicationContext());
+#endif
     }
 
     private static void OpenWall()

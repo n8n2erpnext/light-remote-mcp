@@ -2673,21 +2673,30 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       let html=wallPage(brandSvg,Boolean(auth?.enabled),auth?.enabled?auth.csrfForRequest(req)||'':'',auth?.enabled?auth.identity(req):null,Boolean(modules),view);
       if(view!=='home')html=html.replace('<details id="goldModulesPanel"','<details open id="goldModulesPanel"');if(!auth?.enabled||typeof getLocalProcesses!=='function')html=html.replace(/<a class="btn small" href="\/processes">.*?<\/a>/,'');res.writeHead(200,pageHeaders());res.end(html);return;}
     if(req.method==='GET'&&url.pathname==='/approve'){
-      const labV2Only=goldAbV2LabV1Disabled();
+      // Signed Operator status, not a Lab-only environment variable, decides
+      // the browser authorization mode. Unknown always fails closed.
+      let serverMode='unknown';
+      if(typeof getRemoteStatus==='function'){
+        try{
+          const signed=await getRemoteStatus();
+          if(signed?.ok===true && ['abv2_only','legacy_allowed'].includes(signed.pairingMode))
+            serverMode=signed.pairingMode;
+        }catch{/* never invent a V1 grant on a channel outage */}
+      }
+      if(goldAbV2LabV1Disabled())serverMode='abv2_only';
       const base=approvePage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':'');
-      const fragment=labV2Only?wallAbV2PreviewFragment
+      const fragment=serverMode==='abv2_only'?wallAbV2PreviewFragment
         .replace('href="https://light-remote.thaiduy.digital/account"',
-          'href="https://goldabv2.light-remote.thaiduy.digital/account"')
-        :wallAbV2PreviewFragment;
-      // Both V1 and V2 are native content INSIDE the same centered Wall .wrap.
-      // Only LAB V1 is disabled; production retains its original V1 card.
+          'href="https://goldabv2.light-remote.thaiduy.digital/account"'):'';
       const legacy='<div class="card"><label for="code">';
       const anchor='</div></div><script>';
       if(!base.includes(legacy)||!base.includes(anchor))
         throw Error('wall_approve_layout_contract_changed');
-      const page=labV2Only?
-        base.replace(legacy,'<div class="card" id="legacyApproveCard" hidden><label for="code">'):base;
-      const html=page.replace(anchor,'</div>'+fragment+'</div><script>');
+      const page=serverMode==='legacy_allowed'?base:base.replace(legacy,
+        '<div class="card" id="legacyApproveCard" hidden><label for="code">');
+      const notice=serverMode==='unknown'?
+        '<section class="card" role="status"><strong>Agent authorization unavailable</strong><p class="muted">Waiting for signed Operator A/B mode. Reconnect the device and refresh. Legacy approval is unavailable while authority is unknown.</p></section>':'';
+      const html=page.replace(anchor,'</div>'+fragment+notice+'</div><script>');
       res.writeHead(200,pageHeaders());res.end(decorateWallSubpage(html,{csrf:auth?.enabled?auth.csrfForRequest(req)||'':'',authEnabled:Boolean(auth?.enabled),moduleSupported:Boolean(modules),materialIcon,path:'/approve'}));return;
     }
     if(req.method==='GET'&&url.pathname==='/processes'){

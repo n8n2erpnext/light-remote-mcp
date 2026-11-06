@@ -31,6 +31,9 @@ reqwest = { version = "0.12.24", default-features = false, features = ["blocking
 # Async bounded OS-private named pipe/Unix socket delivery. No HTTP bearer route.
 tokio = { version = "1", features = ["net", "io-util", "time"], optional = true }
 
+# Tray is a Windows-only UI capability; macOS/Linux package remains untouched.
+[target.'cfg(target_os = "windows")'.dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
 
 [profile.dev]
 incremental = true

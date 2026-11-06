@@ -14,6 +14,9 @@ mod owner_wall_ticket;
 #[cfg(feature = "desktop-owner-login")]
 mod owner_abv2;
 
+#[cfg(all(feature = "desktop-owner-login", target_os = "windows"))]
+mod unified_tray;
+
 // Every desktop host opens its OWN device-local Wall. GoldABV2 is the
 // cloud Owner/Operator backend, never an alternate Wall destination.
 // A Linux LXD NetBird NAT access URL is only external QA, never App Wall.
@@ -97,7 +100,32 @@ fn main() {
 
 // Opt-in isolated Owner Login candidate. Native commands return ONLY a
 // sanitized account/phase projection; credentials remain Rust+OS Keyring.
-#[cfg(feature = "desktop-owner-login")]
+// Desktop V4 production on Windows owns the single visible window + OS tray.
+#[cfg(all(feature = "desktop-owner-login", target_os = "windows"))]
+fn main() {
+    if unified_tray::already_running() { return; }
+    tauri::Builder::default()
+        .manage(owner_login::OwnerRuntime::default())
+        .setup(|app| { unified_tray::attach(app)?; Ok(()) })
+        .on_window_event(unified_tray::hide_on_close)
+        .invoke_handler(tauri::generate_handler![
+            open_local_wall, probe_local_wall,
+            owner_login::desktop_owner_begin, owner_login::desktop_owner_status,
+            owner_login::desktop_owner_restore, owner_login::desktop_owner_logout,
+            owner_login::desktop_owner_wall_sso_approve,
+            owner_login::desktop_owner_abv2_pending,
+            owner_login::desktop_owner_abv2_approve,
+            owner_login::desktop_owner_snapshot,
+            unified_tray::desktop_native_action,
+            unified_tray::desktop_link_ui_intent
+        ])
+        .run(tauri::generate_context!())
+        .expect("Light Remote V4 unified Windows app startup failed");
+}
+
+// Other operating systems retain their native V4 owner shell. The Windows
+// tray implementation has no second-process fallback on these platforms.
+#[cfg(all(feature = "desktop-owner-login", not(target_os = "windows")))]
 fn main() {
     tauri::Builder::default()
         .manage(owner_login::OwnerRuntime::default())
