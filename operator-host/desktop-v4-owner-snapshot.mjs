@@ -9,11 +9,12 @@ const deny=(reason,status=403)=>{throw Object.assign(new Error(reason),{status})
 const sorted=(rows)=>rows.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
 export function createDesktopV4OwnerSnapshot({
  accounts,allDeviceViews,sessions,accessGrants,usage,planEntitlements,
- now=Date.now,maxDevices=200,maxSessions=200,maxGrants=200
+ jobs,recentEvents,now=Date.now,maxDevices=200,maxSessions=200,maxGrants=200,maxJobs=200
 }={}){
  if(!accounts?.desktopOwnerSessionActive||!accounts?.account||
     typeof allDeviceViews!=='function'||!sessions?.list||
     !accessGrants?.activeGrantsForDevice||!usage?.summary||
+    !jobs?.values||typeof recentEvents!=='function'||
     typeof planEntitlements!=='function')deny('desktop_snapshot_dependencies_missing',503);
  return function snapshot({accountId,accountSessionId}={}){
   if(!ACCOUNT.test(accountId||'')||!SESSION.test(accountSessionId||'')||
@@ -54,6 +55,32 @@ export function createDesktopV4OwnerSnapshot({
      absoluteExpiresAt:finite(g.absoluteExpiresAt)});
    }
   }
+  // Current in-memory job registry, not a claim of complete historical jobs.
+  // Do not return scripts, cwd, stdout, stderr, notes or command metadata.
+  const ownerJobs=[...jobs.values()].filter(j=>
+    j.accountId===accountId&&owned.has(j.deviceId));
+  if(ownerJobs.length>maxJobs)deny('desktop_snapshot_jobs_too_large',409);
+  const jobRows=ownerJobs.map(j=>({
+    jobId:string(j.id),deviceId:string(j.deviceId),agentId:string(j.agentId),
+    sessionId:string(j.sessionId),
+    state:['running','queued','ok','error','timeout','killed',
+      'stop-requested','cancelled'].includes(j.status)?j.status:'unknown',
+    startedAt:finite(j.startedAt),finishedAt:finite(j.finishedAt),
+    exitCode:Number.isSafeInteger(j.exitCode)?j.exitCode:null
+  })).filter(j=>j.jobId)
+    .sort((a,b)=>(b.startedAt||0)-(a.startedAt||0));
+  // The ring is deliberately a recent event window. Never include free-form
+  // detail, payloads, filenames, command output, paths, email or tokens.
+  const window=recentEvents(200);
+  if(!Array.isArray(window)||window.length>200)
+    deny('desktop_snapshot_events_unavailable',503);
+  const events=window.filter(e=>e.accountId===accountId&&owned.has(e.deviceId))
+    .map(e=>({
+      deviceId:string(e.deviceId),
+      eventType:typeof e.type==='string'&&/^[a-z][a-z0-9_:-]{0,63}$/.test(e.type)?e.type:'activity',
+      status:typeof e.status==='string'&&/^[a-z][a-z0-9_:-]{0,31}$/.test(e.status)?e.status:'unknown',
+      at:finite(typeof e.at==='string'?Date.parse(e.at):e.at)
+    }));
   const rawUsage=usage.summary(accountId,{months:1});
   if(!Array.isArray(rawUsage?.devices)||rawUsage.devices.length>maxDevices)
     deny('desktop_snapshot_usage_unavailable',503);
@@ -71,6 +98,6 @@ export function createDesktopV4OwnerSnapshot({
    entitlements:{plan:string(ent?.plan,40),
     toolCallLimit:finite(ent?.toolCallLimit)},
    usage:{month:usageMonth,toolCallsThisMonth:finite(rawUsage?.toolCallsThisMonth),byDevice},
-   devices,sessions:sessionRows,grants});
+   devices,sessions:sessionRows,grants,jobs:jobRows,events});
  };
 }

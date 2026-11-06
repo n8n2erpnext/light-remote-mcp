@@ -1377,3 +1377,6 @@ GitHub Desktop V4 run 42173925101 stopped at TS2345 in Sessions expiry display; 
 
 ## 2026-11-06 — T06b2 per-device monthly usage integration
 After T06b1 Desktop native 7/7 CI PASS (run 42174200061), connected existing Operator UsageRegistry's monthly per-device calls/online durations into authenticated Owner read snapshot and Desktop Account table. Tests updated for scoping. New code CI pending; no deployed Owner snapshot/Windows physical acceptance.
+
+## 2026-11-06 — T06b3 Owner Live Monitor data
+Read-only T06 native Owner snapshot now projects current Operator jobs and recent events per owned device; frontend renders typed Live Monitor tables. T06b2 CI 7/7 passed, new T06b3 exact-SHA CI pending. No runtime changes.

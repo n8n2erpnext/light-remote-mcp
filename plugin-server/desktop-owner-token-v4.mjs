@@ -142,7 +142,8 @@ export function createDesktopOwnerTokenService({
     });
     if(result?.ok!==true||result.accountId!==family.accountId ||
        !Array.isArray(result.devices)||!Array.isArray(result.sessions)||
-       !Array.isArray(result.grants))
+       !Array.isArray(result.grants)||!Array.isArray(result.jobs)||
+       !Array.isArray(result.events))
       deny('desktop_snapshot_unavailable');
     // Do not send raw Redis/Owner family identifiers or other token state.
     return result;

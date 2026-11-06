@@ -14,7 +14,8 @@ export async function handleAccountRoutes(req,res,url,deps){
       const body=await readJson(req);
       const snapshot=createDesktopV4OwnerSnapshot({
         accounts,allDeviceViews,sessions:deps.sessions,
-        accessGrants,usage,planEntitlements
+        accessGrants,usage,planEntitlements,
+        jobs:deps.jobs,recentEvents:deps.recentEvents
       });
       return sendJson(res,200,snapshot(body));
     }

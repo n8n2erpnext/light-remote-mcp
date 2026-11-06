@@ -69,7 +69,7 @@ test('T06 signed Owner snapshot stays native-only and rechecks current Portal fa
     calls.push({method,path,body});
     return {ok:true,accountId:ACCOUNT,asOf:1234,
       account:{email:'owner@example.test',plan:'pro',status:'active',emailVerified:true},
-      devices:[],sessions:[],grants:[]};
+      devices:[],sessions:[],grants:[],jobs:[],events:[]};
   }});
   const issued=await x.service.exchange(x.input);
   const req={method:'POST',headers:{'content-type':'application/json',

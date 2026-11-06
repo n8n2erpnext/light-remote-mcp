@@ -26,6 +26,17 @@ const data=({verified=true,devices=null,sessions=null,grants=null}={})=>{
   accessGrants:{activeGrantsForDevice:()=>actualGrants},
   usage:{summary:()=>({currentMonth:'2026-11',toolCallsThisMonth:12,rawSecret:'NEVER',devices:[{deviceId:'dev-a',toolCalls:9,onlineMs:3600000,secret:'NEVER'},{deviceId:'dev-foreign',toolCalls:2,onlineMs:10}]})},
   planEntitlements:()=>({plan:'pro',toolCallLimit:500,rawSecret:'NEVER'}),
+  jobs:new Map([
+    ['j1',{id:'j1',accountId:'owner',deviceId:'dev-a',agentId:'agent-1',
+      sessionId:'s-1',status:'running',startedAt:1000,stdout:'SECRET',script:'SECRET'}],
+    ['j2',{id:'j2',accountId:'other',deviceId:'dev-foreign',
+      sessionId:'s-foreign',script:'SECRET'}]
+  ]),
+  recentEvents:()=>[
+    {accountId:'owner',deviceId:'dev-a',type:'job_started',
+      status:'running',at:'2026-11-06T00:00:00.000Z',detail:'SECRET'},
+    {accountId:'other',deviceId:'dev-foreign',type:'job_started',detail:'SECRET'}
+  ],
   now:()=>1234
  });
 };
@@ -39,6 +50,11 @@ test('native Owner read model excludes foreign devices/Agent, secret fields and 
  assert.equal(result.usage.toolCallsThisMonth,12);
  assert.equal(result.usage.month,'2026-11');
  assert.deepEqual(result.usage.byDevice,[{deviceId:'dev-a',toolCalls:9,onlineMs:3600000}]);
+ assert.equal(result.jobs.length,1);
+ assert.equal(result.jobs[0].state,'running');
+ assert.equal(result.events.length,1);
+ assert.equal(result.events[0].eventType,'job_started');
+ assert.equal(result.events[0].at,Date.UTC(2026,10,6));
  assert.ok(!JSON.stringify(result).includes('TOP_SECRET'));
  assert.ok(!JSON.stringify(result).includes('NEVER'));
  assert.ok(!JSON.stringify(result).includes('/private/work'));

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-06",
-  "status": "T06B2_T06_DESKTOP_NATIVE_7_OF_7_CI_PASS_PER_DEVICE_USAGE_SOURCE_CI_PENDING_RUNTIME_OFF",
+  "status": "T06B3_OWNER_SNAPSHOT_LIVE_MONITOR_CI_PENDING_RUNTIME_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "e6d92fa2956c1db70b30cd88266f7fb3e18cdf7d0e52af0f0a1f9badb48dfb1e",
+    "treeDigest": "1dc801109db3083ed46b765ebd34ad90a492cc7e7e7ec31a94e69e3a44d52741",
     "trackedFiles": 1242,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-06T06:36:57.162Z"
+    "recordedAt": "2026-11-06T07:03:11.343Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
