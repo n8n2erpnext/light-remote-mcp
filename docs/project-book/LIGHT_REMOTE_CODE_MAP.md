@@ -747,3 +747,6 @@ selftest-gold-ab-v2-lab-v1-lock.mjs and selftest-gold-ab-v2-wall-preview.mjs are
 
 ## 2026-11-06 — T08/#617 permanent V2-only, account-bound fleet, Wall native controls
 GoldABV2 Operator HTTP/helper/signed approval/grant and Pro Share owner/guest paths no longer check configured account/device allowlists. Signed owner and enrollment/capability/connection/B fences remain. Historical lib/gold-ab-v2-lab-v1-lock.mjs helper now encodes non-toggleable product V2-only policy; normal Gold is independent. device-agent/local-wall.mjs owns joblead status/time grouping and Codex native enable/disable button. deploy/scripts/selftest-goldabv2-v2only-no-static-fleet-allowlist.mjs in Windows CI protects contracts.
+
+## 2026-11-06 — T08/#617a V2-only approval page generation
+device-agent/local-wall.mjs /approve output builds only the signed V2 section or fail-closed notice when non-legacy; it strips the shared Gold V1 markup AND script. Gold regular legacy_allowed alone returns the legacy page. GoldABV2 /api/approve and pairing-code remain HTTP423 by product policy. Windows full CI excludes Linux-only POSIX 0600 key fixture but keeps platform-safe V2 authorization tests.

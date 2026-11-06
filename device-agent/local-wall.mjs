@@ -2724,15 +2724,16 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
       const fragment=serverMode==='abv2_only'?wallAbV2PreviewFragment
         .replace('href="https://light-remote.thaiduy.digital/account"',
           'href="https://goldabv2.light-remote.thaiduy.digital/account"'):'';
+      // Do not ship a hidden V1 form or its JavaScript to GoldABV2 clients.
+      // The regular Gold product is the ONLY remaining legacy_allowed renderer.
       const legacy='<div class="card"><label for="code">';
-      const anchor='</div></div><script>';
-      if(!base.includes(legacy)||!base.includes(anchor))
+      const legacyStart=base.indexOf(legacy);
+      if(legacyStart<0||!base.includes('<script>'))
         throw Error('wall_approve_layout_contract_changed');
-      const page=serverMode==='legacy_allowed'?base:base.replace(legacy,
-        '<div class="card" id="legacyApproveCard" hidden><label for="code">');
       const notice=serverMode==='unknown'?
         '<section class="card" role="status"><strong>Agent authorization unavailable</strong><p class="muted">Waiting for signed Operator A/B mode. Reconnect the device and refresh. Legacy approval is unavailable while authority is unknown.</p></section>':'';
-      const html=page.replace(anchor,'</div>'+fragment+notice+'</div><script>');
+      const html=serverMode==='legacy_allowed'?base:
+        base.slice(0,legacyStart)+fragment+notice+'</div></body></html>';
       res.writeHead(200,pageHeaders());res.end(decorateWallSubpage(html,{csrf:auth?.enabled?auth.csrfForRequest(req)||'':'',authEnabled:Boolean(auth?.enabled),moduleSupported:Boolean(modules),materialIcon,path:'/approve'}));return;
     }
     if(req.method==='GET'&&url.pathname==='/processes'){

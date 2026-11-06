@@ -54,7 +54,8 @@ try{
  assert.equal((await fetch(host+'/api/approve',{method:'POST',headers:owner})).status,423);
  const approve=await (await fetch(host+'/approve',{headers:owner})).text();
  assert.match(approve,/abV2OwnerPreview/);
- assert.match(approve,/id="legacyApproveCard" hidden/);
+ assert.doesNotMatch(approve,/id="legacyApproveCard"|id="lookup"|id="code"/,
+  'GoldABV2 must not emit V1 markup or legacy approval script');
  assert.match(approve,/id="abV2OwnerPreview" class="card ab2-shell"/);
  assert.doesNotMatch(approve,/id="abV2OwnerPreview" hidden/,'V2-only Lab should not conceal its signed approval surface');
  assert.match(approve,/Signed A\/B V2 requests unavailable/,'unavailable preview must not downgrade to legacy V1');
@@ -65,8 +66,10 @@ try{
  assert.match(approve,/id="wallSidebar"/);
  assert.doesNotMatch(approve,/href="\/">Back to Wall<\/a>/);
  assert.match(approve,/href="https:\/\/goldabv2\.light-remote\.thaiduy\.digital\/account"/);
- assert.ok(approve.indexOf('id="abV2OwnerPreview"')<approve.indexOf('const wallCsrf='),
-  'V2 approval card must live inside native Wall .wrap, before legacy script');
+ assert.ok(approve.includes('id="abV2OwnerPreview"'),
+  'V2 approval card must be present on the native Wall');
+ assert.doesNotMatch(approve,/const wallCsrf=/,
+  'GoldABV2 must omit the V1 approval script, not merely hide its form');
 
  for(const fragment of approve.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
   if(fragment[1].trim())new vm.Script(fragment[1],{filename:'abv2-lab-v1locked-approve.js'});

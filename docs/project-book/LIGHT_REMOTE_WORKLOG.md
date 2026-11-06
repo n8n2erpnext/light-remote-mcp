@@ -1185,3 +1185,6 @@ Restored the Desktop full handoff document into Gold Project Book; local canonic
 
 ## 2026-11-06 — T08/#617 GoldABV2 permanent V2-only and fleet/Wall UX
 Static account/device ID allowlists removed from GoldABV2 signed Helper/Owner/Grant/Pro Share paths. Account ownership, enrollment/policy/current connection, CSRF, signed Agent B checks remain; V1 never enabled in GoldABV2 by disposable Lab flag. Wall stream status/time moved to one top-aligned group; Codex OFF button styled like Long Memory. Source/CI pending; see Living Master T08/#617 receipt.
+
+## 2026-11-06 — T08/#617a GoldABV2 V1 DOM fully omitted and Windows POSIX test fixed
+Windows CI 42251367225 failed early on Linux-only chmod fixture introduced into Windows workflow. Kept Linux grant fixture separately, removed it from Windows step. GoldABV2 /approve V2-only no longer emits legacy V1 form, controls or script; other Gold legacy remains separate. New exact CI and physical QA open.

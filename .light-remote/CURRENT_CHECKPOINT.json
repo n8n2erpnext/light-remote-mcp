@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-06",
-  "status": "T08_617_GOLDABV2_NO_STATIC_ALLOWLIST_PERMANENT_V2ONLY_WALL_UX_SOURCE_CI_PENDING",
+  "status": "T08_617A_V2ONLY_APPROVE_NO_V1_DOM_SOURCE_PASS_WINDOWS_RERUN_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T08/#617 GoldABV2 no static account/device allowlist; same-owner enrollment/policy/connection/B still enforced; V1 permanently inaccessible in ABV2 product; status/time first in job stream and Codex Enable/Disable native UI. Source candidate local PASS, NEXT full Windows CI and isolated LXD runtime QA. Production and Owner Windows untouched.",
+  "nextAction": "T08/#617a: Windows run 42251367225 failed before build on Linux-only POSIX chmod Grant fixture; fixed CI target OS. ABV2 /approve now omits entire V1 form and JS, not hidden. Linux source Grant and V2 DOM regressions PASS. NEXT full Windows CI new exact SHA then staged LXD Lab runtime with rollback. Production/Owner Windows untouched.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "f50ef598d3a0b230a4d59d51a1cba1a9aa118ab9808864fb636908f966e0ea1f",
+    "treeDigest": "b942a63fe977a7cc68474a71bde89ffb767aa481b9f8e18bc365d7fd3f43ea3f",
     "trackedFiles": 1311,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-06T16:18:32.028Z"
+    "recordedAt": "2026-11-06T16:24:41.179Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1593,5 +1593,13 @@
     "labDeployment": "PENDING",
     "productionTouched": false,
     "ownerPCUpdated": false
+  },
+  "t08_617a": {
+    "failedWindowsRun": 42251367225,
+    "cause": "Linux POSIX key mode fixture run on Windows",
+    "sourceFix": "omit V1 markup/script in ABV2/approve; keep shared Gold legacy only",
+    "newWindowsCI": "PENDING",
+    "labRuntime": "NOT_TOUCHED",
+    "ownerPC": "NOT_TOUCHED"
   }
 }

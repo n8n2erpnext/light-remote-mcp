@@ -114,11 +114,13 @@ try{
  pairingMode='abv2_only';
  const v2html=await (await fetch(url+'/approve',{headers:{'x-test-owner':'owner'}})).text();
  assert.match(v2html,/id="abV2OwnerPreview" class="card ab2-shell"/);
- assert.match(v2html,/id="legacyApproveCard" hidden/);
+ assert.doesNotMatch(v2html,/id="legacyApproveCard"|id="lookup"|id="code"/,
+  'signed V2-only must omit the V1 DOM entirely');
  assert.match(v2html,/\/api\/abv2\/pending/);
  pairingMode='unknown';
  const unknown=await (await fetch(url+'/approve',{headers:{'x-test-owner':'owner'}})).text();
- assert.match(unknown,/id="legacyApproveCard" hidden/);
+ assert.doesNotMatch(unknown,/id="legacyApproveCard"|id="lookup"|id="code"/,
+  'unknown signed authority cannot expose any V1 control');
  assert.match(unknown,/Agent authorization unavailable/);
  assert.doesNotMatch(unknown,/id="abV2OwnerPreview"/,'unsigned unknown must never guess V2 or V1');
  pairingMode='abv2_only';
