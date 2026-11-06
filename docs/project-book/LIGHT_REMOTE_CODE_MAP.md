@@ -740,3 +740,7 @@ After read-only preflight identified exactly ONE final systemd override pinned t
 
 ## 2026-11-06 — T07f Windows single GUI source responsibility map
 Tauri src-tauri/src/unified_tray.rs owns the GoldABV2 Windows single-instance GUI/Tray. DeviceLinkDialog.tsx owns local device Link/Relink. .NET Program.cs and TrayApplicationContext.cs retain Agent host + fixed local bridge only for V4. operator-agent.mjs holds locally protected code. local-wall.mjs and wall-ab-v2-preview.mjs select signed A/B V2 and fail closed. New unified source gate and Windows Inno workflow cover lifecycle. Isolated Lab Operator allowlist change is runtime-only, with rollback.
+
+
+## 2026-11-06 T07f1 Signed Wall test owners
+selftest-gold-ab-v2-lab-v1-lock.mjs and selftest-gold-ab-v2-wall-preview.mjs are the signed Operator A/B V1/V2 mode, DOM and fail-closed regression owners, invoked by the Windows CI source gate. The legacy-hidden V2 preview assertion is retired; signed legacy_allowed only keeps V1 compatibility.

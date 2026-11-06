@@ -91,6 +91,8 @@ on:
       - 'deploy/scripts/selftest-gold-windows-tray-relink.mjs'
       - 'deploy/scripts/selftest-goldabv2-native-tray-menu.mjs'
       - 'deploy/scripts/selftest-goldabv2-unified-one-app.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs'
       - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
       - 'device-agent/filesystem-volume-inventory.mjs'
       - '.github/workflows/windows-native-client.yml'
@@ -196,6 +198,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Operator legacy pairing lock regression' }
           node deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Wall V2-only regression' }
+          node deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 signed Wall preview mode regression' }
       - name: Gold Windows owner filesystem scope regression
         shell: pwsh
         run: |

@@ -69,10 +69,11 @@ const auth={
  csrfForRequest:()=> 'fixture-csrf',verifyRequestCsrf:(req,token)=>
   token==='fixture-csrf'&&req.headers['x-light-remote-csrf']==='fixture-csrf'
 };
-let calls=0,approvals=0,wall,approvalEnabled=true;
+let calls=0,approvals=0,wall,approvalEnabled=true,pairingMode='legacy_allowed';
 try{
  wall=startLocalWall({host:'127.0.0.1',port:0,auth,
   getLocalStatus:async()=>({cloudDesiredConnected:true,cloudState:'connected'}),
+  getRemoteStatus:async()=>({ok:true,pairingMode}),
   getAbV2Pending:async({wallUsername})=>{
    calls++;assert.equal(wallUsername,'owner@example.invalid');
    return {ok:true,ownerApproveEnabled:approvalEnabled,pending:preview.pending};
@@ -107,11 +108,21 @@ try{
   'Wall must hide owner B approval unless source gates explicitly enable it');
  approvalEnabled=true;
  const html=await (await fetch(url+'/approve',{headers:{'x-test-owner':'owner'}})).text();
- assert.match(html,/id="abV2OwnerPreview" hidden/);
- assert.match(html,/\/api\/abv2\/pending/);
- assert.match(html,/id="lookup"/,'must retain legacy V1 approval UI');
- assert.match(html,/id="approve"/,'legacy V1 approve unaffected');
- for(const fragment of html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
+ assert.match(html,/id="lookup"/,'signed legacy_allowed preserves only V1 approval surface');
+ assert.match(html,/id="approve"/,'signed legacy_allowed preserves V1 approve');
+ assert.doesNotMatch(html,/id="abV2OwnerPreview"/,'V2 must not be guessed in explicitly legacy mode');
+ pairingMode='abv2_only';
+ const v2html=await (await fetch(url+'/approve',{headers:{'x-test-owner':'owner'}})).text();
+ assert.match(v2html,/id="abV2OwnerPreview" class="card ab2-shell"/);
+ assert.match(v2html,/id="legacyApproveCard" hidden/);
+ assert.match(v2html,/\/api\/abv2\/pending/);
+ pairingMode='unknown';
+ const unknown=await (await fetch(url+'/approve',{headers:{'x-test-owner':'owner'}})).text();
+ assert.match(unknown,/id="legacyApproveCard" hidden/);
+ assert.match(unknown,/Agent authorization unavailable/);
+ assert.doesNotMatch(unknown,/id="abV2OwnerPreview"/,'unsigned unknown must never guess V2 or V1');
+ pairingMode='abv2_only';
+ for(const fragment of v2html.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
   if(fragment[1].trim())new vm.Script(fragment[1],{filename:'abv2-wall-approve-inline.js'});
  assert.match(wallAbV2PreviewFragment,/ownerApproveEnabled===true/);
  assert.match(wallAbV2PreviewFragment,/class="card ab2-shell"/);

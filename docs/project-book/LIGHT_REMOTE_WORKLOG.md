@@ -1172,3 +1172,7 @@ After read-only preflight identified exactly ONE final systemd override pinned t
 
 ## 2026-11-06 — T07f Unified Desktop V4 QA bug batch
 Owner requested a single integrated bug fix. Source candidate consolidates native Tauri GUI/Tray, recoverable one-time device enrollment, signed Wall V2-only, corrected V09 icon fixture, and Windows CI single-instance. GoldABV2 Lab Operator allowlist expanded from one to two verified same-Owner online devices; direct plugin Discovery PASS 2/2. No physical Windows upgrade or production change. See latest T07f Living Master receipt; Windows native CI OPEN.
+
+
+## 2026-11-06 — T07f1 Windows first CI source fixture failure
+Run 42244160285 at efc221ee reached Windows Tauri compiler SUCCESS, then failed before Inno at stale Lab V2 approval hidden DOM assertion. Updated V1/V2 signed mode source regressions including fail closed unknown; local pass. Full Windows rerun PENDING; no Owner or production deployment.

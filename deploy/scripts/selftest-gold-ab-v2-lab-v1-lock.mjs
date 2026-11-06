@@ -51,7 +51,9 @@ try{
  const approve=await (await fetch(host+'/approve',{headers:owner})).text();
  assert.match(approve,/abV2OwnerPreview/);
  assert.match(approve,/id="legacyApproveCard" hidden/);
- assert.match(approve,/id="abV2OwnerPreview" hidden class="card ab2-shell"/);
+ assert.match(approve,/id="abV2OwnerPreview" class="card ab2-shell"/);
+ assert.doesNotMatch(approve,/id="abV2OwnerPreview" hidden/,'V2-only Lab should not conceal its signed approval surface');
+ assert.match(approve,/Signed A\/B V2 requests unavailable/,'unavailable preview must not downgrade to legacy V1');
  assert.doesNotMatch(approve,/this Windows device/);
  assert.doesNotMatch(approve,/\.wrap>\.card\{display:none!important\}/);
  assert.match(approve,/A\/B V2 · Device authorization/);
