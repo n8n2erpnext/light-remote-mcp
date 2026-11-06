@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-06",
-  "status": "T07F2_FULL_WINDOWS_INNO_CI_SUCCESS_PHYSICAL_OWNER_QA_PENDING",
+  "status": "T08_617_GOLDABV2_NO_STATIC_ALLOWLIST_PERMANENT_V2ONLY_WALL_UX_SOURCE_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T07f3 Gold documentation CI reference repair: Full Handoff now present, local 627 relative links PASS/catalog 186 PASS; next commit/push and verify Gold Docs/Truth CI. Integrated Windows run 42245333752 at f5c4b574 SUCCESS; Owner physical Link/Relink/B QA still OPEN.",
+  "nextAction": "T08/#617 GoldABV2 no static account/device allowlist; same-owner enrollment/policy/connection/B still enforced; V1 permanently inaccessible in ABV2 product; status/time first in job stream and Codex Enable/Disable native UI. Source candidate local PASS, NEXT full Windows CI and isolated LXD runtime QA. Production and Owner Windows untouched.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "506c6816b6dfe2807ca650680b70057db1a3e7cedd64d64911a1d9c5b3c8effc",
-    "trackedFiles": 1310,
+    "treeDigest": "f50ef598d3a0b230a4d59d51a1cba1a9aa118ab9808864fb636908f966e0ea1f",
+    "trackedFiles": 1311,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-06T15:56:21.149Z"
+    "recordedAt": "2026-11-06T16:18:32.028Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1581,5 +1581,17 @@
     "ci": "PENDING",
     "windowsCI": "42245333752 SUCCESS",
     "physical": "OPEN"
+  },
+  "t08_617": {
+    "date": "2026-11-06",
+    "source": "PATCHED",
+    "ownerScope": "dynamic enrolled Owner devices",
+    "v1": "permanent V2-only",
+    "wallStream": "top aligned status+timestamp",
+    "codex": "native enable/disable button",
+    "nativeWindowsCI": "PENDING",
+    "labDeployment": "PENDING",
+    "productionTouched": false,
+    "ownerPCUpdated": false
   }
 }

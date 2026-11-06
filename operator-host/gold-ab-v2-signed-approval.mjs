@@ -42,8 +42,7 @@ export function createGoldAbV2SignedApproval({
      ctx.payload?.action!=='approve'||ctx.payload?.ownerLoggedIn!==true)
    deny('abv2_wall_signed_owner_proof_required',403);
   const {accountId:owner,deviceId,publicIdentityKey:key}=ctx.binding;
-  if(!IDENT.test(owner||'')||!IDENT.test(deviceId||'')||
-     !cfg.allowedAccounts.has(owner)||!cfg.allowedDevices.has(deviceId))
+  if(!IDENT.test(owner||'')||!IDENT.test(deviceId||''))
    deny('abv2_wall_owner_not_allowlisted',404);
   const verified=accounts.assertOperational(owner);
   if(verified?.accountId!==owner||verified.emailVerified!==true)

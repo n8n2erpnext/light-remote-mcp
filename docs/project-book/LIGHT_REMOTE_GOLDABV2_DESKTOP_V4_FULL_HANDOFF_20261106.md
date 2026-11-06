@@ -382,3 +382,17 @@ Updated both selftest-gold-ab-v2-lab-v1-lock.mjs and selftest-gold-ab-v2-wall-pr
 
 ### Historical Gold canonical-only notice preserved during byte-identical Living Master sync
 The Gold backend branch's previous last receipt cautioned that its source is not the integrated Desktop development authority; the paragraph is retained verbatim below for provenance, but its old 3a1d2e83 CI baseline is superseded by T07f2.
+
+## 2026-11-06 — T08/#617 GoldABV2 permanent V2-only, Owner-scoped fleet and Wall R5 UX
+
+Owner requires no static account or device ID allowlist in GoldABV2 for future production enrollment. Choose **REMOVE V1 from GoldABV2 execution**, NOT an /admin V1/V2 switch. Maintain separate normal Gold legacy compatibility. GoldABV2 must keep per-Agent signed B approval and local-first governance. Wall change: status/time at top beside COMMAND, Codex Bridge OFF card and native Enable button matching Long Memory.
+
+**Source candidate, not yet installed or live rolled out:**
+- Operator Owner HTTP, Helper discovery/issue/recover/poll, Owner signed preview/approve and durable Grant, Pro Share Guest queues/approval no longer use LR_GOLD_AB_V2_OWNER_ALLOWED_ACCOUNTS or LR_GOLD_AB_V2_OWNER_ALLOWED_DEVICES. All access still requires verified account identity, device ownership, enrollment public-key binding, operational account, effective policy/capabilities, valid connection, signed Helper proof, Owner CSRF and independent B+durable Agent grant. Feature gates, account scoping, limits and rate limiting remain.
+- Short ID recovery bounded by 200 active registered Owner IDs and up to 50 non-revoked device records at startup, rather than static Owner list; new enrollment hook still idempotently assigns Short ID.
+- Historical helper lib/gold-ab-v2-lab-v1-lock.mjs now enforces permanent V2-only for abv2lab01/goldabv2/goldabv2-production instance identity, LR_GOLD_PRODUCT_LINE=goldabv2, or the trusted GoldABV2 Agent endpoint. Old LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1=0 cannot activate legacy V1. Operator still rejects V1 begin/poll/recover/approve/attach HTTP423 prior to payload parse. Generic shared V1 code must stay for separate normal Gold, but is unreachable within GoldABV2 product.
+- Native Wall device-agent/local-wall.mjs: joblead groups ok/state and HH:MM:SS AM/PM at top of each commandrow; command badge immediately beside, copy actions on right; responsive narrow layout. Codex Bridge visible checkbox replaced by Gold-native disabled notice with Enable Codex Bridge button and enabled Disable button, revisioned settings update preserving Long Memory state. No module activation authorizes Agent access.
+
+Regressions: new selftest-goldabv2-v2only-no-static-fleet-allowlist.mjs is in Windows full CI with Grant contract. Tests for former allowlist errors updated to expect secure signed owner/enrollment denial instead. Source-only targeted tests passed; six intentionally no-NIC PostgreSQL clone tests cannot run on connected VPS host. No production or Owner Windows change. CI and isolated Lab deployment PENDING; #617 is Owner continuation marker, not a verified GitHub issue.
+
+Next: atomic source/docs/checkpoint commit and push integrated Desktop branch; validate full Windows Inno CI and Gold Source Gate exact SHA. Deploy new Operator+Wall only in isolated LXD with rollback after CI, verify Discovery all Owner devices and V1 HTTP423 regardless of old test toggle; keep production/Owner Windows unchanged.

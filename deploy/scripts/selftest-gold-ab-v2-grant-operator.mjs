@@ -84,7 +84,8 @@ try{
  await assert.rejects(op({...req,headers:{origin}},input),
   /abv2_grant_origin_csrf_denied/);
  validOwner=false;
- await assert.rejects(op(req,input),/abv2_grant_owner_denied/);
+ await assert.rejects(op(req,input),/abv2_grant_verified_owner_required/,
+  'a signed Owner cookie cannot grant another account device without binding');
  validOwner=true;revoked=true;
  await assert.rejects(op(req,input),/abv2_grant_enrollment_or_policy_denied/);
  revoked=false;policy=false;

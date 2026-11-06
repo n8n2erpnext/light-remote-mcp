@@ -91,6 +91,7 @@ on:
       - 'deploy/scripts/selftest-gold-windows-tray-relink.mjs'
       - 'deploy/scripts/selftest-goldabv2-native-tray-menu.mjs'
       - 'deploy/scripts/selftest-goldabv2-unified-one-app.mjs'
+      - 'deploy/scripts/selftest-goldabv2-v2only-no-static-fleet-allowlist.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs'
       - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
@@ -200,6 +201,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Wall V2-only regression' }
           node deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 signed Wall preview mode regression' }
+          node deploy/scripts/selftest-goldabv2-v2only-no-static-fleet-allowlist.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 V2-only / Owner-scoped no-static-allowlist gate failed' }
+          node deploy/scripts/selftest-gold-ab-v2-grant-operator.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 account-device enrollment grant regression failed' }
       - name: Gold Windows owner filesystem scope regression
         shell: pwsh
         run: |

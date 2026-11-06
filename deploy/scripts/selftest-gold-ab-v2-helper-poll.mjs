@@ -110,7 +110,8 @@ try{
   /abv2_poll_requires_issue_and_durable_grant/);
  const handle=make();
  const denied=await call(handle,proof(identity,{deviceId:'dev2'}));
- assert.equal(denied.status,404);
+ assert.ok([401,403,404,409].includes(denied.status),
+  'wrong device still denied by signed identity/proof, not by static ID list');
  const tampered={...proof(),requestId:'av2_'+'b'.repeat(32)};
  assert.equal((await call(handle,tampered)).status,401);
  const delayed=proof(identity,{now:now-95000});

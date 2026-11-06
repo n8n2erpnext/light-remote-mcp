@@ -744,3 +744,6 @@ Tauri src-tauri/src/unified_tray.rs owns the GoldABV2 Windows single-instance GU
 
 ## 2026-11-06 T07f1 Signed Wall test owners
 selftest-gold-ab-v2-lab-v1-lock.mjs and selftest-gold-ab-v2-wall-preview.mjs are the signed Operator A/B V1/V2 mode, DOM and fail-closed regression owners, invoked by the Windows CI source gate. The legacy-hidden V2 preview assertion is retired; signed legacy_allowed only keeps V1 compatibility.
+
+## 2026-11-06 — T08/#617 permanent V2-only, account-bound fleet, Wall native controls
+GoldABV2 Operator HTTP/helper/signed approval/grant and Pro Share owner/guest paths no longer check configured account/device allowlists. Signed owner and enrollment/capability/connection/B fences remain. Historical lib/gold-ab-v2-lab-v1-lock.mjs helper now encodes non-toggleable product V2-only policy; normal Gold is independent. device-agent/local-wall.mjs owns joblead status/time grouping and Codex native enable/disable button. deploy/scripts/selftest-goldabv2-v2only-no-static-fleet-allowlist.mjs in Windows CI protects contracts.

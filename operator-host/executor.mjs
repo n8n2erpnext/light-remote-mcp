@@ -1640,8 +1640,8 @@ const deviceBootObservations=new GoldDeviceBootObservations(goldStorage.pool);
 // Gold schema 043 is isolated behind the release gate. Never allocate a
 // public Short ID on older Gold/production databases. Persist the device
 // registry row first, then allocate idempotently in PG043; retries never reuse
-// retired codes. On restart, only reconcile devices of explicitly allowlisted
-// accounts, so an Owner transfer does not resurrect the disabled Owner's IDs.
+// retired codes. On restart reconcile only durable, non-revoked registered
+// devices. A static list of account IDs must not prevent future Owner devices.
 const goldShortIdActive=goldStorage.schema?.version>=43&&
  process.env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY==='1';
 const goldShortIdAfterEnrollment=goldShortIdActive?
@@ -1650,11 +1650,17 @@ const goldShortIdAfterEnrollment=goldShortIdActive?
    return ensureGoldDeviceShortId(goldStorage.pool,{deviceId});
  }:null;
 if(goldShortIdActive){
- const authorized=String(process.env.LR_GOLD_AB_V2_OWNER_ALLOWED_ACCOUNTS||'')
-  .split(',').map(x=>x.trim()).filter(x=>/^[A-Za-z0-9._:-]{1,160}$/.test(x));
- if(authorized.length){
+ // This is a bounded recovery, not a source of Owner authorization. New
+ // enrollment Short IDs are allocated by goldShortIdAfterEnrollment above.
+ const ownerRows=await goldStorage.pool.query(
+  "SELECT DISTINCT d.owner_account_id AS account_id FROM lr_devices d "+
+  "WHERE d.state<>'revoked' AND d.owner_account_id IS NOT NULL "+
+  "ORDER BY d.owner_account_id LIMIT 200");
+ const accountIds=(ownerRows.rows||[]).map(r=>r.account_id)
+  .filter(id=>/^[A-Za-z0-9._:-]{1,160}$/.test(String(id)));
+ if(accountIds.length){
   const recovered=await reconcileGoldOwnerDeviceShortIds(goldStorage.pool,{
-   accountIds:authorized,maxDevices:50});
+   accountIds,maxDevices:50});
   if(recovered.created)console.info('[gold-abv2-short-id-reconciled]',recovered.created);
  }
 }

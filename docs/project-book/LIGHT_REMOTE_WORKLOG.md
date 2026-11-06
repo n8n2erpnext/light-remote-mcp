@@ -1182,3 +1182,6 @@ Desktop branch f5c4b574 Windows run 42245333752 SUCCESS. Full Inno Setup SHA256 
 
 ## 2026-11-06 — T07f3 Gold master reference doc CI repair
 Restored the Desktop full handoff document into Gold Project Book; local canonical 627 links and catalog 186 passed. This fixes missing relative reference on Gold. No runtime/source changes; physical Windows QA still open.
+
+## 2026-11-06 — T08/#617 GoldABV2 permanent V2-only and fleet/Wall UX
+Static account/device ID allowlists removed from GoldABV2 signed Helper/Owner/Grant/Pro Share paths. Account ownership, enrollment/policy/current connection, CSRF, signed Agent B checks remain; V1 never enabled in GoldABV2 by disposable Lab flag. Wall stream status/time moved to one top-aligned group; Codex OFF button styled like Long Memory. Source/CI pending; see Living Master T08/#617 receipt.

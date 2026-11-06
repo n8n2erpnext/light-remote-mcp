@@ -35,8 +35,7 @@ export function createGoldAbV2GrantOperator({
    deny('abv2_grant_origin_csrf_denied',403);
   const identity=requireAccount(req,{touch:false});
   const account=identity?.account,owner=account?.accountId;
-  if(!owner||account.status==='disabled'||account.status==='deleted'||
-     !config.allowedAccounts.has(owner)||!config.allowedDevices.has(deviceId))
+  if(!owner||account.status==='disabled'||account.status==='deleted')
    deny('abv2_grant_owner_denied',403);
   const op=accounts.assertOperational(owner);
   if(op?.accountId!==owner||op.emailVerified!==true)

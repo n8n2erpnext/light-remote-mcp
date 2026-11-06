@@ -1,7 +1,7 @@
 // Gold P2-I2d: Operator-owned, owner-session HTTP bridge for Redis A/B V2
 // pending list/view/refresh/deny and separately gated owner B approve.
 // No Helper-ready or automatic Agent attachment.
-// No live route is active without explicit owner+device allowlists and key.
+// No route is active without enabled flags, signed Owner/enrollment/policy and sealing key.
 // Public account portal / Local Wall are NOT wired in this milestone.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -27,13 +27,6 @@ export function isGoldAbV2WallConsentRecoverable(row,expectedAttempt,now=Date.no
   row.attempt===expectedAttempt&&Number.isFinite(Number(row.expiresAt))&&
   Number(row.expiresAt)>now;
 }
-function ids(input){
- const raw=String(input||'');
- if(!raw||raw.length>4000)deny('abv2_owner_allowlist_required',503);
- const values=raw.split(',').map(x=>x.trim());
- if(values.some(x=>!ID_RE.test(x)))deny('abv2_owner_allowlist_invalid',503);
- return new Set(values);
-}
 export function goldAbV2OwnerHttpConfig(env=process.env){
  const enabled=env.LR_GOLD_AB_V2_OWNER_PENDING_HTTP==='1';
  if(!enabled)return {enabled:false};
@@ -48,8 +41,10 @@ export function goldAbV2OwnerHttpConfig(env=process.env){
  let parsed;try{parsed=new URL(origin)}catch{deny('abv2_owner_origin_invalid',503)}
  if(parsed.protocol!=='https:'||parsed.origin!==origin||parsed.username||parsed.password)
   deny('abv2_owner_origin_invalid',503);
- return {enabled:true,sealingKey,origin,allowedAccounts:ids(env.LR_GOLD_AB_V2_OWNER_ALLOWED_ACCOUNTS),
-  allowedDevices:ids(env.LR_GOLD_AB_V2_OWNER_ALLOWED_DEVICES)};
+ // A/B V2 is available to every verified Owner's enrolled devices.
+ // Security is enforced by signed account, device enrollment, capability
+ // policy, active connection and B consent; no static fleet allowlist.
+ return {enabled:true,sealingKey,origin};
 }
 export function createGoldAbV2Csrf({sealingKey,origin,sessionToken}={}){
  if(!Buffer.isBuffer(sealingKey)||sealingKey.length!==32||
@@ -176,8 +171,7 @@ export function createGoldAbV2OwnerHttpFromOperator({env=process.env,storage,
     Array.isArray(policy.approvedCapabilities)&&policy.approvedCapabilities.length>0;
   },
   verifyOwnerMutation:({request,deviceId})=>csrf.verify(request,deviceId),
-  isFeatureEnabled:({ownerAccountId,deviceId})=>config.allowedAccounts.has(ownerAccountId)&&
-   config.allowedDevices.has(deviceId)
+  isFeatureEnabled:({ownerAccountId,deviceId})=>Boolean(ownerAccountId&&deviceId)
  });
  const wallConsentEnabled=env.LR_GOLD_AB_V2_WALL_OWNER_CONSENT==='1';
  if(wallConsentEnabled&&(env.LR_GOLD_AB_V2_WALL_SIGNED_APPROVE!=='1'||
@@ -202,7 +196,7 @@ export function createGoldAbV2OwnerHttpFromOperator({env=process.env,storage,
   // Account/device budget prevents session-token churn creating Redis keys.
   const identity=requireAccount(req,{touch:false});
   const owner=identity?.account?.accountId;
-  if(typeof owner!=='string'||!config.allowedAccounts.has(owner))
+  if(typeof owner!=='string'||!ID_RE.test(owner))
    deny('abv2_owner_session_required',401);
   const key=storage.prefix+'abv2:owner-http-rate:'+crypto.createHmac('sha256',config.sealingKey)
    .update(owner+'|'+deviceId+'|'+(mutation?'mutation':'read')).digest('hex');

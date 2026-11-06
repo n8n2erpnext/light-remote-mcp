@@ -29,8 +29,6 @@ export function createGoldAbV2HelperPoll({env=process.env,storage,accounts,
  const pending=new GoldAbV2PendingRedis({redis:storage.redis,prefix:storage.prefix,
   sealingKey:cfg.sealingKey});
  const validateDevice=p=>{
-  if(!cfg.allowedAccounts.has(p.accountId)||!cfg.allowedDevices.has(p.deviceId))
-   deny('abv2_poll_not_allowlisted',404);
   const account=accounts.assertOperational(p.accountId);
   if(account.accountId!==p.accountId||account.emailVerified!==true)
    deny('abv2_poll_owner_not_verified',403);

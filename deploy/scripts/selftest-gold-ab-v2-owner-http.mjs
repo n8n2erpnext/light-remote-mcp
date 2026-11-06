@@ -139,8 +139,13 @@ try{
  LR_GOLD_AB_V2_OWNER_ALLOWED_ACCOUNTS:'owner1',
  LR_GOLD_AB_V2_OWNER_ALLOWED_DEVICES:'dev1'};
  assert.equal(goldAbV2OwnerHttpConfig(env).enabled,true);
- assert.throws(()=>goldAbV2OwnerHttpConfig({...env,
-  LR_GOLD_AB_V2_OWNER_ALLOWED_ACCOUNTS:''}),/abv2_owner_allowlist_required/);
+ // No device/account ID allowlist: verified Owner + enrollment is the gate.
+ const noStaticLists=goldAbV2OwnerHttpConfig({...env,
+  LR_GOLD_AB_V2_OWNER_ALLOWED_ACCOUNTS:'',
+  LR_GOLD_AB_V2_OWNER_ALLOWED_DEVICES:''});
+ assert.equal(noStaticLists.enabled,true);
+ assert.equal('allowedDevices' in noStaticLists,false);
+ assert.equal('allowedAccounts' in noStaticLists,false);
  assert.throws(()=>goldAbV2OwnerHttpConfig({...env,
   LR_GOLD_AB_V2_OWNER_ORIGIN:'http://evil.example'}),/abv2_owner_origin_invalid/);
  fs.chmodSync(secret,0o644);

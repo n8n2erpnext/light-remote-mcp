@@ -7,7 +7,11 @@ import {AccountOperatorAdapter} from '../../plugin-server/operator-adapter.mjs';
 
 assert.equal(goldAbV2LabV1Disabled({LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1:'1',
  LR_GOLD_INSTANCE_ID:'production'}),false);
-assert.equal(goldAbV2LabV1Disabled({LR_GOLD_INSTANCE_ID:'abv2lab01'}),false);
+assert.equal(goldAbV2LabV1Disabled({LR_GOLD_INSTANCE_ID:'abv2lab01'}),true);
+assert.equal(goldAbV2LabV1Disabled({LR_GOLD_INSTANCE_ID:'abv2lab01',
+ LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1:'0'}),true,
+ 'V1 must never revive by resetting the disposable lab flag');
+assert.equal(goldAbV2LabV1Disabled({LR_GOLD_INSTANCE_ID:'goldabv2-production'}),true);
 assert.equal(goldAbV2LabV1Disabled({LR_GOLD_INSTANCE_ID:'abv2lab01',
  LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1:'1'}),true);
 const prev=Object.fromEntries(['LR_GOLD_INSTANCE_ID','LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1',

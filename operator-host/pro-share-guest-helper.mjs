@@ -68,8 +68,6 @@ export function createGoldProShareGuestHelper({
     return true;
    }
    const row=found.rows[0],owner=row.owner_account_id,deviceId=row.device_id;
-   if(!cfg.allowedAccounts.has(owner)||!cfg.allowedDevices.has(deviceId))
-    deny('pro_share_owner_device_not_allowlisted',404);
    const ownerAccount=accounts.assertOperational(owner);
    if(ownerAccount?.accountId!==owner||ownerAccount.emailVerified!==true)
     deny('pro_share_owner_not_verified');

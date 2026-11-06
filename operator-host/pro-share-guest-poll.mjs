@@ -44,8 +44,7 @@ export function createGoldProShareGuestPoll({
      String(actor.plan||'free').toLowerCase()!=='free')
    deny('pro_share_guest_verified_free_required',403);
   const dev=devices.get(p.deviceId),owner=dev.accountId;
-  if(!owner||owner===p.accountId||
-     !cfg.allowedAccounts.has(owner)||!cfg.allowedDevices.has(p.deviceId))
+  if(!owner||owner===p.accountId)
    deny('pro_share_guest_owner_or_device_denied',404);
   const ownerAccount=accounts.assertOperational(owner);
   if(ownerAccount.accountId!==owner||ownerAccount.emailVerified!==true||

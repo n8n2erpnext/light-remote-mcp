@@ -38,10 +38,8 @@ export function createGoldProShareGuestQueueHttp({
    String(a.plan||'free').toLowerCase()==='free';
  };
  const fresh=id=>{
-  if(!cfg.allowedDevices.has(id))deny('guest_queue_device_not_allowlisted',404);
   const d=devices.get(id);
-  if(!d||d.deviceId!==id||!cfg.allowedAccounts.has(d.accountId)||
-     d.state!=='online'||d.revokedAt)
+  if(!d||d.deviceId!==id||d.state!=='online'||d.revokedAt)
    deny('guest_queue_owner_device_denied',403);
   const e=enrollments.binding(id),p=enrollments.policyView(id);
   if(e?.deviceId!==id||e.accountId!==d.accountId||

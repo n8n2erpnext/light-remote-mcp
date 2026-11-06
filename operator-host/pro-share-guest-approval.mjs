@@ -56,8 +56,7 @@ export function createGoldProShareGuestApproval({
  if(typeof grantOperator!=='function')deny('pro_share_guest_grant_operator_off',503);
  const ownerDevice=async(req,deviceId)=>{
   const who=requireAccount(req,{touch:false})?.account;
-  if(!who?.accountId||!cfg.allowedAccounts.has(who.accountId)||
-     !cfg.allowedDevices.has(deviceId))deny('pro_share_owner_not_allowed',403);
+  if(!who?.accountId)deny('pro_share_owner_not_allowed',403);
   const device=devices.get(deviceId),connection=connections.assertConnected(deviceId);
   if(device.accountId!==who.accountId||connection.accountId!==who.accountId||
      connection.deviceId!==deviceId||connection.state!=='connected')

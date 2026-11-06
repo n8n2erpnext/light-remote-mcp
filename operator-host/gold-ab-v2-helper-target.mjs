@@ -50,8 +50,6 @@ export function createGoldAbV2HelperTarget({
     redis:storage.redis,prefix:storage.prefix,
     expectedPurpose:issue?'issue':url.pathname===RECOVER?'recover':
      discover?'discover':'resolve'});
-   if(!config.allowedAccounts.has(p.accountId))
-    deny('abv2_helper_account_not_allowed',404);
    const account=accounts.assertOperational(p.accountId);
    if(account?.accountId!==p.accountId||account?.emailVerified!==true)
     deny('abv2_helper_owner_not_verified',403);
@@ -73,8 +71,6 @@ export function createGoldAbV2HelperTarget({
     }
     // Recovery is NOT an authorization. Revalidate the same enrolled
     // device/connection and immutable owner Short ID before revealing B.
-    if(!config.allowedDevices.has(recovered.deviceId))
-     deny('abv2_recover_device_not_allowed',404);
     const d=devices.get(recovered.deviceId);
     const binding=enrollments.binding(recovered.deviceId);
     const policy=enrollments.policyView(recovered.deviceId);
@@ -108,7 +104,6 @@ export function createGoldAbV2HelperTarget({
     {accountId:p.accountId,limit:500});
    const permitted=[];
    for(const row of ownerRows){
-    if(!config.allowedDevices.has(row.deviceId))continue;
     try{
      const d=devices.get(row.deviceId);
      const binding=enrollments.binding(row.deviceId);

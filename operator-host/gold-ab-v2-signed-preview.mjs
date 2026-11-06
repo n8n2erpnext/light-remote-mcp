@@ -31,8 +31,6 @@ export function createGoldAbV2SignedPreview({
      !ctx.device||ctx.device.deviceId!==ctx.binding.deviceId)
    deny('abv2_signed_proof_required',401);
   const ownerAccountId=ctx.binding.accountId,deviceId=ctx.binding.deviceId;
-  if(!config.allowedAccounts.has(ownerAccountId)||!config.allowedDevices.has(deviceId))
-   deny('abv2_wall_preview_not_allowed',404);
   const stored=devices.get(deviceId);
   if(stored.accountId!==ownerAccountId||stored.deviceId!==deviceId||
      stored.state!=='online'||stored.state==='revoked'||
