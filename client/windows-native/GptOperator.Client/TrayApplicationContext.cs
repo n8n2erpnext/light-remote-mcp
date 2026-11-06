@@ -848,8 +848,11 @@ internal sealed class TrayApplicationContext : ApplicationContext
     {
         const string bridge = ConnectionConfig.DefaultBridgeUrl;
         const string token = "enr_e339c5b1-815d-44a9-8360-c097073b615f";
-        var gold = TrustedEnrollmentActivationUrl(
-            "https://gold.light-remote.thaiduy.digital/enroll?id=" + token, bridge);
+        // Trust the actual configured backend, not the previous Gold hostname.
+        // A V4 QA install defaults to GoldABV2; older saved Gold enrollments
+        // remain on their explicitly configured server until Owner relinks.
+        var publicActivation = TrustedEnrollmentActivationUrl(
+            bridge + "/enroll?id=" + token, bridge);
         var loopback = TrustedEnrollmentActivationUrl(
             "http://127.0.0.1:5583/enroll?id=" + token, bridge);
         var localhost = TrustedEnrollmentActivationUrl(
@@ -862,7 +865,13 @@ internal sealed class TrayApplicationContext : ApplicationContext
             && enabled == "1";
         var pathSelected = p.Environment.TryGetValue("LIGHT_REMOTE_CLIENT_EXE", out var actual)
             && string.Equals(actual, companion, StringComparison.OrdinalIgnoreCase);
-        return gold?.AbsoluteUri == expected && loopback?.AbsoluteUri == expected
+        return publicActivation?.AbsoluteUri == expected && loopback?.AbsoluteUri == expected
+            && TrustedEnrollmentActivationUrl(
+                "https://gold.light-remote.thaiduy.digital/enroll?id=" + token,
+                "https://goldabv2.light-remote.thaiduy.digital") is null
+            && TrustedEnrollmentActivationUrl(
+                "https://goldabv2.light-remote.thaiduy.digital/enroll?id=" + token,
+                "https://gold.light-remote.thaiduy.digital") is null
             && localhost?.AbsoluteUri == expected
             && TrustedEnrollmentActivationUrl("https://evil.example/enroll?id=" + token, bridge) is null
             && TrustedEnrollmentActivationUrl("http://192.0.2.10:5583/enroll?id=" + token, bridge) is null

@@ -1104,3 +1104,6 @@ Root-cause Windows screenshot: Tray default was gold.light-remote.thaiduy.digita
 
 ## 2026-11-06 — GoldABV2 isolated Operator V1 lock live PASS, Windows CI dependency fix
 Operator-only LXD Lab runtime now `source-9d996956-desktop-owner-operator-v1lock-0ce120cb-STAGED`; direct Unix V1 probes 423 5/5 PASS and 3 services active. Backup /opt/light-remote-abv2-lab/rollback/operator-before-v1lock-0ce120cb-20261106.conf. Current Wall R5 unchanged. Windows run 42194760685 failed before install because early LAB selftest lacked zod (npm ci occurs later); moved dependency install to that test step. No new user installer delivered or old Windows enrollment auto-migrated.
+
+## 2026-11-06 — T07c2 Full Windows installer CI selftest fix
+Failure `42195803932` is a native Tray selftest fixture regression (hardcoded old Gold public activation URL vs new GoldABV2 default), not Wall or Agent runtime build. Fixed `TrayApplicationContext.RelinkRuntimeSelfTest` to use configured bridge and added explicit cross-origin rejection coverage. Await full Inno CI for actual installer.
