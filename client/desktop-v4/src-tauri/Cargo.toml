@@ -1,7 +1,7 @@
 [package]
 name = "light-remote-desktop-v4-pilot"
 version = "0.1.0"
-description = "Light Remote V4 UI-only native shell pilot"
+description = "Light Remote Desktop V4 unified Owner, UI and native Agent IPC shell"
 authors = ["Thai Duy Digital"]
 edition = "2021"
 rust-version = "1.77.2"
@@ -12,8 +12,8 @@ publish = false
 tauri-build = { version = "2", features = [] }
 
 [features]
-default = []
-# Candidate native Owner bridge. The installed UI pilot does not enable this.
+default = ["desktop-owner-login"]
+# Native Owner, secure vault and Agent IPC are part of the unified app.
 desktop-owner-login = ["dep:keyring", "dep:base64", "dep:rand", "dep:sha2", "dep:reqwest", "dep:url", "dep:serde", "dep:serde_json", "dep:tokio"]
 
 [dependencies]

@@ -1083,3 +1083,6 @@ Read-only T06 native Owner snapshot now projects current Operator jobs and recen
 
 ## 2026-11-06 — T06b3 CI accepted; live QA blocked on runtime source
 Exact Gold Source Gate 42178398647 SUCCESS 4/4 and Desktop native CI 42178431994 SUCCESS 7/7 for read-only Live Monitor job/event API. Isolated Lab still runs source-9d996956; no backend cutover, flag enablement or Windows physical proof. Next reconcile Lab source and rollback, then same-host Windows QA and remaining Owner mutators and module APIs.
+
+## 2026-11-06 — T06b4 one-installable-Desktop correction
+Owner clarified that UI-only and Owner-function builds must never be separate applications. Consolidated GitHub Desktop CI into one native feature-enabled build per OS and exactly one Windows NSIS installer artifact (QA, unsigned). This is a packaging correction, not a claim of API or installed Agent integration completion. No production, LAB runtime, Windows existing Gold services or T04 SSO changes.

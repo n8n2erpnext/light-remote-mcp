@@ -13,7 +13,7 @@ const conf = JSON.parse(readFileSync(path.resolve(process.cwd(), 'src-tauri/taur
 };
 const rust = readFileSync(path.resolve(process.cwd(), 'src-tauri/src/main.rs'), 'utf8');
 
-describe('Tauri2 UI-only pilot trust boundary', () => {
+describe('Unified Tauri2 Desktop V4 native trust boundary', () => {
   it('grants only one fixed-url native opener command', () => {
     expect(conf.app.withGlobalTauri).toBe(false);
     expect(conf.app.security.capabilities).toEqual([{
@@ -24,7 +24,7 @@ describe('Tauri2 UI-only pilot trust boundary', () => {
     }]);
     expect(conf.app.windows).toHaveLength(1);
     expect(conf.app.windows[0]?.label).toBe('main');
-    expect(conf.bundle.active).toBe(false);
+    expect(conf.bundle.active).toBe(true);
   });
   it('always opens the same-device Local Wall, regardless of GoldABV2 backend', () => {
     expect(rust).toContain('tauri::Builder::default()');
@@ -56,9 +56,10 @@ describe('Tauri2 UI-only pilot trust boundary', () => {
     expect(rust).toContain('#[cfg(not(feature = "desktop-owner-login"))]');
     expect(rust).toContain('tauri::generate_handler![open_local_wall, probe_local_wall]');
   });
-  it('has a native-only Owner refresh vault behind a default-off Cargo feature', () => {
+  it('has native-only Owner refresh vault enabled in the unified app', () => {
     const cargo = readFileSync(path.resolve(process.cwd(), 'src-tauri/Cargo.toml'), 'utf8');
     const vault = readFileSync(path.resolve(process.cwd(), 'src-tauri/src/owner_vault.rs'), 'utf8');
+    expect(cargo).toContain('default = ["desktop-owner-login"]');
     expect(cargo).toContain('desktop-owner-login = ["dep:keyring"');
     expect(cargo).toContain('"apple-native", "windows-native", "sync-secret-service"');
     expect(rust).toContain('#[cfg(feature = "desktop-owner-login")]');

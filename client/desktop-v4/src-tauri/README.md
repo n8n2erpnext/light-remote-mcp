@@ -29,3 +29,9 @@ remain unverified there, and the functional CTA opens the real authenticated bro
 to view history, configure rotation and Clean Log. The local Wall remains authoritative.
 No Gold UAT/production or installed WinForms client was changed. Native CI and physical
 acceptance still required. Read project-book V4 WALL LOG CONTROLS 20261102.
+
+## 2026-11-06 — Single unified Desktop V4 packaging (overrides pilot notes above)
+
+The original UI-only/no-bundle notes above describe a historical prototype. There must be no separate user-facing UI-only executable and Owner-function executable. The authoritative Desktop branch now uses a single Tauri/React/Rust build, with native Owner Login (OS vault), same-host A/B Agent IPC, Local Wall opener and the validated read-only Owner snapshot in the SAME executable. The Desktop NSIS Setup.exe is generated once per source commit on Windows from the `unified-desktop` workflow job; web/Chromium tests are testing, not another app. `bundle.active=true`, Rust default includes `desktop-owner-login`, Windows uses one `--bundles nsis` artifact and other OS builds use the same feature set. No separate UI-only binary is published.
+
+Integration caveat: the NSIS bundle currently packages the Tauri desktop executable, not a new or replaced Windows Node Agent/Tray service. That same-device enrolled Agent is required for native A/B operations; backend Owner snapshot feature gates remain OFF until independently installed and verified in GoldABV2 LAB. SSO T04 and other module/mutation APIs remain incomplete. An unsigned integration LAB installer is NOT a product-complete release or an instruction to replace the installed Windows Gold Agent. Do not ask the Owner to test multiple application variants; perform one physical acceptance pass after completing the runtime/API integration and packaging the full installed product.
