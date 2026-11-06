@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-06",
-  "status": "T06_DESKTOP_OWNER_SNAPSHOT_SOURCE_TEST_18_PASS_CI_PENDING_RUNTIME_OFF_T05E_GUI_AND_T04_SSO_OPEN",
+  "status": "T06B1_GOLD_SOURCE_CI_SUCCESS_DESKTOP_TS_STRICT_FIX_NATIVE_CI_RETRY_PENDING_RUNTIME_OFF",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -175,7 +175,7 @@
     "treeDigest": "5538298885467665fd4d26e26e27e8be8dc65ce4bbfd2a2afb5998b54ed44423",
     "trackedFiles": 1242,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-06T06:20:34.256Z"
+    "recordedAt": "2026-11-06T06:24:04.559Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",

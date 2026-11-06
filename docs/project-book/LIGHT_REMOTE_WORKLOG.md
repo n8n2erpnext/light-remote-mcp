@@ -1371,3 +1371,6 @@ CI run 42043281542 completed SUCCESS all 7 jobs. 63/63 frontend tests including 
 
 ## 2026-11-06 — T06 native Desktop Owner data bridge (source only)
 On owner request to complete API integration, implemented default-OFF Owner snapshot source on Gold Plugin/Operator, native Rust + React allowlisted presentation, and tests. Local VPS-ARM Node targeted tests 18/18 PASS; Desktop GitHub CI pending. No Prod/UAT/LXD/installed Windows source switch. See canonical [Living Master](LIGHT_REMOTE_GOLD_DESKTOP_V4_LIVING_MASTER_HANDOFF.md) and [Code Map](LIGHT_REMOTE_CODE_MAP.md). Pending T04 SSO, signed mutators, remaining functional surfaces and physical UI acceptance.
+
+## 2026-11-06 — T06b1 native CI TypeScript finding
+GitHub Desktop V4 run 42173925101 stopped at TS2345 in Sessions expiry display; Gold Source Gate run 42173891221 PASS. Source-only Desktop correction now explicitly handles undefined expiry. Native CI rerun pending; no release or runtime change.
