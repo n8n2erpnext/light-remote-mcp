@@ -1,0 +1,1058 @@
+{
+  "status": "STATIC_LITERAL_INVENTORY_NOT_EFFECTIVE_CONFIG",
+  "date": "2026-11-07",
+  "sourceSha": "0f3c2ee1c826aa6a9e85a99b96811cd8cb2b2a92",
+  "documentationHead": "614054f29696688bbe22cd269d8cfb302145937f",
+  "scannedFiles": 327,
+  "distinctLiteralsOrTemplates": 77,
+  "occurrences": 114,
+  "scopeRoots": [
+    "client/windows-native",
+    "client/desktop-v4/src",
+    "client/desktop-v4/src-tauri/src",
+    "device-agent",
+    "operator-host",
+    "plugin-server",
+    "lib"
+  ],
+  "limitations": [
+    "Includes comments, embedded fixtures, standards/documentation links and legacy consumers; requires semantic classification before migration.",
+    "Excludes .test files, e2e/tests directories and docs. Does not resolve env variables, generated configuration, concatenated URL paths, IPC endpoints or inherited running-process environment.",
+    "Query and fragment contents are intentionally not exported. Not every literal is a deployment setting.",
+    "No application or network endpoint was invoked by this inventory."
+  ],
+  "entries": [
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://${FLEET_WALL_HOST}:${FLEET_WALL_PORT}/healthz",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "device-agent/operator-agent.mjs",
+          "line": 1243,
+          "templateOrInterpolated": true
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://${HOST}:${PORT}/",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "device-agent/fleet-wall-runtime.mjs",
+          "line": 204,
+          "templateOrInterpolated": true
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/",
+      "occurrences": 2,
+      "locations": [
+        {
+          "file": "device-agent/operator-agent.mjs",
+          "line": 1483,
+          "templateOrInterpolated": true
+        },
+        {
+          "file": "device-agent/operator-agent.mjs",
+          "line": 1484,
+          "templateOrInterpolated": true
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://${host}:${Number(port)}/",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "device-agent/local-wall.mjs",
+          "line": 3142,
+          "templateOrInterpolated": true
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://100.94.184.141:5591",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/account-portal.mjs",
+          "line": 105,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:${basePort",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/selftest.mjs",
+          "line": 51,
+          "templateOrInterpolated": true
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:49152/desktop/v4/callback",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/desktop-v4/src-tauri/src/owner_login.rs",
+          "line": 817,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:5491/",
+      "occurrences": 5,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/Program.cs",
+          "line": 82,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 28,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/windows-native/LightRemote.InstallWatchdog/Program.cs",
+          "line": 272,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/desktop-v4/src-tauri/src/main.rs",
+          "line": 25,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "device-agent/install-windows-task.ps1",
+          "line": 106,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:5491/settings",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/desktop-v4/src-tauri/src/main.rs",
+          "line": 26,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:5492/",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 30,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:5583/enroll",
+      "occurrences": 2,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 867,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 890,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:5583/other",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 889,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:60952",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/selftest.mjs",
+          "line": 146,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:60952/callback",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/selftest.mjs",
+          "line": 138,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:9222",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.RealRemoteV2/BrowserSemanticProvider.cs",
+          "line": 704,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:9999/enroll",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 888,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1:{}{",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/desktop-v4/src-tauri/src/owner_login.rs",
+          "line": 380,
+          "templateOrInterpolated": true
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://127.0.0.1{",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/desktop-v4/src-tauri/src/owner_login.rs",
+          "line": 290,
+          "templateOrInterpolated": true
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://192.0.2.10:5583/enroll",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 887,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://8.8.8.8:9222",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.RealRemoteV2/BrowserSemanticProvider.cs",
+          "line": 709,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://fleet.wall",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "device-agent/fleet-wall-runtime.mjs",
+          "line": 112,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://local",
+      "occurrences": 3,
+      "locations": [
+        {
+          "file": "plugin-server/selftest.mjs",
+          "line": 28,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "plugin-server/selftest.mjs",
+          "line": 32,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "plugin-server/selftest.mjs",
+          "line": 36,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://local.wall",
+      "occurrences": 2,
+      "locations": [
+        {
+          "file": "device-agent/local-wall.mjs",
+          "line": 2454,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "device-agent/local-wall.mjs",
+          "line": 3141,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://localhost:5583/enroll",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 869,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://localhost:9223",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.RealRemoteV2/BrowserSemanticProvider.cs",
+          "line": 705,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://operator.local",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "operator-host/executor.mjs",
+          "line": 1773,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://schemas.microsoft.com/windows/2004/02/mit/task",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/LightRemote.InstallWatchdog/Program.cs",
+          "line": 60,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "http://www.sitemaps.org/schemas/sitemap/0.9",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/server.mjs",
+          "line": 183,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://127.0.0.1:9222",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.RealRemoteV2/BrowserSemanticProvider.cs",
+          "line": 713,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://accounts.google.com",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/google-auth.mjs",
+          "line": 60,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://accounts.google.com/o/oauth2/v2/auth",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/google-auth.mjs",
+          "line": 49,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/selftest.mjs",
+          "line": 169,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/selftest.mjs",
+          "line": 167,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://api.openai.com/v1",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "device-agent/gold-codex-api.mjs",
+          "line": 9,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://chatgpt.com",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/oauth.mjs",
+          "line": 104,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://chatgpt.com/plugins",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/account-portal.mjs",
+          "line": 102,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/account-portal.mjs",
+          "line": 102,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e):",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/ai-guide-page.mjs",
+          "line": 59,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://client.example.invalid/callback",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/selftest.mjs",
+          "line": 137,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://evil.example/enroll",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 886,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://example.invalid/fixture",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/LightRemote.Updater/Program.cs",
+          "line": 66,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://fleet.example/",
+      "occurrences": 2,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 896,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 911,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://github.com/n8n2erpnext/light-remote-mcp/issues",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/support-page.mjs",
+          "line": 201,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://gold.light-remote.thaiduy.digital",
+      "occurrences": 2,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/ConnectionConfig.cs",
+          "line": 14,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 884,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://gold.light-remote.thaiduy.digital/enroll",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 880,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://gold.light-remote.thaiduy.digital/mcp",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/account-portal.mjs",
+          "line": 100,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital",
+      "occurrences": 7,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/ConnectionConfig.cs",
+          "line": 12,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/windows-native/GptOperator.Client/ConnectionConfig.cs",
+          "line": 84,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 881,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/desktop-v4/src-tauri/src/owner_login.rs",
+          "line": 27,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "device-agent/operator-agent.mjs",
+          "line": 76,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "device-agent/operator-agent.mjs",
+          "line": 1527,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "device-agent/operator-agent.mjs",
+          "line": 1528,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital/account",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "device-agent/local-wall.mjs",
+          "line": 2726,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/authorize",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/desktop-v4/src-tauri/src/owner_login.rs",
+          "line": 28,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/logout",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/desktop-v4/src-tauri/src/owner_login.rs",
+          "line": 33,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/refresh",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/desktop-v4/src-tauri/src/owner_login.rs",
+          "line": 30,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/session",
+      "occurrences": 2,
+      "locations": [
+        {
+          "file": "client/desktop-v4/src-tauri/src/owner_login.rs",
+          "line": 31,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "device-agent/operator-agent.mjs",
+          "line": 1536,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/snapshot",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/desktop-v4/src-tauri/src/owner_login.rs",
+          "line": 32,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/token",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/desktop-v4/src-tauri/src/owner_login.rs",
+          "line": 29,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/wall-sso/ticket",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/desktop-v4/src-tauri/src/owner_wall_ticket.rs",
+          "line": 14,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital/device-channel/desktop-wall-sso-family-current",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "device-agent/desktop-wall-sso-family-current-v4.mjs",
+          "line": 11,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital/device-channel/desktop-wall-sso-redeem",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "device-agent/desktop-wall-sso-agent-transport-v4.mjs",
+          "line": 17,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://goldabv2.light-remote.thaiduy.digital/enroll",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/TrayApplicationContext.cs",
+          "line": 883,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://light-remote-mcp.vercel.app",
+      "occurrences": 2,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/ConnectionConfig.cs",
+          "line": 22,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "lib/public-endpoint.mjs",
+          "line": 4,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://light-remote.thaiduy.digital",
+      "occurrences": 8,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/ConnectionConfig.cs",
+          "line": 21,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/windows-native/GptOperator.Client/ConnectionConfig.cs",
+          "line": 28,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "device-agent/fleet-wall-runtime.mjs",
+          "line": 27,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "plugin-server/ai-guide-page.mjs",
+          "line": 33,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "plugin-server/ai-guide-page.mjs",
+          "line": 58,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "plugin-server/config.mjs",
+          "line": 5,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "plugin-server/distribution-portal.mjs",
+          "line": 13,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "lib/public-endpoint.mjs",
+          "line": 1,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://light-remote.thaiduy.digital/account",
+      "occurrences": 2,
+      "locations": [
+        {
+          "file": "device-agent/local-wall.mjs",
+          "line": 2725,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "device-agent/wall-ab-v2-preview.mjs",
+          "line": 53,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://light-remote.thaiduy.digital/downloads/install.sh",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/distribution-portal.mjs",
+          "line": 18,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://light-remote.thaiduy.digital/enroll",
+      "occurrences": 2,
+      "locations": [
+        {
+          "file": "operator-host/enrollment-registry.mjs",
+          "line": 57,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "operator-host/executor.mjs",
+          "line": 163,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://light-remote.thaiduy.digital/mcp",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/selftest.mjs",
+          "line": 169,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://lightremote.thaiduy.digital",
+      "occurrences": 4,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/ConnectionConfig.cs",
+          "line": 23,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/windows-native/GptOperator.Client/ConnectionConfig.cs",
+          "line": 30,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "lib/public-endpoint.mjs",
+          "line": 5,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "lib/public-endpoint.mjs",
+          "line": 10,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://mcp.dashboard.thaiduy.store",
+      "occurrences": 5,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/ConnectionConfig.cs",
+          "line": 29,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "lib/mcp.js",
+          "line": 2,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "lib/operator.js",
+          "line": 2,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "lib/operator.js",
+          "line": 3,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "lib/public-endpoint.mjs",
+          "line": 9,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://mcp.dashboard.thaiduy.store/mcp",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "lib/mcp.js",
+          "line": 1,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://nodejs.org/dist/v$NodeVersion/$NodeZip",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "client/windows-native/installer/build-compact.ps1",
+          "line": 12,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://oauth2.googleapis.com/token",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/google-auth.mjs",
+          "line": 58,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json",
+      "occurrences": 2,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/ClientVersion.cs",
+          "line": 15,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/windows-native/LightRemote.Updater/UpdateClient.cs",
+          "line": 12,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json.sig",
+      "occurrences": 2,
+      "locations": [
+        {
+          "file": "client/windows-native/GptOperator.Client/ClientVersion.cs",
+          "line": 16,
+          "templateOrInterpolated": false
+        },
+        {
+          "file": "client/windows-native/LightRemote.Updater/UpdateClient.cs",
+          "line": 13,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/fleet-wall-module.json",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "device-agent/fleet-component-manager.mjs",
+          "line": 9,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://registry.npmjs.org/",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "device-agent/gold-codex-runtime-manager.mjs",
+          "line": 54,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://schema.org",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/support-page.mjs",
+          "line": 12,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://support.thaiduy.digital/ai-support/api/internal/gold-intake",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/support-libredesk-intake.mjs",
+          "line": 35,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://thaiduy.digital",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/ai-guide-page.mjs",
+          "line": 54,
+          "templateOrInterpolated": false
+        }
+      ]
+    },
+    {
+      "urlOrTemplateWithoutQueryFragment": "https://www.googleapis.com/oauth2/v3/certs",
+      "occurrences": 1,
+      "locations": [
+        {
+          "file": "plugin-server/google-auth.mjs",
+          "line": 24,
+          "templateOrInterpolated": false
+        }
+      ]
+    }
+  ]
+}

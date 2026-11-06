@@ -4,7 +4,7 @@
 **Document status:** ACTIVE / MUST UPDATE AFTER EVERY TASK, including partial work and blocked work.
 **Created:** 2026-11-04, Asia/Ho_Chi_Minh (ICT, UTC+07).
 **Project:** Light Remote GoldABV2, Desktop V4 Native Owner Authentication, and T04 Desktop → Local Wall single sign-on.
-**Next active task:** **T09-F01 — review audit findings; remediation NOT applied.** Owner redirected this task to read-only code/docs review and handoff. See [LIGHT_REMOTE_ABV2_DESKTOP_V4_AUDIT_HANDOFF_20261107.md](LIGHT_REMOTE_ABV2_DESKTOP_V4_AUDIT_HANDOFF_20261107.md). Audited Desktop 0f3c2ee1 / Gold f2aacc49. One P1 IPC permission blocker, five P2 source issues and one P2 continuity issue; physical Windows tests remain OPEN.
+**Next active task:** **T10-F01 — review Wall B CSRF renderer repair and browser-click regression; no fix applied.** Owner requested latest Wall/Windows audit: screenshot layout, LM Enable/Disable async state, two B approval entry points and endpoint centralization. See [LIGHT_REMOTE_WALL_WINDOWS_ASYNC_ENDPOINT_AUDIT_20261107.md](LIGHT_REMOTE_WALL_WINDOWS_ASYNC_ENDPOINT_AUDIT_20261107.md). Findings/proposals only; no source/runtime or Windows installation changes.
 
 **Previous operational summary below is historical unless explicitly reverified in the 2026-11-07 T09 receipt.**
 **Safety state:** **SSO OFF / GOLDABV2 LAB PUBLIC mTLS LIVE (2026-11-05)**; Plugin/Operator base unchanged, isolated hardened TLS sidecar active, old plaintext15583 absent and public HTTPS200. Automatic rollback disarmed, manual rollback preserved. Scoped firewall15584 user timer is ENABLED/ACTIVE and successfully restored removed rule; actual VPS reboot NOT tested, disk rules.v4 still read-only and unchanged. No CA signer private key on ARM; Gold main UAT/production untouched.
@@ -22,6 +22,8 @@
 ---
 
 ## 0. CURRENT FIRST — authoritative fast start (2026-11-04)
+
+**2026-11-07 T10 — latest audit facts:** starting docs HEADs Desktop `614054f2` / Gold `b9194bf4`, executable baselines unchanged `0f3c2ee1` / `f2aacc49`. Selected installed Windows source matches6/6 after EOL normalize. Offline probes reproduce missing Wall B CSRF, module revision rollback, wrong-work preview and terminal-state downgrade; stale4-column CSS explains screenshot. Lab metadata/selected flags/files read only, not full source parity or E2E. Eleven work items and single-JSON endpoint proposal: [LIGHT_REMOTE_WALL_WINDOWS_ASYNC_ENDPOINT_AUDIT_20261107.md](LIGHT_REMOTE_WALL_WINDOWS_ASYNC_ENDPOINT_AUDIT_20261107.md). Proposed JSON is documentation, not active configuration. Next T10-F01 review only.
 
 **2026-11-07 T09 read-only audit — CURRENT verified facts:** Desktop source `0f3c2ee1c826aa6a9e85a99b96811cd8cb2b2a92`, Gold `f2aacc498fb3ad7e5fa99f3355c5a093f9980cee`; both initially clean. Exact existing Desktop Windows CI `42252132492`/job `128009694807` SUCCESS; Docs `42252132563`, Truth `42252132665`, GC `42252132604` SUCCESS. No CI dispatched by this audit. Three isolated Lab units are active/running and their WorkingDirectory names are `t08-617-{plugin,operator,wall-r5}-0f3c2ee1-STAGED`; loaded-file parity, flags, signed E2E and physical Windows acceptance were NOT checked. Earlier pending/deployment text is preserved as dated history. This task only updates documentation; no source fix, service change or rollout. Detailed evidence and proposals: [LIGHT_REMOTE_ABV2_DESKTOP_V4_AUDIT_HANDOFF_20261107.md](LIGHT_REMOTE_ABV2_DESKTOP_V4_AUDIT_HANDOFF_20261107.md). Next `T09-F01` is review of A01, not automatic execution.
 
@@ -253,6 +255,8 @@ Target Local Wall on THAT enrolled device
 ---
 
 ## 8. NEXT EXECUTION RUNBOOK — T04b8 onward (priority order)
+
+**2026-11-07 T10 Owner redirect:** next is `T10-F01` review of missing Wall V2 CSRF; the older runbook and proposed config migration are not authorization to execute fixes.
 
 **2026-11-07 Owner redirect:** current next action is `T09-F01`, review A01 in the audit handoff. The following execution runbook is historical planning, not authorization to apply audit fixes or activate services.
 
@@ -1382,3 +1386,15 @@ NEXT: Git source/docs/checkpoint sync commit, push full Windows CI rerun. Previo
 - Scoped local documentation validation: Gold 39 canonical docs / 631 relative links PASS; Desktop 43 / 619 PASS; both catalogs 186 entries PASS; staged Project Truth `living-master-docs-coherent` PASS, diff whitespace PASS, Master byte equality PASS. Four changed documentation/checkpoint paths per initial audit commit; executable source unchanged.
 - SOURCE baseline is still Desktop `0f3c2ee1`, Gold `f2aacc49`; docs-only HEADs are not new implementation acceptance. Lab metadata observation only; no source parity, feature flags or physical Owner E2E claimed.
 - This receipt is a separate docs-only publication. Next remains `T09-F01` review of A01 and a proposed packaged-WebView gate; all code fixes and optimizations NOT APPLIED.
+
+## 2026-11-07 — T10 Wall/Windows UI, async, B approval and endpoint audit
+
+- INTENT: Owner requested continued diagnosis and handoff only, including screenshots and Windows app; no implementation or activation.
+- SOURCE: Desktop starting docs HEAD `614054f29696688bbe22cd269d8cfb302145937f`, Gold `b9194bf4402351a6f565b526eee81541d543c96b`, initially clean. Executable source remains Desktop `0f3c2ee1` / Gold `f2aacc49`. Latest docs/handoffs, AGENTS and source read first.
+- RESULT: ten technical findings (P1 rendered Wall B missing-CSRF blocker, conditional P1 wrong-product updater, eight P2 on grid86px/module state/scope reader/job terminal/consent mode/approval form/ports/listener identity), plus Owner P2 symmetric LM Enable/Disable requirement. See [LIGHT_REMOTE_WALL_WINDOWS_ASYNC_ENDPOINT_AUDIT_20261107.md](LIGHT_REMOTE_WALL_WINDOWS_ASYNC_ENDPOINT_AUDIT_20261107.md). Prior T09 source findings remain unapplied.
+- OFFLINE PROBES: source functions in Node VM + fake DOM/fetch reproduce empty B CSRF header, revision14ON then13OFF, scopeB selection showing fakeA content, terminal ok then older queued. Control CSRF fixture proves header transport only; fake server denies. No real B/token/grant, service or network used. CSS root cause is3-child markup vs more-specific4-column rule; no new browser geometry acceptance.
+- WINDOWS READ ONLY: selected local-wall/refinement/Agent/V2-preview/lock/public-endpoint six files match Git after CRLF normalization. Tauri SHA256 `9cc1f32de6f70d0a4b6cbcc07a8ab11d69afb364da94ee6995e3d410a022060b`, .NET `2b40be9726b39e78b537c221dbabda049ff5f717339b54f0dd8518c9afe67574`. No click/API/start/stop/install/update or physical E2E performed.
+- LAB READ ONLY (~00:46 ICT): three units active/running in t08 staged directories. Operator selected effective B_ONLY/WALL_SIGNED_APPROVE/WALL_OWNER_CONSENT/OWNER_APPROVE_HTTP flags ON; Lab Wall B_ONLY ON. Windows inherited process flags NOT inspected. Two selected Operator files and Wall refinement/preview match Git after EOL normalize; Lab Wall local-wall/Agent differ. CSRF absence also verified in actual Lab renderer overlay. Not full deployment parity or signed grant proof.
+- CONFIG DESIGN ONLY: [LIGHT_REMOTE_ENDPOINTS_PROPOSED_20261107.json](LIGHT_REMOTE_ENDPOINTS_PROPOSED_20261107.json) proposes one typed signed JSON, product/profile/revision, origins/routes/ports, credential-origin fence and updater product gate. Update feed null/HOLD, no guessed approved URL. [LIGHT_REMOTE_URL_INVENTORY_20261107.json](LIGHT_REMOTE_URL_INVENTORY_20261107.json) inventories327files/114positions/77URLvalues with static limits. No runtime loader/config created.
+- DOCS/CHECKS: JSON parse PASS. Relative links/catalog/staged Truth/diff checks before commit; new documentation-only CI pending publication. Code Map executable ownership unchanged, source digest not restamped.
+- SAFETY/NEXT: only documentation/design/inventory plus Master/Worklog/checkpoint updated, Master mirror identical. No source/runtime/settings/credentials/enrollment/production/Windows installation change. Next T10-F01 review narrow CSRF renderer patch + browser-click gate, then CSS/state/config proposals in separately authorized implementation.

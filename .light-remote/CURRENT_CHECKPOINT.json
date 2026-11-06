@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T09_READONLY_AUDIT_COMPLETE_REMEDIATION_NOT_APPLIED",
+  "status": "T10_WALL_WINDOWS_AUDIT_COMPLETE_FINDINGS_ONLY_NO_FIXES",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T09-F01: review audit A01 missing Tauri Link IPC permissions and plan a narrow packaged-WebView regression; findings and optimizations are NOT applied. No implementation, native installation or deployment authorized by this audit.",
+  "nextAction": "T10-F01: review missing Wall V2 CSRF initializer and plan request-bound renderer plus browser-click regression. No code fix, module action, endpoint migration, updater or deployment authorized/applied by this audit.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -877,7 +877,7 @@
     "livingSince": "2026-11-04",
     "mandatoryForEveryTask": true,
     "mirrorByteIdenticalRequired": true,
-    "startingNextTask": "T09-F01_REVIEW_ONLY",
+    "startingNextTask": "T10-F01_REVIEW_ONLY",
     "guard": "deploy/scripts/check-project-truth-sync.mjs --staged",
     "introReceipt": "2026-11-04 H00",
     "firstGoldCommit": "c38e2e540fa66ce634ab5e2902ae628af3a905e8",
@@ -894,7 +894,7 @@
     ],
     "workflowCI": "Gold project truth 41757247108 SUCCESS; Desktop project truth 41757254955 SUCCESS; Gold Docs 41757246951 SUCCESS; Desktop Docs 41757254998 SUCCESS",
     "outcome": "H00 COMPLETE: mandatory dated living Master/Worklog/checkpoint task receipts, CI guard on both active branches, negative missing/undated tests PASS, mirror identical",
-    "currentTask": "T09_READONLY_AUDIT"
+    "currentTask": "T10_READONLY_WALL_WINDOWS_AUDIT"
   },
   "t04b8A1ObservedProxyAndSourceEdgeProof": {
     "date": "2026-11-04",
@@ -1645,6 +1645,35 @@
       "desktopRelativeLinks": 619,
       "projectTruth": "living-master-docs-coherent PASS",
       "masterMirror": "BYTE_IDENTICAL"
+    }
+  },
+  "wallWindowsAudit20261107": {
+    "report": "docs/project-book/LIGHT_REMOTE_WALL_WINDOWS_ASYNC_ENDPOINT_AUDIT_20261107.md",
+    "sourceSha": "0f3c2ee1c826aa6a9e85a99b96811cd8cb2b2a92",
+    "startingDocsHead": "614054f29696688bbe22cd269d8cfb302145937f",
+    "status": "T10_WALL_WINDOWS_AUDIT_COMPLETE_FINDINGS_ONLY_NO_FIXES",
+    "technicalFindings": 10,
+    "p1": 2,
+    "conditionalP1": 1,
+    "p2Technical": 8,
+    "ownerUxRequirements": 1,
+    "appliedFixes": false,
+    "runtimeChanged": false,
+    "installedWindowsChanged": false,
+    "selectedInstalledSourceParity": "6/6 EOL-normalized",
+    "configProposal": "docs/project-book/LIGHT_REMOTE_ENDPOINTS_PROPOSED_20261107.json",
+    "urlInventory": "docs/project-book/LIGHT_REMOTE_URL_INVENTORY_20261107.json",
+    "inventory": {
+      "files": 327,
+      "positions": 114,
+      "values": 77
+    },
+    "configInstalled": false,
+    "physicalE2E": "NOT_TESTED",
+    "documentationCI": "PENDING_PUBLICATION",
+    "previousCheckpoint": {
+      "status": "T09_READONLY_AUDIT_COMPLETE_REMEDIATION_NOT_APPLIED",
+      "nextAction": "T09-F01: review audit A01 missing Tauri Link IPC permissions and plan a narrow packaged-WebView regression; findings and optimizations are NOT applied. No implementation, native installation or deployment authorized by this audit."
     }
   }
 }
