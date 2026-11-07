@@ -58,6 +58,10 @@ fn challenge(verifier: &str) -> String {
 // expires. Verification never extends an access token by itself.
 const OWNER_CHECK_INTERVAL: Duration = Duration::from_secs(15);
 const OWNER_REFRESH_MARGIN: Duration = Duration::from_secs(90);
+// Waiting for the periodic Owner HTTPS check may improve native UI liveness,
+// but timeout/rotation/revocation always deny. Never skip a pending check.
+const OWNER_VERIFY_WAIT_MAX: Duration = Duration::from_millis(2500);
+const OWNER_VERIFY_WAIT_TICK: Duration = Duration::from_millis(40);
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum OwnerPoll { Idle, Verify, Refresh }
@@ -577,6 +581,89 @@ impl OwnerRuntime {
             s.access_deadline.is_some_and(|d|
                 d>Instant::now()+OWNER_REFRESH_MARGIN)
     }
+    // Preserve the exact generation, account, token and pre-check timestamp
+    // while waiting. A concurrent Sign out/Owner switch/refresh MUST NOT be
+    // allowed to switch the requested operation to another credential.
+    fn wall_verification_anchor(&self) -> Result<(NativeOwnerWallSnapshot,Option<Instant>),String> {
+        let s=self.inner.lock().map_err(|_|wall_sso_denied())?;
+        if s.phase!="verified" || !s.status_inflight ||
+           s.access_deadline.map_or(true,|d|
+               d<=Instant::now()+OWNER_REFRESH_MARGIN) {
+            return Err(wall_sso_denied());
+        }
+        let account=s.account_id.as_deref().ok_or_else(wall_sso_denied)?;
+        let access=s.access_token.as_deref().ok_or_else(wall_sso_denied)?;
+        if !account_ok(account)||!token_ok(access){return Err(wall_sso_denied());}
+        Ok((NativeOwnerWallSnapshot {
+            generation:s.generation,account:account.into(),access:access.into()
+        },s.last_verified))
+    }
+
+    async fn wall_wait_for_verified_anchor(
+        &self,snap:&NativeOwnerWallSnapshot,prior:Option<Instant>,budget:Duration
+    ) -> bool {
+        let deadline=Instant::now()+budget;
+        loop {
+            {
+                let Ok(s)=self.inner.lock() else{return false;};
+                if s.phase!="verified" || s.generation!=snap.generation ||
+                   s.account_id.as_deref()!=Some(snap.account.as_str()) ||
+                   s.access_token.as_deref()!=Some(snap.access.as_str()) ||
+                   s.access_deadline.map_or(true,|d|
+                       d<=Instant::now()+OWNER_REFRESH_MARGIN) {
+                    return false;
+                }
+                if !s.status_inflight {
+                    // A cleared flag alone is insufficient: the HTTPS check
+                    // must positively update last_verified before projection.
+                    return s.last_verified.is_some_and(|t|
+                        prior.map_or(true,|before|t>before));
+                }
+            }
+            if Instant::now()>=deadline{return false;}
+            tokio::time::sleep(OWNER_VERIFY_WAIT_TICK).await;
+        }
+    }
+
+    async fn wall_snapshot_after_verification_with_budget(
+        &self,budget:Duration
+    ) -> Result<NativeOwnerWallSnapshot,String> {
+        if let Ok(snap)=self.wall_snapshot(){return Ok(snap);}
+        let (anchor,prior)=self.wall_verification_anchor()?;
+        if !self.wall_wait_for_verified_anchor(&anchor,prior,budget).await {
+            return Err(wall_sso_denied());
+        }
+        let current=self.wall_snapshot()?;
+        if current.generation!=anchor.generation ||
+           current.account!=anchor.account || current.access!=anchor.access {
+            return Err(wall_sso_denied());
+        }
+        Ok(current)
+    }
+    async fn wall_snapshot_after_verification(&self)
+        -> Result<NativeOwnerWallSnapshot,String> {
+        self.wall_snapshot_after_verification_with_budget(OWNER_VERIFY_WAIT_MAX).await
+    }
+
+    async fn wall_snapshot_current_after_verification_with_budget(
+        &self,snap:&NativeOwnerWallSnapshot,budget:Duration
+    ) -> bool {
+        if self.wall_snapshot_current(snap){return true;}
+        let Ok((anchor,prior))=self.wall_verification_anchor() else{return false;};
+        if anchor.generation!=snap.generation ||
+           anchor.account!=snap.account || anchor.access!=snap.access {
+            return false;
+        }
+        self.wall_wait_for_verified_anchor(snap,prior,budget).await &&
+            self.wall_snapshot_current(snap)
+    }
+    async fn wall_snapshot_current_after_verification(
+        &self,snap:&NativeOwnerWallSnapshot
+    ) -> bool {
+        self.wall_snapshot_current_after_verification_with_budget(
+            snap,OWNER_VERIFY_WAIT_MAX).await
+    }
+
     fn wall_expire_if_snapshot_current(&self,snap:&NativeOwnerWallSnapshot) {
         if let Ok(mut s)=self.inner.lock(){
             if s.generation==snap.generation &&
@@ -599,7 +686,7 @@ pub(crate) async fn approve_private_owner_wall_sso(
     if !token_ok(&challenge)||!crate::owner_wall_ticket::device_id_ok(&device_id) {
         return Err(wall_sso_denied());
     }
-    let snap=runtime.wall_snapshot()?;
+    let snap=runtime.wall_snapshot_after_verification().await?;
     let account=snap.account.clone();
     let access=snap.access.clone();
     let verified=tauri::async_runtime::spawn_blocking(move||
@@ -609,21 +696,21 @@ pub(crate) async fn approve_private_owner_wall_sso(
         runtime.wall_expire_if_snapshot_current(&snap);
         return Err(wall_sso_denied());
     }
-    if !runtime.wall_snapshot_current(&snap){return Err(wall_sso_denied());}
+    if !runtime.wall_snapshot_current_after_verification(&snap).await{return Err(wall_sso_denied());}
     let token=snap.access.clone();
     let selected=device_id.clone();
     let ticket=tauri::async_runtime::spawn_blocking(move||
         crate::owner_wall_ticket::request_native_wall_ticket(&token,&selected)
     ).await.map_err(|_|wall_sso_denied())?
         .map_err(|_|wall_sso_denied())?;
-    if !runtime.wall_snapshot_current(&snap) ||
+    if !runtime.wall_snapshot_current_after_verification(&snap).await ||
        ticket.device_id()!=device_id {
         return Err(wall_sso_denied());
     }
     crate::owner_wall_ticket::relay_native_wall_ticket_to_agent(
         &challenge,&ticket
     ).await.map_err(|_|wall_sso_denied())?;
-    if !runtime.wall_snapshot_current(&snap){
+    if !runtime.wall_snapshot_current_after_verification(&snap).await{
         return Err(wall_sso_denied());
     }
     Ok(())
@@ -647,7 +734,7 @@ pub(crate) async fn desktop_owner_wall_sso_approve(
     }
     let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
     // Must be a verified, non-refreshing Owner before even querying pending.
-    runtime.wall_snapshot()?;
+    runtime.wall_snapshot_after_verification().await?;
     let pending=crate::owner_wall_ticket::read_private_wall_pending_from_agent()
         .await.map_err(|_|wall_sso_denied())?;
     if !pending.challenge.starts_with(&approval_code) {
@@ -668,7 +755,7 @@ pub(crate) async fn desktop_owner_snapshot(
     state:State<'_,OwnerRuntime>
 ) -> Result<Value,String> {
     let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
-    let snap=runtime.wall_snapshot().map_err(|_|"desktop_owner_data_unavailable")?;
+    let snap=runtime.wall_snapshot_after_verification().await.map_err(|_|"desktop_owner_data_unavailable")?;
     let account=snap.account.clone();
     let access=snap.access.clone();
     let result=tauri::async_runtime::spawn_blocking(move|| {
@@ -698,7 +785,7 @@ pub(crate) async fn desktop_owner_snapshot(
         }
         Ok(value)
     }).await.map_err(|_|"desktop_owner_data_unavailable".to_string())??;
-    if !runtime.wall_snapshot_current(&snap) {
+    if !runtime.wall_snapshot_current_after_verification(&snap).await {
         return Err("desktop_owner_data_unavailable".into());
     }
     Ok(result)
@@ -714,7 +801,7 @@ pub(crate) async fn desktop_owner_abv2_pending(
     state:State<'_,OwnerRuntime>
 ) -> Result<Value,String> {
     let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
-    let snap=runtime.wall_snapshot().map_err(|_|"desktop_abv2_owner_required")?;
+    let snap=runtime.wall_snapshot_after_verification().await.map_err(|_|"desktop_abv2_owner_required")?;
     let account=snap.account.clone();
     let access=snap.access.clone();
     let result=tauri::async_runtime::spawn_blocking(move|| {
@@ -723,7 +810,7 @@ pub(crate) async fn desktop_owner_abv2_pending(
         }
         crate::owner_abv2::exchange(&json!({"action":"pending","access":access}))
     }).await.map_err(|_|"desktop_abv2_native_unavailable".to_string())??;
-    if !runtime.wall_snapshot_current(&snap) {
+    if !runtime.wall_snapshot_current_after_verification(&snap).await {
         return Err("desktop_abv2_owner_required".into());
     }
     Ok(result)
@@ -746,7 +833,7 @@ pub(crate) async fn desktop_owner_abv2_approve(
         return Err("desktop_abv2_invalid_request".into());
     }
     let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
-    let snap=runtime.wall_snapshot().map_err(|_|"desktop_abv2_owner_required")?;
+    let snap=runtime.wall_snapshot_after_verification().await.map_err(|_|"desktop_abv2_owner_required")?;
     let account=snap.account.clone();
     let access=snap.access.clone();
     let result=tauri::async_runtime::spawn_blocking(move||{
@@ -759,7 +846,7 @@ pub(crate) async fn desktop_owner_abv2_approve(
             "consentCode":consent_code
         }))
     }).await.map_err(|_|"desktop_abv2_native_unavailable".to_string())??;
-    if !runtime.wall_snapshot_current(&snap) {
+    if !runtime.wall_snapshot_current_after_verification(&snap).await {
         return Err("desktop_abv2_owner_required".into());
     }
     Ok(result)
@@ -768,6 +855,126 @@ pub(crate) async fn desktop_owner_abv2_approve(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn bounded_await<F:std::future::Future>(future:F) -> F::Output {
+        tokio::runtime::Builder::new_current_thread().enable_time()
+            .build().unwrap().block_on(future)
+    }
+    #[test]
+    fn t11_f10_verify_inflight_bounded_wait_accepts_same_owner_only_after_https_success() {
+        let now=Instant::now();
+        let runtime=owner_with_deadline(now+Duration::from_secs(550),Some(now));
+        runtime.inner.lock().unwrap().status_inflight=true;
+        let for_verify=runtime.clone();
+        let worker=thread::spawn(move||{
+            thread::sleep(Duration::from_millis(65));
+            finish_owner_verification(&for_verify,4,&"A".repeat(43),true);
+        });
+        let snap=bounded_await(runtime.wall_snapshot_after_verification_with_budget(
+            Duration::from_millis(480))).unwrap();
+        worker.join().unwrap();
+        assert_eq!(snap.account,"owner1");
+        assert_eq!(snap.generation,4);
+        assert!(runtime.wall_snapshot_current(&snap));
+    }
+    #[test]
+    fn t11_f10_mid_read_verify_success_preserves_old_generation_projection() {
+        let now=Instant::now();
+        let runtime=owner_with_deadline(now+Duration::from_secs(550),Some(now));
+        let snap=runtime.wall_snapshot().unwrap();
+        runtime.inner.lock().unwrap().status_inflight=true;
+        let for_verify=runtime.clone();
+        let worker=thread::spawn(move||{
+            thread::sleep(Duration::from_millis(65));
+            finish_owner_verification(&for_verify,4,&"A".repeat(43),true);
+        });
+        assert!(bounded_await(runtime.wall_snapshot_current_after_verification_with_budget(
+            &snap,Duration::from_millis(480))));
+        worker.join().unwrap();
+        assert!(runtime.wall_snapshot_current(&snap));
+    }
+    #[test]
+    fn t11_f10_revocation_during_verify_cannot_approve_or_project_owner_data() {
+        let now=Instant::now();
+        let runtime=owner_with_deadline(now+Duration::from_secs(550),Some(now));
+        let snap=runtime.wall_snapshot().unwrap();
+        runtime.inner.lock().unwrap().status_inflight=true;
+        let for_verify=runtime.clone();
+        let worker=thread::spawn(move||{
+            thread::sleep(Duration::from_millis(65));
+            finish_owner_verification(&for_verify,4,&"A".repeat(43),false);
+        });
+        assert!(!bounded_await(runtime.wall_snapshot_current_after_verification_with_budget(
+            &snap,Duration::from_millis(480))));
+        worker.join().unwrap();
+        assert_eq!(runtime.view().unwrap().phase,"expired");
+        assert!(runtime.wall_snapshot().is_err());
+    }
+    #[test]
+    fn t11_f10_signout_during_wait_does_not_switch_to_new_owner() {
+        let now=Instant::now();
+        let runtime=owner_with_deadline(now+Duration::from_secs(550),Some(now));
+        runtime.inner.lock().unwrap().status_inflight=true;
+        let switch=runtime.clone();
+        let worker=thread::spawn(move||{
+            thread::sleep(Duration::from_millis(65));
+            let mut s=switch.inner.lock().unwrap();
+            s.generation+=1;
+            s.account_id=Some("different".into());
+            s.access_token=Some("B".repeat(43));
+            s.status_inflight=false;
+        });
+        assert!(bounded_await(runtime.wall_snapshot_after_verification_with_budget(
+            Duration::from_millis(480))).is_err());
+        worker.join().unwrap();
+        // This method must never silently promote a different Owner.
+        assert_eq!(runtime.inner.lock().unwrap().generation,5);
+    }
+    #[test]
+    fn t11_f10_refresh_rotation_during_wait_rejects_original_owner_token() {
+        let now=Instant::now();
+        let runtime=owner_with_deadline(now+Duration::from_secs(550),Some(now));
+        let snap=runtime.wall_snapshot().unwrap();
+        runtime.inner.lock().unwrap().status_inflight=true;
+        let rotate=runtime.clone();
+        let worker=thread::spawn(move||{
+            thread::sleep(Duration::from_millis(65));
+            let mut s=rotate.inner.lock().unwrap();
+            s.access_token=Some("B".repeat(43));
+            s.last_verified=Some(Instant::now());
+            s.status_inflight=false;
+        });
+        assert!(!bounded_await(runtime.wall_snapshot_current_after_verification_with_budget(
+            &snap,Duration::from_millis(480))));
+        worker.join().unwrap();
+    }
+    #[test]
+    fn t11_f10_stuck_verification_is_bounded_and_never_grants() {
+        let now=Instant::now();
+        let runtime=owner_with_deadline(now+Duration::from_secs(550),Some(now));
+        runtime.inner.lock().unwrap().status_inflight=true;
+        let start=Instant::now();
+        assert!(bounded_await(runtime.wall_snapshot_after_verification_with_budget(
+            Duration::from_millis(125))).is_err());
+        assert!(start.elapsed()<Duration::from_secs(1));
+        assert!(runtime.inner.lock().unwrap().status_inflight);
+    }
+    #[test]
+    fn t11_f10_cleared_inflight_without_positive_https_timestamp_denies() {
+        let now=Instant::now();
+        let runtime=owner_with_deadline(now+Duration::from_secs(550),Some(now));
+        let snap=runtime.wall_snapshot().unwrap();
+        runtime.inner.lock().unwrap().status_inflight=true;
+        let bypass=runtime.clone();
+        let worker=thread::spawn(move||{
+            thread::sleep(Duration::from_millis(65));
+            // No call to finish_owner_verification: no positive HTTPS proof.
+            bypass.inner.lock().unwrap().status_inflight=false;
+        });
+        assert!(!bounded_await(runtime.wall_snapshot_current_after_verification_with_budget(
+            &snap,Duration::from_millis(480))));
+        worker.join().unwrap();
+    }
 
     #[test]
     fn t04b9c3b2_wall_snapshot_does_not_promote_signed_out_owner() {
