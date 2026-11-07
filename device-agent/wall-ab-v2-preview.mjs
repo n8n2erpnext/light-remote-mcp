@@ -65,7 +65,7 @@ export const wallAbV2PreviewFragment = `
  const status=document.getElementById('abV2PreviewStatus');
  const items=document.getElementById('abV2PreviewItems');
  if(!host||!refresh||!state||!status||!items)return;
- let pending=[],refreshInFlight=false;
+ let pending=[],refreshInFlight=false,approvalInFlight=false,activeApproval=null,renderedKeys='';
  const fmtRemaining=(ms)=>{
   const sec=Math.max(0,Math.ceil(ms/1000));
   return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
@@ -86,33 +86,58 @@ export const wallAbV2PreviewFragment = `
   try{
    const resp=await fetch('/api/abv2/pending',{credentials:'same-origin',cache:'no-store'});
    if(!resp.ok){
-     // Never reveal legacy V1 approval as a fallback for failed V2 preview.
-     host.hidden=false;items.replaceChildren();pending=[];
+     if(activeApproval)activeApproval.invalidated=true;
+     if(approvalInFlight){
+      status.textContent='Signed request verification unavailable during approval. The current attempt cannot be submitted.';
+      return;
+     }
+     // Never fall back to an unsigned or legacy V1 approval page.
+     host.hidden=false;items.replaceChildren();pending=[];renderedKeys='';
      state.textContent='Signed A/B V2 requests unavailable';
-     status.textContent='Cannot verify the current request list. Check Owner login and Cloud connection, then Refresh.';
+     status.textContent=resp.status===401||resp.status===403
+      ?'Owner sign-in or permission was rejected. Sign in and Refresh.'
+      :'Cannot verify signed requests. Check connection and Refresh.';
      return;
    }
    const data=await resp.json();
    if(data?.ok!==true||!Array.isArray(data.pending))throw Error('Invalid signed request feed');
-   // Don't steal focus or erase a partially entered B code during 12s signed-feed refresh.
-   const focused=document.activeElement;
-   if(focused&&items.contains(focused)&&
-      (focused.classList?.contains('ab2-digit')||
-       focused.getAttribute('aria-label')==='Owner account-verified one-time consent')){
-     tick();return;
+   const newKeys=data.pending.slice(0,5).map(row=>
+    String(row.requestId)+':'+String(row.attempt)).join('|');
+   if(activeApproval){
+    const same=data.pending.some(row=>
+     activeApproval.key===String(row.requestId)+':'+String(row.attempt)&&
+     Number(row.expiresAt)>Date.now());
+    if(!same||data.ownerApproveEnabled!==true||
+       (data.ownerConsentRequired!==false)!==activeApproval.consentRequired)
+      activeApproval.invalidated=true;
    }
+   // Keep the form (and closure) stable across focus->confirm->POST, but still
+   // evaluate each signed refresh for revocation and attempt rotation.
+   if(approvalInFlight){
+    if(activeApproval?.invalidated)status.textContent=
+     'The signed request changed or expired. Approval is blocked; refresh before trying again.';
+    tick();return;
+   }
+   const focused=document.activeElement;
+   const editing=focused&&items.contains(focused)&&
+    (focused.classList?.contains('ab2-digit')||
+     focused.getAttribute('aria-label')==='Owner account-verified one-time consent');
+   if(editing&&newKeys===renderedKeys){tick();return;}
+   const changedWhileEditing=Boolean(editing&&newKeys!==renderedKeys);
    host.hidden=false;
    // Swap the legacy card only if a working V2 backend is actually present.
    // In V1 production, failed/disabled V2 leaves the original Wall approval.
    const legacy=document.querySelector('.wrap>.card:not(#abV2OwnerPreview)');
    if(legacy)legacy.hidden=true;
-   items.replaceChildren();pending=[];
+   items.replaceChildren();pending=[];renderedKeys=newKeys;
    const approvalEnabled=data.ownerApproveEnabled===true;
    const consentRequired=data.ownerConsentRequired!==false;
    state.textContent=data.pending.length?'Requests awaiting approval':'No pending requests';
-   status.textContent=data.pending.length
-      ?data.pending.length+' signed request(s) awaiting owner verification'
-      :'When an Agent requests access, it will appear here.';
+   status.textContent=changedWhileEditing
+      ?'Signed request attempt changed. Previous B/consent inputs were cleared; review the new attempt.'
+      :data.pending.length
+       ?data.pending.length+' signed request(s) awaiting owner verification'
+       :'When an Agent requests access, it will appear here.';
    for(const row of data.pending.slice(0,5)){
     const card=document.createElement('div');card.className='ab2-panel';
     const name=document.createElement('h3');
@@ -190,6 +215,7 @@ export const wallAbV2PreviewFragment = `
     approve.className='btn primary';approve.type='button';
     approve.textContent='Approve Agent · 24h';approve.disabled=!approvalEnabled;
     approve.onclick=async()=>{
+     if(approvalInFlight||!approvalEnabled)return;
      const bCode=readB();
      const consentCode=String(consent.value||'').trim();
      if(!/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(bCode)){
@@ -198,9 +224,15 @@ export const wallAbV2PreviewFragment = `
      if(consentRequired&&!/^[A-Za-z0-9_-]{32}$/.test(consentCode)){
       status.textContent='Generate the one-time Owner consent at /account.';return;
      }
-     if(!await window.lrWebConfirm?.('Grant this Agent access to this device for up to 24 hours?'))return;
+     const key=String(row.requestId)+':'+String(row.attempt);
+     approvalInFlight=true;activeApproval={key,consentRequired,invalidated:false};
      approve.disabled=true;
+     let granted=false;
      try{
+      const confirmed=await window.lrWebConfirm?.('Grant this Agent access to this device for up to 24 hours?');
+      if(!confirmed)return;
+      if(activeApproval.invalidated||Number(row.expiresAt)<=Date.now())
+       throw Error('Signed request changed or expired. Refresh and review the current request.');
       const result=await fetch('/api/abv2/approve',{
        method:'POST',credentials:'same-origin',cache:'no-store',
        headers:{'content-type':'application/json','x-light-remote-csrf':
@@ -209,12 +241,27 @@ export const wallAbV2PreviewFragment = `
         ...(consentRequired?{consentCode}:{})})
       });
       const outcome=await result.json().catch(()=>({}));
+      if(!result.ok){
+       const error=String(outcome.error||'');
+       if(result.status===409)
+        throw Error('Signed B attempt changed or grant conflict. Refresh before any new approval.');
+       if(result.status===401||result.status===403)
+        throw Error('Owner login, CSRF, consent or device permission denied. Reauthenticate and Refresh.');
+       if(result.status===400)
+        throw Error('Invalid B code or Owner consent. Review the current request.');
+       throw Error('Operator approval result unavailable. Outcome unknown; Refresh and verify before retrying.');
+      }
+      if(outcome.state!=='granted')
+       throw Error('Durable Agent grant not confirmed. Outcome unknown; Refresh before retrying.');
+      granted=true;status.textContent='Owner approval committed. Agent lease granted.';
+     }catch(error){
+      status.textContent=String(error.message||'Approval unavailable');
+     }finally{
       clearB();consent.value='';
-      if(!result.ok||outcome.state!=='granted')throw Error('Grant not committed by Operator');
-      status.textContent='Owner approval committed. Agent lease granted.';
-      await load();
-     }catch(error){clearB();consent.value='';status.textContent=String(error.message||'Approval unavailable');}
-     finally{approve.disabled=!approvalEnabled;}
+      activeApproval=null;approvalInFlight=false;
+      approve.disabled=!approvalEnabled;
+      if(granted)void load();
+     }
     };
     actions.append(approve);
     if(consentRequired)card.append(consent);
@@ -227,8 +274,12 @@ export const wallAbV2PreviewFragment = `
     items.append(card);pending.push({expiresAt:row.expiresAt,expiresNode:expire});
    }
    tick();
-  }catch(error){status.textContent='Signed A/B V2 request feed unavailable';}
-  finally{refreshInFlight=false;refresh.disabled=false;}
+  }catch(error){
+    if(activeApproval)activeApproval.invalidated=true;
+    status.textContent=approvalInFlight
+     ?'Signed request feed failed during approval; outcome not submitted. Refresh before retrying.'
+     :'Signed A/B V2 request feed unavailable';
+  }finally{refreshInFlight=false;refresh.disabled=false;}
  }
  refresh.addEventListener('click',load);
  setInterval(()=>{if(!document.hidden){tick();void load();}},12000);

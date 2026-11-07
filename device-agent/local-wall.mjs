@@ -514,13 +514,29 @@ async function stopWallJob(j,button){
   }finally{button.disabled=false;}
 }
 function flushRenders(){renderTimer=null;const ids=[...dirtyJobs];dirtyJobs.clear();for(const id of ids){const j=jobs.get(id);if(j)renderJob(j);}applyFilter();}function scheduleRender(id){if(id)dirtyJobs.add(id);if(!renderTimer)renderTimer=setTimeout(flushRenders,50);}
-function ingest(e,queue=true){if(!e||eventSeen(e))return;if(paused&&queue){const k=eventKey(e);if(!k||!pendingKeys.has(k)){pending.push(e);if(k)pendingKeys.add(k);while(pending.length>5000){const old=pending.shift();pendingKeys.delete(eventKey(old));}}return;}let j=e.jobId?jobs.get(e.jobId):null;if(e.type==='job_started'){if(!j){j={jobId:e.jobId,requestId:e.requestId,sessionId:e.sessionId,agentId:e.agentId,status:e.status||'running',cwd:e.cwd,script:e.script,note:e.note,toolMeta:e.toolMeta||null,requiredCapabilities:e.requiredCapabilities||[],resultSummary:e.resultSummary||'',stdout:'',stderr:'',at:e.at};jobs.set(e.jobId,j);}else Object.assign(j,e);}else if(e.type==='job_stop_requested'&&j){
+const GOLD_TERMINAL_JOB_STATES=new Set(['ok','error','timeout','cancelled','failed','completed','stopped']);
+function goldTerminalJob(j){
+ return Boolean(j&&(j.finishedAt||GOLD_TERMINAL_JOB_STATES.has(j.status)));
+}
+function ingest(e,queue=true){if(!e||eventSeen(e))return;if(paused&&queue){const k=eventKey(e);if(!k||!pendingKeys.has(k)){pending.push(e);if(k)pendingKeys.add(k);while(pending.length>5000){const old=pending.shift();pendingKeys.delete(eventKey(old));}}return;}let j=e.jobId?jobs.get(e.jobId):null;if(e.type==='job_started'){if(!j){j={jobId:e.jobId,requestId:e.requestId,sessionId:e.sessionId,agentId:e.agentId,status:e.status||'running',cwd:e.cwd,script:e.script,note:e.note,toolMeta:e.toolMeta||null,requiredCapabilities:e.requiredCapabilities||[],resultSummary:e.resultSummary||'',stdout:'',stderr:'',at:e.at};jobs.set(e.jobId,j);}else if(!goldTerminalJob(j))Object.assign(j,e);
+    else {
+      // Old history may enrich missing metadata, never downgrade a terminal job.
+      for(const key of ['cwd','script','note','resultSummary','toolMeta'])
+       if(!j[key]&&e[key])j[key]=e[key];
+    }
+  }else if(e.type==='job_stop_requested'&&j&&!goldTerminalJob(j)){
     j.stopRequested=true; // Only a signed terminal result changes primary status.
-  }else if(e.type==='node_command_queued'&&j&&!j.finishedAt){
+  }else if(e.type==='node_command_queued'&&j&&!goldTerminalJob(j)){
     j.status='queued';
-  }else if(e.type==='node_command_dispatched'&&j){
+  }else if(e.type==='node_command_dispatched'&&j&&!goldTerminalJob(j)){
     j.status='running';
-  }else if(e.type==='stdout'||e.type==='stderr'){if(!j)return;const chunk=safeOutputChunk(e.chunk);if(chunk&&!(chunk===LEGACY_BINARY_MARKER&&j[e.type].endsWith(LEGACY_BINARY_MARKER)))j[e.type]=(j[e.type]+chunk).slice(-32768);}else if(e.type==='job_finished'){if(!j){j={jobId:e.jobId,requestId:e.requestId,sessionId:e.sessionId,agentId:e.agentId,status:e.status||'ok',cwd:e.cwd||'',script:e.script||'',note:e.note||'',toolMeta:e.toolMeta||null,requiredCapabilities:e.requiredCapabilities||[],resultSummary:e.resultSummary||'',stdout:'',stderr:'',at:e.at};jobs.set(e.jobId,j);}Object.assign(j,{status:e.status,stopRequested:false,exitCode:e.exitCode,durationMs:e.durationMs,cwd:e.cwd??j.cwd,script:e.script??j.script,note:e.note??j.note,requiredCapabilities:e.requiredCapabilities||j.requiredCapabilities||[],resultSummary:e.resultSummary||j.resultSummary||'',toolMeta:e.toolMeta||j.toolMeta||null});}else if(e.type?.startsWith('session_')||e.type?.startsWith('device_')||e.type?.startsWith('device_access_'))refreshStatus(e.type==='device_access_approved');rememberEvent(e);while(jobs.size>200){const oldest=[...jobs.values()].find(x=>!['running','queued','stopping'].includes(x.status));if(!oldest)break;jobs.delete(oldest.jobId);document.getElementById('j-'+oldest.jobId)?.remove();}if(j)scheduleRender(j.jobId);}
+  }else if(e.type==='stdout'||e.type==='stderr'){if(!j)return;const chunk=safeOutputChunk(e.chunk);if(chunk&&!(chunk===LEGACY_BINARY_MARKER&&j[e.type].endsWith(LEGACY_BINARY_MARKER)))j[e.type]=(j[e.type]+chunk).slice(-32768);}else if(e.type==='job_finished'){if(!j){j={jobId:e.jobId,requestId:e.requestId,sessionId:e.sessionId,agentId:e.agentId,status:e.status||'ok',cwd:e.cwd||'',script:e.script||'',note:e.note||'',toolMeta:e.toolMeta||null,requiredCapabilities:e.requiredCapabilities||[],resultSummary:e.resultSummary||'',stdout:'',stderr:'',at:e.at};jobs.set(e.jobId,j);}if(!j.finishedAt){
+      Object.assign(j,{status:GOLD_TERMINAL_JOB_STATES.has(e.status)?e.status:'ok',
+       finishedAt:e.finishedAt||e.at||new Date().toISOString(),stopRequested:false,
+       exitCode:e.exitCode,durationMs:e.durationMs,cwd:e.cwd??j.cwd,script:e.script??j.script,
+       note:e.note??j.note,requiredCapabilities:e.requiredCapabilities||j.requiredCapabilities||[],
+       resultSummary:e.resultSummary||j.resultSummary||'',toolMeta:e.toolMeta||j.toolMeta||null});
+    }}else if(e.type?.startsWith('session_')||e.type?.startsWith('device_')||e.type?.startsWith('device_access_'))refreshStatus(e.type==='device_access_approved');rememberEvent(e);while(jobs.size>200){const oldest=[...jobs.values()].find(x=>!['running','queued','stopping'].includes(x.status));if(!oldest)break;jobs.delete(oldest.jobId);document.getElementById('j-'+oldest.jobId)?.remove();}if(j)scheduleRender(j.jobId);}
 let statusEpoch=0;async function refreshStatus(fresh=false){const epoch=statusEpoch;try{const r=await fetch('/api/status'+(fresh?'?fresh=1':''),{cache:'no-store'}),d=await r.json();if(epoch!==statusEpoch)return;localState=d.local||null;remoteState=d.remote||null;
   // The signed Operator status supplies this device's immutable Short ID even
   // when the separately allowlisted pending-approval preview is unavailable.
@@ -682,6 +698,7 @@ const goldModuleState=createGoldWallModuleController({
    'Long Memory: '+(flags.longMemory?'ON':'OFF')+' · Codex Bridge: '+(flags.codexBridge?'ON':'OFF')
    :'Loading verified module state…';
   document.getElementById('goldMemoryArea').hidden=!flags?.longMemory;
+  if(flags?.longMemory!==true)goldReaderInvalidate();
   document.getElementById('goldCodexArea').hidden=!flags?.codexBridge;
   const memoryNotice=document.getElementById('goldMemoryDisabledNotice');
   if(memoryNotice)memoryNotice.hidden=flags?.longMemory!==false;
@@ -1030,12 +1047,14 @@ function goldMemoryNativeShow(name){
   }
 }
 function goldMemoryNativeCloseWork(){
+  goldReaderInvalidate();
   if(!goldMemoryNative)return;
   goldMemoryNative.detail.hidden=true;
   goldMemoryNative.create.hidden=true;
   goldMemoryNative.workList.hidden=false;
 }
 function goldMemoryNativeOpenWork(id){
+  goldReaderInvalidate();
   if(!goldMemoryNative)return;
   const option=[...document.getElementById('goldReaderScope').options].find(o=>o.value===id);
   if(!option)return;
@@ -1109,6 +1128,27 @@ function goldMemoryNativeRender(scopes){
 goldMemoryNativeInit();goldCodexNativeInit();
 
 // Owner-authenticated local Memory Library; neither export nor preview mutates state.
+// A pending read/export must never write into a subsequently selected work.
+let goldReaderGeneration=0,goldReaderAbort=null;
+function goldReaderInvalidate(){
+ goldReaderGeneration++;
+ goldReaderAbort?.abort();goldReaderAbort=null;
+ const preview=document.getElementById('goldReaderPreview');
+ if(preview){preview.hidden=true;preview.textContent='';}
+ const preference=document.getElementById('goldContextOptIn');
+ if(preference){preference.disabled=true;preference.checked=false;}
+}
+function goldReaderBegin(){
+ goldReaderInvalidate();
+ goldReaderAbort=new AbortController();
+ return {generation:goldReaderGeneration,signal:goldReaderAbort.signal,
+  scopeId:document.getElementById('goldReaderScope').value};
+}
+function goldReaderStillSelected(req){
+ return req.generation===goldReaderGeneration&&
+  req.scopeId===document.getElementById('goldReaderScope').value&&
+  document.getElementById('goldMemoryArea').hidden!==true;
+}
 async function goldReaderRefresh(preferred=''){
   const r=await fetch('/api/gold/modules/scopes',{cache:'no-store'}),j=await r.json();
   if(!r.ok||!j.ok)throw Error(j.error||'memory_scopes_unavailable');
@@ -1127,13 +1167,15 @@ async function goldReaderRefresh(preferred=''){
   document.getElementById('goldReaderStatus').textContent=
     'Local scopes: '+String((j.scopes||[]).length)+' · Select a scope to read or export its current verified epoch.';
 }
-async function goldReaderRequest(full=false){
-  const id=document.getElementById('goldReaderScope').value;
+async function goldReaderRequest(full=false,request=goldReaderBegin()){
+  const id=request.scopeId;
   if(!id)throw Error('Select a memory scope first');
   const path='/api/gold/modules/scope/'+(full?'export':'handoff')+'?scopeId='+encodeURIComponent(id);
-  const r=await fetch(path,{cache:'no-store'}),j=await r.json();
+  const r=await fetch(path,{cache:'no-store',signal:request.signal}),j=await r.json();
   if(!r.ok||!j.ok)throw Error(j.error||'memory_read_unavailable');
-  return full?j.export:j.handoff;
+  const result=full?j.export:j.handoff;
+  if(result?.scopeId!=null&&result.scopeId!==id)throw Error('memory_scope_response_mismatch');
+  return {scopeId:id,data:result};
 }
 function goldReaderText(data){
   const nl=String.fromCharCode(10);
@@ -1147,14 +1189,25 @@ function goldReaderText(data){
   return lines.join(nl);
 }
 async function goldReaderRead(){
-  const d=await goldReaderRequest(false);
+  const request=goldReaderBegin();
+  let response;
+  try{response=await goldReaderRequest(false,request);}
+  catch(error){if(!goldReaderStillSelected(request))return false;throw error;}
+  if(!goldReaderStillSelected(request))return false;
+  const d=response.data;
   const preview=document.getElementById('goldReaderPreview');
   preview.hidden=false;preview.textContent=goldReaderText(d);
   document.getElementById('goldReaderStatus').textContent=
     'Loaded '+(d.checkpoints||[]).length+' entries from verified saved history.';
+  return true;
 }
 async function goldReaderExport(kind){
-  const d=await goldReaderRequest(true);
+  const request=goldReaderBegin();
+  let response;
+  try{response=await goldReaderRequest(true,request);}
+  catch(error){if(!goldReaderStillSelected(request))return false;throw error;}
+  if(!goldReaderStillSelected(request))return false;
+  const d=response.data;
   if(d.integrity!=='all_current_epoch_revisions_verified'||
      d.checkpointCount!==(d.checkpoints||[]).length)throw Error('Memory export integrity check failed');
   const json=kind==='json';
@@ -1222,14 +1275,18 @@ async function goldReaderUsageRefresh(){
 }
 async function goldReaderPreferenceRefresh(){
   const id=document.getElementById('goldReaderScope').value;
+  const at=goldReaderGeneration;
   const box=document.getElementById('goldContextOptIn');
   if(!id){box.checked=false;box.disabled=true;return;}
   const r=await fetch('/api/gold/modules/scope/context/preference?scopeId='+encodeURIComponent(id),{cache:'no-store'});
   const j=await r.json();
+  if(at!==goldReaderGeneration||document.getElementById('goldReaderScope').value!==id||
+     document.getElementById('goldMemoryArea').hidden)return;
   if(!r.ok||!j.ok)throw Error(j.error||'context_preference_unavailable');
   box.disabled=false;box.checked=Boolean(j.preference.fullContextOptIn);
 }
 document.getElementById('goldReaderScope').addEventListener('change',()=>{
+  goldReaderInvalidate();
   void goldReaderUsageRefresh().catch(e=>{document.getElementById('goldReaderUsage').textContent=String(e.message||e);});
   void goldReaderPreferenceRefresh().catch(e=>{document.getElementById('goldContextStatus').textContent=String(e.message||e);});
 });

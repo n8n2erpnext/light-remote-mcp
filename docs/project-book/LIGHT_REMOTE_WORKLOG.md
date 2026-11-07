@@ -1228,3 +1228,15 @@ Owner-authorized implementation in Desktop integration branch only; no physical 
 - Windows installer and Gold GC workflow both execute new module-state regression. No production or isolated Lab deployment, no Owner Windows installation, and no live module state mutations were performed.
 
 Next: T11-F03 scope-specific reader cancellation, monotonic terminal/history and approval form refresh/unknown outcome, then T09 Windows and typed endpoints. CI exact SHA to be recorded separately.
+
+## 2026-11-07 — T11-F03 Implemented scope reader fencing, terminal history monotonicity and B form in-flight lock
+
+T10-04: device-agent/local-wall.mjs Long Memory read/export/preference now carry selected scope ID, AbortController and generation. Changing/closing work or disabling Memory invalidates the previous request, clears stale preview, aborts pending scope-bound fetch; stale A cannot draw in B nor download a stale export. Owner/cross-account gate stays in server routes. VM regression selftest-gold-wall-history-reader-t11.mjs tests slow A, fast B, late preference, and stale export. PASS.
+
+T10-05: event reducer GOLD_TERMINAL_JOB_STATES + finishedAt sentinel. Historical queued/dispatched/started/stop-request events never demote terminal ok/error/cancelled; older duplicate finish is ignored; late stdout/stderr still merge without inventing a running job. Actual reducer code exercised in the same test; ok->queued replay PASS.
+
+T10-07 source candidate: device-agent/wall-ab-v2-preview.mjs keeps a keyed approvalInFlight state across confirmation dialog and POST; periodic signed fetch still observes attempt rotation, expiry, approval eligibility and consent requirement but does not replace the card or closure. Stale/expired request blocks POST. Wrong B/Owner/CSRF and unknown durable outcomes show bounded diagnostic text; unknown outcome is NOT retried automatically. Basic existing rendered B click and signed preview source fixture PASS. Dedicated deeper approval click/rotation test creation was blocked by OpenAI tool safety, not attempted via alternative bypass. Thus physical real B, lost response, exact cross-tab and independent /account E2E are still OPEN; no falsely certified live grant.
+
+Previous Windows native CI 42339017262 at 272f8e79 FAILED because unified-one-app selftest still asserted the obsolete pre-CSRF renderer exact concatenation; Gold Source 42339017300 SUCCESS, docs/truth SUCCESS. Updated that stale source assertion to include the required new standalone V2 CSRF; this patch's exact Windows CI rerun PENDING.
+
+No live Lab/production deploy, no Windows app install, no changing Owner settings, enrollment or grants. Next T11-F04 Windows/Tauri P1 IPC and native deadline/OS gating, then canonical signed endpoint schema implementation.
