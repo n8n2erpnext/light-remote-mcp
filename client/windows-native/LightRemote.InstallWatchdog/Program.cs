@@ -126,6 +126,7 @@ static class Program
         var commitMarker = Require(opt, "commit-marker");
         var taskXml = Require(opt, "task-xml");
         var versionFile = Require(opt, "version-file");
+        var installRoot = Require(opt, "install-root");
         var taskName = Get(opt, "task-name", "LightRemoteDeviceAgent");
 
         Log(logPath, $"watchdog_started installerPid={installerPid}");
@@ -161,9 +162,15 @@ static class Program
 
         Log(logPath, "recovery_begin");
         var version = File.Exists(versionFile) ? File.ReadAllText(versionFile).Trim() : string.Empty;
+#if LIGHT_REMOTE_GOLDABV2_V4
+        var rollbackRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Light Remote", "Updater", "GoldABV2", "rollback");
+#else
         var rollbackRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Light Remote", "Updater", "rollback");
+#endif
 
         string? rollback = null;
         if (Directory.Exists(rollbackRoot) && !string.IsNullOrWhiteSpace(version))
@@ -200,13 +207,12 @@ static class Program
         var run = TryRun("schtasks.exe", $"/Run /TN \"{taskName}\"", wait: true);
         Log(logPath, "task_restart_exit " + run);
 
-        if (WaitWall(TimeSpan.FromSeconds(20)))
+        if (WaitWall(TimeSpan.FromSeconds(20),installRoot))
         {
             Log(logPath, "rollback_restore_wall_healthy");
             return 0;
         }
 
-        var installRoot = Require(opt, "install-root");
         var app = Path.Combine(installRoot, "GptOperator.Client.exe");
         if (File.Exists(app))
         {
@@ -227,7 +233,7 @@ static class Program
                 Log(logPath, "direct_agent_recovery_failed " + ex.Message);
             }
 
-            if (WaitWall(TimeSpan.FromSeconds(20)))
+            if (WaitWall(TimeSpan.FromSeconds(20),installRoot))
             {
                 Log(logPath, "direct_agent_recovery_wall_healthy");
                 return 0;
@@ -261,7 +267,7 @@ static class Program
         }
     }
 
-    static bool WaitWall(TimeSpan timeout)
+    static bool WaitWall(TimeSpan timeout,string installRoot)
     {
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
         var deadline = DateTimeOffset.UtcNow + timeout;
@@ -271,6 +277,10 @@ static class Program
             try
             {
 #if LIGHT_REMOTE_GOLDABV2_V4
+                if (!WallListenerOwnership.IsExpectedWall(CanonicalEndpoints.Gold.LocalPort("wall"),installRoot))
+                {
+                    stable=0;Thread.Sleep(300);continue;
+                }
                 using var res = client.GetAsync(CanonicalEndpoints.Gold.Route("wallHome")).GetAwaiter().GetResult();
 #else
                 using var res = client.GetAsync("http://127.0.0.1:5491/").GetAwaiter().GetResult();

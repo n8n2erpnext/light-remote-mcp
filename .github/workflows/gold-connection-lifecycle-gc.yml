@@ -234,6 +234,8 @@ on:
       - 'deploy/scripts/generate-endpoint-package-marker.mjs'
       - 'deploy/scripts/selftest-canonical-endpoints-t11.mjs'
       - 'deploy/scripts/selftest-canonical-endpoints-native-t11.mjs'
+      - 'client/windows-native/Shared/WallListenerOwnership.cs'
+      - 'deploy/scripts/selftest-goldabv2-wall-listener-ownership-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-module-state-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-history-reader-t11.mjs'
       - 'deploy/scripts/selftest-desktop-native-deadlines-t11.mjs'
@@ -499,6 +501,7 @@ jobs:
           node deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs
           node deploy/scripts/selftest-canonical-endpoints-t11.mjs
           node deploy/scripts/selftest-canonical-endpoints-native-t11.mjs
+          node deploy/scripts/selftest-goldabv2-wall-listener-ownership-t11.mjs
           node deploy/scripts/selftest-gold-wall-module-state-t11.mjs
           node deploy/scripts/selftest-gold-wall-history-reader-t11.mjs
           node deploy/scripts/selftest-desktop-native-deadlines-t11.mjs

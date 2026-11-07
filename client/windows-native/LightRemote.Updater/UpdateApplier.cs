@@ -51,30 +51,47 @@ internal static class UpdateApplier
         try
         {
             await EndScheduledTaskAsync("LightRemoteDeviceAgent");
-            var released=await WaitForWallStateAsync(false,TimeSpan.FromSeconds(12));
-            if(!released){Log("restart_agent_release_timeout");await StopInstalledRuntimeAsync(installDir);released=await WaitForWallStateAsync(false,TimeSpan.FromSeconds(8));}
+            var released=await WaitForWallStateAsync(false,TimeSpan.FromSeconds(12),installDir);
+            if(!released){Log("restart_agent_release_timeout");await StopInstalledRuntimeAsync(installDir);released=await WaitForWallStateAsync(false,TimeSpan.FromSeconds(8),installDir);}
             if(!released){EnsureInstalledTray(installDir);Log("restart_agent_release_failed");return 32;}
             for(var attempt=1;attempt<=5;attempt++)
             {
                 TryRestartBackgroundAgentTask();Log($"restart_agent_start_attempt attempt={attempt}");
-                if(await WaitForWallStateAsync(true,TimeSpan.FromSeconds(6))){EnsureInstalledTray(installDir);Log($"restart_agent_success attempt={attempt}");return 0;}
+                if(await WaitForWallStateAsync(true,TimeSpan.FromSeconds(6),installDir)){EnsureInstalledTray(installDir);Log($"restart_agent_success attempt={attempt}");return 0;}
                 await Task.Delay(400);
             }
             EnsureInstalledTray(installDir);Log("restart_agent_start_failed");return 33;
         }
         catch(Exception ex){EnsureInstalledTray(installDir);Log($"restart_agent_exception {ex.GetType().Name}: {ex.Message}");return 34;}
     }
-    private static bool WallPortListening(){try{return System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(ep=>ep.Port==WallPort);}catch{return false;}}
+    private static bool WallPortListening(string installDir)
+    {
+#if LIGHT_REMOTE_GOLDABV2_V4
+        return WallListenerOwnership.IsExpectedWall(WallPort,installDir);
+#else
+        try { return System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties()
+            .GetActiveTcpListeners().Any(ep=>ep.Port==WallPort); }
+        catch {return false;}
+#endif
+    }
 #if LIGHT_REMOTE_GOLDABV2_V4
     private static int WallPort => CanonicalEndpoints.Gold.LocalPort("wall");
 #else
     private const int WallPort = 5491;
 #endif
-    private static async Task<bool> WaitForWallStateAsync(bool listening,TimeSpan timeout)
+    private static async Task<bool> WaitForWallStateAsync(bool listening,TimeSpan timeout,string installDir)
     {
         var deadline=DateTimeOffset.UtcNow+timeout;
-        while(DateTimeOffset.UtcNow<deadline){if(WallPortListening()==listening){await Task.Delay(150);if(WallPortListening()==listening)return true;}await Task.Delay(120);}
-        return WallPortListening()==listening;
+        while(DateTimeOffset.UtcNow<deadline)
+        {
+            if(WallPortListening(installDir)==listening)
+            {
+                await Task.Delay(150);
+                if(WallPortListening(installDir)==listening)return true;
+            }
+            await Task.Delay(120);
+        }
+        return WallPortListening(installDir)==listening;
     }
     private static void EnsureInstalledTray(string installDir)
     {
@@ -90,7 +107,7 @@ internal static class UpdateApplier
     private static async Task<bool> RecoverRuntimeAsync(string installDir)
     {
         TryRestartBackgroundAgentTask();
-        if(await WaitForWallStateAsync(true,TimeSpan.FromSeconds(8))){Log("runtime_recovery_task_success");return true;}
+        if(await WaitForWallStateAsync(true,TimeSpan.FromSeconds(8),installDir)){Log("runtime_recovery_task_success");return true;}
         try
         {
             var exe=Path.Combine(installDir,"GptOperator.Client.exe");
@@ -103,7 +120,7 @@ internal static class UpdateApplier
             }
         }
         catch(Exception ex){Log($"runtime_recovery_direct_agent_failed {ex.GetType().Name}: {ex.Message}");}
-        if(await WaitForWallStateAsync(true,TimeSpan.FromSeconds(12))){Log("runtime_recovery_direct_agent_success");EnsureInstalledTray(installDir);return true;}
+        if(await WaitForWallStateAsync(true,TimeSpan.FromSeconds(12),installDir)){Log("runtime_recovery_direct_agent_success");EnsureInstalledTray(installDir);return true;}
         EnsureInstalledTray(installDir);Log("runtime_recovery_failed");return false;
     }
     private static async Task StopBackgroundAgentTaskAsync(){try{await EndScheduledTaskAsync("LightRemoteDeviceAgent");await Task.Delay(350);Log("agent_task_stop");}catch(Exception ex){Log($"agent_task_stop_failed {ex.GetType().Name}: {ex.Message}");}}

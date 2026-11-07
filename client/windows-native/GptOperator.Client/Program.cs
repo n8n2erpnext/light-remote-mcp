@@ -1,4 +1,7 @@
 using System.Text.Json;
+using System.Net;
+using System.Net.Sockets;
+using LightRemote.Configuration;
 
 namespace GptOperator.Client;
 
@@ -15,6 +18,11 @@ internal static class Program
         if (args.Length == 2 && string.Equals(args[0], "--boot-evidence-self-test", StringComparison.OrdinalIgnoreCase))
         {
             Environment.ExitCode = WindowsBootEvidence.SelfTest(args[1]) ? 0 : 1;
+            return;
+        }
+        if (args.Length == 2 && string.Equals(args[0], "--wall-listener-self-test-output", StringComparison.OrdinalIgnoreCase))
+        {
+            Environment.ExitCode = WallListenerSelfTest(args[1]) ? 0 : 1;
             return;
         }
         // Deterministic REAL WinForms visual probe for CI. Bypasses normal
@@ -75,6 +83,61 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayApplicationContext());
 #endif
+    }
+
+    // Offline native Windows fixture. An unrelated TCP listener on loopback
+    // must be detected as occupied but must NOT be accepted as OUR Agent.
+    // Product marker and exact installed Node.exe path are separate gates.
+    private static bool WallListenerSelfTest(string output)
+    {
+        var temp=Path.Combine(Path.GetTempPath(),"lr-wall-instance-"+Guid.NewGuid().ToString("N"));
+        try
+        {
+            var marker=Path.Combine(temp,"agent","device-agent","goldabv2-package-profile.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(marker)!);
+            var config=CanonicalEndpoints.Gold;
+            File.WriteAllText(marker,JsonSerializer.Serialize(new {
+                productId="regular-gold",configProfile=config.SelectedProfile,configRevision=1
+            }));
+            var wrongProductRejected=!WallListenerOwnership.PackageMatches(temp);
+            File.WriteAllText(marker,JsonSerializer.Serialize(new {
+                productId=config.ProductId,configProfile=config.SelectedProfile,configRevision=1
+            }));
+            var correctProductAccepted=WallListenerOwnership.PackageMatches(temp);
+            var expectedPath=Path.Combine(temp,"runtime","node.exe");
+            var exactNodePath=WallListenerOwnership.IsExactInstalledRuntimePath(expectedPath,temp);
+            var wrongNodePathRejected=!WallListenerOwnership.IsExactInstalledRuntimePath(
+                Path.Combine(temp,"unrelated","node.exe"),temp);
+            var unrelated=new TcpListener(IPAddress.Loopback,0);
+            bool sawUnrelatedPort,wrongListenerRejected;
+            try
+            {
+                unrelated.Start();
+                var port=((IPEndPoint)unrelated.LocalEndpoint).Port;
+                sawUnrelatedPort=false;
+                for(var attempt=0;attempt<12&&!sawUnrelatedPort;attempt++)
+                {
+                    sawUnrelatedPort=WallListenerOwnership.HasLoopbackListener(port);
+                    if(!sawUnrelatedPort)Thread.Sleep(50);
+                }
+                wrongListenerRejected=!WallListenerOwnership.IsExpectedWall(port,temp);
+            }
+            finally {unrelated.Stop();}
+            var ok=wrongProductRejected&&correctProductAccepted&&exactNodePath&&
+                wrongNodePathRejected&&sawUnrelatedPort&&wrongListenerRejected;
+            File.WriteAllText(output,JsonSerializer.Serialize(new {
+                ok,wrongProductRejected,correctProductAccepted,exactNodePath,
+                wrongNodePathRejected,sawUnrelatedPort,wrongListenerRejected
+            }));
+            return ok;
+        }
+        catch(Exception ex)
+        {
+            try {File.WriteAllText(output,JsonSerializer.Serialize(new {ok=false,error=ex.GetType().Name}));}
+            catch { }
+            return false;
+        }
+        finally {try{Directory.Delete(temp,true);}catch{}}
     }
 
     private static void OpenWall()

@@ -231,6 +231,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private static bool WallPortListening()
     {
+#if LIGHT_REMOTE_GOLDABV2_V4
+        return WallListenerOwnership.IsExpectedWall(WallPort,AppPaths.Root);
+#else
         try
         {
             foreach (var ep in IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners())
@@ -238,6 +241,16 @@ internal sealed class TrayApplicationContext : ApplicationContext
             return false;
         }
         catch { return false; }
+#endif
+    }
+
+    private static bool WrongWallListenerOccupied()
+    {
+#if LIGHT_REMOTE_GOLDABV2_V4
+        return WallListenerOwnership.HasLoopbackListener(WallPort) && !WallPortListening();
+#else
+        return false;
+#endif
     }
 
     private static bool WaitForWall(bool listening, int timeoutMs)
@@ -321,8 +334,15 @@ internal sealed class TrayApplicationContext : ApplicationContext
         ClientEvent("agent_stop_requested", new { exitCode });
         if (WaitForWall(false, 12000)) return (true, "");
 
+#if LIGHT_REMOTE_GOLDABV2_V4
+        // A matching node.exe path alone does not prove which script it runs.
+        // GoldABV2 never terminates another PID based on an occupied port.
+        var killed = false;
+        ClientEvent("agent_stop_requires_manual_listener_review");
+#else
         var killed = KillStaleWallListener();
         ClientEvent("agent_stop_stale_listener", new { killed });
+#endif
         if (WaitForWall(false, 5000)) return (true, "");
 
         return (false, "Light Remote could not release Local Wall port " + WallPort + ".");
@@ -331,6 +351,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private static (bool Ok, string Message) StartAgentTaskVerified()
     {
         if (WallPortListening()) return (true, "");
+        if (WrongWallListenerOccupied())
+            return (false,"The Local Wall port is occupied by a different process. No process was stopped.");
 
         for (var attempt = 1; attempt <= 3; attempt++)
         {
@@ -340,7 +362,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
             Thread.Sleep(350);
         }
 
-        return (false, "Light Remote could not restore Local Wall on port 5491.");
+        return (false,WrongWallListenerOccupied()
+            ? "Local Wall port conflict: unrelated listener, manual review required."
+            : "Light Remote could not restore its Local Wall on port " + WallPort + ".");
     }
 
     private static (bool Ok, string Message) RestartAgentTransactional()

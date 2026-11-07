@@ -100,6 +100,8 @@ on:
       - 'deploy/scripts/generate-endpoint-package-marker.mjs'
       - 'deploy/scripts/selftest-canonical-endpoints-t11.mjs'
       - 'deploy/scripts/selftest-canonical-endpoints-native-t11.mjs'
+      - 'client/windows-native/Shared/WallListenerOwnership.cs'
+      - 'deploy/scripts/selftest-goldabv2-wall-listener-ownership-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-module-state-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-history-reader-t11.mjs'
       - 'deploy/scripts/selftest-desktop-native-deadlines-t11.mjs'
@@ -216,6 +218,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 canonical endpoint schema/profile/packaging regression' }
           node deploy/scripts/selftest-canonical-endpoints-native-t11.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Node/Rust/NET canonical endpoint consumer regression' }
+          node deploy/scripts/selftest-goldabv2-wall-listener-ownership-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 wrong-listener PID and install product gate regression' }
           node deploy/scripts/selftest-gold-wall-module-state-t11.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Long Memory module CAS/revision UI regression' }
           node deploy/scripts/selftest-gold-wall-history-reader-t11.mjs
@@ -342,6 +346,27 @@ jobs:
           $helperStageBytes=(Get-ChildItem $updaterStage -File -Recurse | Measure-Object Length -Sum).Sum
           Write-Host "windows-size-tray-bytes=$trayBytes helper-bytes=$helperBytes node-bytes=$nodeBytes stage-bytes=$stageBytes helper-stage-bytes=$helperStageBytes"
       # Windows Git checkout can use CRLF; the SQL migration hash test canonicalizes LF.
+      - name: GoldABV2 native wrong-listener PID/profile fixture
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $exe=Join-Path $PWD 'dist\windows\stage\GptOperator.Client.exe'
+          $output=Join-Path $env:RUNNER_TEMP 'goldabv2-wall-foreign-listener.json'
+          $p=Start-Process -FilePath $exe -ArgumentList @('--wall-listener-self-test-output',$output) -PassThru
+          if (-not $p.WaitForExit(20000)) {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            throw 'GoldABV2 wrong listener OS fixture timed out'
+          }
+          if ($p.ExitCode -ne 0 -or -not(Test-Path $output)) { throw 'GoldABV2 wrong listener native fixture failed' }
+          $r=Get-Content $output -Raw | ConvertFrom-Json
+          if (-not $r.ok -or -not $r.wrongProductRejected -or -not $r.correctProductAccepted -or
+              -not $r.exactNodePath -or -not $r.wrongNodePathRejected -or
+              -not $r.sawUnrelatedPort -or -not $r.wrongListenerRejected) {
+            throw 'GoldABV2 accepted unowned port or wrong product/profile'
+          }
+          Write-Host 'goldabv2-native-wrong-listener-pid-profile-PASS'
+
       - name: Native Win10/Win11 OS boot evidence source smoke
         timeout-minutes: 2
         shell: pwsh
