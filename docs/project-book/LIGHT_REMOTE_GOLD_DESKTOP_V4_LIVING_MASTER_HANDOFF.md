@@ -1503,3 +1503,11 @@ Source-only, authorized VPS-ARM Desktop integration patch after 289c0b0b. Gold b
 - Remaining security: config is embedded/build-bound but NO separate detached release signature exists; production signed config/feed HOLD. T10-10 wrong-listener/expected-instance handshake, T10-06 consent-mode source, active authority revalidation, native physical Windows and signed B/Owner E2E are OPEN. Do not infer live PASS from source tests.
 
 NEXT T11-F07B-CI: exact GitHub run/SHA, diagnose and fix native Rust/.NET/installer failures; then T11-F07C targeted wrong-listener and consent hardening with separate reviewable patch.
+
+## 2026-11-07 — T11-F07B-CI01 native Windows C# compile failure correction
+
+Exact Desktop F07B SHA b8e947cf031f3bfc48a3f682ffde036dac44d084: Windows Tray Client GitHub run 42343229398 FAILED, job 128315298467, Publish native tray client. The compiler reported CS0133 at client/windows-native/GptOperator.Client/TrayApplicationContext.cs:911 because RelinkRuntimeSelfTest declared const string bridge = ConnectionConfig.DefaultBridgeUrl, while F07B now intentionally reads the canonical build-embedded JSON at runtime. The correct code uses var bridge so the actual authenticated endpoint is not replaced by a second hardcoded constant. This is a compiler error, not evidence of failed enrollment or a live B operation.
+
+At that SHA, Windows native Rust-for-embedded-Desktop step SUCCESS; Inno Pascal fast compiler run 42343229482 SUCCESS; GC source run 42343229389 SUCCESS, Project Truth run 42343229396 SUCCESS, Docs run 42343229411 SUCCESS. The Windows publish and subsequent full installer/E2E were NOT PASS. Desktop Source QA 42343229392 was still in progress during initial log analysis. Local source grep verifies no other const expressions depend on ConnectionConfig; no Windows physical machine, runtime services, enrollment/grants, production or signed update feed modified.
+
+T11-F07B-CI01 next: new exact SHA Windows full installer / .NET native publish / Gold GC run; inspect real logs and repair any additional compiler or package regressions. F07B product profile config still embedded/build-bound without a detached release signature; GoldABV2 update feed remains null/HOLD.
