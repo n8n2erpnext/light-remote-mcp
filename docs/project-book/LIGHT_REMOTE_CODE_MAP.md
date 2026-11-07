@@ -1120,3 +1120,9 @@ deploy/scripts/selftest-t11-owner-verify-wait.mjs normalizes Windows CRLF on rea
 
 - operator-host/usage-registry.mjs: summary → _accrueOpen uses process-local _lastPersistAt and _lastPersistMonth, 300000ms bounded read checkpoint. Hard expiry and UTC month boundary force synchronous existing atomic JSON persistence; ingest lifecycle, backfill, reconcile remain immediately durable (schema v1 unchanged). Crash re-accrual begins from persisted lastAccruedAt and does not double-count.
 - deploy/scripts/selftest-t11-usage-read-checkpoint.mjs: synthetic disk-write count, UTC month split, renewal, hard expiry, crash replay, account isolation and tool-call write fixture. Runs in windows-native-client.yml and gold-connection-lifecycle-gc.yml. Physical Windows, live persistence benchmark and exact new CI remain OPEN.
+
+## 2026-11-07 — T11-F12 P03 Owner batch fleet read ownership
+- SessionRegistry.activeCountsByNode: single prune and session scan for read snapshots, leaving per-node capacity APIs unchanged.
+- DeviceRegistry.list({accountId}): early authenticated Owner projection filter before expensive per-device view; executor.allDeviceViews({accountId}) consumes batched session node counts.
+- DeviceAccessGrantRegistry.activeGrantsForDevices: read-only per-device grouped snapshot, same active lifetime/activation/clone/sort as original per-device method. desktop-v4-owner-snapshot filters grants again by authenticated Owner and device purpose, preserves <=200 fleet/session limits and post-await session revocation check.
+- deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs: 1k/10k synthetic fixtures, scope/grant parity, wrong Owner denial, no physical throughput claim. Integrated Windows and GC source gate, exact new SHA pending.
