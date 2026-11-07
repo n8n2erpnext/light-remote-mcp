@@ -310,7 +310,9 @@ function Overview({ status, navigate, wallProbe, abv2, snapshot }: {
         </Card>
         <Card className="metric-card">
           <CardHeading>AI SESSIONS</CardHeading>
-          <strong className="metric-value">{snapshot?snapshot.sessions.filter(s=>s.state==='active'||s.state==='hold').length:'—'}</strong>
+          <strong className="metric-value">{snapshot?(snapshot.coverage?.sessions
+            ?snapshot.coverage.sessions.activeTotal+snapshot.coverage.sessions.holdTotal
+            :snapshot.sessions.filter(s=>s.state==='active'||s.state==='hold').length):'—'}</strong>
           <span className="muted">{snapshot?'Verified Owner session registry':'Authenticated session list unavailable'}</span>
         </Card>
         <Card className="metric-card">
@@ -330,7 +332,9 @@ function Overview({ status, navigate, wallProbe, abv2, snapshot }: {
         </Card>
         <Card>
           <CardHeading description="Signed leases and verified terminal states">AGENT SESSIONS</CardHeading>
-          <div className="inset"><h3>{snapshot?`${snapshot.sessions.length} verified session(s)`:'No verified sessions to display'}</h3><p>{snapshot?'View Owner session registry for per-Agent state.':'Sessions appear after Owner approval.'}</p><Button variant="secondary" onClick={()=>navigate('sessions')}>View Sessions</Button></div>
+          <div className="inset"><h3>{snapshot?(snapshot.coverage?.sessions?.hasMore
+            ?`Showing ${snapshot.coverage.sessions.returned} of ${snapshot.coverage.sessions.total} verified session(s)`
+            :`${snapshot.sessions.length} verified session(s)`):'No verified sessions to display'}</h3><p>{snapshot?'View Owner session registry for per-Agent state.':'Sessions appear after Owner approval.'}</p><Button variant="secondary" onClick={()=>navigate('sessions')}>View Sessions</Button></div>
         </Card>
         <Card>
           <CardHeading description="Jobs · output · execution evidence">LIVE MONITOR</CardHeading>

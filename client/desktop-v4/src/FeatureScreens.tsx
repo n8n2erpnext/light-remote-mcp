@@ -62,8 +62,9 @@ function timestamp(value:number|null) {
 }
 function Sessions({snapshot}:{snapshot:OwnerSnapshot|null}) {
   const rows=snapshot?.sessions||[];
-  const active=rows.filter(s=>s.state==='active').length;
-  const hold=rows.filter(s=>s.state==='hold').length;
+  const coverage=snapshot?.coverage?.sessions;
+  const active=coverage?.activeTotal??rows.filter(s=>s.state==='active').length;
+  const hold=coverage?.holdTotal??rows.filter(s=>s.state==='hold').length;
   const expiries=rows.filter(s=>s.expiresAt!==null&&
     (s.state==='active'||s.state==='hold'))
     .map(s=>s.expiresAt as number).sort((a,b)=>a-b);
@@ -73,7 +74,7 @@ function Sessions({snapshot}:{snapshot:OwnerSnapshot|null}) {
         value={snapshot?String(active):'—'} />
       <UnknownKpi label="HELD / PENDING" hint={snapshot?'Live Agent lanes':'Lease state not verified'} icon={LockKeyhole}
         value={snapshot?String(hold):'—'} />
-      <UnknownKpi label="NEXT EXPIRY" hint="Server-reported lease deadline" icon={Clock3}
+      <UnknownKpi label="NEXT EXPIRY" hint={coverage?.hasMore?'Earliest among visible leases · partial window':'Server-reported lease deadline'} icon={Clock3}
         value={snapshot&&expiries.length?timestamp(expiries[0]??null):'—'} />
     </div>
     <Card>
@@ -93,6 +94,11 @@ function Sessions({snapshot}:{snapshot:OwnerSnapshot|null}) {
       </div>:<FeatureTable label="AI sessions" columns={['Agent / nickname','Device','Lease','State','Action']}
          description="Signed Owner session API unavailable. No session list can be inferred." />}
     </Card>
+    {snapshot&&coverage?.hasMore&&<div className="feature-unavailable" role="status">
+      <ShieldAlert size={18} aria-hidden="true" />
+      <div><strong>Verified session window — not complete history</strong>
+        <p>Showing {coverage.returned} of {coverage.total} Owner sessions. Active and held leases have priority. Older sessions are not shown; pagination and Owner close actions are not connected.</p></div>
+    </div>}
     {!snapshot&&<SourceUnavailable description="Owner session listing unavailable. No session query or mutation was authorized." />}
   </div>;
 }

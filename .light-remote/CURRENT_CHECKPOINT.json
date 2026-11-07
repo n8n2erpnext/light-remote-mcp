@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F12_P03_GC_SUCCESS_WINDOWS_INSTALLER_IN_PROGRESS",
+  "status": "T11_F13_A03_SESSION_WINDOW_SOURCE_TESTED_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T11-F11/P01 Windows full installer CI SUCCESS at 766a5d32 run 42353489618; F12/P03 GC/Docs/Truth PASS on 0a7f1f6c, Windows 42354058336 PENDING; then physical Owner/B only with separate approval.",
+  "nextAction": "F12 Windows full installer SUCCESS 42354058336; F13 source fixes 201 Owner-session history snapshot loss, local tests PASS. Verify F13 exact SHA Windows/macOS/Linux/GC/Docs/Truth and record CI receipt; physical Owner/B and prod remain HOLD.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "5e585c0cf8bc5025305b305b892ac485003e004e0bdc9dd4b43fd3ed7c6737ee",
+    "treeDigest": "bd1909a888665c13235a62befe40bd0cb02be34981942b30a3b64ca702b0fa27",
     "trackedFiles": 1335,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T08:09:32.441Z"
+    "recordedAt": "2026-11-07T08:24:50.974Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2053,11 +2053,13 @@
     "ownerSnapshotTests": "7/7 PASS",
     "v09Grants": "PASS",
     "regression": "PASS local",
-    "nativeWindowsCI": "IN PROGRESS run 42354058336",
+    "nativeWindowsCI": "SUCCESS run 42354058336",
     "goldGC": "4/4 SUCCESS run 42354057994",
     "physicalOwnerB": "OPEN",
     "prodTouched": false,
-    "docsTruth": "SUCCESS runs 42354057958 / 42354057952"
+    "docsTruth": "SUCCESS runs 42354057958 / 42354057952",
+    "windowsArtifactId": 13566439862,
+    "windowsArtifactZipSha256": "8806dc4931cd9708ba14ff9a1518671bce5d150b92aa2d124f24d68b52b4fe4e"
   },
   "t11_f11_ci01": {
     "date": "2026-11-07",
@@ -2071,5 +2073,34 @@
     "artifactId": 13566009026,
     "zipSha256": "5d9f65c8145393d95e47aede8f098af466b2c17b14b716fbae4a9b4ac270b10f",
     "physicalWindows": "OPEN"
+  },
+  "t11_f12_ci01": {
+    "date": "2026-11-07",
+    "sourceSha": "0a7f1f6c444aaca0e9e191ebb590ef5f764051b8",
+    "windowsRun": 42354058336,
+    "windowsStatus": "SUCCESS",
+    "goldGCRun": 42354057994,
+    "goldGC": "4/4 SUCCESS",
+    "docsRun": 42354057958,
+    "truthRun": 42354057952,
+    "artifactId": 13566439862,
+    "artifactZipSha256": "8806dc4931cd9708ba14ff9a1518671bce5d150b92aa2d124f24d68b52b4fe4e",
+    "physicalOwnerB": "OPEN",
+    "productionChanged": false
+  },
+  "t11_f13_a03": {
+    "date": "2026-11-07",
+    "source": "Owner snapshot session history >200 fails whole view",
+    "maxSessionWindow": 200,
+    "liveBeforeHistory": true,
+    "partialHistoryExplicit": true,
+    "ownerScopeEnforced": true,
+    "postAwaitRevocationFence": true,
+    "localOperatorTests": "9/9 PASS",
+    "localTypeScript": "PASS",
+    "localVitest": "PASS targeted",
+    "nativeCI": "PENDING NEW SHA",
+    "physicalWindows": "OPEN",
+    "productionChanged": false
   }
 }

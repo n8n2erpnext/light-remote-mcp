@@ -46,8 +46,16 @@ export function createDesktopV4OwnerSnapshot({
   })).filter(d=>d.deviceId);
   const owned=new Set(devices.map(d=>d.deviceId));
   const rawSessions=sessions.list().filter(s=>s.accountId===accountId&&owned.has(s.deviceId));
-  if(rawSessions.length>maxSessions)deny('desktop_snapshot_sessions_too_large',409);
-  const sessionRows=sorted(rawSessions.map(s=>({
+  // Session history is bounded independently of device/grant authority. A large
+  // completed-session history must not hide all verified Owner devices/leases.
+  // If a window is needed, put active/held leases before closed history.
+  const sessionLiveTotal=rawSessions.filter(s=>s.state==='active').length;
+  const sessionHoldTotal=rawSessions.filter(s=>s.state==='hold').length;
+  const sessionsTruncated=rawSessions.length>maxSessions;
+  const sessionWindow=sessionsTruncated?[...rawSessions].sort((a,b)=>
+   Number(b.state==='active'||b.state==='hold')-Number(a.state==='active'||a.state==='hold')||
+   (b.createdAt||0)-(a.createdAt||0)).slice(0,maxSessions):rawSessions;
+  const sessionRows=sorted(sessionWindow.map(s=>({
    sessionId:string(s.sessionId),deviceId:string(s.deviceId),
    agentId:string(s.agentId),name:string(s.displayName||s.label,120),
    state:['active','hold','closed','expired'].includes(s.state)?s.state:'unknown',
@@ -125,7 +133,10 @@ export function createDesktopV4OwnerSnapshot({
     toolCallLimit:finite(ent?.toolCallLimit)},
    usage:{month:usageMonth,toolCallsThisMonth:finite(rawUsage?.toolCallsThisMonth),byDevice},
    coverage:{jobs:{returned:jobRows.length,total:ownerJobs.length,
-    hasMore:jobsHasMore,source:'in_memory_current_window'}},
+    hasMore:jobsHasMore,source:'in_memory_current_window'},
+    sessions:{returned:sessionRows.length,total:rawSessions.length,
+     hasMore:rawSessions.length>sessionRows.length,activeTotal:sessionLiveTotal,
+     holdTotal:sessionHoldTotal,source:'in_memory_current_window'}},
    devices,sessions:sessionRows,grants,jobs:jobRows,events});
  };
 }

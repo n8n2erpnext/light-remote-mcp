@@ -79,11 +79,14 @@ test('invalid, wrong, revoked and expired Owner session fail closed',async()=>{
  ])await assert.rejects(()=>data()(value));
  await assert.rejects(()=>data({verified:false})({accountId:'owner',accountSessionId:SESSION}));
 });
-test('grant and session list caps fail closed, not silent truncation',async()=>{
+test('device cap fails closed while session history has explicit bounded coverage',async()=>{
  const mk=(n)=>new Array(n).fill(null).map((_,i)=>({deviceId:'d'+i,accountId:'owner',state:'online'}));
  await assert.rejects(()=>data({devices:mk(201)})({accountId:'owner',accountSessionId:SESSION}),/too_large/);
  const rows=new Array(201).fill(null).map((_,i)=>({accountId:'owner',sessionId:'s'+i,deviceId:'dev-a',state:'hold'}));
- await assert.rejects(()=>data({sessions:rows})({accountId:'owner',accountSessionId:SESSION}),/too_large/);
+ const view=await data({sessions:rows})({accountId:'owner',accountSessionId:SESSION});
+ assert.equal(view.sessions.length,200);
+ assert.equal(view.coverage.sessions.total,201);
+ assert.equal(view.coverage.sessions.hasMore,true);
 });
 test('no writes, no close/revoke from read route',async()=>{
  let queried=0;
@@ -143,4 +146,45 @@ test('revoked Owner session during awaited Short ID lookup is rejected',async()=
  valid=false;
  complete(new Map([['dev-a','R01KAP']]));
  await assert.rejects(read,/desktop_snapshot_owner_revoked_during_read/);
+});
+
+test('199/200/201-session historical window does not hide Owner device, Short ID or live lanes',async()=>{
+ const make=(n)=>Array.from({length:n},(_,i)=>({
+  accountId:'owner',sessionId:'s-'+i,deviceId:'dev-a',agentId:'agent-'+i,
+  state:'closed',createdAt:1000+i,lastSeenAt:2000+i,closedAt:3000+i
+ }));
+ for(const n of [199,200,201]){
+  const history=make(n);
+  if(n===201)history[0]={...history[0],state:'active',createdAt:10,closedAt:null,expiresAt:5000};
+  history.push({accountId:'other',sessionId:'foreign-s',deviceId:'dev-foreign',agentId:'foreign',
+   state:'active',createdAt:99999});
+  const view=await data({sessions:history})({accountId:'owner',accountSessionId:SESSION});
+  assert.equal(view.devices[0].shortId,'R01KAP','unrelated Owner inventory must survive history overflow');
+  assert.equal(view.sessions.length,Math.min(n,200),'bounded Owner session viewport');
+  assert.deepEqual(view.coverage.sessions,{
+   returned:Math.min(n,200),total:n,hasMore:n>200,
+   activeTotal:n===201?1:0,holdTotal:0,source:'in_memory_current_window'
+  });
+  assert.ok(!JSON.stringify(view).includes('foreign-s'),'no foreign account history');
+  if(n===201){
+   assert.ok(view.sessions.some(s=>s.sessionId==='s-0'&&s.state==='active'),
+     'active lane must displace old completed history, not be hidden');
+   assert.ok(!view.sessions.some(s=>s.sessionId==='s-1'),
+     'one old completed row must be outside bounded window');
+  }
+ }
+});
+
+test('201 live sessions expose explicit partial coverage rather than claiming complete history',async()=>{
+ const sessions=Array.from({length:201},(_,i)=>({
+  accountId:'owner',sessionId:'s-'+i,deviceId:'dev-a',agentId:'agent-'+i,
+  state:i%2?'hold':'active',createdAt:1000+i,expiresAt:2000+i
+ }));
+ const view=await data({sessions})({accountId:'owner',accountSessionId:SESSION});
+ assert.equal(view.sessions.length,200);
+ assert.equal(view.coverage.sessions.total,201);
+ assert.equal(view.coverage.sessions.activeTotal,101);
+ assert.equal(view.coverage.sessions.holdTotal,100);
+ assert.equal(view.coverage.sessions.hasMore,true);
+ assert.equal(view.grants.length,1);
 });

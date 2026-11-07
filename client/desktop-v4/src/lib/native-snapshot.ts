@@ -28,7 +28,10 @@ export type OwnerSnapshot = Readonly<{
   account:Readonly<{email:string|null;plan:string|null;status:string;emailVerified:boolean}>;
   entitlements:Readonly<{plan:string|null;toolCallLimit:number|null}>;
   usage:Readonly<{month:string|null;toolCallsThisMonth:number|null;byDevice:ReadonlyArray<Readonly<{deviceId:string;toolCalls:number|null;onlineMs:number|null}>>}>;
-  coverage:Readonly<{jobs:Readonly<{returned:number;total:number;hasMore:boolean;source:'in_memory_current_window'}>}>|null;
+  coverage:Readonly<{
+    jobs:Readonly<{returned:number;total:number;hasMore:boolean;source:'in_memory_current_window'}>;
+    sessions?:Readonly<{returned:number;total:number;hasMore:boolean;activeTotal:number;holdTotal:number;source:'in_memory_current_window'}>;
+  }>|null;
   devices:ReadonlyArray<OwnerDevice>;sessions:ReadonlyArray<OwnerSession>;
   grants:ReadonlyArray<OwnerGrant>;jobs:ReadonlyArray<OwnerJob>;events:ReadonlyArray<OwnerEvent>;
 }>;
@@ -100,7 +103,7 @@ export function projectOwnerSnapshot(input:unknown,expectedAccountId:string):Sna
     events.push({deviceId,eventType:string(event.eventType,64)||'activity',
       status:string(event.status,32)||'unknown',at:count(event.at)});
   }
-  const coverageObj=record(r.coverage),jobsCoverage=record(coverageObj?.jobs);
+  const coverageObj=record(r.coverage),jobsCoverage=record(coverageObj?.jobs),sessionsCoverage=record(coverageObj?.sessions);
   let coverage:OwnerSnapshot['coverage']=null;
   if(jobsCoverage!==null&&
     jobsCoverage.source==='in_memory_current_window'&&
@@ -110,6 +113,21 @@ export function projectOwnerSnapshot(input:unknown,expectedAccountId:string):Sna
        total<returned||jobsCoverage.hasMore!==(total>returned))return CLOSED;
     coverage={jobs:{returned,total,hasMore:jobsCoverage.hasMore,
       source:'in_memory_current_window'}};
+  }
+  if(coverageObj&&Object.prototype.hasOwnProperty.call(coverageObj,'sessions')){
+    if(!coverage||!sessionsCoverage||sessionsCoverage.source!=='in_memory_current_window'||
+       typeof sessionsCoverage.hasMore!=='boolean')return CLOSED;
+    const total=count(sessionsCoverage.total),returned=count(sessionsCoverage.returned),
+      activeTotal=count(sessionsCoverage.activeTotal),holdTotal=count(sessionsCoverage.holdTotal);
+    const visibleActive=sessions.filter(s=>s.state==='active').length,
+      visibleHold=sessions.filter(s=>s.state==='hold').length;
+    if(total===null||returned===null||activeTotal===null||holdTotal===null||
+       returned!==sessions.length||total<returned||activeTotal+holdTotal>total||
+       activeTotal<visibleActive||holdTotal<visibleHold||
+       sessionsCoverage.hasMore!==(total>returned)||
+       (total===returned&&(activeTotal!==visibleActive||holdTotal!==visibleHold)))return CLOSED;
+    coverage={...coverage,sessions:{returned,total,hasMore:sessionsCoverage.hasMore,
+      activeTotal,holdTotal,source:'in_memory_current_window'}};
   }
   return Object.freeze({state:'ready',accountId:expectedAccountId,asOf,
     account:Object.freeze({email:string(ac.email,254),plan:string(ac.plan,40),

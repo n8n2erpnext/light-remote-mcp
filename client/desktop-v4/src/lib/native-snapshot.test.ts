@@ -48,6 +48,24 @@ describe('Owner snapshot is a bounded native-only projection',()=>{
    const fake={...many,coverage:{jobs:{returned:2,total:257,hasMore:true,source:'in_memory_current_window'}}};
    expect(projectOwnerSnapshot(fake,'owner').state).toBe('unavailable');
  });
+ it('rejects dishonest session window metadata and keeps verified counts',()=>{
+   const sessions={returned:1,total:201,hasMore:true,activeTotal:1,holdTotal:0,
+     source:'in_memory_current_window'};
+   const view=projectOwnerSnapshot({...DATA,coverage:{...DATA.coverage,sessions}},'owner');
+   expect(view.state).toBe('ready');
+   if(view.state==='ready'){
+     expect(view.coverage?.sessions?.total).toBe(201);
+     expect(view.coverage?.sessions?.activeTotal).toBe(1);
+   }
+   for(const invalid of [
+     {...sessions,returned:2},{...sessions,activeTotal:0},
+     {...sessions,source:'unverified_cloud'},{...sessions,hasMore:false},
+     {...sessions,total:0},{...sessions,holdTotal:202},
+     null,'bogus'
+   ])expect(projectOwnerSnapshot({...DATA,coverage:{...DATA.coverage,sessions:invalid}},'owner').state)
+       .toBe('unavailable');
+   expect(projectOwnerSnapshot(DATA,'owner').state).toBe('ready');
+ });
  it('uses exact Tauri IPC and never fetch, cookies or a URL from JS',async()=>{
    const invoke=vi.fn(async()=>DATA);
    const host={__TAURI_INTERNALS__:{invoke}} as unknown as Window;

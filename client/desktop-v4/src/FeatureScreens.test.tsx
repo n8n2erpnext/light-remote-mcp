@@ -85,6 +85,29 @@ describe('desktop V4 feature screen integrity', () => {
     expect(screen.getByText('≥1')).toBeTruthy();
     expect(screen.queryByText('Activity stream unverified')).toBeNull();
   });
+  it('shows bounded session history without misreporting active/held counts',()=>{
+    const snapshot={
+      state:'ready' as const,accountId:'owner',asOf:1000,
+      account:{email:'owner@example.test',plan:'pro',status:'active',emailVerified:true},
+      entitlements:{plan:'pro',toolCallLimit:500},
+      usage:{month:'2026-11',toolCallsThisMonth:1,byDevice:[]},
+      devices:[{deviceId:'dev-a',name:'Workstation',shortId:'R01KAP',os:'windows',state:'online',lastSeenAt:100}],
+      sessions:[
+        {sessionId:'s-live',deviceId:'dev-a',agentId:'agent-a',name:'Live',
+         state:'active' as const,createdAt:100,lastSeenAt:100,expiresAt:3000,holdReason:null,activeJobs:0},
+        {sessionId:'s-closed',deviceId:'dev-a',agentId:'agent-b',name:'Closed',
+         state:'closed' as const,createdAt:90,lastSeenAt:95,expiresAt:null,holdReason:null,activeJobs:0}
+      ],
+      grants:[],jobs:[],events:[],
+      coverage:{jobs:{returned:0,total:0,hasMore:false,source:'in_memory_current_window' as const},
+        sessions:{returned:2,total:201,hasMore:true,activeTotal:1,holdTotal:0,
+          source:'in_memory_current_window' as const}}
+    };
+    render(<FeatureScreen route="sessions" status={null} snapshot={snapshot}/>);
+    expect(screen.getByText(/Showing 2 of 201 Owner sessions/)).toBeTruthy();
+    expect(screen.getByText('Verified session window — not complete history')).toBeTruthy();
+    expect(screen.getByText('Live')).toBeTruthy();
+  });
   it('a known local device connection must not be taken as job or owner authority', () => {
     render(<FeatureScreen route="live-monitor" status={{
       state: 'ready', device: { verifiedAt: 42, deviceName: 'Test', connection: 'connected', cloudState: 'connected' }
