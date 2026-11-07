@@ -186,6 +186,30 @@
       "destination": "client/update-public.pem"
     },
     {
+      "source": "config/endpoints.json",
+      "destination": "config/endpoints.json"
+    },
+    {
+      "source": "device-agent/desktop-abv2-native-ipc-v4.mjs",
+      "destination": "device-agent/desktop-abv2-native-ipc-v4.mjs"
+    },
+    {
+      "source": "device-agent/desktop-wall-sso-browser-bootstrap-v4.mjs",
+      "destination": "device-agent/desktop-wall-sso-browser-bootstrap-v4.mjs"
+    },
+    {
+      "source": "device-agent/desktop-wall-sso-browser-page-v4.mjs",
+      "destination": "device-agent/desktop-wall-sso-browser-page-v4.mjs"
+    },
+    {
+      "source": "device-agent/desktop-wall-sso-native-ipc-v4.mjs",
+      "destination": "device-agent/desktop-wall-sso-native-ipc-v4.mjs"
+    },
+    {
+      "source": "device-agent/desktop-wall-sso-session.mjs",
+      "destination": "device-agent/desktop-wall-sso-session.mjs"
+    },
+    {
       "source": "device-agent/execution-epoch-journal.mjs",
       "destination": "device-agent/execution-epoch-journal.mjs"
     },
@@ -290,36 +314,16 @@
       "destination": "device-agent/isolated-process-worker.mjs"
     },
     {
+      "source": "device-agent/local-activity-log.mjs",
+      "destination": "device-agent/local-activity-log.mjs"
+    },
+    {
       "source": "device-agent/local-process-page.mjs",
       "destination": "device-agent/local-process-page.mjs"
     },
     {
       "source": "device-agent/local-wall-auth.mjs",
       "destination": "device-agent/local-wall-auth.mjs"
-    },
-    {
-      "source": "device-agent/local-activity-log.mjs",
-      "destination": "device-agent/local-activity-log.mjs"
-    },
-    {
-      "source": "device-agent/desktop-wall-sso-session.mjs",
-      "destination": "device-agent/desktop-wall-sso-session.mjs"
-    },
-    {
-      "source": "device-agent/desktop-wall-sso-browser-bootstrap-v4.mjs",
-      "destination": "device-agent/desktop-wall-sso-browser-bootstrap-v4.mjs"
-    },
-    {
-      "source": "device-agent/desktop-wall-sso-browser-page-v4.mjs",
-      "destination": "device-agent/desktop-wall-sso-browser-page-v4.mjs"
-    },
-    {
-      "source": "device-agent/desktop-abv2-native-ipc-v4.mjs",
-      "destination": "device-agent/desktop-abv2-native-ipc-v4.mjs"
-    },
-    {
-      "source": "device-agent/desktop-wall-sso-native-ipc-v4.mjs",
-      "destination": "device-agent/desktop-wall-sso-native-ipc-v4.mjs"
     },
     {
       "source": "device-agent/local-wall.mjs",
@@ -366,10 +370,6 @@
       "destination": "device-agent/update-settings-page.mjs"
     },
     {
-      "source": "device-agent/wall-ui-refinement.mjs",
-      "destination": "device-agent/wall-ui-refinement.mjs"
-    },
-    {
       "source": "device-agent/wall-ab-v2-preview.mjs",
       "destination": "device-agent/wall-ab-v2-preview.mjs"
     },
@@ -382,12 +382,20 @@
       "destination": "device-agent/wall-status-cache.mjs"
     },
     {
+      "source": "device-agent/wall-ui-refinement.mjs",
+      "destination": "device-agent/wall-ui-refinement.mjs"
+    },
+    {
       "source": "lib/activity-ring.mjs",
       "destination": "lib/activity-ring.mjs"
     },
     {
       "source": "lib/brand.mjs",
       "destination": "lib/brand.mjs"
+    },
+    {
+      "source": "lib/canonical-endpoints.mjs",
+      "destination": "lib/canonical-endpoints.mjs"
     },
     {
       "source": "lib/device-boot-telemetry.mjs",

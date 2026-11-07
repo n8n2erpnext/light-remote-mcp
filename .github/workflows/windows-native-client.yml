@@ -95,6 +95,10 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs'
       - 'deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs'
+      - 'config/endpoints.json'
+      - 'lib/canonical-endpoints.mjs'
+      - 'deploy/scripts/generate-endpoint-package-marker.mjs'
+      - 'deploy/scripts/selftest-canonical-endpoints-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-module-state-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-history-reader-t11.mjs'
       - 'deploy/scripts/selftest-desktop-native-deadlines-t11.mjs'
@@ -207,6 +211,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 signed Wall preview mode regression' }
           node deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 rendered B click CSRF + Wall layout contract regression' }
+          node deploy/scripts/selftest-canonical-endpoints-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 canonical endpoint schema/profile/packaging regression' }
           node deploy/scripts/selftest-gold-wall-module-state-t11.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Long Memory module CAS/revision UI regression' }
           node deploy/scripts/selftest-gold-wall-history-reader-t11.mjs
@@ -312,8 +318,9 @@ jobs:
             # This signed-target QA package must not silently access Gold production.
             # The bundled Node Agent enforces this marker even if invoked directly.
             $profile = Join-Path $agentRoot 'device-agent\goldabv2-package-profile.json'
-            '{"profile":"goldabv2-desktop-v4","endpoint":"https://goldabv2.light-remote.thaiduy.digital"}' |
-              Set-Content -LiteralPath $profile -Encoding utf8
+            node deploy/scripts/generate-endpoint-package-marker.mjs $profile
+            if ($LASTEXITCODE -ne 0) { throw 'Canonical package marker generator failed' }
+            Copy-Item config/endpoints.json (Join-Path $configDir 'endpoints.json')
           }
           Copy-Item device-agent/install-windows-task.ps1 $agentDir
           Copy-Item client/update-public.pem (Join-Path $configDir 'client-update-public.pem')
@@ -377,8 +384,14 @@ jobs:
             $profile = Join-Path $agentRoot 'device-agent\goldabv2-package-profile.json'
             if (-not (Test-Path $profile)) { throw 'GoldABV2 package target marker absent' }
             $profileJson = Get-Content -LiteralPath $profile -Raw | ConvertFrom-Json
-            if ($profileJson.profile -ne 'goldabv2-desktop-v4' -or $profileJson.endpoint -ne 'https://goldabv2.light-remote.thaiduy.digital') {
-              throw 'GoldABV2 package target marker mismatch'
+            $endpoints=Get-Content (Join-Path $agentRoot 'config\endpoints.json') -Raw | ConvertFrom-Json
+            $configHash=(Get-FileHash (Join-Path $agentRoot 'config\endpoints.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($profileJson.profile -ne $endpoints.profiles.'goldabv2-lab'.productId -or
+                $profileJson.configProfile -ne $endpoints.selectedProfile -or
+                $profileJson.configRevision -ne $endpoints.configRevision -or
+                $profileJson.endpoint -ne $endpoints.profiles.'goldabv2-lab'.cloudOrigins.deviceChannel -or
+                $profileJson.configSha256 -ne $configHash) {
+              throw 'GoldABV2 canonical package target marker mismatch'
             }
             $targetProbeOut=Join-Path $env:RUNNER_TEMP 'abv2-production-deny-out.txt'
             $targetProbeErr=Join-Path $env:RUNNER_TEMP 'abv2-production-deny-err.txt'

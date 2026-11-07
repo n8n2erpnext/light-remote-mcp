@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {loadCanonicalEndpoints} from '../lib/canonical-endpoints.mjs';
 import {assertLegacyOwnerCommandNotGuest} from '../lib/gold-pro-share-device-guest-fence.mjs';
 import {executeGoldGuestDeviceProcess} from './guest-device-process.mjs';
 import fs from 'node:fs';
@@ -73,10 +74,22 @@ const LIGHT_SCP=new LightScpRegistry({policy:()=>effectiveFilesystemPolicy(readS
 const GOLDABV2_PACKAGE_MARKER=path.join(path.dirname(fileURLToPath(import.meta.url)),'goldabv2-package-profile.json');
 const GOLDABV2_PACKAGE=fs.existsSync(GOLDABV2_PACKAGE_MARKER)
   ?JSON.parse(fs.readFileSync(GOLDABV2_PACKAGE_MARKER,'utf8')):null;
-const GOLDABV2_PACKAGE_ORIGIN='https://goldabv2.light-remote.thaiduy.digital';
-if(GOLDABV2_PACKAGE&&
-  (GOLDABV2_PACKAGE.profile!=='goldabv2-desktop-v4'||GOLDABV2_PACKAGE.endpoint!==GOLDABV2_PACKAGE_ORIGIN))
-  throw new Error('invalid_goldabv2_package_profile');
+// Only generated marker + the canonical packaged JSON determine this product.
+ // The signed full installer additionally pins the staged client-core digest;
+ // a runtime override cannot silently redirect Owner/Operator/MCP authority.
+const GOLDABV2_CONFIG_PATH=path.join(CORE_ROOT,'config','endpoints.json');
+const GOLDABV2_ENDPOINTS=GOLDABV2_PACKAGE?loadCanonicalEndpoints(GOLDABV2_CONFIG_PATH):null;
+if(GOLDABV2_PACKAGE){
+ const canonicalSha=crypto.createHash('sha256').update(fs.readFileSync(GOLDABV2_CONFIG_PATH)).digest('hex');
+ if(GOLDABV2_PACKAGE.profile!==GOLDABV2_ENDPOINTS.productId||
+    GOLDABV2_PACKAGE.productId!==GOLDABV2_ENDPOINTS.productId||
+    GOLDABV2_PACKAGE.configProfile!==GOLDABV2_ENDPOINTS.selectedProfile||
+    GOLDABV2_PACKAGE.configRevision!==GOLDABV2_ENDPOINTS.configRevision||
+    GOLDABV2_PACKAGE.configSha256!==canonicalSha||
+    GOLDABV2_PACKAGE.endpoint!==GOLDABV2_ENDPOINTS.cloudOrigins.deviceChannel)
+   throw new Error('invalid_goldabv2_package_profile');
+}
+const GOLDABV2_PACKAGE_ORIGIN=GOLDABV2_ENDPOINTS?.cloudOrigins.deviceChannel;
 function effectiveEndpoint(value,{kind='base'}={}){
   if(!GOLDABV2_PACKAGE)return migrateLegacyEndpoint(value,{kind});
   const supplied=String(value||'').trim().replace(/\/+$/,'');
@@ -100,11 +113,28 @@ const EXECUTION_EPOCH_REQUIRED=process.env.OPERATOR_AGENT_EXECUTION_EPOCH_REQUIR
 const EXECUTION_INSTANCE_ID='ei_'+crypto.randomBytes(20).toString('hex');
 const EXECUTION_JOURNAL=EXECUTION_EPOCH_REQUIRED?new AgentExecutionEpochJournal({directory:path.join(path.dirname(STATE_FILE),'execution-epoch-journal')}):null;
 let ACTIVE_EPOCH_READY=null,EXECUTION_EPOCH_PROMISE=null;
-const LOCAL_WALL_HOST=process.env.OPERATOR_AGENT_WALL_HOST || '127.0.0.1';
-const LOCAL_WALL_PORT=Math.max(1024,Math.min(Number(process.env.OPERATOR_AGENT_WALL_PORT)||5491,65535));
+if(GOLDABV2_ENDPOINTS){
+ const wall=GOLDABV2_ENDPOINTS.localServices.wall;
+ const fleet=GOLDABV2_ENDPOINTS.localServices.fleet;
+ for(const [hostName,portName,service] of [
+  ['OPERATOR_AGENT_WALL_HOST','OPERATOR_AGENT_WALL_PORT',wall],
+  ['OPERATOR_FLEET_WALL_HOST','OPERATOR_FLEET_WALL_PORT',fleet]
+ ]){
+  if(process.env[hostName]&&process.env[hostName]!==service.host)
+   throw Error('goldabv2_local_service_profile_mismatch');
+  if(process.env[portName]&&Number(process.env[portName])!==service.port)
+   throw Error('goldabv2_local_service_profile_mismatch');
+ }
+}
+const LOCAL_WALL_HOST=GOLDABV2_ENDPOINTS?.localServices.wall.host||
+ process.env.OPERATOR_AGENT_WALL_HOST||'127.0.0.1';
+const LOCAL_WALL_PORT=GOLDABV2_ENDPOINTS?.localServices.wall.port||
+ Math.max(1024,Math.min(Number(process.env.OPERATOR_AGENT_WALL_PORT)||5491,65535));
 const LOCAL_WALL_AUTH_FILE=process.env.OPERATOR_AGENT_WALL_AUTH_FILE || path.join(path.dirname(STATE_FILE),'wall-auth.json');
-const FLEET_WALL_HOST=process.env.OPERATOR_FLEET_WALL_HOST||LOCAL_WALL_HOST;
-const FLEET_WALL_PORT=Math.max(1024,Math.min(Number(process.env.OPERATOR_FLEET_WALL_PORT)||5492,65535));
+const FLEET_WALL_HOST=GOLDABV2_ENDPOINTS?.localServices.fleet.host||
+ process.env.OPERATOR_FLEET_WALL_HOST||LOCAL_WALL_HOST;
+const FLEET_WALL_PORT=GOLDABV2_ENDPOINTS?.localServices.fleet.port||
+ Math.max(1024,Math.min(Number(process.env.OPERATOR_FLEET_WALL_PORT)||5492,65535));
 const FLEET_WALL_PUBLIC_URL=String(process.env.OPERATOR_FLEET_WALL_PUBLIC_URL||'').trim();
 const LOCAL_WALL_BRAND=fileURLToPath(new URL('../assets/branding/light-remote-mark.svg',import.meta.url));
 const UPDATE_RUNTIME_DIR=process.env.LIGHT_REMOTE_UPDATE_STATE_DIR||(process.platform==='win32'?path.join(process.env.LOCALAPPDATA||os.homedir(),'Light Remote','Updater','state'):path.join(path.dirname(STATE_FILE),'update-runtime'));

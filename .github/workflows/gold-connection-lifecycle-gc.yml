@@ -229,6 +229,10 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs'
       - 'deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs'
+      - 'config/endpoints.json'
+      - 'lib/canonical-endpoints.mjs'
+      - 'deploy/scripts/generate-endpoint-package-marker.mjs'
+      - 'deploy/scripts/selftest-canonical-endpoints-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-module-state-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-history-reader-t11.mjs'
       - 'deploy/scripts/selftest-desktop-native-deadlines-t11.mjs'
@@ -492,6 +496,7 @@ jobs:
           node deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs
           node deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs
+          node deploy/scripts/selftest-canonical-endpoints-t11.mjs
           node deploy/scripts/selftest-gold-wall-module-state-t11.mjs
           node deploy/scripts/selftest-gold-wall-history-reader-t11.mjs
           node deploy/scripts/selftest-desktop-native-deadlines-t11.mjs

@@ -22,10 +22,19 @@ assert.match(workflow,/goldabv2-package-profile\.json/);
 assert.match(workflow,/goldabv2_build_wrong_server_endpoint/);
 assert.ok(!fs.existsSync(marker),'The developer source tree must not permanently carry an install-only profile marker');
 try{
-  fs.writeFileSync(marker,JSON.stringify({profile:'goldabv2-desktop-v4',
-    endpoint:'https://goldabv2.light-remote.thaiduy.digital'})+'\n');
+  const generated=spawnSync(process.execPath,
+    [path.join(root,'deploy/scripts/generate-endpoint-package-marker.mjs'),marker],
+    {cwd:root,encoding:'utf8'});
+  assert.equal(generated.status,0,generated.stderr);
+  const profile=JSON.parse(fs.readFileSync(marker,'utf8'));
+  assert.equal(profile.configProfile,'goldabv2-lab');
+  assert.match(profile.configSha256,/^[a-f0-9]{64}$/);
   const common={...process.env,OPERATOR_AGENT_IDENTITY_FILE:''};
   delete common.OPERATOR_AGENT_STATE;
+  // The CI/device host may have local port overrides for other running agents.
+  // A fresh V4 bundle must not inherit unrelated local service authority.
+  for(const key of ['OPERATOR_AGENT_WALL_HOST','OPERATOR_AGENT_WALL_PORT',
+    'OPERATOR_FLEET_WALL_HOST','OPERATOR_FLEET_WALL_PORT'])delete common[key];
   const target='https://goldabv2.light-remote.thaiduy.digital';
   const bad=spawnSync(process.execPath,[agent,'status'],{
     cwd:root,env:{...common,OPERATOR_AGENT_BASE_URL:'https://gold.light-remote.thaiduy.digital',
@@ -44,7 +53,7 @@ try{
     cwd:root,env:{...common,OPERATOR_AGENT_BASE_URL:target,
       OPERATOR_AGENT_HUB_URL:target},
     encoding:'utf8',timeout:20000});
-  assert.equal(good.status,0,'Valid GoldABV2 origin must allow local status inspection');
+  assert.equal(good.status,0,'Valid GoldABV2 origin must allow local status inspection: '+good.stderr.slice(0,2500));
   assert.doesNotMatch(good.stderr,/goldabv2_build_wrong_server_endpoint|goldabv2_build_state_profile_mismatch/);
 }finally{
   fs.rmSync(marker,{force:true});
