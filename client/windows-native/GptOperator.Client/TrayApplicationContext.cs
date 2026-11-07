@@ -127,12 +127,43 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private static async Task<(int Code, string Out, string Err)> AgentAsync(params string[] args)
     {
+        // This owns exactly one child Agent invocation. A stuck Node process
+        // must not indefinitely block a Tray click, and oversized diagnostics
+        // must not accumulate in memory while waiting for its exit.
         using var p = new Process { StartInfo = AgentStart(args) };
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(12));
         p.Start();
-        var o = p.StandardOutput.ReadToEndAsync();
-        var e = p.StandardError.ReadToEndAsync();
-        await p.WaitForExitAsync();
-        return (p.ExitCode, await o, await e);
+        try
+        {
+            var output = ReadAgentBounded(p.StandardOutput, 8192, deadline.Token);
+            var errors = ReadAgentBounded(p.StandardError, 2048, deadline.Token);
+            await p.WaitForExitAsync(deadline.Token);
+            var text = await output;
+            var error = await errors;
+            return (p.ExitCode, text, error);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException ||
+            ex is IOException || ex is InvalidDataException)
+        {
+            try { if (!p.HasExited) p.Kill(entireProcessTree: true); }
+            catch { /* Terminate only the child created above. */ }
+            return (-1, "", ex is OperationCanceledException
+                ? "agent_command_timeout" : "agent_command_unavailable");
+        }
+    }
+
+    private static async Task<string> ReadAgentBounded(StreamReader reader, int maxChars, CancellationToken token)
+    {
+        var text = new System.Text.StringBuilder();
+        var buffer = new char[1024];
+        while (true)
+        {
+            var count = await reader.ReadAsync(buffer.AsMemory(), token);
+            if (count == 0) return text.ToString();
+            if (text.Length + count > maxChars)
+                throw new InvalidDataException("agent_response_too_large");
+            text.Append(buffer, 0, count);
+        }
     }
 
     private static int Schtasks(params string[] args)

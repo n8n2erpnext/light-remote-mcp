@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F05_OWNER_SNAPSHOT_SHORTID_BATCH_JOBS_COVERAGE_SOURCE_CI_PENDING",
+  "status": "T11_F06_WINDOWS_NATIVE_PIPE_DOTNET_CHILD_TIMEOUT_SOURCE_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "T11-F05 Desktop snapshot Owner/PG043 scoped ShortID, real displayName, 200 newest jobs with explicit coverage and post-await Owner auth; Node+TS/Vitest fixture PASS. Next T11-F06 deadlines/canonical endpoints. Native CI and physical Windows acceptance OPEN.",
+  "nextAction": "T11-F06 Rust named pipe 9s overlapped, tray child 14s, .NET Agent 12s deadline and bounded read patched, source gate PASS, native Windows CI pending, physical Windows untouched. Next T11-F07 canonical endpoint config/profile binding.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "b66f2761f38d0a0a0c9871978027be12b4a9c635b5a66dc912eff5129fc3b96e",
-    "trackedFiles": 1315,
+    "treeDigest": "9d08beb56a0cd90d8cb60a028389de28ef2f9663e77929f56c45316e7fc80a78",
+    "trackedFiles": 1316,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T04:48:35.857Z"
+    "recordedAt": "2026-11-07T04:52:05.717Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1758,6 +1758,17 @@
     "nativeWindowsCI": "PENDING",
     "physicalWindows": "OPEN",
     "fullDurablePagination": "DEFERRED",
+    "prodTouched": false
+  },
+  "t11_f06": {
+    "date": "2026-11-07",
+    "fixes": [
+      "T09-A04-SOURCE"
+    ],
+    "sourceGate": "PASS",
+    "windowsNativeCompile": "PENDING",
+    "hungPeerFixture": "OPEN",
+    "physicalWindows": "OPEN",
     "prodTouched": false
   }
 }

@@ -4,7 +4,10 @@
 use std::ffi::{c_void, OsStr};
 use std::os::windows::{ffi::OsStrExt, process::CommandExt};
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command,Stdio};
+use std::io::Read;
+use std::time::Instant;
+use std::thread;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tauri::{Manager, menu::{Menu, MenuItem, PredefinedMenuItem}, tray::TrayIconBuilder};
@@ -62,12 +65,31 @@ fn run_native(action:&str)->Result<serde_json::Value,String>{
     const ACTIONS:&[&str]=&["status","preview","link","poll","disconnect","service","restart",
         "update","open-wall","open-account","open-fleet","open-activation"];
     if !ACTIONS.contains(&action){return Err("desktop_action_denied".into());}
-    let out=Command::new(bridge_exe()?)
+    // The .NET bridge is an owned short-lived process. A hung bridge may not
+    // stall the tray or accumulate unbounded output. Never kill another PID.
+    let mut child=Command::new(bridge_exe()?)
         .args(["--desktop-bridge",action])
         .creation_flags(0x08000000) // CREATE_NO_WINDOW
-        .output().map_err(|_|"desktop_agent_unavailable")?;
-    if !out.status.success()||out.stdout.len()>8192{return Err("desktop_agent_unavailable".into());}
-    serde_json::from_slice(&out.stdout).map_err(|_|"desktop_agent_invalid_response".into())
+        .stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null())
+        .spawn().map_err(|_|"desktop_agent_unavailable")?;
+    let deadline=Instant::now()+Duration::from_secs(14);
+    let status=loop {
+        match child.try_wait(){
+            Ok(Some(status))=>break status,
+            Ok(None) if Instant::now()<deadline=>thread::sleep(Duration::from_millis(40)),
+            _=>{
+                let _=child.kill();let _=child.wait();
+                return Err("desktop_agent_bridge_timeout".into());
+            }
+        }
+    };
+    if !status.success(){return Err("desktop_agent_unavailable".into());}
+    let mut out=Vec::with_capacity(1024);
+    child.stdout.take().ok_or("desktop_agent_invalid_response")?
+        .take(8193).read_to_end(&mut out)
+        .map_err(|_|"desktop_agent_invalid_response")?;
+    if out.len()>8192{return Err("desktop_agent_response_too_large".into());}
+    serde_json::from_slice(&out).map_err(|_|"desktop_agent_invalid_response".into())
 }
 
 #[tauri::command]

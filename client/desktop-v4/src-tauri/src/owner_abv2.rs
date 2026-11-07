@@ -71,10 +71,22 @@ pub(crate) fn exchange(request:&Value)->Result<Value,String> {
     let mut bytes=Vec::with_capacity(1024);
     #[cfg(windows)]
     {
-        let mut pipe=std::fs::OpenOptions::new().read(true).write(true)
-            .open(PIPE).map_err(|_|deny())?;
-        pipe.write_all(&line).map_err(|_|deny())?;
-        pipe.take(MAX_RESPONSE+1).read_to_end(&mut bytes).map_err(|_|deny())?;
+        // An overlapped named-pipe client prevents a peer which never sends
+        // EOF from pinning a Tauri Owner Approval worker forever. The deadline
+        // covers connect/open, write and bounded read, not just a late check.
+        use tokio::io::{AsyncReadExt,AsyncWriteExt};
+        let runtime=tokio::runtime::Builder::new_current_thread()
+            .enable_io().enable_time().build().map_err(|_|deny())?;
+        runtime.block_on(async {
+            tokio::time::timeout(Duration::from_secs(9),async {
+                let mut pipe=tokio::net::windows::named_pipe::ClientOptions::new()
+                    .open(PIPE).map_err(|_|deny())?;
+                pipe.write_all(&line).await.map_err(|_|deny())?;
+                pipe.flush().await.map_err(|_|deny())?;
+                pipe.take(MAX_RESPONSE+1).read_to_end(&mut bytes).await.map_err(|_|deny())?;
+                Ok::<(),String>(())
+            }).await.map_err(|_|deny())?
+        })?;
     }
     #[cfg(unix)]
     {
