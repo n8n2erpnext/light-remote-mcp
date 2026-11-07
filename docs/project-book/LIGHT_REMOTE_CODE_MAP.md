@@ -1067,3 +1067,6 @@ device-agent/local-wall.mjs now embeds createGoldWallModuleController with persi
 
 ## 2026-11-07 — T11-F03 Memory work reader, job history and B form
 device-agent/local-wall.mjs Memory reader generation+AbortController fence prevents old scope read, preference and export updates after switch/disable. Event reducer uses finishedAt+terminal status for monotonic job state under SSE/history replay while allowing late output append. device-agent/wall-ab-v2-preview.mjs holds requestId/attempt keyed form through confirmation/POST, checks signed changes, suppresses duplicate click and uncertain durable outcome retries. New selftest-gold-wall-history-reader-t11.mjs tests actual extracted reader and reducer, wired native Windows/GC CI. Approval deep E2E blocked by tool policy; existing rendered click remains fixture proof only.
+
+## 2026-11-07 — T11-F04 Native Link IPC scope and non-Windows UI
+Tauri src-tauri/build.rs AppManifest and permissions/desktop-owner.toml enumerated Windows native Link/Relink commands and Owner snapshot under main-window Owner capability. DeviceLinkDialog.tsx has Windows-only build marker and stable mount callbacks. App.tsx stable onClose. Windows workflow sets marker; native-shell and DeviceLinkDialog test verify source contract. Physical Windows command invoke still OPEN.

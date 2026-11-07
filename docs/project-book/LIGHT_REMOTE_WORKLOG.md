@@ -1453,3 +1453,14 @@ T10-07 source candidate: device-agent/wall-ab-v2-preview.mjs keeps a keyed appro
 Previous Windows native CI 42339017262 at 272f8e79 FAILED because unified-one-app selftest still asserted the obsolete pre-CSRF renderer exact concatenation; Gold Source 42339017300 SUCCESS, docs/truth SUCCESS. Updated that stale source assertion to include the required new standalone V2 CSRF; this patch's exact Windows CI rerun PENDING.
 
 No live Lab/production deploy, no Windows app install, no changing Owner settings, enrollment or grants. Next T11-F04 Windows/Tauri P1 IPC and native deadline/OS gating, then canonical signed endpoint schema implementation.
+
+## 2026-11-07 — T11-F04 Windows Native Link IPC permission, OS gate and stable dialog lifecycle
+
+Source patch on canonical Desktop integration worktree; actual device target VPS-ARM authorized via official Light Remote. Beginning SHA f0767a864157bf63deabe1b91647455e6f071c51.
+
+- T09 A01: client/desktop-v4/src-tauri/permissions/desktop-owner.toml grants exact desktop_native_action and desktop_link_ui_intent under the same narrowly scoped main-window Owner capability. src-tauri/build.rs AppManifest now includes the two Link commands and missing desktop_owner_snapshot. No global IPC/shell, arbitrary path or credential export; Windows-only Rust command registration remains.
+- T09 A05: DeviceLinkDialog.tsx nativeLinkAvailable requires build-time VITE_LR_V4_NATIVE_WINDOWS=1 in addition to Owner/native invoke. Windows full installer workflow sets the marker, Linux/macOS builds default no native Link UI; backend still enforces native policy.
+- T09 A06: App.tsx uses stable closeDeviceLink, dialog retains callback ref and initializes status/preview only once per mount, so snapshot polling/rerender does not reset the pending code. New DeviceLinkDialog.test.tsx tests platform gating and repeated parent rerenders; native-shell.test.ts verifies ACL/AppManifest command parity. Local typecheck and Vitest PASS.
+- Native Windows compile/actual resolved command invocation on packaged WebView and physical Owner relink remain OPEN pending exact GitHub run/authorized physical QA; no user PC touched. A04 deadlines, A02/03 snapshot and updater/endpoint configuration still open.
+
+No production/LXD deployment, enrollment/grants, Owner settings or updater feed changes. Next T11-F05 Owner snapshot registry name, Short ID and large history safety, then deadlines/endpoint configuration.
