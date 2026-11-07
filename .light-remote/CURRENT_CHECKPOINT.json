@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F14_P04_GOLD_DOC_MIRROR_NATIVE_CI_PENDING",
+  "status": "T11_F14_CI01_GOLD_DOC_MIRROR_RETEST_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "F14 Owner device/grant paging max100 and snapshot >200 coverage source implemented; local Node 32/32, Desktop Vitest 88/88, tsc/Vite and native source fixture PASS. Exact F14 Windows/macOS/Linux/Gold GC/Docs/Truth CI PENDING. Physical Owner/B, production and update feed HOLD.",
+  "nextAction": "F14 first source c8fcca47 Windows 42358395152 and Gold GC 42358395294 FAILED from same F10 static call-count test (6 vs 5). CI01 scopes F10 baseline and separately asserts F14 Owner proof, local PASS. Push exact new SHA and rerun Windows/Gold GC; Web/macOS/Linux QA first SHA still running. Physical Owner/B and production HOLD.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "db3bb52458b27920d45e6ad2836d69596244187d2df6c02bbef145b1e24fc0fd",
     "trackedFiles": 1244,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T09:07:59.039Z"
+    "recordedAt": "2026-11-07T09:10:52.505Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2155,5 +2155,21 @@
     "productionTouched": false,
     "usageAndJobHistoryPagination": "OPEN",
     "signedGoldUpdaterFeed": "HOLD"
+  },
+  "t11_f14_ci01": {
+    "date": "2026-11-07",
+    "failedSourceSha": "c8fcca470ba1082bcf6f59a172b8023bd2b0fd5d",
+    "windowsRun": 42358395152,
+    "windows": "FAIL F10 fixture pre-native",
+    "goldGCRun": 42358395294,
+    "goldGC": "source-gate FAIL 6 versus 5",
+    "desktopQaRun": 42358395156,
+    "web": "SUCCESS",
+    "macLinux": "IN_PROGRESS",
+    "repair": "scope original F10 counts + add F14 independent proof assertions",
+    "localTest": "PASS",
+    "runtimeChanged": false,
+    "physicalOwnerB": "OPEN",
+    "productionTouched": false
   }
 }
