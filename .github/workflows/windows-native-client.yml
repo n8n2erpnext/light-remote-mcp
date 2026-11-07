@@ -127,6 +127,9 @@ on:
       - 'operator-host/desktop-v4-owner-activity-page.test.mjs'
       - 'lib/gold-job-ledger.mjs'
       - 'lib/gold-job-ledger-owner-page.test.mjs'
+      - 'lib/gold-session-redis.mjs'
+      - 'lib/gold-session-retention.test.mjs'
+      - 'deploy/scripts/selftest-t11-owner-session-retention-source.mjs'
       - 'deploy/scripts/selftest-t11-owner-durable-activity-source.mjs'
       - 'deploy/scripts/selftest-t11-owner-pg-history-pg.mjs'
       - 'deploy/scripts/ci-gold-epoch-pg.mjs'
@@ -273,6 +276,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'T11 F15 Owner-scoped activity/usage paging regression' }
           node --test lib/gold-job-ledger-owner-page.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'T11 F15-H2 PostgreSQL Owner history keyset regression' }
+          node --test lib/gold-session-retention.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F15-H3 Redis retention/restart/Owner read regression' }
+          node deploy/scripts/selftest-t11-owner-session-retention-source.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F15-H3 retention source authorization boundary' }
           node deploy/scripts/selftest-t11-owner-durable-activity-source.mjs
           if ($LASTEXITCODE -ne 0) { throw 'T11 F15-H2 native PG/Redis Owner source authority boundary' }
           node deploy/scripts/selftest-t11-owner-activity-native-source.mjs

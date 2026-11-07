@@ -183,7 +183,8 @@ test('F15 H2 metadata from foreign device or wrong account is never returned',as
 });
 test('F15 H2 Redis-backed session snapshot is retention-limited and revocation-fenced',async()=>{
  let flushed=0;
- const sessionBacking={async flush(){flushed++;}};
+ const sessionBacking={async flush(){flushed++;},
+  retentionPolicy:()=>({snapshotTtlSeconds:604800,terminalPruneAfterMs:604800000,immutableAudit:false})};
  const f=fixture(260,{sessionBacking});
  const first=await f.read('sessions');
  assert.equal(first.coverage.source,'redis_retained_session_window');
@@ -193,6 +194,8 @@ test('F15 H2 Redis-backed session snapshot is retention-limited and revocation-f
  assert.equal(flushed,2);
  f.sessionsRows.shift();
  await assert.rejects(f.read('sessions',second.coverage.nextCursor),/cursor_stale/);
- const g=fixture(260,{sessionBacking:{async flush(){g.state.valid=false;}}});
+ const g=fixture(260,{sessionBacking:{
+  async flush(){g.state.valid=false;},
+  retentionPolicy:()=>({snapshotTtlSeconds:604800,terminalPruneAfterMs:604800000,immutableAudit:false})}});
  await assert.rejects(g.read('sessions'),/owner_required/);
 });

@@ -64,9 +64,9 @@ function timestamp(value:number|null) {
   return value===null?'—':new Date(value).toLocaleString();
 }
 function Sessions({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAccountId:string|null}) {
-  const needsPage=snapshot?.coverage?.sessions?.hasMore===true;
-  const activity=useOwnerActivity('sessions',needsPage?ownerAccountId:null);
-  const paged=needsPage&&activity.pages.length>0;
+  const activity=useOwnerActivity('sessions',snapshot?ownerAccountId:null);
+  const paged=Boolean(snapshot&&ownerAccountId&&activity.pages.length>0);
+  const retention=paged?activity.pages[0]?.coverage.retention:undefined;
   const rows:ReadonlyArray<OwnerSession>=paged?activity.rows.filter(
     (row):row is OwnerSession=>'createdAt' in row):snapshot?.sessions||[];
   const coverage=snapshot?.coverage?.sessions;
@@ -101,11 +101,12 @@ function Sessions({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAc
       </div>:<FeatureTable label="AI sessions" columns={['Agent / nickname','Device','Lease','State','Action']}
          description="Signed Owner session API unavailable. No session list can be inferred." />}
     </Card>
-    {snapshot&&coverage?.hasMore&&<div className="feature-unavailable" role="status">
+    {snapshot&&(coverage?.hasMore||retention)&&<div className="feature-unavailable" role="status">
       <ShieldAlert size={18} aria-hidden="true" />
       <div><strong>Verified session window — not complete history</strong>
-        <p>{paged?'Showing '+activity.loaded+' of '+activity.total+(activity.pages[0]?.coverage.source==='redis_retained_session_window'?' Redis-backed retention-window':' current in-memory')+' Owner sessions.':
-          'Showing '+coverage.returned+' of '+coverage.total+' Owner sessions; loading paged read.'} Not a durable archive. Owner close actions are not connected.</p>
+        <p>{paged?'Showing '+activity.loaded+' of '+activity.total+(activity.pages[0]?.coverage.source==='redis_retained_session_window'?' Redis-backed retained':' current in-memory')+' Owner sessions.':
+          'Showing '+coverage?.returned+' of '+coverage?.total+' Owner sessions; loading verified page.'} Not an immutable audit archive. Owner close actions are not connected.</p>
+        {retention&&<p>Redis snapshot TTL: {Math.round(retention.snapshotTtlSeconds/86400)} days (renewed on writes). Terminal sessions are pruned after {Math.round(retention.terminalPruneAfterMs/86400000)} days from closure or expiry. Older entries may no longer exist.</p>}
         {paged&&activity.hasMore&&<Button disabled={activity.pending} onClick={()=>void activity.loadMore()}>
           {activity.pending?'Loading…':'Load more sessions'}</Button>}</div>
     </div>}

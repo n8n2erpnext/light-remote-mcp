@@ -4,8 +4,12 @@ import type {OwnerJob,OwnerSession} from './native-snapshot';
 import {nativeOwnerSnapshotAvailable} from './native-snapshot';
 export type ActivityKind='usage'|'jobs'|'sessions';
 export type UsageDeviceRow=Readonly<{deviceId:string;toolCalls:number|null;onlineMs:number|null}>;
+export type SessionRetention=Readonly<{
+ snapshotTtlSeconds:number;terminalPruneAfterMs:number;immutableAudit:false
+}>;
 export type ActivityCoverage=Readonly<{
  returned:number;total:number;hasMore:boolean;nextCursor:string|null;
+ retention?:SessionRetention;
  source:'owner_current_month_usage'|'in_memory_current_window'|'postgresql_owner_job_history'|'redis_retained_session_window'
 }>;
 export type ActivityPage=
@@ -35,6 +39,14 @@ export function projectOwnerActivityPage(input:unknown,accountId:string,kind:Act
  const allowed=kind==='jobs'?['postgresql_owner_job_history','in_memory_current_window']:
    kind==='sessions'?['redis_retained_session_window','in_memory_current_window']:
    ['owner_current_month_usage'];
+ const redisSession=kind==='sessions'&&coverage.source==='redis_retained_session_window';
+ const r=record(coverage.retention);
+ if(redisSession?
+    (!r||r.snapshotTtlSeconds!==604800||
+     count(r.terminalPruneAfterMs)===null||
+     (count(r.terminalPruneAfterMs)??Infinity)>365*24*60*60*1000||
+     r.immutableAudit!==false):
+    coverage.retention!==undefined)return CLOSED;
  if(returned===null||total===null||returned!==rows.length||returned>total||
     typeof more!=='boolean'||!allowed.includes(String(coverage.source))||
     (more&&(!nextCursor||typeof nextCursor!=='string'||!CURSOR.test(nextCursor)||!rows.length))||
@@ -42,7 +54,12 @@ export function projectOwnerActivityPage(input:unknown,accountId:string,kind:Act
    return CLOSED;
  const common={state:'ready' as const,kind,accountId,asOf:count(body.asOf)!,
   coverage:{returned,total,hasMore:more,nextCursor:more?String(nextCursor):null,
-    source:coverage.source as ActivityCoverage['source']}};
+    source:coverage.source as ActivityCoverage['source'],
+    ...(redisSession?{retention:{
+       snapshotTtlSeconds:604800,
+       terminalPruneAfterMs:count(r!.terminalPruneAfterMs)!,
+       immutableAudit:false as const
+    }}:{})}};
  const keys=new Set<string>();
  if(kind==='usage'){
   const out:UsageDeviceRow[]=[];

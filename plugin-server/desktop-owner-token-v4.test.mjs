@@ -356,7 +356,8 @@ test('F15-H2 Owner HTTPS accepts only PG jobs/Redis sessions source markers',asy
   return {ok:true,accountId:ACCOUNT,kind,asOf:1234,rows:[],
    coverage:{returned:0,total:0,hasMore:false,nextCursor:null,
     source:forged|| (kind==='jobs'?'postgresql_owner_job_history':
-      'redis_retained_session_window')}};
+      'redis_retained_session_window'),
+    ...(kind==='sessions'&&!forged?{retention:{snapshotTtlSeconds:604800,terminalPruneAfterMs:604800000,immutableAudit:false}}:{})}};
  }});
  const token=(await x.service.exchange(x.input)).access_token;
  const auth={method:'POST',headers:{'content-type':'application/json',
@@ -382,4 +383,44 @@ test('F15-H2 Owner HTTPS accepts only PG jobs/Redis sessions source markers',asy
  await x.service.routeSnapshot({...auth,body:{page:{kind:'jobs'}}},revoked);
  assert.equal(revoked.code,401);
  assert.equal(calls.length,4,'revoked family never reaches the Operator read');
+});
+
+test('F15-H3 Owner HTTPS rejects forged/omitted Redis retention, never confuses PG metadata',async()=>{
+ const allowed={snapshotTtlSeconds:604800,terminalPruneAfterMs:86400000,immutableAudit:false};
+ let retention=allowed,source='redis_retained_session_window',calls=0;
+ const x=setup({operatorCall:async(_method,_path,body)=>{
+  calls++;
+  return {ok:true,accountId:ACCOUNT,kind:body.page.kind,asOf:1234,
+   rows:[],coverage:{returned:0,total:0,hasMore:false,nextCursor:null,source,
+    ...(retention!==undefined?{retention}:{})}};
+ }});
+ const issued=await x.service.exchange(x.input);
+ const request={method:'POST',headers:{'content-type':'application/json',
+  authorization:'Bearer '+issued.access_token},query:{},body:{page:{kind:'sessions'}}};
+ const valid=response();
+ await x.service.routeSnapshot(request,valid);
+ assert.equal(valid.code,200);
+ assert.deepEqual(valid.body.coverage.retention,allowed);
+ for(const fake of [undefined,{...allowed,immutableAudit:true},
+   {...allowed,snapshotTtlSeconds:0},
+   {...allowed,terminalPruneAfterMs:366*86400000},
+   {...allowed,terminalPruneAfterMs:'86400000'}]){
+  retention=fake;
+  const rejected=response();
+  await x.service.routeSnapshot(request,rejected);
+  assert.notEqual(rejected.code,200);
+ }
+ retention=allowed;source='in_memory_current_window';
+ const mixed=response();
+ await x.service.routeSnapshot(request,mixed);
+ assert.notEqual(mixed.code,200);
+ source='postgresql_owner_job_history';retention=undefined;
+ const pg=response();
+ await x.service.routeSnapshot({...request,body:{page:{kind:'jobs'}}},pg);
+ assert.equal(pg.code,200);
+ x.setPortalActive(false);
+ const expired=response();
+ await x.service.routeSnapshot(request,expired);
+ assert.equal(expired.code,401);
+ assert.equal(calls,8,'revoked Owner never dispatches an Operator read');
 });

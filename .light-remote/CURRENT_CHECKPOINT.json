@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F15_H2_CI01_NATIVE_WIN_MAC_UBUNTU_WEB_PG_GC_SUCCESS_PHYSICAL_OWNER_B_HOLD",
+  "status": "T11_F15_H3_P07_OWNER_SESSION_RETENTION_SOURCE_TEST_PASS_NATIVE_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "F15-H2 source 9d0439c8: Gold GC 42364629403 4/4 incl REAL disposable PG17 p95 26.64/26.97ms from four page queries, Desktop QA 42364629400 3/3, Windows full installer 42364629522 SUCCESS. NEXT F15-H3 source-only session immutable audit retention requirements; physical Windows/real B and signed production updater HOLD.",
+  "nextAction": "F15-H3/P07 verified GoldSessionRedis 7d renewable TTL + actual terminal historyMs, flush prune before Owner return, post-await device revoke checks, fail-closed native policy projection. Local Node 57/57 and Vitest 101/101 PASS; push and verify exact H3 Gold GC/Windows/Web/macOS/Ubuntu CI. No immutable audit without separate approved retention policy, real Owner/B production HOLD.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "8dfc10a956254434d60737c920e706a57759fcf2e7282b2f1b95a5f232dd7308",
-    "trackedFiles": 1352,
+    "treeDigest": "e16755a80cbc1c4df375ed9a3838249be7d3ab383f8b96dc8f54353d2e980a4e",
+    "trackedFiles": 1355,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T10:47:15.382Z"
+    "recordedAt": "2026-11-07T11:08:11.730Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2335,5 +2335,30 @@
     "physicalWindowsOwnerB": "OPEN",
     "goldSignedUpdaterFeed": "HOLD",
     "productionTouched": false
+  },
+  "t11_f15_h3_p07": {
+    "date": "2026-11-07",
+    "desktopParentSha": "3d44c781492d7997e457bbddb65ae05f7a56131c",
+    "scope": "source-only retention provenance and Owner read hardening",
+    "snapshotTtlSeconds": 604800,
+    "terminalPruneMs": "actual SessionRegistry.historyMs",
+    "immutableSessionEventAuditAdded": false,
+    "newSchemaOrMigration": false,
+    "postAwaitOwnerDeviceFence": true,
+    "prunePersistedBeforeSuccess": true,
+    "nativePolicySourceValidation": true,
+    "localNode": "57/57 PASS",
+    "localVitest": "101/101 PASS (21 files)",
+    "localTypeScript": "PASS",
+    "localViteBuild": "PASS",
+    "localRedisRestartFixture": "PASS",
+    "nativeSourceGates": "PASS",
+    "newWindowsCI": "PENDING exact SHA",
+    "newGoldGC": "PENDING exact SHA",
+    "newDesktopQA": "PENDING exact SHA",
+    "physicalOwnerB": "OPEN",
+    "goldSignedUpdaterFeed": "HOLD",
+    "productionTouched": false,
+    "decisionDocument": "docs/project-book/LIGHT_REMOTE_T11_F15_H3_SESSION_RETENTION_CONTRACT_20261107.md"
   }
 }

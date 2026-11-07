@@ -158,6 +158,19 @@ export function createDesktopOwnerTokenService({
       inventory?.kind==='jobs'?['postgresql_owner_job_history','in_memory_current_window']:
       inventory?.kind==='sessions'?['redis_retained_session_window','in_memory_current_window']:
       ['owner_live_membership_revision'];
+    const retention=result?.coverage?.retention;
+    const redisSessionPage=inventory?.kind==='sessions'&&
+      result?.coverage?.source==='redis_retained_session_window';
+    const sessionRetentionValid=redisSessionPage?
+      retention&&typeof retention==='object'&&!Array.isArray(retention)&&
+      retention.snapshotTtlSeconds===604800&&
+      Number.isSafeInteger(retention.terminalPruneAfterMs)&&
+      retention.terminalPruneAfterMs>=0&&
+      retention.terminalPruneAfterMs<=365*24*60*60*1000&&
+      retention.immutableAudit===false:
+      retention===undefined;
+    if(!sessionRetentionValid)
+      deny('desktop_snapshot_retention_unverified');
     if(result?.ok!==true||result.accountId!==family.accountId||
        (inventory?result.kind!==inventory.kind||!Array.isArray(result.rows)||
         result.rows.length>100||!allowedPageSource.includes(result.coverage?.source):

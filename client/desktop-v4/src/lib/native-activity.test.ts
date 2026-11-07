@@ -76,7 +76,8 @@ describe('F15-H2 durable PG and Redis retention source discrimination',()=>{
   if(v.state==='ready')expect(v.coverage.source).toBe('postgresql_owner_job_history');
   expect(JSON.stringify(v)).not.toContain('NEVER_SEND');
   const sessions={...base,kind:'sessions',
-   coverage:{...base.coverage,source:'redis_retained_session_window'},
+   coverage:{...base.coverage,source:'redis_retained_session_window',
+    retention:{snapshotTtlSeconds:604800,terminalPruneAfterMs:604800000,immutableAudit:false}},
    rows:[{sessionId:'s-1',deviceId:'d-1',agentId:'agent',name:'Agent',
      state:'hold',createdAt:1,lastSeenAt:2,expiresAt:3,holdReason:'restarted',
      activeJobs:0,workspace:'SECRET_PATH'}]};
@@ -95,6 +96,47 @@ describe('F15-H2 durable PG and Redis retention source discrimination',()=>{
    const invalid={...base,kind,coverage:{...base.coverage,source}};
    expect(projectOwnerActivityPage(invalid,'owner',kind as 'usage'|'jobs'|'sessions').state)
     .toBe('unavailable');
+  }
+ });
+});
+
+describe('F15-H3 verified Owner session retention provenance',()=>{
+ const retention={snapshotTtlSeconds:604800,
+  terminalPruneAfterMs:86400000,immutableAudit:false};
+ const session={
+  ...base,kind:'sessions',
+  coverage:{...base.coverage,source:'redis_retained_session_window',retention},
+  rows:[{sessionId:'s-1',deviceId:'d-1',name:'Agent',agentId:'agent',
+   state:'closed',createdAt:1,lastSeenAt:2,expiresAt:null,
+   holdReason:null,activeJobs:0,workspace:'PRIVATE_WORKSPACE'}]
+ };
+ it('projects only verified retention numbers and strips extra metadata/private fields',()=>{
+  const input={...session,coverage:{...session.coverage,
+   retention:{...retention,redisKey:'SECRET_REDIS_KEY',oauthToken:'SECRET_TOKEN'}}};
+  const result=projectOwnerActivityPage(input,'owner','sessions');
+  expect(result.state).toBe('ready');
+  if(result.state==='ready'){
+   expect(result.coverage.retention).toEqual(retention);
+   expect(result.coverage.source).toBe('redis_retained_session_window');
+  }
+  expect(JSON.stringify(result)).not.toContain('SECRET_REDIS_KEY');
+  expect(JSON.stringify(result)).not.toContain('SECRET_TOKEN');
+  expect(JSON.stringify(result)).not.toContain('PRIVATE_WORKSPACE');
+ });
+ it('fails closed without a policy or with false permanence, invalid TTL and forged source',()=>{
+  const bad=[
+   {...session,coverage:{...session.coverage,retention:undefined}},
+   {...session,coverage:{...session.coverage,retention:{...retention,immutableAudit:true}}},
+   {...session,coverage:{...session.coverage,retention:{...retention,snapshotTtlSeconds:0}}},
+   {...session,coverage:{...session.coverage,retention:{...retention,terminalPruneAfterMs:-1}}},
+   {...session,coverage:{...session.coverage,retention:{...retention,terminalPruneAfterMs:Infinity}}},
+   {...session,coverage:{...session.coverage,retention:{...retention,terminalPruneAfterMs:366*86400000}}},
+   {...session,coverage:{...session.coverage,source:'in_memory_current_window',retention}},
+   {...base,coverage:{...base.coverage,retention}}
+  ];
+  for(const sample of bad){
+   const kind=sample.kind as 'sessions'|'usage';
+   expect(projectOwnerActivityPage(sample,'owner',kind).state).toBe('unavailable');
   }
  });
 });

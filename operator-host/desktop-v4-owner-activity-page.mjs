@@ -109,7 +109,22 @@ export function createDesktopV4OwnerActivityPage({
         source:'postgresql_owner_job_history'}
     });
   }
-  if(kind==='sessions'&&sessionBacking?.flush)await sessionBacking.flush();
+  const retention=kind==='sessions'&&sessionBacking?
+    sessionBacking.retentionPolicy?.(sessions):null;
+  if(kind==='sessions'&&sessionBacking&&
+     (!retention||retention.snapshotTtlSeconds!==604800||
+      !Number.isSafeInteger(retention.terminalPruneAfterMs)||
+      retention.terminalPruneAfterMs<0||
+      retention.terminalPruneAfterMs>365*24*60*60*1000||
+      retention.immutableAudit!==false))
+    deny('desktop_activity_session_retention_unverified',503);
+  // Do not trust the once-captured ownerDevices after any awaited Redis
+  // persistence operation or mid-read device owner transfer.
+  const membershipFingerprint=()=>fingerprint(allDeviceViews({accountId})
+    .filter(d=>d.accountId===accountId&&ID.test(d.deviceId||''))
+    .map(d=>[d.deviceId,d.state,d.revokedAt||null])
+    .sort((a,b)=>String(a[0]).localeCompare(String(b[0]),'en')));
+  const originalMembership=membershipFingerprint();
   const build=()=>{
     const rows=[];
     let month=null;
@@ -168,8 +183,18 @@ export function createDesktopV4OwnerActivityPage({
   // persistent store can replace rows without changing the Owner protocol.
   await Promise.resolve();
   checkOwner();
-  if(build().revision!==current.revision)
+  if(membershipFingerprint()!==originalMembership||
+     build().revision!==current.revision)
     deny('desktop_activity_changed_during_read',409);
+  // sessions.list() prunes closed/expired entries; flush that tombstone
+  // before claiming an Owner read is complete, including across restarts.
+  if(kind==='sessions'&&sessionBacking){
+    await sessionBacking.flush();
+    checkOwner();
+    if(membershipFingerprint()!==originalMembership||
+       build().revision!==current.revision)
+      deny('desktop_activity_changed_during_read',409);
+  }
   const hasMore=start+window.length<current.rows.length;
   return Object.freeze({
     ok:true,accountId,kind,asOf:now(),rows:window.map(x=>x.data),
@@ -178,7 +203,8 @@ export function createDesktopV4OwnerActivityPage({
         revision:current.revision,limit}):null,
      source:kind==='usage'?'owner_current_month_usage':
        kind==='sessions'&&sessionBacking?'redis_retained_session_window':
-       'in_memory_current_window'},
+       'in_memory_current_window',
+     ...(retention?{retention}: {})},
     ...(kind==='usage'?{month:current.month}:{})
   });
  };
