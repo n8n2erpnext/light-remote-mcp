@@ -1,6 +1,7 @@
 import {verifyTeamMemberAuthorization} from './team-member-auth.mjs';
 import {authorizeTrustedTeamDispatch} from './team-dispatch-authority.mjs';
 import {createDesktopV4OwnerSnapshot} from './desktop-v4-owner-snapshot.mjs';
+import {createDesktopV4OwnerInventoryPage} from './desktop-v4-owner-inventory-page.mjs';
 export async function handleAccountRoutes(req,res,url,deps){
   const {adminJobRecovery,deviceBootObservations,ACCOUNT_ID,AccountError,DEVICE_ID,accountSessionToken,accounts,accountNotifications,allDeviceViews,capabilities,flushGoldRegistries,goldShortIdAfterEnrollment,clearMainIfMatches,closeRuntimeForAccount,compatibilityFor,devices,enrollments,fleet,fleetAuthority,licenses,planEntitlements,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,accessGrants,connections,targetRoute,verifyTeamPrincipal,queueHelperUpdate,readJson,removeRuntimeForDevice,requireAccount,revokeRuntimeForDevice,sendJson,usage,wakeDeviceChannelForDevice}=deps;
     // Purpose-scoped native Desktop snapshot over the private Operator Unix
@@ -12,6 +13,12 @@ export async function handleAccountRoutes(req,res,url,deps){
       if(req.method!=='POST')
         return sendJson(res,405,{ok:false,error:'method_not_allowed'});
       const body=await readJson(req);
+      if(body?.page!==undefined){
+        const inventory=createDesktopV4OwnerInventoryPage({
+          accounts,allDeviceViews,accessGrants,lookupShortIds:deps.goldSnapshotShortIds
+        });
+        return sendJson(res,200,await inventory(body));
+      }
       const snapshot=createDesktopV4OwnerSnapshot({
         accounts,allDeviceViews,sessions:deps.sessions,
         accessGrants,usage,planEntitlements,

@@ -791,6 +791,60 @@ pub(crate) async fn desktop_owner_snapshot(
     Ok(result)
 }
 
+// T11-F14: one verified Owner inventory page. JS never sees the bearer and
+// can only select a read-only kind/cursor; native verifies Owner before/after.
+#[tauri::command]
+pub(crate) async fn desktop_owner_inventory_page(
+    state:State<'_,OwnerRuntime>,kind:String,cursor:Option<String>
+) -> Result<Value,String> {
+    if kind!="devices" && kind!="grants" {
+        return Err("desktop_inventory_unavailable".into());
+    }
+    if let Some(ref value)=cursor {
+        if value.len()>512 || !value.bytes().all(|b|
+            b.is_ascii_alphanumeric() || b==b'-' || b==b'_') {
+            return Err("desktop_inventory_unavailable".into());
+        }
+    }
+    let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
+    let snap=runtime.wall_snapshot_after_verification().await
+        .map_err(|_|"desktop_inventory_unavailable")?;
+    let account=snap.account.clone();
+    let access=snap.access.clone();
+    let requested_kind=kind.clone();
+    let result=tauri::async_runtime::spawn_blocking(move|| {
+        if !verify_owner_session(&access,&account) {
+            return Err("desktop_inventory_unavailable".to_string());
+        }
+        let response=http().map_err(|_|"desktop_inventory_unavailable".to_string())?
+            .post(snapshot_url()).bearer_auth(&access)
+            .json(&json!({"page":{"kind":requested_kind,"cursor":cursor,"limit":100}}))
+            .send().map_err(|_|"desktop_inventory_unavailable".to_string())?;
+        if !response.status().is_success() {
+            return Err("desktop_inventory_unavailable".into());
+        }
+        let bytes=response.bytes().map_err(|_|"desktop_inventory_unavailable".to_string())?;
+        if bytes.len()>262_144 {
+            return Err("desktop_inventory_unavailable".into());
+        }
+        let value:Value=serde_json::from_slice(&bytes)
+            .map_err(|_|"desktop_inventory_unavailable".to_string())?;
+        if value.get("ok").and_then(Value::as_bool)!=Some(true)||
+           value.get("accountId").and_then(Value::as_str)!=Some(account.as_str())||
+           value.get("kind").and_then(Value::as_str)!=Some(kind.as_str())||
+           !value.get("rows").is_some_and(Value::is_array)||
+           value.get("rows").and_then(Value::as_array).is_some_and(|v|v.len()>100)||
+           !value.get("coverage").is_some_and(Value::is_object) {
+            return Err("desktop_inventory_unavailable".into());
+        }
+        Ok(value)
+    }).await.map_err(|_|"desktop_inventory_unavailable".to_string())??;
+    if !runtime.wall_snapshot_current_after_verification(&snap).await {
+        return Err("desktop_inventory_unavailable".into());
+    }
+    Ok(result)
+}
+
 // T05: Real owner-bound pending A/B V2 and B approval via OS-local Agent.
 // The native Owner bearer is sent ONLY to its local Agent's private socket;
 // React receives just a sanitized pending row set and approval result.

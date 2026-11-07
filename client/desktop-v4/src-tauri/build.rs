@@ -7,7 +7,7 @@ static OWNER_CANDIDATE: &[&str] = &[
     "desktop_owner_restore","desktop_owner_logout",
     "desktop_owner_wall_sso_approve",
     "desktop_owner_abv2_pending","desktop_owner_abv2_approve",
-    "desktop_owner_snapshot",
+    "desktop_owner_snapshot","desktop_owner_inventory_page",
     // Windows-only registrations. Other OSes cannot execute these commands;
     // keeping them in the ACL manifest permits the same signed main-window
     // Owner permission to be loaded without a global IPC wildcard.

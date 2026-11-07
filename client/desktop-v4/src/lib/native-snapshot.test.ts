@@ -66,6 +66,25 @@ describe('Owner snapshot is a bounded native-only projection',()=>{
        .toBe('unavailable');
    expect(projectOwnerSnapshot(DATA,'owner').state).toBe('ready');
  });
+ it('F14 validates all bounded Owner device, grant and usage coverage, rejects forged totals',()=>{
+   const viewport={returned:1,total:201,hasMore:true,source:'owner_bounded_viewport'};
+   const view=projectOwnerSnapshot({...DATA,coverage:{...DATA.coverage,
+     devices:viewport,grants:viewport,usage:viewport}},'owner');
+   expect(view.state).toBe('ready');
+   if(view.state==='ready'){
+     expect(view.coverage?.devices?.total).toBe(201);
+     expect(view.coverage?.grants?.hasMore).toBe(true);
+     expect(view.coverage?.usage?.total).toBe(201);
+   }
+   for(const key of ['devices','grants','usage'] as const){
+     for(const invalid of [
+       {...viewport,returned:2},{...viewport,total:0},
+       {...viewport,hasMore:false},{...viewport,source:'foreign'}
+     ])expect(projectOwnerSnapshot({...DATA,coverage:{...DATA.coverage,[key]:invalid}},'owner').state)
+       .toBe('unavailable');
+   }
+   expect(projectOwnerSnapshot(DATA,'owner').state).toBe('ready');
+ });
  it('uses exact Tauri IPC and never fetch, cookies or a URL from JS',async()=>{
    const invoke=vi.fn(async()=>DATA);
    const host={__TAURI_INTERNALS__:{invoke}} as unknown as Window;

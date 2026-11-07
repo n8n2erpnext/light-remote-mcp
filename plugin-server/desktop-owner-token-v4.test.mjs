@@ -272,3 +272,41 @@ test('T04b2 expired native access can never mint a Wall SSO ticket',async()=>{
   assert.equal(await x.service.familyCurrentForWallSso(ACCOUNT,proof.familyId),true,
     'valid Owner family remains independently revocable after access expires');
 });
+
+test('F14 native Owner page forwards only kind/cursor while binding live family',async()=>{
+ const calls=[];
+ const x=setup({operatorCall:async(method,path,body)=>{
+   calls.push({method,path,body});
+   return {ok:true,kind:'devices',accountId:ACCOUNT,asOf:1234,rows:[],
+     coverage:{returned:0,total:0,hasMore:false,nextCursor:null,source:'owner_live_membership_revision'}};
+ }});
+ const issued=await x.service.exchange(x.input);
+ const authorized={method:'POST',headers:{'content-type':'application/json',
+   authorization:'Bearer '+issued.access_token},query:{},
+   body:{page:{kind:'devices',cursor:null,limit:100}}};
+ const ok=response();
+ await x.service.routeSnapshot(authorized,ok);
+ assert.equal(ok.code,200);
+ assert.deepEqual(calls,[{method:'POST',path:'/v1/accounts/desktop-v4/snapshot',
+   body:{accountId:ACCOUNT,accountSessionId:SESSION,page:{kind:'devices',limit:100}}}]);
+ for(const illegal of [
+   {page:{kind:'devices',limit:101}},
+   {page:{kind:'other'}},
+   {page:{kind:'devices',cursor:'BAD!'}},
+   {page:{kind:'devices',accountId:'other'}},
+   {page:{kind:'devices'},accountId:'other'}
+ ]){
+   const denied=response();
+   await x.service.routeSnapshot({...authorized,body:illegal},denied);
+   assert.notEqual(denied.code,200,'foreign/invalid client page must be rejected');
+ }
+ assert.equal(calls.length,1,'untrusted inputs never forwarded');
+ const forbidden=response();
+ await x.service.routeSnapshot({...authorized,headers:{...authorized.headers,origin:'https://evil.example'}},forbidden);
+ assert.notEqual(forbidden.code,200,'browser-origin requests stay rejected');
+ x.setPortalActive(false);
+ const revoked=response();
+ await x.service.routeSnapshot(authorized,revoked);
+ assert.equal(revoked.code,401,'revoked Owner family cannot query another page');
+ assert.equal(calls.length,1);
+});

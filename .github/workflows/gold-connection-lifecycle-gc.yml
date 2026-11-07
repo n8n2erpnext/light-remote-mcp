@@ -13,6 +13,8 @@ on:
       - 'operator-host/gold-admin-job-recovery.mjs'
       - 'operator-host/executor-routes-account.mjs'
       - 'operator-host/desktop-v4-owner-snapshot*.mjs'
+      - 'operator-host/desktop-v4-owner-inventory-page*.mjs'
+      - 'deploy/scripts/selftest-t11-owner-inventory-native-source.mjs'
       - 'operator-host/desktop-v4-owner-close*.mjs'
       - 'operator-host/gold-ab-v2-server-v1-lock.test.mjs'
       - 'client/windows-native/GptOperator.Client/ConnectionConfig.cs'
@@ -418,6 +420,9 @@ jobs:
           node --check plugin-server/desktop-owner-token-v4.mjs
           node --check operator-host/desktop-v4-owner-snapshot.mjs
           node --test operator-host/desktop-v4-owner-snapshot.test.mjs
+          node --check operator-host/desktop-v4-owner-inventory-page.mjs
+          node --test operator-host/desktop-v4-owner-inventory-page.test.mjs
+          node deploy/scripts/selftest-t11-owner-inventory-native-source.mjs
           node --test operator-host/desktop-v4-owner-close.test.mjs
           node --check plugin-server/desktop-wall-sso-v4.mjs
           node --check plugin-server/desktop-wall-sso-v4.test.mjs

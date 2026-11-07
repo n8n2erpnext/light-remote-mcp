@@ -131,19 +131,35 @@ export function createDesktopOwnerTokenService({
   // T06: Native-only read model. The Owner access is checked against the
   // live Redis family and the Portal session BEFORE reaching Operator, where
   // the same Owner/session pair is checked independently once more.
-  async function snapshot(accessToken){
+  function inventoryPageInput(page){
+    if(page===null||page===undefined)return null;
+    if(!page||typeof page!=='object'||Array.isArray(page)||
+       Object.keys(page).some(k=>!['kind','cursor','limit'].includes(k))||
+       !['devices','grants'].includes(page.kind)||
+       (page.cursor!=null&&(typeof page.cursor!=='string'||page.cursor.length>512||
+        (page.cursor&&!/^[A-Za-z0-9_-]+$/.test(page.cursor))))||
+       (page.limit!==undefined&&(!Number.isSafeInteger(page.limit)||page.limit<1||page.limit>100)))
+       deny('desktop_inventory_page_invalid');
+    return {kind:page.kind,...(page.cursor?{cursor:page.cursor}:{}),
+      ...(page.limit===undefined?{}:{limit:page.limit})};
+  }
+  async function snapshot(accessToken,page=null){
     const record=await get('access',accessToken);
     if(record.purpose!=='desktop_owner_v4')deny('desktop_token_invalid');
     const family=await principalFor(record);
     if(typeof operatorCall!=='function')
       deny('desktop_snapshot_unavailable');
+    const inventory=inventoryPageInput(page);
     const result=await operatorCall('POST','/v1/accounts/desktop-v4/snapshot',{
-      accountId:family.accountId,accountSessionId:family.accountSessionId
+      accountId:family.accountId,accountSessionId:family.accountSessionId,
+      ...(inventory?{page:inventory}:{})
     });
-    if(result?.ok!==true||result.accountId!==family.accountId ||
-       !Array.isArray(result.devices)||!Array.isArray(result.sessions)||
-       !Array.isArray(result.grants)||!Array.isArray(result.jobs)||
-       !Array.isArray(result.events))
+    if(result?.ok!==true||result.accountId!==family.accountId||
+       (inventory?result.kind!==inventory.kind||!Array.isArray(result.rows)||
+        result.rows.length>100||result.coverage?.source!=='owner_live_membership_revision':
+        !Array.isArray(result.devices)||!Array.isArray(result.sessions)||
+        !Array.isArray(result.grants)||!Array.isArray(result.jobs)||
+        !Array.isArray(result.events)))
       deny('desktop_snapshot_unavailable');
     // Do not send raw Redis/Owner family identifiers or other token state.
     return result;
@@ -245,12 +261,12 @@ export function createDesktopOwnerTokenService({
     if(!nativeOnly(req,res))return;
     try{
       if(req.method!=='POST'||Object.keys(req.query||{}).length||
-         Object.keys(req.body||{}).length)
+         Object.keys(req.body||{}).some(k=>k!=='page'))
         deny('desktop_native_client_required');
       const auth=String(req.headers?.authorization||'');
       if(!/^Bearer [A-Za-z0-9_-]{43}$/.test(auth))
         deny('desktop_token_invalid');
-      return res.status(200).json(await snapshot(auth.slice(7)));
+      return res.status(200).json(await snapshot(auth.slice(7),req.body?.page??null));
     }catch(e){return error(res,e)}
   }
   async function routeLogout(req,res){

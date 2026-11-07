@@ -23,6 +23,7 @@ export type OwnerJob = Readonly<{
 export type OwnerEvent = Readonly<{
   deviceId:string;eventType:string;status:string;at:number|null;
 }>;
+export type OwnerViewportCoverage=Readonly<{returned:number;total:number;hasMore:boolean;source:'owner_bounded_viewport'}>;
 export type OwnerSnapshot = Readonly<{
   state:'ready';accountId:string;asOf:number;
   account:Readonly<{email:string|null;plan:string|null;status:string;emailVerified:boolean}>;
@@ -31,6 +32,9 @@ export type OwnerSnapshot = Readonly<{
   coverage:Readonly<{
     jobs:Readonly<{returned:number;total:number;hasMore:boolean;source:'in_memory_current_window'}>;
     sessions?:Readonly<{returned:number;total:number;hasMore:boolean;activeTotal:number;holdTotal:number;source:'in_memory_current_window'}>;
+    devices?:OwnerViewportCoverage;
+    grants?:OwnerViewportCoverage;
+    usage?:OwnerViewportCoverage;
   }>|null;
   devices:ReadonlyArray<OwnerDevice>;sessions:ReadonlyArray<OwnerSession>;
   grants:ReadonlyArray<OwnerGrant>;jobs:ReadonlyArray<OwnerJob>;events:ReadonlyArray<OwnerEvent>;
@@ -128,6 +132,20 @@ export function projectOwnerSnapshot(input:unknown,expectedAccountId:string):Sna
        (total===returned&&(activeTotal!==visibleActive||holdTotal!==visibleHold)))return CLOSED;
     coverage={...coverage,sessions:{returned,total,hasMore:sessionsCoverage.hasMore,
       activeTotal,holdTotal,source:'in_memory_current_window'}};
+  }
+  if(coverageObj){
+    for(const [key,actual] of [
+      ['devices',devices.length],['grants',grants.length],['usage',byDevice.length]
+    ] as const){
+      if(!Object.prototype.hasOwnProperty.call(coverageObj,key))continue;
+      const part=record(coverageObj[key]);
+      const returned=count(part?.returned),total=count(part?.total);
+      if(!coverage||!part||part.source!=='owner_bounded_viewport'||
+         typeof part.hasMore!=='boolean'||returned===null||total===null||
+         returned!==actual||total<returned||part.hasMore!==(total>returned))return CLOSED;
+      coverage={...coverage,[key]:{returned,total,hasMore:part.hasMore,
+        source:'owner_bounded_viewport'}};
+    }
   }
   return Object.freeze({state:'ready',accountId:expectedAccountId,asOf,
     account:Object.freeze({email:string(ac.email,254),plan:string(ac.plan,40),

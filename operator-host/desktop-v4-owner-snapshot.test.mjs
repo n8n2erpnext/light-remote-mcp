@@ -79,9 +79,12 @@ test('invalid, wrong, revoked and expired Owner session fail closed',async()=>{
  ])await assert.rejects(()=>data()(value));
  await assert.rejects(()=>data({verified:false})({accountId:'owner',accountSessionId:SESSION}));
 });
-test('device cap fails closed while session history has explicit bounded coverage',async()=>{
+test('device and session history overflow provide truthful bounded coverage',async()=>{
  const mk=(n)=>new Array(n).fill(null).map((_,i)=>({deviceId:'d'+i,accountId:'owner',state:'online'}));
- await assert.rejects(()=>data({devices:mk(201)})({accountId:'owner',accountSessionId:SESSION}),/too_large/);
+ const fleet=await data({devices:mk(201)})({accountId:'owner',accountSessionId:SESSION});
+ assert.equal(fleet.ok,true);
+ assert.equal(fleet.devices.length,200);
+ assert.deepEqual(fleet.coverage.devices,{returned:200,total:201,hasMore:true,source:'owner_bounded_viewport'});
  const rows=new Array(201).fill(null).map((_,i)=>({accountId:'owner',sessionId:'s'+i,deviceId:'dev-a',state:'hold'}));
  const view=await data({sessions:rows})({accountId:'owner',accountSessionId:SESSION});
  assert.equal(view.sessions.length,200);
@@ -187,4 +190,21 @@ test('201 live sessions expose explicit partial coverage rather than claiming co
  assert.equal(view.coverage.sessions.holdTotal,100);
  assert.equal(view.coverage.sessions.hasMore,true);
  assert.equal(view.grants.length,1);
+});
+
+test('201 Owner active grants no longer remove all devices, jobs and Owner identity',async()=>{
+ const rows=Array.from({length:201},(_,i)=>({
+   grantId:'grant-'+i,accountId:'owner',deviceId:'dev-a',agentId:'agent-'+i,
+   purpose:'device',approvedAt:100,expiresAt:3000,absoluteExpiresAt:4000
+ }));
+ rows.push({grantId:'grant-foreign',accountId:'other',deviceId:'dev-a',purpose:'device'});
+ const view=await data({grants:rows})({accountId:'owner',accountSessionId:SESSION});
+ assert.equal(view.ok,true);
+ assert.equal(view.devices[0].shortId,'R01KAP');
+ assert.equal(view.grants.length,200);
+ assert.equal(view.coverage.grants.total,201);
+ assert.equal(view.coverage.grants.hasMore,true);
+ assert.equal(view.jobs.length,1);
+ assert.equal(view.usage.toolCallsThisMonth,12);
+ assert.ok(!JSON.stringify(view).includes('grant-foreign'));
 });

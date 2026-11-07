@@ -8,7 +8,8 @@ import { Button } from './components/ui/button';
 import { Card, CardHeading } from './components/ui/card';
 import type { RouteKey } from './lib/routes';
 import type { SnapshotResult } from './lib/status';
-import type { OwnerSnapshot } from './lib/native-snapshot';
+import type { OwnerSnapshot,OwnerDevice } from './lib/native-snapshot';
+import {useOwnerInventory} from './lib/use-owner-inventory';
 
 export type FeatureRoute = Extract<RouteKey,
   'sessions' | 'live-monitor' | 'devices' | 'long-memory' | 'codex-bridge' | 'account'>;
@@ -151,12 +152,18 @@ function LiveMonitor({ status,snapshot }: { status: SnapshotResult | null; snaps
       :'This is a bounded current Operator view, not complete durable history or execution authority. Job cancellation is not connected.'} />:<SourceUnavailable description="A Local Wall device snapshot cannot authorize job inspection, cancellation or execution. No synthetic records are displayed." />}
   </div>;
 }
-function Devices({snapshot}:{snapshot:OwnerSnapshot|null}) {
-  const rows=snapshot?.devices||[];
+function Devices({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAccountId:string|null}) {
+  const needsPages=!snapshot||snapshot.coverage?.devices?.hasMore===true;
+  const inventory=useOwnerInventory('devices',needsPages?ownerAccountId:null);
+  const paged=needsPages&&inventory.pages.length>0;
+  const partial=Boolean(snapshot?.coverage?.devices?.hasMore);
+  const rows:ReadonlyArray<OwnerDevice>=paged?inventory.rows.filter(
+    (row):row is OwnerDevice=>'shortId' in row):snapshot?.devices||[];
+  const verified=Boolean(snapshot)||paged;
   return <div className="screen-content feature-dashboard">
     <div className="feature-kpi-grid">
-      <UnknownKpi label="MY DEVICES" hint={snapshot?'Verified Owner inventory':'Owner device list unavailable'} icon={Monitor} value={snapshot?String(rows.length):'—'} />
-      <UnknownKpi label="ONLINE DEVICES" hint="Signed account inventory" icon={Server} value={snapshot?String(rows.filter(d=>d.state==='online').length):'—'} />
+      <UnknownKpi label="MY DEVICES" hint={paged||partial?'Owner verified total · paged inventory':snapshot?'Verified Owner inventory':'Owner device list unavailable'} icon={Monitor} value={verified?String(paged?inventory.total:partial?snapshot?.coverage?.devices?.total:rows.length):'—'} />
+      <UnknownKpi label="ONLINE DEVICES" hint={(paged&&inventory.hasMore)||partial?'Visible minimum · more pages available':'Signed account inventory'} icon={Server} value={verified?((paged&&inventory.hasMore)||partial?'≥':'')+String(rows.filter(d=>d.state==='online').length):'—'} />
       <UnknownKpi label="PENDING LINKS" hint="Enrollment requests not bound" icon={KeyRound} />
     </div>
     <Card>
@@ -164,7 +171,7 @@ function Devices({snapshot}:{snapshot:OwnerSnapshot|null}) {
         <CardHeading description="Owner-scoped device inventory with stable Short IDs">DEVICES</CardHeading>
         <div className="feature-actions"><span className="muted">Link this PC: Windows Tray → Link / Relink</span></div>
       </div>
-      {snapshot?<div className="feature-table feature-table-scroll" role="region" aria-label="Devices inventory">
+      {verified?<div className="feature-table feature-table-scroll" role="region" aria-label="Devices inventory">
         <table><thead><tr><th>Device</th><th>Short ID</th><th>OS</th><th>Connection</th><th>Last seen</th></tr></thead>
           <tbody>{rows.length?rows.map(d=><tr key={d.deviceId}><td>{d.name||d.deviceId}</td>
             <td>{d.shortId||'—'}</td><td>{d.os||'—'}</td><td>{d.state}</td>
@@ -172,6 +179,15 @@ function Devices({snapshot}:{snapshot:OwnerSnapshot|null}) {
         </table></div>:<FeatureTable label="Devices inventory"
         columns={['Device','Short ID','OS','Connection','Last seen']}
         description="Owner device collection has not been verified." />}
+      {partial&&!paged&&<div className="feature-filterbar" role="status">
+        <span>Showing {snapshot!.devices.length} of {snapshot!.coverage!.devices!.total} verified Owner devices. Loading a separate paged view.</span>
+      </div>}
+      {paged&&<div className="feature-filterbar" role="status">
+        <span>Showing {inventory.loaded} of {inventory.total} verified Owner devices. Further pages may change; stale cursors are rejected.</span>
+        {inventory.hasMore&&<Button disabled={inventory.pending} onClick={()=>void inventory.loadMore()}>
+          {inventory.pending?'Loading…':'Load more devices'}</Button>}
+      </div>}
+      {!snapshot&&inventory.error&&<p role="alert">{inventory.error}</p>}
     </Card>
     <SourceUnavailable description="This screen is Owner inventory, not a device mutation panel. To link this Windows PC, open the Light Remote system tray icon → Link / Relink (disconnect from Local Wall first if connected). Approval opens in your browser. GoldABV2 V4 has a separate device profile and does not reuse Gold production enrollment." />
   </div>;
@@ -260,7 +276,7 @@ function Account({snapshot}:{snapshot:OwnerSnapshot|null}) {
       <UnknownKpi label="CALLS THIS MONTH" hint="Server-issued usage" icon={Activity}
         value={snapshot?String(snapshot.usage.toolCallsThisMonth??'—'):'—'} />
       <UnknownKpi label="DEVICES IN ACCOUNT" hint="Verified Owner inventory" icon={Monitor}
-        value={snapshot?String(snapshot.devices.length):'—'} />
+        value={snapshot?String(snapshot.coverage?.devices?.total??snapshot.devices.length):'—'} />
       <UnknownKpi label="CURRENT BILLING PERIOD" hint="Billing dates not bound" icon={Clock3} />
     </div>
     <Card><CardHeading description="Server-issued monthly usage by Owner device">USAGE BY DEVICE</CardHeading>
@@ -275,14 +291,19 @@ function Account({snapshot}:{snapshot:OwnerSnapshot|null}) {
         </table></div>:<FeatureTable label="Usage by device" columns={['Device','Month','Calls','Online hours','Plan']}
         description="Per-device usage requires a verified Owner snapshot." />}
     </Card>
+    {snapshot?.coverage?.usage?.hasMore&&<div className="feature-unavailable" role="status">
+      <ShieldAlert size={18} aria-hidden="true" />
+      <div><strong>Partial per-device usage viewport</strong>
+        <p>Showing {snapshot.coverage.usage.returned} of {snapshot.coverage.usage.total} Owner usage records. Monthly call total is verified; per-device usage pagination is not connected.</p></div>
+    </div>}
     {!snapshot&&<SourceUnavailable description="Account identity, billing and usage need verified Owner data. No local Wall status is treated as login." />}
   </div>;
 }
-export function FeatureScreen({ route, status, snapshot }: { route: FeatureRoute; status: SnapshotResult | null; snapshot?: OwnerSnapshot | null }) {
+export function FeatureScreen({ route, status, snapshot,ownerAccountId=null }: { route: FeatureRoute; status: SnapshotResult | null; snapshot?: OwnerSnapshot | null;ownerAccountId?:string|null }) {
   switch (route) {
     case 'sessions': return <Sessions snapshot={snapshot??null} />;
     case 'live-monitor': return <LiveMonitor status={status} snapshot={snapshot??null} />;
-    case 'devices': return <Devices snapshot={snapshot??null} />;
+    case 'devices': return <Devices snapshot={snapshot??null} ownerAccountId={ownerAccountId} />;
     case 'long-memory': return <LongMemory />;
     case 'codex-bridge': return <CodexBridge />;
     case 'account': return <Account snapshot={snapshot??null} />;
