@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F15_H3_P07_OWNER_SESSION_RETENTION_SOURCE_TEST_PASS_NATIVE_CI_PENDING",
+  "status": "T11_F15_H3_CI01_WIN_MAC_UBUNTU_WEB_GC_SUCCESS_REAL_OWNER_B_HOLD",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "F15-H3/P07 verified GoldSessionRedis 7d renewable TTL + actual terminal historyMs, flush prune before Owner return, post-await device revoke checks, fail-closed native policy projection. Local Node 57/57 and Vitest 101/101 PASS; push and verify exact H3 Gold GC/Windows/Web/macOS/Ubuntu CI. No immutable audit without separate approved retention policy, real Owner/B production HOLD.",
+  "nextAction": "H3 source 322be591: Gold GC 42366909600 4/4, Desktop Web/Ubuntu/macOS 42366909549 3/3, full Windows 42366909565 SUCCESS artifact ZIP SHA256 dc5c1eac00b1224dcdf8538f763e5fa0b69a228dfb652e50aa2b30ad9806e7f3. NEXT T11-F16 physical Owner/B readiness (actual install/B only on explicit Owner approval); indefinite audit requires separate retention-policy approval. Gold signed updater/production HOLD.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -175,7 +175,7 @@
     "treeDigest": "e16755a80cbc1c4df375ed9a3838249be7d3ab383f8b96dc8f54353d2e980a4e",
     "trackedFiles": 1355,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T11:08:11.730Z"
+    "recordedAt": "2026-11-07T11:18:59.692Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2353,12 +2353,46 @@
     "localViteBuild": "PASS",
     "localRedisRestartFixture": "PASS",
     "nativeSourceGates": "PASS",
-    "newWindowsCI": "PENDING exact SHA",
-    "newGoldGC": "PENDING exact SHA",
-    "newDesktopQA": "PENDING exact SHA",
+    "newWindowsCI": "SUCCESS run 42366909565",
+    "newGoldGC": "4/4 SUCCESS run 42366909600",
+    "newDesktopQA": "3/3 SUCCESS run 42366909549",
     "physicalOwnerB": "OPEN",
     "goldSignedUpdaterFeed": "HOLD",
     "productionTouched": false,
     "decisionDocument": "docs/project-book/LIGHT_REMOTE_T11_F15_H3_SESSION_RETENTION_CONTRACT_20261107.md"
+  },
+  "t11_f15_h3_ci01": {
+    "date": "2026-11-07",
+    "exactSourceSha": "322be591db9c06e05e2f72d91432d154d6790893",
+    "goldGC": {
+      "run": 42366909600,
+      "status": "4/4 SUCCESS",
+      "sourceGate": "T11_F15_H3_OWNER_REDIS_RETENTION_PRIVACY_SOURCE_BOUNDARY=PASS",
+      "postgresql1000": "SUCCESS",
+      "postgresql10000": "SUCCESS",
+      "windowsAgentEpoch": "SUCCESS"
+    },
+    "desktopQA": {
+      "run": 42366909549,
+      "status": "3/3 SUCCESS Web/macOS/Ubuntu"
+    },
+    "windows": {
+      "run": 42366909565,
+      "status": "SUCCESS",
+      "completeArtifactId": 13572208005,
+      "completeArtifactZipBytes": 180442419,
+      "completeArtifactZipSha256": "dc5c1eac00b1224dcdf8538f763e5fa0b69a228dfb652e50aa2b30ad9806e7f3",
+      "uiPreviewArtifactId": 13571744562
+    },
+    "desktopDocsRun": 42366909539,
+    "desktopTruthRun": 42366909654,
+    "goldMirrorDocsRun": 42366929977,
+    "goldMirrorTruthRun": 42366929883,
+    "immutableSessionAuditAdded": false,
+    "newMigration": false,
+    "physicalOwnerB": "OPEN",
+    "signedGoldUpdateFeed": "HOLD",
+    "productionTouched": false,
+    "next": "T11-F16 physical UAT readiness only; actual real B/Windows install requires explicit Owner approval"
   }
 }
