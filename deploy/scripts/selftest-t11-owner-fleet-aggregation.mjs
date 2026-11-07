@@ -105,7 +105,9 @@ for(const [file,needle] of [
  ['operator-host/executor.mjs','sessions.activeCountsByNode()'],
  ['operator-host/executor.mjs','devices.list({accountId,activeSessionsForNode:'],
  ['operator-host/desktop-v4-owner-snapshot.mjs','allDeviceViews({accountId})'],
- ['operator-host/desktop-v4-owner-snapshot.mjs','accessGrants.activeGrantsForDevices(devices.map']
+ // F14: page the full current Owner fleet but exclude revoked devices from grant authority.
+ // This retains P03 single batched grants lookup without silently trimming to 200 rows.
+ ['operator-host/desktop-v4-owner-snapshot.mjs',"accessGrants.activeGrantsForDevices(rawDevices.filter(d=>d.state!=='revoked').map(d=>d.deviceId))"]
 ]){
  const text=fs.readFileSync(new URL(file,root),'utf8');
  assert.ok(text.includes(needle),'source binding absent: '+file+' '+needle);

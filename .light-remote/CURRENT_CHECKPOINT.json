@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F14_CI01_F10_STATIC_FIX_SOURCE_PASS_RETEST_PENDING",
+  "status": "T11_F14_CI02_P03_STATIC_TEST_PATCH_NATIVE_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "F14 first source c8fcca47 Windows 42358395152 and Gold GC 42358395294 FAILED from same F10 static call-count test (6 vs 5). CI01 scopes F10 baseline and separately asserts F14 Owner proof, local PASS. Push exact new SHA and rerun Windows/Gold GC; Web/macOS/Linux QA first SHA still running. Physical Owner/B and production HOLD.",
+  "nextAction": "F14 c8fcca47 Web/Ubuntu/macOS 42358395156 3/3 SUCCESS. Windows 42358602500 and Gold GC 42358602437 failed at P03 source fixture. CI02 fixes P03 full non-revoked Owner batch binding, local 1000/10000 F10 F14 32/32 PASS. Push then verify exact new Windows/GC SHA. Physical Owner/B and production HOLD.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "484270c452022c0788f40e55b5ec27c555e0827f526396327448456835f4cafe",
+    "treeDigest": "c2ef0ec5b38f38f15745b077950843994bc2b2ab2cf907108768518a8501ac31",
     "trackedFiles": 1342,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T09:10:31.539Z"
+    "recordedAt": "2026-11-07T09:27:44.236Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2175,5 +2175,26 @@
     "runtimeChanged": false,
     "physicalOwnerB": "OPEN",
     "productionTouched": false
+  },
+  "t11_f14_ci02": {
+    "date": "2026-11-07",
+    "priorSourceSha": "175ad8d8eda514134a247b2cf016b7715f82a971",
+    "firstSourceSha": "c8fcca470ba1082bcf6f59a172b8023bd2b0fd5d",
+    "firstDesktopQaRun": 42358395156,
+    "webMacUbuntu": "3/3 SUCCESS",
+    "priorWindowsRun": 42358602500,
+    "priorWindows": "FAIL pre-native P03 fixture",
+    "priorGoldGCRun": 42358602437,
+    "priorGoldGC": "source-gate FAIL (3 others SUCCESS)",
+    "fixture": "deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs",
+    "localP03": "PASS 1000/10000 batch parity",
+    "localF10": "PASS",
+    "localF14": "PASS",
+    "localOperatorTests": "32/32 PASS",
+    "runtimeChanged": false,
+    "newWindowsCI": "PENDING NEW SHA",
+    "newGoldGC": "PENDING NEW SHA",
+    "physicalOwnerB": "OPEN",
+    "productionChanged": false
   }
 }
