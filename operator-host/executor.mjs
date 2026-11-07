@@ -1683,8 +1683,25 @@ const goldShortIdByDevice=async({deviceId,accountId})=>{
   return /^[0-9A-HJKMNP-TV-Z]{6}$/.test(code)?code:null;
  }catch{return null;}
 };
+// One owner-scoped PG043 query: no per-device N+1 and no cross-Owner identity.
+const goldSnapshotShortIds=async({accountId,deviceIds})=>{
+ if(goldStorage.schema?.version<43)return new Map();
+ if(!/^[A-Za-z0-9._:-]{1,128}$/.test(String(accountId||''))||
+    !Array.isArray(deviceIds)||deviceIds.length>200||
+    deviceIds.some(id=>typeof id!=='string'||!/^[A-Za-z0-9._:-]{1,160}$/.test(id)))
+  throw Error('desktop_snapshot_short_id_scope_invalid');
+ if(!deviceIds.length)return new Map();
+ const result=await goldStorage.pool.query(
+  "SELECT s.device_id,s.short_id FROM lr_gold_device_short_ids s "+
+  "JOIN lr_devices d ON d.device_id=s.device_id "+
+  "WHERE d.owner_account_id=$1 AND d.state<>'revoked' "+
+  "AND s.device_id=ANY($2::text[])",[accountId,deviceIds]);
+ return new Map((result.rows||[]).filter(r=>
+  deviceIds.includes(r.device_id)&&/^[0-9A-HJKMNP-TV-Z]{6}$/.test(r.short_id))
+  .map(r=>[r.device_id,r.short_id]));
+};
 const routeDeps=()=>({
-  goldShortIdByDevice,
+  goldShortIdByDevice,goldSnapshotShortIds,
   desktopWallSsoSignedRedeem:desktopWallSsoOperatorGate.signedRedeem,
   desktopWallSsoInternalIssue:desktopWallSsoOperatorGate.internalIssue,
   desktopWallSsoFamilyCurrent:desktopWallSsoOperatorGate.familyCurrent,

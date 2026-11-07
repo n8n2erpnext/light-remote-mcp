@@ -55,7 +55,7 @@ describe('desktop V4 feature screen integrity', () => {
       entitlements:{plan:'pro',toolCallLimit:500},
       usage:{month:'2026-11',toolCallsThisMonth:22,byDevice:[{deviceId:'dev-a',toolCalls:19,onlineMs:7200000}]},
       devices:[{deviceId:'dev-a',name:'Workstation',shortId:'R01KAP',os:'windows',state:'online',lastSeenAt:100}],
-      sessions:[],grants:[],jobs:[],events:[]
+      sessions:[],grants:[],jobs:[],events:[],coverage:null
     };
     render(<FeatureScreen route="account" status={null} snapshot={snapshot} />);
     expect(screen.getByText('owner@example.test')).toBeTruthy();
@@ -71,7 +71,7 @@ describe('desktop V4 feature screen integrity', () => {
       entitlements:{plan:'pro',toolCallLimit:500},
       usage:{month:'2026-11',toolCallsThisMonth:22,byDevice:[]},
       devices:[{deviceId:'dev-a',name:'Workstation',shortId:'R01KAP',os:'windows',state:'online',lastSeenAt:100}],
-      sessions:[],grants:[],
+      sessions:[],grants:[],coverage:{jobs:{returned:1,total:257,hasMore:true,source:'in_memory_current_window' as const}},
       jobs:[{jobId:'j-123',deviceId:'dev-a',agentId:'agent-a',sessionId:'s-1',state:'running',startedAt:1000,finishedAt:null,exitCode:null}],
       events:[{deviceId:'dev-a',eventType:'job_started',status:'running',at:1001}]
     };
@@ -81,6 +81,8 @@ describe('desktop V4 feature screen integrity', () => {
     expect(screen.getByText('j-123')).toBeTruthy();
     expect(screen.getByText('job_started')).toBeTruthy();
     expect(screen.getByText('Read only')).toBeTruthy();
+    expect(screen.getByText(/Showing the latest 1 of 257 Owner-scoped/)).toBeTruthy();
+    expect(screen.getByText('≥1')).toBeTruthy();
     expect(screen.queryByText('Activity stream unverified')).toBeNull();
   });
   it('a known local device connection must not be taken as job or owner authority', () => {

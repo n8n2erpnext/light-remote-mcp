@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDesktopV4OwnerSnapshot} from './desktop-v4-owner-snapshot.mjs';
 const SESSION='acctsess_123e4567-e89b-42d3-a456-426614174000';
-const data=({verified=true,devices=null,sessions=null,grants=null}={})=>{
+const data=({verified=true,devices=null,sessions=null,grants=null,
+ jobs=null,shortIdRows=new Map([['dev-a','R01KAP']])}={})=>{
  const state={accountId:'owner',email:'owner@example.test',plan:'pro',
    status:'active',isOwner:true,emailVerified:true,passwordHash:'TOP_SECRET'};
  const actualDevices=devices??[
-  {deviceId:'dev-a',accountId:'owner',deviceName:'Home Windows',os:'windows',state:'online',shortId:'R01KAP'},
+  {deviceId:'dev-a',accountId:'owner',displayName:'Home Windows',os:'windows',state:'online',shortId:'R01KAP'},
   {deviceId:'dev-foreign',accountId:'other',state:'online'}];
  const actualSessions=sessions??[
   {sessionId:'s-1',accountId:'owner',deviceId:'dev-a',agentId:'agent-1',
@@ -26,12 +27,17 @@ const data=({verified=true,devices=null,sessions=null,grants=null}={})=>{
   accessGrants:{activeGrantsForDevice:()=>actualGrants},
   usage:{summary:()=>({currentMonth:'2026-11',toolCallsThisMonth:12,rawSecret:'NEVER',devices:[{deviceId:'dev-a',toolCalls:9,onlineMs:3600000,secret:'NEVER'},{deviceId:'dev-foreign',toolCalls:2,onlineMs:10}]})},
   planEntitlements:()=>({plan:'pro',toolCallLimit:500,rawSecret:'NEVER'}),
-  jobs:new Map([
+  jobs:jobs??new Map([
     ['j1',{id:'j1',accountId:'owner',deviceId:'dev-a',agentId:'agent-1',
       sessionId:'s-1',status:'running',startedAt:1000,stdout:'SECRET',script:'SECRET'}],
     ['j2',{id:'j2',accountId:'other',deviceId:'dev-foreign',
       sessionId:'s-foreign',script:'SECRET'}]
   ]),
+  lookupShortIds:async({accountId,deviceIds})=>{
+   assert.equal(accountId,'owner');
+   assert.ok(deviceIds.every(id=>id!=='dev-foreign'));
+   return shortIdRows;
+  },
   recentEvents:()=>[
     {accountId:'owner',deviceId:'dev-a',type:'job_started',
       status:'running',at:'2026-11-06T00:00:00.000Z',detail:'SECRET'},
@@ -40,10 +46,15 @@ const data=({verified=true,devices=null,sessions=null,grants=null}={})=>{
   now:()=>1234
  });
 };
-test('native Owner read model excludes foreign devices/Agent, secret fields and workspace',()=>{
- const result=data()({accountId:'owner',accountSessionId:SESSION});
+test('native Owner read model excludes foreign devices/Agent, secret fields and workspace',async()=>{
+ const result=await data()({accountId:'owner',accountSessionId:SESSION});
  assert.equal(result.ok,true);
  assert.equal(result.devices.length,1);
+ assert.equal(result.devices[0].name,'Home Windows',
+  'real registry field displayName must render');
+ assert.equal(result.devices[0].shortId,'R01KAP',
+  'Owner-only batch lookup supplies signed PG043 mapping');
+ assert.equal(result.coverage.jobs.hasMore,false);
  assert.equal(result.sessions.length,1);
  assert.equal(result.grants.length,1);
  assert.equal(result.account.email,'owner@example.test');
@@ -60,25 +71,76 @@ test('native Owner read model excludes foreign devices/Agent, secret fields and 
  assert.ok(!JSON.stringify(result).includes('/private/work'));
  assert.ok(!JSON.stringify(result).includes('dev-foreign'));
 });
-test('invalid, wrong, revoked and expired Owner session fail closed',()=>{
+test('invalid, wrong, revoked and expired Owner session fail closed',async()=>{
  for(const value of [
   {accountId:'other',accountSessionId:SESSION},
   {accountId:'owner',accountSessionId:'acctsess_fake'},
   {accountId:'owner',accountSessionId:''}
- ])assert.throws(()=>data()(value));
- assert.throws(()=>data({verified:false})({accountId:'owner',accountSessionId:SESSION}));
+ ])await assert.rejects(()=>data()(value));
+ await assert.rejects(()=>data({verified:false})({accountId:'owner',accountSessionId:SESSION}));
 });
-test('grant and session list caps fail closed, not silent truncation',()=>{
+test('grant and session list caps fail closed, not silent truncation',async()=>{
  const mk=(n)=>new Array(n).fill(null).map((_,i)=>({deviceId:'d'+i,accountId:'owner',state:'online'}));
- assert.throws(()=>data({devices:mk(201)})({accountId:'owner',accountSessionId:SESSION}),/too_large/);
+ await assert.rejects(()=>data({devices:mk(201)})({accountId:'owner',accountSessionId:SESSION}),/too_large/);
  const rows=new Array(201).fill(null).map((_,i)=>({accountId:'owner',sessionId:'s'+i,deviceId:'dev-a',state:'hold'}));
- assert.throws(()=>data({sessions:rows})({accountId:'owner',accountSessionId:SESSION}),/too_large/);
+ await assert.rejects(()=>data({sessions:rows})({accountId:'owner',accountSessionId:SESSION}),/too_large/);
 });
-test('no writes, no close/revoke from read route',()=>{
+test('no writes, no close/revoke from read route',async()=>{
  let queried=0;
- const result=data()({accountId:'owner',accountSessionId:SESSION});
+ const result=await data()({accountId:'owner',accountSessionId:SESSION});
  assert.equal(result.sessions[0].activeJobs,0);
  assert.equal(result.sessions[0].state,'active');
  assert.equal(result.grants[0].grantId,'dag_v2_abc');
  assert.equal(queried,0);
+});
+
+
+test('200-job viewport cannot make the whole Owner snapshot disappear',async()=>{
+ const jobs=new Map();
+ for(let i=0;i<241;i++)jobs.set('job-'+i,{
+  id:'job-'+i,accountId:'owner',deviceId:'dev-a',
+  sessionId:'s-1',status:i%2?'running':'ok',startedAt:i+1000,
+  script:'SECRET',stdout:'SECRET'
+ });
+ jobs.set('foreign',{id:'foreign',accountId:'other',deviceId:'dev-foreign'});
+ const view=await data({jobs})({accountId:'owner',accountSessionId:SESSION});
+ assert.equal(view.ok,true);
+ assert.equal(view.devices.length,1);
+ assert.equal(view.sessions.length,1);
+ assert.equal(view.jobs.length,200);
+ assert.equal(view.coverage.jobs.total,241);
+ assert.equal(view.coverage.jobs.hasMore,true);
+ assert.equal(view.coverage.jobs.source,'in_memory_current_window');
+ assert.equal(view.jobs[0].jobId,'job-240');
+ assert.ok(!JSON.stringify(view).includes('SECRET'));
+ assert.ok(!JSON.stringify(view).includes('foreign'));
+});
+test('Short ID comes only from exact Owner PG mapping, never from spoofed device rows',async()=>{
+ const view=await data({shortIdRows:new Map()})({accountId:'owner',accountSessionId:SESSION});
+ assert.equal(view.devices[0].name,'Home Windows');
+ assert.equal(view.devices[0].shortId,null);
+ const forged=await data({devices:[
+  {deviceId:'dev-a',accountId:'owner',displayName:'Main',shortId:'HACKED',state:'online'}
+ ],shortIdRows:new Map([['dev-a','R01KAP']])})({accountId:'owner',accountSessionId:SESSION});
+ assert.equal(forged.devices[0].shortId,'R01KAP');
+});
+
+test('revoked Owner session during awaited Short ID lookup is rejected',async()=>{
+ let valid=true;
+ let complete;
+ const lookup=new Promise(resolve=>{complete=resolve});
+ const snap=createDesktopV4OwnerSnapshot({
+  accounts:{desktopOwnerSessionActive:()=>valid,
+   account:id=>({accountId:id,isOwner:true,emailVerified:true,status:'active'})},
+  allDeviceViews:()=>[{deviceId:'dev-a',accountId:'owner',state:'online'}],
+  sessions:{list:()=>[]},accessGrants:{activeGrantsForDevice:()=>[]},
+  usage:{summary:()=>({currentMonth:'2026-11',devices:[],toolCallsThisMonth:0})},
+  planEntitlements:()=>({plan:'pro',toolCallLimit:100}),
+  jobs:new Map(),recentEvents:()=>[],
+  lookupShortIds:()=>lookup
+ });
+ const read=snap({accountId:'owner',accountSessionId:SESSION});
+ valid=false;
+ complete(new Map([['dev-a','R01KAP']]));
+ await assert.rejects(read,/desktop_snapshot_owner_revoked_during_read/);
 });

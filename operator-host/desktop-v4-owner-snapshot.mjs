@@ -9,14 +9,16 @@ const deny=(reason,status=403)=>{throw Object.assign(new Error(reason),{status})
 const sorted=(rows)=>rows.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
 export function createDesktopV4OwnerSnapshot({
  accounts,allDeviceViews,sessions,accessGrants,usage,planEntitlements,
- jobs,recentEvents,now=Date.now,maxDevices=200,maxSessions=200,maxGrants=200,maxJobs=200
+ jobs,recentEvents,lookupShortIds=async()=>new Map(),
+ now=Date.now,maxDevices=200,maxSessions=200,maxGrants=200,maxJobs=200
 }={}){
  if(!accounts?.desktopOwnerSessionActive||!accounts?.account||
     typeof allDeviceViews!=='function'||!sessions?.list||
     !accessGrants?.activeGrantsForDevice||!usage?.summary||
     !jobs?.values||typeof recentEvents!=='function'||
-    typeof planEntitlements!=='function')deny('desktop_snapshot_dependencies_missing',503);
- return function snapshot({accountId,accountSessionId}={}){
+    typeof planEntitlements!=='function'||typeof lookupShortIds!=='function')
+   deny('desktop_snapshot_dependencies_missing',503);
+ return async function snapshot({accountId,accountSessionId}={}){
   if(!ACCOUNT.test(accountId||'')||!SESSION.test(accountSessionId||'')||
      !accounts.desktopOwnerSessionActive(accountId,accountSessionId))
     deny('desktop_snapshot_owner_required',403);
@@ -26,9 +28,18 @@ export function createDesktopV4OwnerSnapshot({
     deny('desktop_snapshot_owner_required',403);
   const rawDevices=allDeviceViews().filter(d=>d.accountId===accountId);
   if(rawDevices.length>maxDevices)deny('desktop_snapshot_fleet_too_large',409);
+  // The Owner account and eligible device IDs are derived from the authenticated
+  // server registry, never a client-provided list. Only PG043 owns Short IDs.
+  let shortIds;
+  try{
+   shortIds=await lookupShortIds({accountId,
+    deviceIds:rawDevices.filter(d=>d.state!=='revoked').map(d=>d.deviceId)});
+  }catch{deny('desktop_snapshot_short_ids_unavailable',503);}
+  if(!(shortIds instanceof Map))deny('desktop_snapshot_short_id_result_invalid',503);
   const devices=rawDevices.map(d=>({
-   deviceId:string(d.deviceId),name:string(d.deviceName||d.name||d.label,120),
-   shortId:typeof d.shortId==='string'&&/^[0-9A-HJKMNP-TV-Z]{6}$/.test(d.shortId)?d.shortId:null,
+   deviceId:string(d.deviceId),name:string(d.displayName||d.deviceName||d.name||d.label,120),
+   shortId:d.state!=='revoked'&&/^[0-9A-HJKMNP-TV-Z]{6}$/.test(String(shortIds.get(d.deviceId)||''))
+     ?shortIds.get(d.deviceId):null,
    os:string(d.os||d.platform,60),
    state:['online','offline','revoked','disconnected','dormant'].includes(d.state)?d.state:'unknown',
    lastSeenAt:finite(d.lastSeenAt)
@@ -59,8 +70,11 @@ export function createDesktopV4OwnerSnapshot({
   // Do not return scripts, cwd, stdout, stderr, notes or command metadata.
   const ownerJobs=[...jobs.values()].filter(j=>
     j.accountId===accountId&&owned.has(j.deviceId));
-  if(ownerJobs.length>maxJobs)deny('desktop_snapshot_jobs_too_large',409);
-  const jobRows=ownerJobs.map(j=>({
+  // Keep the whole device/session/grant snapshot when the in-memory job ring
+  // exceeds its UI window. Explicit coverage prevents calling it full history.
+  const jobsHasMore=ownerJobs.length>maxJobs;
+  const jobRows=ownerJobs.sort((a,b)=>(b.startedAt||0)-(a.startedAt||0))
+    .slice(0,maxJobs).map(j=>({
     jobId:string(j.id),deviceId:string(j.deviceId),agentId:string(j.agentId),
     sessionId:string(j.sessionId),
     state:['running','queued','ok','error','timeout','killed',
@@ -90,6 +104,13 @@ export function createDesktopV4OwnerSnapshot({
     .map(row=>({deviceId:row.deviceId,toolCalls:finite(row.toolCalls),
       onlineMs:finite(row.onlineMs)}));
   const ent=planEntitlements(account);
+  // The awaited PG043 lookup must not extend authority beyond an Owner
+  // session which was revoked while the snapshot was being assembled.
+  const ownerNow=accounts.account(accountId);
+  if(!accounts.desktopOwnerSessionActive(accountId,accountSessionId)||
+     ownerNow?.accountId!==accountId||ownerNow.isOwner!==true||
+     ownerNow.emailVerified!==true||ownerNow.status!=='active')
+   deny('desktop_snapshot_owner_revoked_during_read',403);
   // Typed fields only: account password hashes, registration metadata,
   // device credentials, raw workspace paths and usage internals are omitted.
   return Object.freeze({ok:true,accountId,asOf:now(),
@@ -98,6 +119,8 @@ export function createDesktopV4OwnerSnapshot({
    entitlements:{plan:string(ent?.plan,40),
     toolCallLimit:finite(ent?.toolCallLimit)},
    usage:{month:usageMonth,toolCallsThisMonth:finite(rawUsage?.toolCallsThisMonth),byDevice},
+   coverage:{jobs:{returned:jobRows.length,total:ownerJobs.length,
+    hasMore:jobsHasMore,source:'in_memory_current_window'}},
    devices,sessions:sessionRows,grants,jobs:jobRows,events});
  };
 }

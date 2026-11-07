@@ -77,7 +77,8 @@ assert.match(wall,/csrf_invalid/);
 assert.match(wall,/j.stopRequested=true/);
 assert.match(wall,/j.stopRequested\?'Stopping…'/);
 assert.doesNotMatch(wall,/j.status='stop_requested'/,'pending Kill must not replace running primary status');
-assert.match(wall,/stopRequested:false,exitCode:e.exitCode/,'terminal status clears Stop pending');
+assert.match(wall,/finishedAt:e.finishedAt\|\|e.at/,'terminal stop state requires a monotonic finishedAt');
+assert.match(wall,/stopRequested:false,/,'signed terminal status clears pending Stop');
 // Job status is provided as `status` by both in-memory and durable
 // Operator records. The plugin must not erase terminal cancelled status.
 assert.match(src('plugin-server/operator-adapter.mjs'),/import \{ cleanJob \} from '.\/job-view.mjs'/,

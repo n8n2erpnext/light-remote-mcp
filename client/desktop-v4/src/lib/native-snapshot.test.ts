@@ -9,6 +9,7 @@ const DATA={
  sessions:[{sessionId:'s-1',deviceId:'dev-a',agentId:'agent-a',name:'Agent A',
    state:'active',createdAt:100,lastSeenAt:900,expiresAt:2000,holdReason:null,activeJobs:0,workspace:'SECRET'}],
  grants:[{grantId:'dag-1',deviceId:'dev-a',agentId:'agent-a',approvedAt:100,expiresAt:2000,absoluteExpiresAt:3000,rawToken:'SECRET'}],
+ coverage:{jobs:{returned:1,total:1,hasMore:false,source:'in_memory_current_window'}},
  jobs:[{jobId:'job-a',deviceId:'dev-a',agentId:'agent-a',sessionId:'s-1',state:'running',startedAt:1000,finishedAt:null,exitCode:null,script:'SECRET'}],
  events:[{deviceId:'dev-a',eventType:'job_started',status:'running',at:1000,detail:'SECRET'}]
 };
@@ -27,6 +28,7 @@ describe('Owner snapshot is a bounded native-only projection',()=>{
      expect(result.usage.month).toBe('2026-11');
      expect(result.usage.byDevice[0]?.toolCalls).toBe(19);
      expect(result.jobs[0]?.state).toBe('running');
+     expect(result.coverage?.jobs.hasMore).toBe(false);
      expect(result.events[0]?.eventType).toBe('job_started');
    }
  });
@@ -37,6 +39,14 @@ describe('Owner snapshot is a bounded native-only projection',()=>{
    expect(projectOwnerSnapshot({...DATA,account:{...DATA.account,emailVerified:false}},'owner').state).toBe('unavailable');
    expect(projectOwnerSnapshot({...DATA,jobs:[{...DATA.jobs[0],deviceId:'other'}]},'owner').state).toBe('unavailable');
    expect(projectOwnerSnapshot({...DATA,events:[{...DATA.events[0],deviceId:'other'}]},'owner').state).toBe('unavailable');
+ });
+ it('keeps a bounded over-200 in-memory window while rejecting dishonest coverage',()=>{
+   const many={...DATA,coverage:{jobs:{returned:1,total:257,hasMore:true,source:'in_memory_current_window'}}};
+   const view=projectOwnerSnapshot(many,'owner');
+   expect(view.state).toBe('ready');
+   if(view.state==='ready')expect(view.coverage?.jobs.total).toBe(257);
+   const fake={...many,coverage:{jobs:{returned:2,total:257,hasMore:true,source:'in_memory_current_window'}}};
+   expect(projectOwnerSnapshot(fake,'owner').state).toBe('unavailable');
  });
  it('uses exact Tauri IPC and never fetch, cookies or a URL from JS',async()=>{
    const invoke=vi.fn(async()=>DATA);

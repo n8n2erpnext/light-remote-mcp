@@ -28,6 +28,7 @@ export type OwnerSnapshot = Readonly<{
   account:Readonly<{email:string|null;plan:string|null;status:string;emailVerified:boolean}>;
   entitlements:Readonly<{plan:string|null;toolCallLimit:number|null}>;
   usage:Readonly<{month:string|null;toolCallsThisMonth:number|null;byDevice:ReadonlyArray<Readonly<{deviceId:string;toolCalls:number|null;onlineMs:number|null}>>}>;
+  coverage:Readonly<{jobs:Readonly<{returned:number;total:number;hasMore:boolean;source:'in_memory_current_window'}>}>|null;
   devices:ReadonlyArray<OwnerDevice>;sessions:ReadonlyArray<OwnerSession>;
   grants:ReadonlyArray<OwnerGrant>;jobs:ReadonlyArray<OwnerJob>;events:ReadonlyArray<OwnerEvent>;
 }>;
@@ -99,12 +100,23 @@ export function projectOwnerSnapshot(input:unknown,expectedAccountId:string):Sna
     events.push({deviceId,eventType:string(event.eventType,64)||'activity',
       status:string(event.status,32)||'unknown',at:count(event.at)});
   }
+  const coverageObj=record(r.coverage),jobsCoverage=record(coverageObj?.jobs);
+  let coverage:OwnerSnapshot['coverage']=null;
+  if(jobsCoverage!==null&&
+    jobsCoverage.source==='in_memory_current_window'&&
+    typeof jobsCoverage.hasMore==='boolean'){
+    const total=count(jobsCoverage.total),returned=count(jobsCoverage.returned);
+    if(total===null||returned===null||returned!==jobs.length||
+       total<returned||jobsCoverage.hasMore!==(total>returned))return CLOSED;
+    coverage={jobs:{returned,total,hasMore:jobsCoverage.hasMore,
+      source:'in_memory_current_window'}};
+  }
   return Object.freeze({state:'ready',accountId:expectedAccountId,asOf,
     account:Object.freeze({email:string(ac.email,254),plan:string(ac.plan,40),
       status:'active',emailVerified:true}),
     entitlements:Object.freeze({plan:string(ent.plan,40),toolCallLimit:count(ent.toolCallLimit)}),
     usage:Object.freeze({month,toolCallsThisMonth:count(usage.toolCallsThisMonth),byDevice}),
-    devices,sessions,grants,jobs,events});
+    coverage,devices,sessions,grants,jobs,events});
 }
 type NativeWindow=Window & {__TAURI_INTERNALS__?:{invoke?:(cmd:string)=>Promise<unknown>}};
 export function nativeOwnerSnapshotAvailable(host:Window=window){

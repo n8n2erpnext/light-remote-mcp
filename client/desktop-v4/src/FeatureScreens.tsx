@@ -101,10 +101,11 @@ function LiveMonitor({ status,snapshot }: { status: SnapshotResult | null; snaps
   const connection = v?.connection === 'connected' ? 'Connected'
     : v?.connection === 'disconnected' ? 'Disconnected' : '—';
   const rows=snapshot?.jobs||[],events=snapshot?.events||[];
+  const jobWindowIncomplete=snapshot?.coverage?.jobs.hasMore===true;
   return <div className="screen-content feature-dashboard">
     <div className="feature-kpi-grid">
       <UnknownKpi label="LOCAL CONNECTION" hint={v ? 'Read-only Local Wall response' : 'Not verified'} icon={WifiOff} value={connection} />
-      <UnknownKpi label="RUNNING JOBS" hint="Current Owner-scoped jobs" icon={Activity} value={snapshot?String(rows.filter(j=>j.state==='running').length):'—'} />
+      <UnknownKpi label="RUNNING JOBS" hint={jobWindowIncomplete?'At least this many in the bounded job window':'Current Owner-scoped jobs'} icon={Activity} value={snapshot?(jobWindowIncomplete?'≥':'')+String(rows.filter(j=>j.state==='running').length):'—'} />
       <UnknownKpi label="EVENTS" hint="Recent Operator events" icon={Clock3} value={snapshot?String(events.length):'—'} />
     </div>
     <div className="feature-split">
@@ -139,7 +140,9 @@ function LiveMonitor({ status,snapshot }: { status: SnapshotResult | null; snaps
         </table></div>:<FeatureTable label="Agent jobs" columns={['Job', 'Device', 'Status', 'Started', 'Action']}
         description="Job cancellation is unavailable until a signed execution controller is connected. Stop-requested is not a terminal state." />}
     </Card>
-    {snapshot?<SourceUnavailable description="This is a bounded current Operator view, not complete durable history or execution authority. Job cancellation is not connected." />:<SourceUnavailable description="A Local Wall device snapshot cannot authorize job inspection, cancellation or execution. No synthetic records are displayed." />}
+    {snapshot?<SourceUnavailable description={jobWindowIncomplete
+      ?'Showing the latest '+String(snapshot.coverage!.jobs.returned)+' of '+String(snapshot.coverage!.jobs.total)+' Owner-scoped in-memory jobs. Older rows are not shown. This is not durable job history and cannot cancel work.'
+      :'This is a bounded current Operator view, not complete durable history or execution authority. Job cancellation is not connected.'} />:<SourceUnavailable description="A Local Wall device snapshot cannot authorize job inspection, cancellation or execution. No synthetic records are displayed." />}
   </div>;
 }
 function Devices({snapshot}:{snapshot:OwnerSnapshot|null}) {

@@ -15,9 +15,10 @@ export async function handleAccountRoutes(req,res,url,deps){
       const snapshot=createDesktopV4OwnerSnapshot({
         accounts,allDeviceViews,sessions:deps.sessions,
         accessGrants,usage,planEntitlements,
-        jobs:deps.jobs,recentEvents:deps.recentEvents
+        jobs:deps.jobs,recentEvents:deps.recentEvents,
+        lookupShortIds:deps.goldSnapshotShortIds
       });
-      return sendJson(res,200,snapshot(body));
+      return sendJson(res,200,await snapshot(body));
     }
     // Stronger than the legacy internal /v1/admin APIs: verify the owner session
     // independently in Operator, not merely in the plugin /admin proxy.

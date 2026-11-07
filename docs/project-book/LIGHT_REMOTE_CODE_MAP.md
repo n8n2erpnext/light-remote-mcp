@@ -762,3 +762,6 @@ device-agent/local-wall.mjs Memory reader generation+AbortController fence preve
 
 ## 2026-11-07 — T11-F04 Native Link IPC scope and non-Windows UI
 Tauri src-tauri/build.rs AppManifest and permissions/desktop-owner.toml enumerated Windows native Link/Relink commands and Owner snapshot under main-window Owner capability. DeviceLinkDialog.tsx has Windows-only build marker and stable mount callbacks. App.tsx stable onClose. Windows workflow sets marker; native-shell and DeviceLinkDialog test verify source contract. Physical Windows command invoke still OPEN.
+
+## 2026-11-07 — T11-F05 Owner snapshot PG043 and partial jobs
+operator-host/desktop-v4-owner-snapshot.mjs now awaits Owner-scoped short-ID lookup and rechecks live Owner authority after the DB await, preferring actual device displayName. executor.mjs goldSnapshotShortIds joins PG043 and owned active device IDs in one bounded read, exposed by executor-routes-account.mjs. Snapshot job current-window caps latest 200 with explicit coverage; client/desktop-v4/src/lib/native-snapshot.ts validates coverage and FeatureScreens.tsx discloses limited window. No false full durable history claims. Operator + frontend fixture tests cover >200 jobs, foreign account, stale Owner lease, missing Short ID.
