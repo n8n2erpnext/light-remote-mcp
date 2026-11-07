@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F14_CI02_P03_STATIC_TEST_GOLD_MIRROR_CI_PENDING",
+  "status": "T11_F14_CI03_NATIVE_WINDOWS_GC_SUCCESS_GOLD_MIRROR_PHYSICAL_HOLD",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "F14 c8fcca47 Web/Ubuntu/macOS 42358395156 3/3 SUCCESS. Windows 42358602500 and Gold GC 42358602437 failed at P03 source fixture. CI02 fixes P03 full non-revoked Owner batch binding, local 1000/10000 F10 F14 32/32 PASS. Push then verify exact new Windows/GC SHA. Physical Owner/B and production HOLD.",
+  "nextAction": "T11-F14 Windows full installer 42359833960 SUCCESS at c5028737, Gold GC 42359833952 4/4 SUCCESS, Desktop Web/macOS/Ubuntu 42358395156 3/3 SUCCESS at runtime-identical c8fcca47. NEXT T11-F15 source-only Owner usage/job/session durable pagination and measured performance. Real signed B/physical Windows and Gold update feed HOLD.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "db3bb52458b27920d45e6ad2836d69596244187d2df6c02bbef145b1e24fc0fd",
     "trackedFiles": 1244,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T09:28:02.223Z"
+    "recordedAt": "2026-11-07T09:40:02.866Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2188,9 +2188,32 @@
     "localF14": "PASS",
     "localOperatorTests": "32/32 PASS",
     "runtimeChanged": false,
-    "newWindowsCI": "PENDING NEW SHA",
-    "newGoldGC": "PENDING NEW SHA",
+    "newWindowsCI": "SUCCESS run 42359833960",
+    "newGoldGC": "4/4 SUCCESS run 42359833952",
     "physicalOwnerB": "OPEN",
+    "productionChanged": false
+  },
+  "t11_f14_ci03": {
+    "date": "2026-11-07",
+    "exactSourceSha": "c5028737187a684dcf8d21a8f4c4625812c89927",
+    "windowsRun": 42359833960,
+    "windowsInstaller": "SUCCESS",
+    "artifactId": 13569347178,
+    "artifactSizeBytes": 180446874,
+    "artifactZipSha256": "7fadec2b10018a560e1cab517fb30b03959047f455ce5dac7afaa7c38f7f189f",
+    "uiPreviewArtifactId": 13568424951,
+    "goldGCRun": 42359833952,
+    "goldGC": "4/4 SUCCESS",
+    "desktopQaRun": 42358395156,
+    "desktopQaSha": "c8fcca470ba1082bcf6f59a172b8023bd2b0fd5d",
+    "desktopWebMacUbuntu": "3/3 SUCCESS (identical F14 runtime)",
+    "docsRun": 42359833933,
+    "truthRun": 42359833941,
+    "goldMirrorDocsRun": 42359855021,
+    "goldMirrorTruthRun": 42359854937,
+    "physicalWindows": "OPEN",
+    "liveSignedOwnerB": "OPEN",
+    "signedGoldUpdaterFeed": "HOLD",
     "productionChanged": false
   }
 }
