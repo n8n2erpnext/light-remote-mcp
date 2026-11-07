@@ -1461,3 +1461,21 @@ Next: exact new SHA Windows full Installer CI and native Rust macOS/Linux cargo 
 - Safety: this is source/CI only. No production or isolated Lab runtime, Windows installation, A/B grants, enrollment, SSO flags, updater feed, schema migration or Long Memory data touched. The persisted JSON can lag in-memory online time by up to the bounded read checkpoint window, and reconstructed accrual after restart was checked by deterministic fixture.
 
 NEXT: inspect F11 exact SHA Windows full installer, Gold GC/Docs/Truth. If PASS, record CI receipt and proceed P03 indexed Owner registry scan under 1k/10k synthetic fixtures. Physical signed Owner/B and approved update feed remain OPEN/HOLD.
+
+## 2026-11-07 — T11-F12 P03 scoped fleet aggregation Worklog
+
+## 2026-11-07 — T11-F12 P03 Owner-scoped fleet/session/grant aggregation (source candidate)
+
+F11 previous source Desktop 766a5d32: Gold GC run 42353489622 SUCCESS, Docs 42353489617 SUCCESS and Project Truth 42353489694 SUCCESS. F11 Windows full installer run 42353489618 still IN PROGRESS at this receipt, so NOT marked PASS. Gold mirror 48b6b957 Docs and Truth SUCCESS.
+
+P03 source after verifying T09 findings against F11:
+- operator-host/session-manager.mjs adds activeCountsByNode: one prune/state pass constructs per-node active/hold counts; original activeCountByNode remains available for capacity checks and legacy callers.
+- operator-host/device-registry.mjs adds optional accountId projection filter BEFORE constructing each device view; default cross-account internal list semantics unchanged. operator-host/executor.mjs allDeviceViews accepts optional Owner accountId and uses one per-node count map, not session registry scan per device.
+- operator-host/desktop-v4-owner-snapshot.mjs now passes the authenticated accountId into allDeviceViews, retains independent final Owner session revalidation after awaited Short ID mapping, <=200 device and session bounds, typed projection and no credential leaks.
+- operator-host/device-access-grant-registry.mjs adds read-only activeGrantsForDevices with one grant-map scan and identical status/expiry/sort/clone semantics to per-device reads. Desktop Owner snapshot uses this batch method when available, still filters original Owner account and device purpose; legacy fixture fallback retains per-device API. No grant mutation or approval logic changed.
+- New deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs exercises 1000 and 10000 synthetic nodes, one projection per selected Owner device, batch/parity against existing per-device grant views, active Guest exclusion only in Owner snapshot, closed/pending/expired rejection, foreign Owner isolation, Short ID mapping, and an invalid Owner session denial. PASS locally. Native Owner snapshot tests 7/7 PASS, v09 grant suite PASS, P01 suite PASS, Node syntax, YAML parse and git diff checks PASS. The printed synthetic timings are single fixture measurements only, not p95 or a physical capacity proof.
+- Windows integrated installer and Gold GC source gates now invoke the P03 regression and trigger on all changed registry/snapshot source paths. Exact new source SHA CI PENDING after push.
+
+Remaining: physical Owner/B Windows E2E, full installed fleet read p95, durable pagination when Owner has >200 devices, and real scaling benchmark are OPEN. Cap >200 still rejects fail-closed, it is NOT silently truncated. Production/UAT, Lab runtime, migration, enrollment/grants, SSO, signed updater/feed, Long Memory and Windows installation unchanged.
+
+NEXT: check exact new Desktop P03 Windows native installer, Gold GC/Docs/Truth; repair any CI source failure and record receipt. Continue only source/CI without independently authorized physical Windows or real signed B.

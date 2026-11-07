@@ -249,7 +249,10 @@ export class DeviceRegistry {
   }
 
   list(options = {}) {
+    // Filter by the already verified Owner before expensive policy/connection projections.
+    const accountId=options.accountId==null?null:String(options.accountId);
     return [...this.devices.values()]
+      .filter(device => accountId===null||device.accountId===accountId)
       .map(device => this._view(device, options))
       .sort((a, b) => a.displayName.localeCompare(b.displayName) || a.deviceId.localeCompare(b.deviceId));
   }

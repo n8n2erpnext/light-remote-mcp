@@ -250,6 +250,12 @@ on:
       - 'deploy/scripts/selftest-t11-owner-verify-wait.mjs'
       - 'operator-host/usage-registry.mjs'
       - 'deploy/scripts/selftest-t11-usage-read-checkpoint.mjs'
+      - 'deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs'
+      - 'operator-host/session-manager.mjs'
+      - 'operator-host/device-registry.mjs'
+      - 'operator-host/device-access-grant-registry.mjs'
+      - 'operator-host/desktop-v4-owner-snapshot.mjs'
+      - 'operator-host/executor.mjs'
       - 'plugin-server/account-ab-v2.mjs'
       - 'plugin-server/account-portal.mjs'
       - 'plugin-server/account-portal/index.html'
@@ -521,6 +527,7 @@ jobs:
           node deploy/scripts/selftest-t11-desktop-poll-backpressure.mjs
           node deploy/scripts/selftest-t11-owner-verify-wait.mjs
           node deploy/scripts/selftest-t11-usage-read-checkpoint.mjs
+          node deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs
           node deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs
           node deploy/scripts/selftest-gold-wall-ui-refinement.mjs
           node deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs

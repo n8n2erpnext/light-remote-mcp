@@ -26,7 +26,7 @@ export function createDesktopV4OwnerSnapshot({
   if(account.accountId!==accountId||account.isOwner!==true||
      account.emailVerified!==true||account.status!=='active')
     deny('desktop_snapshot_owner_required',403);
-  const rawDevices=allDeviceViews().filter(d=>d.accountId===accountId);
+  const rawDevices=allDeviceViews({accountId}).filter(d=>d.accountId===accountId);
   if(rawDevices.length>maxDevices)deny('desktop_snapshot_fleet_too_large',409);
   // The Owner account and eligible device IDs are derived from the authenticated
   // server registry, never a client-provided list. Only PG043 owns Short IDs.
@@ -55,9 +55,14 @@ export function createDesktopV4OwnerSnapshot({
    expiresAt:finite(s.expiresAt),holdReason:string(s.holdReason,80),
    activeJobs:Array.isArray(s.activeJobs)?Math.min(s.activeJobs.length,1000):null
   })).filter(s=>s.sessionId));
+  const byDeviceGrants=typeof accessGrants.activeGrantsForDevices==='function'
+   ? accessGrants.activeGrantsForDevices(devices.map(d=>d.deviceId)):null;
+  if(byDeviceGrants!==null&&!(byDeviceGrants instanceof Map))deny('desktop_snapshot_grants_unavailable',503);
   const grants=[];
   for(const d of devices){
-   for(const g of accessGrants.activeGrantsForDevice(d.deviceId)){
+   const list=byDeviceGrants===null?accessGrants.activeGrantsForDevice(d.deviceId):byDeviceGrants.get(d.deviceId)||[];
+   if(!Array.isArray(list))deny('desktop_snapshot_grants_unavailable',503);
+   for(const g of list){
     if(g.accountId!==accountId||String(g.purpose||'device')!=='device')continue;
     if(grants.length>=maxGrants)deny('desktop_snapshot_grants_too_large',409);
     grants.push({grantId:string(g.grantId),deviceId:d.deviceId,

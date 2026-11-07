@@ -133,6 +133,14 @@ export class SessionRegistry {
     let n=0; for (const s of this.sessions.values()) if (s.nodeId===nid&&['active','hold'].includes(this._state(s,now))) n++;
     return n;
   }
+  // Snapshot all node counts with one prune/traversal, not one full scan per fleet row.
+  activeCountsByNode(now=this.now()) {
+    this.prune(now);
+    const counts=new Map();
+    for(const s of this.sessions.values())if(['active','hold'].includes(this._state(s,now)))
+      counts.set(s.nodeId,(counts.get(s.nodeId)||0)+1);
+    return counts;
+  }
   activeCountByDevice(deviceId,now=this.now()) {
     this.prune(now); const did=String(deviceId||'');
     let n=0; for (const s of this.sessions.values()) if (s.deviceId===did&&['active','hold'].includes(this._state(s,now))) n++;

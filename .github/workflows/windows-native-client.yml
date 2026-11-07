@@ -116,6 +116,12 @@ on:
       - 'deploy/scripts/selftest-t11-owner-verify-wait.mjs'
       - 'operator-host/usage-registry.mjs'
       - 'deploy/scripts/selftest-t11-usage-read-checkpoint.mjs'
+      - 'deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs'
+      - 'operator-host/session-manager.mjs'
+      - 'operator-host/device-registry.mjs'
+      - 'operator-host/device-access-grant-registry.mjs'
+      - 'operator-host/desktop-v4-owner-snapshot.mjs'
+      - 'operator-host/executor.mjs'
       - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
       - 'device-agent/filesystem-volume-inventory.mjs'
       - '.github/workflows/windows-native-client.yml'
@@ -247,6 +253,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'V4 native Owner verify overlap/revocation fence regression' }
           node deploy/scripts/selftest-t11-usage-read-checkpoint.mjs
           if ($LASTEXITCODE -ne 0) { throw 'T11 P01 usage read checkpoint/accounting regression' }
+          node deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 P03 Owner-scoped fleet/grant aggregation regression' }
           node deploy/scripts/selftest-goldabv2-v2only-no-static-fleet-allowlist.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 V2-only / Owner-scoped no-static-allowlist gate failed' }
       - name: Gold Windows owner filesystem scope regression

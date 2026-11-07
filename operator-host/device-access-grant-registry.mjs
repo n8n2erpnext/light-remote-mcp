@@ -347,6 +347,20 @@ export class DeviceAccessGrantRegistry {
     const did=validId(deviceId,'invalid_access_device_id'),now=this.now();
     return [...this.requests.values()].filter(row=>row.deviceId===did&&row.state==='pending'&&!row.consumedAt&&row.expiresAt>now).map(row=>({requestId:row.requestId,deviceId:row.deviceId,connectionId:row.connectionId,agentId:row.agentId,label:row.label,userCode:row.userCode,createdAt:row.createdAt,expiresAt:row.expiresAt}));
   }
+  // One-pass, read-only Owner snapshot index. Original per-device B/grant API is unchanged.
+  activeGrantsForDevices(deviceIds=[]){
+    const ids=new Set(deviceIds.map(id=>validId(id,'invalid_access_device_id')));
+    const grouped=new Map();if(!ids.size)return grouped;
+    const now=this.now();
+    for(const row of this.grants.values()){
+      if(!ids.has(row.deviceId)||row.closedAt||row.activationPending||now>=this._expiry(row))continue;
+      if(!grouped.has(row.deviceId))grouped.set(row.deviceId,[]);
+      grouped.get(row.deviceId).push({...row});
+    }
+    for(const rows of grouped.values())rows.sort((a,b)=>Number(b.approvedAt||0)-Number(a.approvedAt||0)||
+      String(b.grantId).localeCompare(String(a.grantId)));
+    return grouped;
+  }
   activeGrantsForDevice(deviceId,connectionId=null){
     const did=validId(deviceId,'invalid_access_device_id'),now=this.now();
     // Each approved Agent has its OWN 24h deadline. Do not collapse or

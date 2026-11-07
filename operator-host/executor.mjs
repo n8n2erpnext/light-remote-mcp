@@ -1413,7 +1413,10 @@ function requireDeviceConnection(deviceId) {
   return connections.assertConnected(deviceId);
 }
 function deviceView(device) { return { ...device, routing:routingViewForDevice(device), policy:policyViewForDevice(device), connection:connectionViewForDevice(device.deviceId), compatibility:compatibilityFor(device) }; }
-function allDeviceViews() { return devices.list({ activeSessionsForNode:nodeId => sessions.activeCountByNode(nodeId) }).map(deviceView); }
+function allDeviceViews({accountId=null}={}) {
+  const counts=sessions.activeCountsByNode();
+  return devices.list({accountId,activeSessionsForNode:nodeId=>counts.get(String(nodeId))||0}).map(deviceView);
+}
 function queueHelperUpdate(deviceId,{source='remote-owner'}={}) {
   const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});if(device.nodeId===NODE_ID)throw new DeviceError('helper_update_hub_not_client',409);const route=targetRoute(device.nodeId,{accountId:device.accountId}),updateSource=String(source||'remote-owner').slice(0,40);
   const agentId=`agent-update-${crypto.randomBytes(8).toString('hex')}`,openId=`open-update-${crypto.randomBytes(8).toString('hex')}`;let session;
