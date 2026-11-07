@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F15_H2_CI01_ALL_NATIVE_REAL_PG_GC_SUCCESS_GOLD_MIRROR_PHYSICAL_HOLD",
+  "status": "T11_F15_H3_P07_GOLD_DOC_MIRROR_NATIVE_CI_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "F15-H2 source 9d0439c8: Gold GC 42364629403 4/4 incl REAL disposable PG17 p95 26.64/26.97ms from four page queries, Desktop QA 42364629400 3/3, Windows full installer 42364629522 SUCCESS. NEXT F15-H3 source-only session immutable audit retention requirements; physical Windows/real B and signed production updater HOLD.",
+  "nextAction": "F15-H3/P07 verified GoldSessionRedis 7d renewable TTL + actual terminal historyMs, flush prune before Owner return, post-await device revoke checks, fail-closed native policy projection. Local Node 57/57 and Vitest 101/101 PASS; push and verify exact H3 Gold GC/Windows/Web/macOS/Ubuntu CI. No immutable audit without separate approved retention policy, real Owner/B production HOLD.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "db3bb52458b27920d45e6ad2836d69596244187d2df6c02bbef145b1e24fc0fd",
     "trackedFiles": 1244,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T10:47:36.422Z"
+    "recordedAt": "2026-11-07T11:08:43.608Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2331,5 +2331,30 @@
     "physicalWindowsOwnerB": "OPEN",
     "goldSignedUpdaterFeed": "HOLD",
     "productionTouched": false
+  },
+  "t11_f15_h3_p07": {
+    "date": "2026-11-07",
+    "desktopParentSha": "3d44c781492d7997e457bbddb65ae05f7a56131c",
+    "scope": "source-only retention provenance and Owner read hardening",
+    "snapshotTtlSeconds": 604800,
+    "terminalPruneMs": "actual SessionRegistry.historyMs",
+    "immutableSessionEventAuditAdded": false,
+    "newSchemaOrMigration": false,
+    "postAwaitOwnerDeviceFence": true,
+    "prunePersistedBeforeSuccess": true,
+    "nativePolicySourceValidation": true,
+    "localNode": "57/57 PASS",
+    "localVitest": "101/101 PASS (21 files)",
+    "localTypeScript": "PASS",
+    "localViteBuild": "PASS",
+    "localRedisRestartFixture": "PASS",
+    "nativeSourceGates": "PASS",
+    "newWindowsCI": "PENDING exact SHA",
+    "newGoldGC": "PENDING exact SHA",
+    "newDesktopQA": "PENDING exact SHA",
+    "physicalOwnerB": "OPEN",
+    "goldSignedUpdaterFeed": "HOLD",
+    "productionTouched": false,
+    "decisionDocument": "docs/project-book/LIGHT_REMOTE_T11_F15_H3_SESSION_RETENTION_CONTRACT_20261107.md"
   }
 }
