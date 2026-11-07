@@ -1714,3 +1714,11 @@ No installed Windows owner QA, live signed Owner/B, production rollout, grant/SS
 - Remaining: durable cursor pagination, full physical Windows/real signed Owner/B QA and high-concurrency live perf measurement are still OPEN. This source patch deliberately does not change installed Windows, Lab/production flags, enrollment/grants, signed update feed or Long Memory contents.
 
 NEXT: verify new F13 exact source SHA GitHub Gold GC/Docs/Truth, Windows integrated native installer and macOS/Linux Desktop source QA. Do not count source-only fixture as physical acceptance; append CI results as a new docs-only receipt.
+
+## 2026-11-07 — T11-F13-CI01 exact Web/macOS/Linux/Gold GC SUCCESS; Windows full installer PENDING
+
+F13/A03 source SHA Desktop 200e6410218c783dff1f359e59bfa10b7bc5ad21: Desktop V4 Source QA run 42355417736 completed SUCCESS (three jobs Web build/Vitest/browser screenshots, macOS native source parity and Ubuntu native source parity). Gold Connection Lifecycle GC run 42355417670 completed SUCCESS four jobs including Owner session history 9/9 and existing 1k/10k registry fixtures. Docs 42355417700 and Project Truth 42355417748 SUCCESS at exact source SHA. Gold handoff mirror 15dc05844c3fd8a34f31ad96479bde0b889a426c Docs 42355446508 and Project Truth 42355446502 SUCCESS.
+
+Windows Tray Client full integrated installer run 42355417770 on same exact source SHA was still IN PROGRESS when checked, no failure observed, NOT an acceptance PASS or downloadable release receipt yet. No physical Windows Owner/B signed E2E, deployment, enrollment/grants/SSO changes, live Lab mutation or signed Gold update feed. Do not use screenshots/browser fixture to assert installed Windows authority.
+
+NEXT: finish/inspect GitHub Windows run 42355417770, repair any failure by source patch + new CI or append exact SHA Windows SUCCESS and artifact SHA256 in a separate docs-only receipt. The remaining product gates are explicit durable pagination for fleet >200 and real signed Windows Owner/B acceptance only under separately approved scope.
