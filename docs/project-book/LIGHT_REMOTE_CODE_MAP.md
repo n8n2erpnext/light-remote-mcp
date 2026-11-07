@@ -1126,3 +1126,9 @@ deploy/scripts/selftest-t11-owner-verify-wait.mjs normalizes Windows CRLF on rea
 - DeviceRegistry.list({accountId}): early authenticated Owner projection filter before expensive per-device view; executor.allDeviceViews({accountId}) consumes batched session node counts.
 - DeviceAccessGrantRegistry.activeGrantsForDevices: read-only per-device grouped snapshot, same active lifetime/activation/clone/sort as original per-device method. desktop-v4-owner-snapshot filters grants again by authenticated Owner and device purpose, preserves <=200 fleet/session limits and post-await session revocation check.
 - deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs: 1k/10k synthetic fixtures, scope/grant parity, wrong Owner denial, no physical throughput claim. Integrated Windows and GC source gate, exact new SHA pending.
+
+## 2026-11-07 — T11-F13 A03 Owner sessions bounded-history projection
+- operator-host/desktop-v4-owner-snapshot.mjs: explicitly bounded <=200 session history window after Owner+owned-device scope; live-first priority for partial windows. coverage.sessions contains truthful total/returned/hasMore and active/hold total counts, without changing short-ID authority, grants or post-await Owner revocation fences.
+- client/desktop-v4/src/lib/native-snapshot.ts: native-only typed projection checks window metadata and rejects forged source/returned/counts; optional for older compatible server snapshots.
+- client/desktop-v4/src/FeatureScreens.tsx and App.tsx: partial history visible, aggregate counts accurate rather than inferred from incomplete window; Owner close remains unconnected.
+- operator-host/desktop-v4-owner-snapshot.test.mjs, client/desktop-v4/src/lib/native-snapshot.test.ts, client/desktop-v4/src/FeatureScreens.test.tsx: 199/200/201 boundary, live session priority, foreign scope, fake metadata and UI regression. CI pending new SHA. No durable cursor pagination or physical Windows deployment.
