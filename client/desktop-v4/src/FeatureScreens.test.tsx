@@ -81,7 +81,7 @@ describe('desktop V4 feature screen integrity', () => {
     expect(screen.getByText('j-123')).toBeTruthy();
     expect(screen.getByText('job_started')).toBeTruthy();
     expect(screen.getByText('Read only')).toBeTruthy();
-    expect(screen.getByText(/Showing the latest 1 of 257 Owner-scoped/)).toBeTruthy();
+    expect(screen.getByText('Current in-memory job window')).toBeTruthy();
     expect(screen.getByText('≥1')).toBeTruthy();
     expect(screen.queryByText('Activity stream unverified')).toBeNull();
   });

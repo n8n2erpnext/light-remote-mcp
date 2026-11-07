@@ -135,7 +135,7 @@ export function createDesktopOwnerTokenService({
     if(page===null||page===undefined)return null;
     if(!page||typeof page!=='object'||Array.isArray(page)||
        Object.keys(page).some(k=>!['kind','cursor','limit'].includes(k))||
-       !['devices','grants'].includes(page.kind)||
+       !['devices','grants','usage','jobs','sessions'].includes(page.kind)||
        (page.cursor!=null&&(typeof page.cursor!=='string'||page.cursor.length>512||
         (page.cursor&&!/^[A-Za-z0-9_-]+$/.test(page.cursor))))||
        (page.limit!==undefined&&(!Number.isSafeInteger(page.limit)||page.limit<1||page.limit>100)))
@@ -156,7 +156,10 @@ export function createDesktopOwnerTokenService({
     });
     if(result?.ok!==true||result.accountId!==family.accountId||
        (inventory?result.kind!==inventory.kind||!Array.isArray(result.rows)||
-        result.rows.length>100||result.coverage?.source!=='owner_live_membership_revision':
+        result.rows.length>100||result.coverage?.source!==
+          (inventory.kind==='usage'?'owner_current_month_usage':
+           ['jobs','sessions'].includes(inventory.kind)?'in_memory_current_window':
+           'owner_live_membership_revision'):
         !Array.isArray(result.devices)||!Array.isArray(result.sessions)||
         !Array.isArray(result.grants)||!Array.isArray(result.jobs)||
         !Array.isArray(result.events)))

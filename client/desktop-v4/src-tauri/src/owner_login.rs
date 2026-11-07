@@ -797,7 +797,7 @@ pub(crate) async fn desktop_owner_snapshot(
 pub(crate) async fn desktop_owner_inventory_page(
     state:State<'_,OwnerRuntime>,kind:String,cursor:Option<String>
 ) -> Result<Value,String> {
-    if kind!="devices" && kind!="grants" {
+    if kind!="devices" && kind!="grants" && kind!="usage" && kind!="jobs" && kind!="sessions" {
         return Err("desktop_inventory_unavailable".into());
     }
     if let Some(ref value)=cursor {

@@ -1,0 +1,65 @@
+import {afterEach,beforeEach,describe,it,expect,vi} from 'vitest';
+import {projectOwnerActivityPage,nativeOwnerActivityPage} from './native-activity';
+const base={ok:true,accountId:'owner',kind:'usage',asOf:1000,month:'2026-11',
+ rows:[{deviceId:'d-1',toolCalls:2,onlineMs:300,secret:'DO_NOT_EXPOSE'}],
+ coverage:{returned:1,total:250,hasMore:true,nextCursor:'NextCursor_1234',
+  source:'owner_current_month_usage'}};
+describe('F15 Owner typed pages',()=>{
+ beforeEach(()=>{vi.stubEnv('VITE_LR_V4_OWNER_LOGIN','1');vi.stubEnv('VITE_LR_V4_OWNER_SNAPSHOT','1');});
+ afterEach(()=>vi.unstubAllEnvs());
+ it('sanitizes current-month usage and rejects fabricated coverage',()=>{
+  const valid=projectOwnerActivityPage(base,'owner','usage');
+  expect(valid.state).toBe('ready');
+  expect(JSON.stringify(valid)).not.toContain('DO_NOT_EXPOSE');
+  for(const patch of [
+    {accountId:'other'}, {kind:'jobs'},
+    {coverage:{...base.coverage,source:'in_memory_current_window'}},
+    {coverage:{...base.coverage,total:0}},
+    {coverage:{...base.coverage,returned:2}},
+    {coverage:{...base.coverage,hasMore:false}},
+    {month:'2026-13'},
+    {rows:[base.rows[0],base.rows[0]]}
+  ])expect(projectOwnerActivityPage({...base,...patch},'owner','usage').state).toBe('unavailable');
+ });
+ it('job and session views omit untrusted output, workspace and token fields',()=>{
+  const jobs={...base,kind:'jobs',month:undefined,
+   coverage:{...base.coverage,source:'in_memory_current_window'},
+   rows:[{jobId:'job-1',deviceId:'d-1',state:'running',agentId:'agent-1',
+     sessionId:'s-1',startedAt:10,finishedAt:null,exitCode:null,stdout:'PRIVATE'}]};
+  const sessions={...jobs,kind:'sessions',rows:[
+   {sessionId:'s-1',deviceId:'d-1',state:'active',agentId:'agent-1',
+    createdAt:1,lastSeenAt:2,expiresAt:3,holdReason:null,activeJobs:0,
+    workspace:'/private',name:'Agent'}
+  ]};
+  expect(projectOwnerActivityPage(jobs,'owner','jobs').state).toBe('ready');
+  const result=projectOwnerActivityPage(sessions,'owner','sessions');
+  expect(result.state).toBe('ready');
+  expect(JSON.stringify(result)).not.toContain('workspace');
+  expect(JSON.stringify(projectOwnerActivityPage(jobs,'owner','jobs'))).not.toContain('stdout');
+  for(const value of [
+    {...jobs,rows:[jobs.rows[0],jobs.rows[0]]},
+    {...sessions,rows:[sessions.rows[0],sessions.rows[0]]},
+    {...sessions,coverage:{...sessions.coverage,source:'owner_current_month_usage'}}
+  ])expect(projectOwnerActivityPage(value,'owner',value.kind as 'jobs'|'sessions').state)
+     .toBe('unavailable');
+ });
+ it('native call passes ONLY kind and cursor, never account, URL or token',async()=>{
+  const invoke=vi.fn(async(_name:string,_args?:unknown)=>base);
+  const host={__TAURI_INTERNALS__:{invoke}} as unknown as Window;
+  const view=await nativeOwnerActivityPage('owner','usage',null,host);
+  expect(view.state).toBe('ready');
+  expect(invoke).toHaveBeenCalledWith('desktop_owner_inventory_page',
+   {kind:'usage',cursor:null});
+  expect(Object.keys(invoke.mock.calls[0]![1] as Record<string,unknown>))
+   .toEqual(['kind','cursor']);
+ });
+ it('native unavailable, malformed cursor or revoked Owner fails closed',async()=>{
+  const invoke=vi.fn(async(_name:string,_args?:unknown)=>{throw Error('denied');});
+  const host={__TAURI_INTERNALS__:{invoke}} as unknown as Window;
+  expect((await nativeOwnerActivityPage('owner','usage','BAD!',host)).state).toBe('unavailable');
+  expect(invoke).not.toHaveBeenCalled();
+  expect((await nativeOwnerActivityPage('owner','jobs',null,host)).state).toBe('unavailable');
+  vi.stubEnv('VITE_LR_V4_OWNER_SNAPSHOT','0');
+  expect((await nativeOwnerActivityPage('owner','sessions',null,host)).state).toBe('unavailable');
+ });
+});

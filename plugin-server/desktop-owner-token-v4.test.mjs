@@ -310,3 +310,39 @@ test('F14 native Owner page forwards only kind/cursor while binding live family'
  assert.equal(revoked.code,401,'revoked Owner family cannot query another page');
  assert.equal(calls.length,1);
 });
+
+test('F15 usage/jobs/sessions remain native-only verified family, with source-specific coverage',async()=>{
+ let calls=[];
+ const x=setup({operatorCall:async(method,path,body)=>{
+  calls.push({method,path,body});
+  const kind=body.page.kind;
+  return {ok:true,accountId:ACCOUNT,kind,asOf:1234,rows:[],
+   coverage:{returned:0,total:0,hasMore:false,nextCursor:null,
+     source:kind==='usage'?'owner_current_month_usage':'in_memory_current_window'},
+   ...(kind==='usage'?{month:'2026-11'}:{})};
+ }});
+ const issued=await x.service.exchange(x.input);
+ const auth={method:'POST',headers:{'content-type':'application/json',
+  authorization:'Bearer '+issued.access_token},query:{},body:{}};
+ for(const kind of ['usage','jobs','sessions']){
+  const responseBody=response();
+  await x.service.routeSnapshot({...auth,body:{page:{kind,limit:100,cursor:null}}},responseBody);
+  assert.equal(responseBody.code,200,'expected Owner native page '+kind);
+ }
+ assert.equal(calls.length,3);
+ assert.ok(calls.every(call=>call.body.accountId===ACCOUNT&&
+   call.body.accountSessionId===SESSION&&!('accountId' in call.body.page)));
+ const invalid=response();
+ await x.service.routeSnapshot({...auth,body:{page:{kind:'usage',deviceId:'foreign'}}},invalid);
+ assert.notEqual(invalid.code,200);
+ assert.equal(calls.length,3);
+ const browser=response();
+ await x.service.routeSnapshot({...auth,headers:{...auth.headers,origin:'https://evil.test'},
+   body:{page:{kind:'jobs'}}},browser);
+ assert.notEqual(browser.code,200);
+ x.setPortalActive(false);
+ const logout=response();
+ await x.service.routeSnapshot({...auth,body:{page:{kind:'sessions'}}},logout);
+ assert.equal(logout.code,401);
+ assert.equal(calls.length,3);
+});

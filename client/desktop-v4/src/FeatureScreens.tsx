@@ -8,7 +8,9 @@ import { Button } from './components/ui/button';
 import { Card, CardHeading } from './components/ui/card';
 import type { RouteKey } from './lib/routes';
 import type { SnapshotResult } from './lib/status';
-import type { OwnerSnapshot,OwnerDevice } from './lib/native-snapshot';
+import type { OwnerSnapshot,OwnerDevice,OwnerJob,OwnerSession } from './lib/native-snapshot';
+import type {UsageDeviceRow} from './lib/native-activity';
+import {useOwnerActivity} from './lib/use-owner-activity';
 import {useOwnerInventory} from './lib/use-owner-inventory';
 
 export type FeatureRoute = Extract<RouteKey,
@@ -61,8 +63,12 @@ function FilterBar({ label, action }: { label: string; action?: string }) {
 function timestamp(value:number|null) {
   return value===null?'—':new Date(value).toLocaleString();
 }
-function Sessions({snapshot}:{snapshot:OwnerSnapshot|null}) {
-  const rows=snapshot?.sessions||[];
+function Sessions({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAccountId:string|null}) {
+  const needsPage=snapshot?.coverage?.sessions?.hasMore===true;
+  const activity=useOwnerActivity('sessions',needsPage?ownerAccountId:null);
+  const paged=needsPage&&activity.pages.length>0;
+  const rows:ReadonlyArray<OwnerSession>=paged?activity.rows.filter(
+    (row):row is OwnerSession=>'createdAt' in row):snapshot?.sessions||[];
   const coverage=snapshot?.coverage?.sessions;
   const active=coverage?.activeTotal??rows.filter(s=>s.state==='active').length;
   const hold=coverage?.holdTotal??rows.filter(s=>s.state==='hold').length;
@@ -98,16 +104,25 @@ function Sessions({snapshot}:{snapshot:OwnerSnapshot|null}) {
     {snapshot&&coverage?.hasMore&&<div className="feature-unavailable" role="status">
       <ShieldAlert size={18} aria-hidden="true" />
       <div><strong>Verified session window — not complete history</strong>
-        <p>Showing {coverage.returned} of {coverage.total} Owner sessions. Active and held leases have priority. Older sessions are not shown; pagination and Owner close actions are not connected.</p></div>
+        <p>{paged?'Showing '+activity.loaded+' of '+activity.total+' current in-memory Owner sessions.':
+          'Showing '+coverage.returned+' of '+coverage.total+' Owner sessions; loading paged read.'} Not a durable archive. Owner close actions are not connected.</p>
+        {paged&&activity.hasMore&&<Button disabled={activity.pending} onClick={()=>void activity.loadMore()}>
+          {activity.pending?'Loading…':'Load more sessions'}</Button>}</div>
     </div>}
+    {activity.error&&<p role="alert">{activity.error}</p>}
     {!snapshot&&<SourceUnavailable description="Owner session listing unavailable. No session query or mutation was authorized." />}
   </div>;
 }
-function LiveMonitor({ status,snapshot }: { status: SnapshotResult | null; snapshot:OwnerSnapshot|null }) {
+function LiveMonitor({ status,snapshot,ownerAccountId }: { status: SnapshotResult | null; snapshot:OwnerSnapshot|null;ownerAccountId:string|null }) {
   const v = status?.state === 'ready' ? status.device : null;
   const connection = v?.connection === 'connected' ? 'Connected'
     : v?.connection === 'disconnected' ? 'Disconnected' : '—';
-  const rows=snapshot?.jobs||[],events=snapshot?.events||[];
+  const needsPage=snapshot?.coverage?.jobs.hasMore===true;
+  const activity=useOwnerActivity('jobs',needsPage?ownerAccountId:null);
+  const paged=needsPage&&activity.pages.length>0;
+  const rows:ReadonlyArray<OwnerJob>=paged?activity.rows.filter(
+    (row):row is OwnerJob=>'jobId' in row):snapshot?.jobs||[];
+  const events=snapshot?.events||[];
   const jobWindowIncomplete=snapshot?.coverage?.jobs.hasMore===true;
   return <div className="screen-content feature-dashboard">
     <div className="feature-kpi-grid">
@@ -147,9 +162,16 @@ function LiveMonitor({ status,snapshot }: { status: SnapshotResult | null; snaps
         </table></div>:<FeatureTable label="Agent jobs" columns={['Job', 'Device', 'Status', 'Started', 'Action']}
         description="Job cancellation is unavailable until a signed execution controller is connected. Stop-requested is not a terminal state." />}
     </Card>
-    {snapshot?<SourceUnavailable description={jobWindowIncomplete
-      ?'Showing the latest '+String(snapshot.coverage!.jobs.returned)+' of '+String(snapshot.coverage!.jobs.total)+' Owner-scoped in-memory jobs. Older rows are not shown. This is not durable job history and cannot cancel work.'
-      :'This is a bounded current Operator view, not complete durable history or execution authority. Job cancellation is not connected.'} />:<SourceUnavailable description="A Local Wall device snapshot cannot authorize job inspection, cancellation or execution. No synthetic records are displayed." />}
+    {snapshot&&jobWindowIncomplete&&<div className="feature-unavailable" role="status">
+      <ShieldAlert size={18} aria-hidden="true" />
+      <div><strong>Current in-memory job window</strong>
+        <p>Showing {paged?activity.loaded:snapshot.coverage!.jobs.returned} of {paged?activity.total:snapshot.coverage!.jobs.total} Owner jobs. This is not persisted job history; cancellation is not connected.</p>
+        {paged&&activity.hasMore&&<Button disabled={activity.pending} onClick={()=>void activity.loadMore()}>
+          {activity.pending?'Loading…':'Load more jobs'}</Button>}</div>
+    </div>}
+    {snapshot&&!jobWindowIncomplete&&<SourceUnavailable description="Current Operator job view only, not persistent historical audit or execution authority." />}
+    {activity.error&&<p role="alert">{activity.error}</p>}
+    {!snapshot&&<SourceUnavailable description="A Local Wall device snapshot cannot authorize job inspection, cancellation or execution. No synthetic records are displayed." />}
   </div>;
 }
 function Devices({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAccountId:string|null}) {
@@ -255,7 +277,12 @@ function CodexBridge() {
     <SourceUnavailable description="The bridge is optional and this pilot has no process authority or task provider." />
   </div>;
 }
-function Account({snapshot}:{snapshot:OwnerSnapshot|null}) {
+function Account({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAccountId:string|null}) {
+  const needsPage=snapshot?.coverage?.usage?.hasMore===true;
+  const activity=useOwnerActivity('usage',needsPage?ownerAccountId:null);
+  const paged=needsPage&&activity.pages.length>0;
+  const usageRows:ReadonlyArray<UsageDeviceRow>=paged?activity.rows.filter(
+    (row):row is UsageDeviceRow=>'toolCalls' in row):snapshot?.usage.byDevice||[];
   return <div className="screen-content feature-dashboard">
     <div className="feature-split">
       <Card><CardHeading description="Owner identity verified by native HTTPS + Operator">MY ACCOUNT</CardHeading>
@@ -282,7 +309,7 @@ function Account({snapshot}:{snapshot:OwnerSnapshot|null}) {
     <Card><CardHeading description="Server-issued monthly usage by Owner device">USAGE BY DEVICE</CardHeading>
       {snapshot?<div className="feature-table feature-table-scroll" role="region" aria-label="Usage by device">
         <table><thead><tr><th>Device</th><th>Month</th><th>Calls</th><th>Online hours</th><th>Plan</th></tr></thead>
-          <tbody>{snapshot.usage.byDevice.length?snapshot.usage.byDevice.map(row=><tr key={row.deviceId}>
+          <tbody>{usageRows.length?usageRows.map(row=><tr key={row.deviceId}>
             <td>{snapshot.devices.find(d=>d.deviceId===row.deviceId)?.name||row.deviceId}</td>
             <td>{snapshot.usage.month||'—'}</td><td>{row.toolCalls??'—'}</td>
             <td>{row.onlineMs===null?'—':(row.onlineMs/3600000).toFixed(1)}</td>
@@ -294,18 +321,21 @@ function Account({snapshot}:{snapshot:OwnerSnapshot|null}) {
     {snapshot?.coverage?.usage?.hasMore&&<div className="feature-unavailable" role="status">
       <ShieldAlert size={18} aria-hidden="true" />
       <div><strong>Partial per-device usage viewport</strong>
-        <p>Showing {snapshot.coverage.usage.returned} of {snapshot.coverage.usage.total} Owner usage records. Monthly call total is verified; per-device usage pagination is not connected.</p></div>
+        <p>Showing {paged?activity.loaded:snapshot.coverage.usage.returned} of {paged?activity.total:snapshot.coverage.usage.total} Owner usage records for the current UTC month. Monthly call total is verified; pages may change with live usage.</p>
+      {paged&&activity.hasMore&&<Button disabled={activity.pending} onClick={()=>void activity.loadMore()}>
+        {activity.pending?'Loading…':'Load more usage'}</Button>}</div>
     </div>}
+    {activity.error&&<p role="alert">{activity.error}</p>}
     {!snapshot&&<SourceUnavailable description="Account identity, billing and usage need verified Owner data. No local Wall status is treated as login." />}
   </div>;
 }
 export function FeatureScreen({ route, status, snapshot,ownerAccountId=null }: { route: FeatureRoute; status: SnapshotResult | null; snapshot?: OwnerSnapshot | null;ownerAccountId?:string|null }) {
   switch (route) {
-    case 'sessions': return <Sessions snapshot={snapshot??null} />;
-    case 'live-monitor': return <LiveMonitor status={status} snapshot={snapshot??null} />;
+    case 'sessions': return <Sessions snapshot={snapshot??null} ownerAccountId={ownerAccountId} />;
+    case 'live-monitor': return <LiveMonitor status={status} snapshot={snapshot??null} ownerAccountId={ownerAccountId} />;
     case 'devices': return <Devices snapshot={snapshot??null} ownerAccountId={ownerAccountId} />;
     case 'long-memory': return <LongMemory />;
     case 'codex-bridge': return <CodexBridge />;
-    case 'account': return <Account snapshot={snapshot??null} />;
+    case 'account': return <Account snapshot={snapshot??null} ownerAccountId={ownerAccountId} />;
   }
 }
