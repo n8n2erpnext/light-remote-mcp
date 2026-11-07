@@ -908,7 +908,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     internal static bool RelinkRuntimeSelfTest()
     {
-        const string bridge = ConnectionConfig.DefaultBridgeUrl;
+        var bridge = ConnectionConfig.DefaultBridgeUrl;
         const string token = "enr_e339c5b1-815d-44a9-8360-c097073b615f";
         // Trust the actual configured backend, not the previous Gold hostname.
         // A V4 QA install defaults to GoldABV2; older saved Gold enrollments
