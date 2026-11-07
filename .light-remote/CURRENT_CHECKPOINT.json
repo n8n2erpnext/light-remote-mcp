@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F10_P02B_RUST_OWNER_VERIFICATION_BOUNDED_WAIT_SOURCE_CI_PENDING",
+  "status": "T11_F10_CI01_WINDOWS_CRLF_STATIC_TEST_REPAIRED_NATIVE_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "F10/P02B Rust Owner verifies in background and private Wall/ABV2 commands now bounded wait 2.5s for SAME native generation+token, accept only positive new HTTPS last_verified. No revocation bypass; seven Rust race tests + Windows/GC static gate source PASS. Exact mac/Linux native cargo tests, Windows installer/GC/Docs/Truth pending. Owner physical/B pending, signed feed HOLD; no production deployment.",
+  "nextAction": "Exact F10 Desktop ba2f6a54 Windows 42351563405 failed source-only Owner Rust fixture CRLF split before native publish; CI01 normalizes line endings, forced-CRLF local test PASS, no runtime source changes. Next exact new SHA Windows full installer plus mac/Linux native cargo Rust tests, Docs/GC; physical Windows Owner/B OPEN, updater feed HOLD.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "67f1b94b6a7447a644e1a9fd086e9a2d3e263a84e9a989c1b1c03ed6f3e579f2",
+    "treeDigest": "d62d9c56afdbe92aa2b7a83f08242640237110aed2637a50e4dccb354b8853a1",
     "trackedFiles": 1333,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T07:30:24.286Z"
+    "recordedAt": "2026-11-07T07:33:13.725Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1993,5 +1993,19 @@
     "signedGoldUpdateFeed": "HOLD",
     "prodTouched": false,
     "priorF09WindowsInstallerPass": 42350051479
+  },
+  "t11_f10_ci01": {
+    "date": "2026-11-07",
+    "failedDesktopSha": "ba2f6a5438c0660b186660ca3f2e75b40365ace7",
+    "failedWindowsRun": 42351563405,
+    "failedWindowsJob": 128340623073,
+    "failure": "LF-only production-vs-test Rust source split on Windows CRLF",
+    "fix": "normalize CRLF before split",
+    "forcedCRLFLocalFixture": "PASS",
+    "newWindowsCI": "PENDING",
+    "RustNativeMacLinux": "PENDING",
+    "goldGCPriorSource": "4/4 SUCCESS",
+    "physicalWindows": "OPEN",
+    "liveChanged": false
   }
 }

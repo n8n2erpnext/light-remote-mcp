@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=p=>fs.readFileSync(new URL('../../'+p,import.meta.url),'utf8');
-const rust=read('client/desktop-v4/src-tauri/src/owner_login.rs');
+// GitHub Windows checkout uses CRLF: split the Rust test section only
+// after canonicalizing line endings, never relax the actual Owner checks.
+const rust=read('client/desktop-v4/src-tauri/src/owner_login.rs')
+  .replace(/\r\n/g,'\n');
 const win=read('.github/workflows/windows-native-client.yml');
 const gc=read('.github/workflows/gold-connection-lifecycle-gc.yml');
 const desktop=read('.github/workflows/desktop-v4-native-ci.yml');
