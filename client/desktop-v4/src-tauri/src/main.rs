@@ -6,6 +6,8 @@
 // Candidate native-only Owner refresh vault is never exposed by Tauri IPC.
 // All credential use will stay in Rust, never React JS or Local Wall cookies.
 mod endpoint_config;
+#[cfg(all(feature = "desktop-owner-login", target_os = "windows"))]
+mod wall_instance_proof;
 #[cfg(feature = "desktop-owner-login")]
 mod owner_vault;
 #[cfg(feature = "desktop-owner-login")]
@@ -47,6 +49,11 @@ fn open_local_wall(view: &str) -> Result<(), String> {
 // anonymous local service probe, NEVER the /api/status body or any credential.
 // This classifies a lock screen, NOT an authenticated Agent/device connection.
 fn probe_wall_presence() -> &'static str {
+    // Only a GoldABV2 native Windows install with the current-user key and
+    // fresh Agent HMAC may be shown as a responding Local Wall. The Owner
+    // browser session remains a separate authorization boundary.
+    #[cfg(all(feature = "desktop-owner-login", target_os = "windows"))]
+    if !wall_instance_proof::verify(){return "unavailable";}
     use std::io::{Read, Write};
     use std::net::TcpStream;
     use std::time::Duration;

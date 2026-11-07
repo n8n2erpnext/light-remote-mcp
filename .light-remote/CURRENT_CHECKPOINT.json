@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F08A_GOLDABV2_WINDOWS_OWNED_LISTENER_PID_PRODUCT_GATE_CI_PENDING",
+  "status": "T11_F08B_LOCAL_WALL_INSTANCE_NONCE_HMAC_NATIVE_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "F08A Windows GoldB2 wrong TCP listener port gate source: native Win32 owner PID/path and package marker, Tray stop no unowned kill, Updater/Watchdog installDir verification and Gold rollback namespace. Local source tests PASS, Windows native CI pending. Next F08B secure instance challenge/Rust parity; physical Owner Windows not touched.",
+  "nextAction": "F08B canonical route rev2 + Node/NET/Rust local Wall fresh nonce HMAC and current-user private key. Source HTTP/raw TCP, crypto vector, TS Vitest PASS; next inspect exact GitHub native Windows/Gold GC CI; fix failures. No owner Windows/production changes, signed feed HOLD.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "7b41ace3f80eea39774147b6473739524c3b389fdaab217c63b3e782533a6333",
-    "trackedFiles": 1324,
+    "treeDigest": "b4a5e9f5c0c21c4b9ec3be5002932e3ef439a93c1853a5d72bc6549ec2a863b0",
+    "trackedFiles": 1329,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T06:15:26.993Z"
+    "recordedAt": "2026-11-07T06:35:42.649Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1882,5 +1882,17 @@
     "signedChallenge": "DEFERRED_TO_F08B",
     "regularGoldSourceChanged": false,
     "liveChanged": false
+  },
+  "t11_f08b": {
+    "date": "2026-11-07",
+    "finding": "T10-10 further hardening",
+    "tests": "Node HTTP/raw TCP/crypto source/React PASS",
+    "windowsNative": "PENDING",
+    "macLinux": "PENDING",
+    "physicalWindows": "OPEN",
+    "realB": "OPEN",
+    "releaseFeed": "HOLD",
+    "productionTouched": false,
+    "priorF08aWinInstallerPass": 42346197211
   }
 }

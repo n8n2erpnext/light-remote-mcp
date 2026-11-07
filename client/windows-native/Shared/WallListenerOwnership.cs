@@ -94,7 +94,8 @@ internal static class WallListenerOwnership
             try
             {
                 using var process=Process.GetProcessById(pid);
-                if (IsExactInstalledRuntimePath(process.MainModule?.FileName,installDir))
+                if (IsExactInstalledRuntimePath(process.MainModule?.FileName,installDir) &&
+                    LocalWallChallengeProof.Probe(port,pid))
                     return true;
             }
             catch { /* Inaccessible PID is unknown, never trusted. */ }

@@ -21,6 +21,7 @@
   <ItemGroup>
     <Compile Include="..\Shared\CanonicalEndpoints.cs" Link="CanonicalEndpoints.cs" />
     <Compile Include="..\Shared\WallListenerOwnership.cs" Link="WallListenerOwnership.cs" />
+    <Compile Include="..\Shared\LocalWallChallengeProof.cs" Link="LocalWallChallengeProof.cs" />
     <EmbeddedResource Include="..\..\..\config\endpoints.json" LogicalName="LightRemote.Canonical.Endpoints.json" />
   </ItemGroup>
 </Project>

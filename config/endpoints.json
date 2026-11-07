@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "configRevision": 1,
+  "configRevision": 2,
   "selectedProfile": "goldabv2-lab",
   "profiles": {
     "goldabv2-lab": {
@@ -93,6 +93,11 @@
       "originRole": "local.wall",
       "method": "GET",
       "path": "/api/status"
+    },
+    "wallInstanceProof": {
+      "originRole": "local.wall",
+      "method": "GET",
+      "path": "/api/local-instance/proof"
     },
     "wallApprovePage": {
       "originRole": "local.wall",

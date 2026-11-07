@@ -2501,7 +2501,7 @@ function approvePage(brandSvg,csrf=''){return `<!doctype html><html lang="en"><h
 const wallCsrf=${JSON.stringify(csrf)},code=document.getElementById('code'),msg=document.getElementById('msg'),decision=document.getElementById('decision'),request=document.getElementById('request');let current=null;function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}async function lookup(){msg.className='muted';msg.textContent='Checking…';decision.style.display='none';current=null;const r=await fetch('/api/approve?code='+encodeURIComponent(code.value),{cache:'no-store'}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error==='approval_code_not_found'?'No pending request matches this code.':(j.error||'Unable to check code.');return;}current=j.request;msg.textContent='';request.innerHTML='<b>'+esc(current.label||'ChatGPT')+'</b> requests access to <b>'+esc(current.deviceName||'this device')+'</b><br><span class="muted">Agent '+esc(current.agentId||'')+' · code '+esc(current.userCode||'')+'</span>';decision.style.display='block';}async function decide(kind){if(!current)return;const r=await fetch('/api/approve',{method:'POST',headers:{'content-type':'application/json','x-light-remote-csrf':wallCsrf},body:JSON.stringify({code:code.value,decision:kind})}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error||'Request failed.';return;}decision.style.display='none';msg.className='ok';msg.textContent=kind==='approve'?'Access approved':'Access denied';setTimeout(()=>location.href='/',900);}document.getElementById('lookup').onclick=lookup;document.getElementById('approve').onclick=()=>decide('approve');document.getElementById('deny').onclick=()=>decide('deny');code.addEventListener('keydown',e=>{if(e.key==='Enter')lookup();});const q=new URLSearchParams(location.search).get('code');if(q){code.value=q;lookup();}
 </script></body></html>`;}
 
-export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,desktopWallSso=null,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,activityLogRoot=null,cancelRemoteJob,getPendingAccess,getAccountNotifications,getAbV2Pending,getAbV2Approve,getClientAnnouncements,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
+export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,desktopWallSso=null,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,activityLogRoot=null,cancelRemoteJob,getPendingAccess,getAccountNotifications,getAbV2Pending,getAbV2Approve,getClientAnnouncements,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
 
   if(!isAllowedLocalWallBindHost(host)) throw new Error('local_wall_bind_host_not_private');
   const loopback=['127.0.0.1','::1','localhost'].includes(String(host));
@@ -2615,6 +2615,26 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
   }
   const server=http.createServer(async(req,res)=>{try{
     const url=new URL(req.url||'/','http://local.wall');
+    // Nonce-based private local instance proof; never exposes an Owner/B
+    // credential, grants or local secret. No remote socket or Host spoofing.
+    if(instanceProof&&url.pathname===instanceProof.routePath){
+      const remote=String(req.socket.remoteAddress||'');
+      const loop=remote==='127.0.0.1'||remote==='::1'||
+        remote==='::ffff:127.0.0.1';
+      const configuredHost=(String(host).includes(':')?'['+String(host)+']':String(host)).toLowerCase()+':'+String(server.address()?.port??port);
+      if(!loop||String(req.headers.host||'').toLowerCase()!==configuredHost||
+         req.method!=='GET'||url.searchParams.size!==1||
+         !/^[a-f0-9]{64}$/.test(String(url.searchParams.get('nonce')||'')))
+        return json(res,403,{ok:false,error:'local_instance_proof_denied'});
+      try{
+        const response=JSON.stringify(instanceProof.respond(url.searchParams.get('nonce')));
+        // Stable bounded raw JSON for native TCP probe (no chunked transfer).
+        res.writeHead(200,{'content-type':'application/json; charset=utf-8',
+          'content-length':Buffer.byteLength(response),'cache-control':'no-store',
+          'x-content-type-options':'nosniff','connection':'close'});
+        return res.end(response);
+      }catch{return json(res,503,{ok:false,error:'local_instance_proof_unavailable'});}
+    }
     // Every SSO-protected request revalidates the current remote Owner family
     // and enrolled device before a local identity can be projected. No
     // cached Wall cookie can survive cloud revocation or a disconnected Owner.

@@ -97,11 +97,11 @@ internal static class Program
             Directory.CreateDirectory(Path.GetDirectoryName(marker)!);
             var config=CanonicalEndpoints.Gold;
             File.WriteAllText(marker,JsonSerializer.Serialize(new {
-                productId="regular-gold",configProfile=config.SelectedProfile,configRevision=1
+                productId="regular-gold",configProfile=config.SelectedProfile,configRevision=config.ConfigRevision
             }));
             var wrongProductRejected=!WallListenerOwnership.PackageMatches(temp);
             File.WriteAllText(marker,JsonSerializer.Serialize(new {
-                productId=config.ProductId,configProfile=config.SelectedProfile,configRevision=1
+                productId=config.ProductId,configProfile=config.SelectedProfile,configRevision=config.ConfigRevision
             }));
             var correctProductAccepted=WallListenerOwnership.PackageMatches(temp);
             var expectedPath=Path.Combine(temp,"runtime","node.exe");
@@ -123,11 +123,31 @@ internal static class Program
                 wrongListenerRejected=!WallListenerOwnership.IsExpectedWall(port,temp);
             }
             finally {unrelated.Stop();}
+            // Vector is generated independently by the Node.js HMAC module:
+            // key=0x11*32, nonce=0xaa*32, pid=4242, revision=2.
+            const string vectorMac="f747cc842827747022d75f5a889c7a34e55db1deefd08e5a98b0757abe510329";
+            var vectorKey=Enumerable.Repeat((byte)0x11,32).ToArray();
+            var vectorNonce=new string('a',64);
+            var fixtureJson=JsonSerializer.Serialize(new {
+                ok=true,pid=4242,productId=config.ProductId,
+                profile=config.SelectedProfile,configRevision=config.ConfigRevision,mac=vectorMac
+            });
+            var cryptoVectorOk=LocalWallChallengeProof.VerifyPayload(
+                fixtureJson,vectorNonce,4242,vectorKey,config.ConfigRevision);
+            var nonceTamperRejected=!LocalWallChallengeProof.VerifyPayload(
+                fixtureJson,new string('b',64),4242,vectorKey,config.ConfigRevision);
+            var pidTamperRejected=!LocalWallChallengeProof.VerifyPayload(
+                fixtureJson,vectorNonce,4243,vectorKey,config.ConfigRevision);
+            var productTamperRejected=!LocalWallChallengeProof.VerifyPayload(
+                fixtureJson.Replace(config.ProductId,"regular-gold",StringComparison.Ordinal),
+                vectorNonce,4242,vectorKey,config.ConfigRevision);
             var ok=wrongProductRejected&&correctProductAccepted&&exactNodePath&&
-                wrongNodePathRejected&&sawUnrelatedPort&&wrongListenerRejected;
+                wrongNodePathRejected&&sawUnrelatedPort&&wrongListenerRejected&&
+                cryptoVectorOk&&nonceTamperRejected&&pidTamperRejected&&productTamperRejected;
             File.WriteAllText(output,JsonSerializer.Serialize(new {
                 ok,wrongProductRejected,correctProductAccepted,exactNodePath,
-                wrongNodePathRejected,sawUnrelatedPort,wrongListenerRejected
+                wrongNodePathRejected,sawUnrelatedPort,wrongListenerRejected,
+                cryptoVectorOk,nonceTamperRejected,pidTamperRejected,productTamperRejected
             }));
             return ok;
         }

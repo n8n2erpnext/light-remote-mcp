@@ -102,6 +102,11 @@ on:
       - 'deploy/scripts/selftest-canonical-endpoints-native-t11.mjs'
       - 'client/windows-native/Shared/WallListenerOwnership.cs'
       - 'deploy/scripts/selftest-goldabv2-wall-listener-ownership-t11.mjs'
+      - 'device-agent/local-wall-instance-proof.mjs'
+      - 'client/windows-native/Shared/LocalWallChallengeProof.cs'
+      - 'client/desktop-v4/src-tauri/src/wall_instance_proof.rs'
+      - 'deploy/scripts/selftest-goldabv2-local-instance-proof-t11.mjs'
+      - 'deploy/scripts/selftest-goldabv2-local-instance-native-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-module-state-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-history-reader-t11.mjs'
       - 'deploy/scripts/selftest-desktop-native-deadlines-t11.mjs'
@@ -220,6 +225,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Node/Rust/NET canonical endpoint consumer regression' }
           node deploy/scripts/selftest-goldabv2-wall-listener-ownership-t11.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 wrong-listener PID and install product gate regression' }
+          node deploy/scripts/selftest-goldabv2-local-instance-native-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 local HMAC proof consumers regression' }
+          node deploy/scripts/selftest-goldabv2-local-instance-proof-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 local HMAC proof HTTP fixture regression' }
           node deploy/scripts/selftest-gold-wall-module-state-t11.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Long Memory module CAS/revision UI regression' }
           node deploy/scripts/selftest-gold-wall-history-reader-t11.mjs
@@ -362,7 +371,9 @@ jobs:
           $r=Get-Content $output -Raw | ConvertFrom-Json
           if (-not $r.ok -or -not $r.wrongProductRejected -or -not $r.correctProductAccepted -or
               -not $r.exactNodePath -or -not $r.wrongNodePathRejected -or
-              -not $r.sawUnrelatedPort -or -not $r.wrongListenerRejected) {
+              -not $r.sawUnrelatedPort -or -not $r.wrongListenerRejected -or
+              -not $r.cryptoVectorOk -or -not $r.nonceTamperRejected -or
+              -not $r.pidTamperRejected -or -not $r.productTamperRejected) {
             throw 'GoldABV2 accepted unowned port or wrong product/profile'
           }
           Write-Host 'goldabv2-native-wrong-listener-pid-profile-PASS'
