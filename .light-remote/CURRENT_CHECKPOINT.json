@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F15_P05_ALL_NATIVE_SUCCESS_GOLD_MIRROR_H2_OPEN",
+  "status": "T11_F15_H2_P06_GOLD_DOC_MIRROR_NATIVE_REAL_PG_CI_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "F15 P05 source 189f90ba: Windows full installer 42362406168 SUCCESS, Gold GC 42362405957 4/4, Desktop Web/macOS/Ubuntu 42362405937 3/3. NEXT F15-H2: reuse existing PG GoldJobLedger.listForOwner and Redis GoldSessionRedis with Owner cursor & retention-safe scope. Real Windows signed B and updater production HOLD.",
+  "nextAction": "F15-H2 existing PG GoldJobLedger Owner keyset and Redis-retained session windows source implemented; local 51/51 Node, 98/98 Vitest, TS/Vite/source gates PASS. New SHA actual disposable PostgreSQL GC + Windows/macOS/Linux QA PENDING. Physical Owner/B and production signed updater HOLD.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "db3bb52458b27920d45e6ad2836d69596244187d2df6c02bbef145b1e24fc0fd",
     "trackedFiles": 1244,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T10:14:06.176Z"
+    "recordedAt": "2026-11-07T10:36:07.373Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2267,5 +2267,29 @@
     "physicalWindowsOwnerB": "OPEN",
     "goldSignedUpdateFeed": "HOLD",
     "productionTouched": false
+  },
+  "t11_f15_h2_p06": {
+    "date": "2026-11-07",
+    "desktopParentSha": "33643d1559fe39c31f78e4a48f4896261e857dcb",
+    "source": "GoldJobLedger PostgreSQL lr_gold_job_records, no new migration",
+    "postgresqlKeyset": "started_at DESC/job_id DESC anchor, max100/page",
+    "ownerDeviceLimit": 20000,
+    "noSilentTruncation": true,
+    "ownerAccountAndDevicePGScope": true,
+    "postAwaitOwnerRevokeRelinkFence": true,
+    "cursorAgeMaxMs": 3600000,
+    "sessionSource": "GoldSessionRedis 7d TTL and SessionRegistry historyMs-pruned",
+    "immutableLongTermSessionAudit": false,
+    "productionOrLabChanged": false,
+    "localNodeTests": "51/51 PASS",
+    "localDesktopVitest": "98/98 PASS 20 files",
+    "localTypeScriptAndVite": "PASS",
+    "localSourceGates": "PASS",
+    "realPostgres17DisposableCI": "PENDING exact H2 SHA",
+    "goldGC": "PENDING exact H2 SHA",
+    "windowsNativeInstaller": "PENDING exact H2 SHA",
+    "desktopMacUbuntuWeb": "PENDING exact H2 SHA",
+    "physicalWindowsOwnerB": "OPEN",
+    "goldUpdateFeed": "HOLD"
   }
 }
