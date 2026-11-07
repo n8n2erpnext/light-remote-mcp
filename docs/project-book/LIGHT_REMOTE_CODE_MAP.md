@@ -807,3 +807,8 @@ client/desktop-v4/src-tauri/src/owner_login.rs: strict sync wall_snapshot() and 
 
 ## 2026-11-07 — T11-F10-CI01 CRLF owner Rust source fixture
 deploy/scripts/selftest-t11-owner-verify-wait.mjs normalizes Windows CRLF on reading owner_login.rs before source vs cfg(test) split; explicit forced CRLF local test validates strict production pathway check without falsely flagging Rust native test calls. No Rust runtime source or Owner grant modified.
+
+## 2026-11-07 — T11-F11 P01 UsageRegistry ownership
+
+- operator-host/usage-registry.mjs: summary → _accrueOpen uses process-local _lastPersistAt and _lastPersistMonth, 300000ms bounded read checkpoint. Hard expiry and UTC month boundary force synchronous existing atomic JSON persistence; ingest lifecycle, backfill, reconcile remain immediately durable (schema v1 unchanged). Crash re-accrual begins from persisted lastAccruedAt and does not double-count.
+- deploy/scripts/selftest-t11-usage-read-checkpoint.mjs: synthetic disk-write count, UTC month split, renewal, hard expiry, crash replay, account isolation and tool-call write fixture. Runs in windows-native-client.yml and gold-connection-lifecycle-gc.yml. Physical Windows, live persistence benchmark and exact new CI remain OPEN.

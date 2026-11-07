@@ -114,6 +114,8 @@ on:
       - 'client/desktop-v4/src/lib/scoped-read-poller.test.ts'
       - 'deploy/scripts/selftest-t11-desktop-poll-backpressure.mjs'
       - 'deploy/scripts/selftest-t11-owner-verify-wait.mjs'
+      - 'operator-host/usage-registry.mjs'
+      - 'deploy/scripts/selftest-t11-usage-read-checkpoint.mjs'
       - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
       - 'device-agent/filesystem-volume-inventory.mjs'
       - '.github/workflows/windows-native-client.yml'
@@ -243,6 +245,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'V4 Owner-scoped read polling backpressure regression' }
           node deploy/scripts/selftest-t11-owner-verify-wait.mjs
           if ($LASTEXITCODE -ne 0) { throw 'V4 native Owner verify overlap/revocation fence regression' }
+          node deploy/scripts/selftest-t11-usage-read-checkpoint.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 P01 usage read checkpoint/accounting regression' }
           node deploy/scripts/selftest-goldabv2-v2only-no-static-fleet-allowlist.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 V2-only / Owner-scoped no-static-allowlist gate failed' }
       - name: Gold Windows owner filesystem scope regression
