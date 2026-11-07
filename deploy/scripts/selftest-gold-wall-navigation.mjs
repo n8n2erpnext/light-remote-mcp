@@ -58,9 +58,12 @@ try{
   const disabledHtml=await disabled.text();
   assert.ok(disabledHtml.includes("disabledNotice.id='goldMemoryDisabledNotice'"));
   assert.ok(disabledHtml.includes("'Enable Long Memory'"));
-  assert.ok(disabledHtml.includes("memoryOffNotice.hidden=Boolean(f.longMemory)"));
-  assert.ok(disabledHtml.includes("longMemory:true"));
-  assert.ok(disabledHtml.includes("codexBridge:document.getElementById('goldCodexBridge').checked"));
+  assert.ok(disabledHtml.includes("memoryNotice.hidden=flags?.longMemory!==false"));
+  assert.ok(disabledHtml.includes("'Disable Long Memory'"));
+  assert.ok(disabledHtml.includes("goldSetModule('longMemory',true)"));
+  assert.ok(disabledHtml.includes("goldSetModule('longMemory',false)"));
+  assert.doesNotMatch(disabledHtml,/id="goldModulesSave"|id="goldLongMemory"/,
+    'No hidden checkbox/Save should define persisted module state');
   const disabledFlags=await fetch(base+'/api/gold/modules',{headers:{'x-test-owner':'yes'}});
   assert.equal(disabledFlags.status,200);
   const disabledState=await disabledFlags.json();

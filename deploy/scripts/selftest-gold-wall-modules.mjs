@@ -67,8 +67,10 @@ try {
 
   const wallHtml=await (await fetch(base+'/',{headers:owner})).text();
   assert.match(wallHtml,/id="goldModulesPanel"/);
-  assert.match(wallHtml,/id="goldLongMemory"/);
-  assert.match(wallHtml,/id="goldCodexBridge"/);
+  assert.match(wallHtml,/createGoldWallModuleController/);
+  assert.match(wallHtml,/goldMemoryDisableButton/);
+  assert.match(wallHtml,/goldCodexDisableButton/);
+  assert.doesNotMatch(wallHtml,/id="goldModulesSave"|id="goldLongMemory"|id="goldCodexBridge"/);
   assert.match(wallHtml,/Agent A\/B access/);
   assert.doesNotMatch(wallHtml,/href="\/projects"/);
   const scripts=[...wallHtml.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g)];

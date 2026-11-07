@@ -68,8 +68,10 @@ try{
  assert.match(approve,/href="https:\/\/goldabv2\.light-remote\.thaiduy\.digital\/account"/);
  assert.ok(approve.includes('id="abV2OwnerPreview"'),
   'V2 approval card must be present on the native Wall');
- assert.doesNotMatch(approve,/const wallCsrf=/,
-  'GoldABV2 must omit the V1 approval script, not merely hide its form');
+ assert.match(approve,/const wallCsrf="fixture-csrf"/,
+  'Signed V2 page has its OWN request-scoped CSRF initializer');
+ assert.doesNotMatch(approve,/id="lookup"|id="legacyApproveCard"|id="code"/,
+  'GoldABV2 must omit the legacy V1 UI, not hide it');
 
  for(const fragment of approve.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
   if(fragment[1].trim())new vm.Script(fragment[1],{filename:'abv2-lab-v1locked-approve.js'});

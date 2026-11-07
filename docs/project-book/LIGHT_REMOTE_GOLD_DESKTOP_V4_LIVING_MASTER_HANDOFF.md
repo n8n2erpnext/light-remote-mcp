@@ -1418,3 +1418,15 @@ T10-02 source fix: device-agent/wall-ui-refinement.mjs removes late high-specifi
 Both Windows full CI and Gold GC source workflow include the new regression. Exact SHA CI to be recorded separately; no production deploy/Windows install/Owner enrollment/grant/flag changes.
 
 Next T11-F02: symmetric Long Memory Enable/Disable; revision-monotonic store and multi-tab/CAS races; further T10/T09 fixes as separately reviewable patches.
+
+## 2026-11-07 — T11-F02 Long Memory persisted symmetric controls and revision-safe state
+
+Owner-authorized implementation in Desktop integration branch only; no physical Windows settings touched. T10-03 and T10-11 source changes in device-agent/local-wall.mjs:
+- Long Memory OFF has direct Enable and ON has direct Disable; Codex retains direct symmetric controls. Both actions use authenticated persisted state and expectedRevision CAS with module-other-flag preserved, no checkbox+Save or implicit memory delete. The old Save/checkbox source elements are removed; Memory settings remains available for work/capture/sync.
+- Authenticated GET /api/gold/modules returns the signed-in Owner identifier to partition local client state. The browser controller binds owner identity + local origin + revision and rejects reverse/older GET responses. In-flight AbortController/epoch prevents stale overwrites; only one configure POST per tab; 409 and unknown outcome cause fresh GET rather than blind mutation retry. When refresh itself fails the state stays UNKNOWN, not falsely ON/OFF. Browser BroadcastChannel sends invalidation only and never supplies trusted flags; visibility/focus re-GET revalidates account/Owner.
+- Optional notes, scopes, checkpoints, observer child loads are lazy per visible module page; child failure no longer changes a completed persisted toggle into an apparent failed mutation. Disabling Memory does NOT delete content, change Sync or grant Agent rights.
+- New deploy/scripts/selftest-gold-wall-module-state-t11.mjs uses the actual embedded client controller in VM: out-of-order rev14→rev13, simultaneous tabs, stale revision 409, explicit repeat only, pending/double-click fence, Owner identity switch, unknown outcome. Existing SQLite revision/Memory/Wall tests updated and PASS. Native physical UI and 2-tab browser geometry still separately OPEN.
+- Repaired CI test expectation in selftest-gold-ab-v2-lab-v1-lock.mjs that mistakenly forbade ANY wallCsrf initializer (the T11-F01 new request-scoped V2 initializer is required). Both F01 exact Windows and Gold GC CI runs at e0ed7ae9 failed that stale test; actual new rendered-click fixture and independent Account tests PASS. New commit reruns source/native CI with corrected expectation.
+- Windows installer and Gold GC workflow both execute new module-state regression. No production or isolated Lab deployment, no Owner Windows installation, and no live module state mutations were performed.
+
+Next: T11-F03 scope-specific reader cancellation, monotonic terminal/history and approval form refresh/unknown outcome, then T09 Windows and typed endpoints. CI exact SHA to be recorded separately.

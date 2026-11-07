@@ -95,6 +95,7 @@ on:
       - 'deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs'
       - 'deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs'
+      - 'deploy/scripts/selftest-gold-wall-module-state-t11.mjs'
       - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
       - 'device-agent/filesystem-volume-inventory.mjs'
       - '.github/workflows/windows-native-client.yml'
@@ -204,6 +205,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 signed Wall preview mode regression' }
           node deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 rendered B click CSRF + Wall layout contract regression' }
+          node deploy/scripts/selftest-gold-wall-module-state-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Long Memory module CAS/revision UI regression' }
           node deploy/scripts/selftest-goldabv2-v2only-no-static-fleet-allowlist.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 V2-only / Owner-scoped no-static-allowlist gate failed' }
       - name: Gold Windows owner filesystem scope regression

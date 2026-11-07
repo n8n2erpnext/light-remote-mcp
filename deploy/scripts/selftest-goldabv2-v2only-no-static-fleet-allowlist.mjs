@@ -34,7 +34,8 @@ assert.equal(goldAbV2LabV1Disabled({LR_GOLD_INSTANCE_ID:'abv2lab01',
 assert.equal(goldAbV2LabV1Disabled({LR_GOLD_INSTANCE_ID:'goldabv2-production'}),true);
 assert.equal(goldAbV2LabV1Disabled({LR_GOLD_INSTANCE_ID:'production'}),false);
 const wall=src('device-agent/local-wall.mjs');
-assert.match(wall,/base\.slice\(0,legacyStart\)\+fragment\+notice/);
+assert.match(wall,/base\.slice\(0,legacyStart\)\+/);
+assert.match(wall,/v2CsrfScript/);
 assert.match(wall,/class="joblead"/);
 assert.match(wall,/class="jobtime muted"/);
 assert.match(wall,/goldCodexDisabledNotice/);
