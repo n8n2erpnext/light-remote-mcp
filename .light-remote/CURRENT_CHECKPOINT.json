@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F12_P03_DESKTOP_SOURCE_GOLD_DOC_MIRROR_CI_PENDING",
+  "status": "T11_F12_P03_GC_SUCCESS_GOLD_DOC_MIRROR_WINDOWS_IN_PROGRESS",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "T11-F12/P03 Owner fleet/session/grant batch source and 1k/10k fixtures PASS; verify exact new P03 Windows/GC/Docs/Truth, F11 Windows 42353489618 pending; physical Owner/B OPEN, production/feed HOLD.",
+  "nextAction": "T11-F11/P01 Windows full installer CI SUCCESS at 766a5d32 run 42353489618; F12/P03 GC/Docs/Truth PASS on 0a7f1f6c, Windows 42354058336 PENDING; then physical Owner/B only with separate approval.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "db3bb52458b27920d45e6ad2836d69596244187d2df6c02bbef145b1e24fc0fd",
     "trackedFiles": 1244,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T08:07:06.332Z"
+    "recordedAt": "2026-11-07T08:09:52.872Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2027,12 +2027,14 @@
     "lifecycleWritesStayImmediate": true,
     "schemaVersion": 1,
     "localRegression": "PASS P01 plus v09 v10 v11",
-    "windowsCI": "IN PROGRESS run 42353489618",
+    "windowsCI": "SUCCESS run 42353489618",
     "goldGC": "SUCCESS run 42353489622",
     "physicalOwnerWindows": "OPEN",
     "liveInstalledProof": "NOT RUN",
     "productionTouched": false,
-    "docsTruth": "SUCCESS runs 42353489617 / 42353489694"
+    "docsTruth": "SUCCESS runs 42353489617 / 42353489694",
+    "artifactZipId": 13566009026,
+    "artifactZipSha256": "5d9f65c8145393d95e47aede8f098af466b2c17b14b716fbae4a9b4ac270b10f"
   },
   "t11_f12_p03": {
     "date": "2026-11-07",
@@ -2047,9 +2049,23 @@
     "ownerSnapshotTests": "7/7 PASS",
     "v09Grants": "PASS",
     "regression": "PASS local",
-    "nativeWindowsCI": "PENDING NEW SHA",
-    "goldGC": "PENDING NEW SHA",
+    "nativeWindowsCI": "IN PROGRESS run 42354058336",
+    "goldGC": "4/4 SUCCESS run 42354057994",
     "physicalOwnerB": "OPEN",
-    "prodTouched": false
+    "prodTouched": false,
+    "docsTruth": "SUCCESS runs 42354057958 / 42354057952"
+  },
+  "t11_f11_ci01": {
+    "date": "2026-11-07",
+    "desktopSourceSha": "766a5d32dabc421ca66ae3348c59271dda20730c",
+    "windowsRun": 42353489618,
+    "windows": "SUCCESS",
+    "goldGCRun": 42353489622,
+    "goldGC": "4/4 SUCCESS",
+    "docsRun": 42353489617,
+    "truthRun": 42353489694,
+    "artifactId": 13566009026,
+    "zipSha256": "5d9f65c8145393d95e47aede8f098af466b2c17b14b716fbae4a9b4ac270b10f",
+    "physicalWindows": "OPEN"
   }
 }
