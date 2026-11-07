@@ -27,8 +27,21 @@ assert.match(rust,/fn wall_snapshot_current\(&self,snap:&NativeOwnerWallSnapshot
 const code=rust.split('#[cfg(test)]\nmod tests {')[0];
 assert.doesNotMatch(code,/runtime\.wall_snapshot\(\)\?/);
 assert.doesNotMatch(code,/runtime\.wall_snapshot_current\(&snap\)/);
-assert.equal((code.match(/wall_snapshot_after_verification\(\)\.await/g)||[]).length,5);
-assert.equal((code.match(/wall_snapshot_current_after_verification\(&snap\)\.await/g)||[]).length,6);
+// F14 adds an independently gated Owner inventory read. Keep the original
+// F10 regression counts scoped to its original code, and enforce the new
+// read has its own positive Owner verification and generation fence.
+const f14Start='// T11-F14: one verified Owner inventory page.';
+const f14End='// T05: Real owner-bound pending A/B V2 and B approval via OS-local Agent.';
+const sections=code.split(f14Start);
+assert.equal(sections.length,2,'F14 native read must have an explicit boundary');
+const after=sections[1].split(f14End);
+assert.equal(after.length,2,'F14 native read must close before existing approval');
+const baseline=sections[0]+after[1];
+assert.equal((baseline.match(/wall_snapshot_after_verification\(\)\.await/g)||[]).length,5);
+assert.equal((baseline.match(/wall_snapshot_current_after_verification\(&snap\)\.await/g)||[]).length,6);
+assert.equal((after[0].match(/wall_snapshot_after_verification\(\)\.await/g)||[]).length,1);
+assert.equal((after[0].match(/wall_snapshot_current_after_verification\(&snap\)\.await/g)||[]).length,1);
+assert.match(after[0],/verify_owner_session\(&access,&account\)/);
 for(const test of [
  't11_f10_verify_inflight_bounded_wait_accepts_same_owner_only_after_https_success',
  't11_f10_mid_read_verify_success_preserves_old_generation_projection',
