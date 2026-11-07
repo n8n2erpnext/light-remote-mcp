@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity, Bell, Database, House, Monitor, RefreshCcw,
   Settings, Shield, Terminal, UserRound, Users, CircleHelp,
@@ -21,6 +21,7 @@ import {nativeAbv2Available,nativeAbv2Pending,nativeAbv2Approve,
   type NativeAbv2Status,type NativeAbv2Request} from './lib/native-abv2';
 import {nativeOwnerSnapshotAvailable,nativeOwnerSnapshot,
   type OwnerSnapshot,type SnapshotView} from './lib/native-snapshot';
+import {startScopedReadPoller,type ScopedReadPoller} from './lib/scoped-read-poller';
 
 const iconMap: Record<(typeof navRoutes)[number]['icon'], LucideIcon> = {
   house: House,
@@ -472,19 +473,21 @@ export function App() {
       setOwnerData({state:'unavailable',reason:'owner_api_unavailable'});
       return;
     }
-    let alive=true;
     const accountId=nativeOwner.accountId;
-    const load=()=>{void nativeOwnerSnapshot(accountId).then(next=>{
-      if(alive)setOwnerData(next);
-    });};
-    load();
-    const interval=window.setInterval(load,20_000);
-    return ()=>{alive=false;window.clearInterval(interval);};
+    setOwnerData({state:'unavailable',reason:'owner_snapshot_refreshing'});
+    const poller=startScopedReadPoller({
+      intervalMs:20_000,
+      task:()=>nativeOwnerSnapshot(accountId),
+      apply:setOwnerData,
+      healthy:(view)=>view.state==='ready',
+      unavailable:():SnapshotView=>({state:'unavailable',reason:'owner_api_unavailable'})
+    });
+    return ()=>poller.stop();
   },[nativeOwnerVerified,nativeOwner.accountId]);
   const [abv2Approving,setAbv2Approving]=useState(false);
+  const abv2Poller=useRef<ScopedReadPoller|null>(null);
   const refreshAbv2=useCallback(()=>{
-    if(!nativeAbv2Pilot)return;
-    void nativeAbv2Pending().then(setAbv2);
+    if(nativeAbv2Pilot)abv2Poller.current?.refreshNow();
   },[nativeAbv2Pilot]);
   const approveAbv2=async(request:NativeAbv2Request,bCode:string,consentCode:string)=>{
     if(!nativeAbv2Pilot||abv2Approving)return false;
@@ -496,11 +499,23 @@ export function App() {
     }finally{setAbv2Approving(false);}
   };
   useEffect(()=>{
-    if(!nativeAbv2Pilot)return;
-    refreshAbv2();
-    const timer=window.setInterval(refreshAbv2,8000);
-    return()=>window.clearInterval(timer);
-  },[nativeAbv2Pilot,refreshAbv2]);
+    if(!nativeAbv2Pilot){
+      setAbv2({state:'unavailable',reason:'owner_not_verified'});
+      return;
+    }
+    const poller=startScopedReadPoller({
+      intervalMs:8000,
+      task:nativeAbv2Pending,
+      apply:setAbv2,
+      healthy:(view)=>view.state==='ready',
+      unavailable:():NativeAbv2Status=>({state:'unavailable',reason:'agent_or_owner_unavailable'})
+    });
+    abv2Poller.current=poller;
+    return ()=>{
+      if(abv2Poller.current===poller)abv2Poller.current=null;
+      poller.stop();
+    };
+  },[nativeAbv2Pilot]);
 
   const nativeWallSsoPilot = !UI_DESIGN_PREVIEW && nativeWallSsoCandidateAvailable();
   const [wallSsoCode,setWallSsoCode]=useState('');

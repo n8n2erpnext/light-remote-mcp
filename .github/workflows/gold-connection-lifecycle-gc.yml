@@ -244,6 +244,9 @@ on:
       - 'deploy/scripts/selftest-gold-wall-module-state-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-history-reader-t11.mjs'
       - 'deploy/scripts/selftest-desktop-native-deadlines-t11.mjs'
+      - 'client/desktop-v4/src/lib/scoped-read-poller.ts'
+      - 'client/desktop-v4/src/lib/scoped-read-poller.test.ts'
+      - 'deploy/scripts/selftest-t11-desktop-poll-backpressure.mjs'
       - 'plugin-server/account-ab-v2.mjs'
       - 'plugin-server/account-portal.mjs'
       - 'plugin-server/account-portal/index.html'
@@ -512,6 +515,7 @@ jobs:
           node deploy/scripts/selftest-gold-wall-module-state-t11.mjs
           node deploy/scripts/selftest-gold-wall-history-reader-t11.mjs
           node deploy/scripts/selftest-desktop-native-deadlines-t11.mjs
+          node deploy/scripts/selftest-t11-desktop-poll-backpressure.mjs
           node deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs
           node deploy/scripts/selftest-gold-wall-ui-refinement.mjs
           node deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs
