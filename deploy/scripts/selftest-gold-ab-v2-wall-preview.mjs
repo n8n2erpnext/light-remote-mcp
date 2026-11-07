@@ -70,18 +70,20 @@ const auth={
   token==='fixture-csrf'&&req.headers['x-light-remote-csrf']==='fixture-csrf'
 };
 let calls=0,approvals=0,wall,approvalEnabled=true,pairingMode='legacy_allowed';
+let signedConsentRequired=true,expectedConsent='a'.repeat(32);
 try{
  wall=startLocalWall({host:'127.0.0.1',port:0,auth,
   getLocalStatus:async()=>({cloudDesiredConnected:true,cloudState:'connected'}),
   getRemoteStatus:async()=>({ok:true,pairingMode}),
   getAbV2Pending:async({wallUsername})=>{
    calls++;assert.equal(wallUsername,'owner@example.invalid');
-   return {ok:true,ownerApproveEnabled:approvalEnabled,pending:preview.pending};
+   return {ok:true,ownerApproveEnabled:approvalEnabled,
+    ownerConsentRequired:signedConsentRequired,pending:preview.pending};
   },getAbV2Approve:async data=>{
    approvals++;
    assert.deepEqual(data,{wallUsername:'owner@example.invalid',
     requestId,expectedAttempt:1,bCode:'ABCD-2345',
-    consentCode:goldAbV2LabWallBOnly()?undefined:'a'.repeat(32)});
+    consentCode:expectedConsent});
    return {ok:true,state:'granted',requestId,agentId:'agent-one',
     expiresAt:Date.now()+200000,absoluteExpiresAt:Date.now()+86400000};
   }});
@@ -150,6 +152,13 @@ try{
  assert.equal(grant.status,200);
  assert.equal((await grant.json()).state,'granted');
  assert.equal(approvals,1);
+ // Operator-signed B-only is sufficient WITHOUT a matching local env flag;
+ // the Wall MUST NOT invent a second consent challenge from local settings.
+ signedConsentRequired=false;expectedConsent=undefined;
+ const signedBOnly=await post('owner','fixture-csrf',
+   {requestId,expectedAttempt:1,bCode:'ABCD-2345'});
+ assert.equal(signedBOnly.status,200);
+ assert.equal(approvals,2);
  // Same real Local Wall handler, but strictly isolated Lab Owner login + B.
  process.env.LR_GOLD_INSTANCE_ID='abv2lab01';
  process.env.LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1='1';
@@ -158,11 +167,25 @@ try{
  assert.equal((await post('owner',null,{requestId,expectedAttempt:1,bCode:'ABCD-2345'})).status,403);
  assert.equal((await post('', 'fixture-csrf',{requestId,expectedAttempt:1,bCode:'ABCD-2345'})).status,401);
  assert.equal((await post('owner','fixture-csrf',{requestId,expectedAttempt:1,bCode:'INVALID'})).status,400);
+ // Local env says B-only but the signed Operator mode REQUIRES consent:
+ // owner must not be granted until the policy has been satisfied.
+ signedConsentRequired=true;
+ assert.equal((await post('owner','fixture-csrf',
+   {requestId,expectedAttempt:1,bCode:'ABCD-2345'})).status,400);
+ assert.equal(approvals,2);
+ signedConsentRequired=false;
  const localBOnly=await post('owner','fixture-csrf',{requestId,expectedAttempt:1,bCode:'ABCD-2345'});
  assert.equal(localBOnly.status,200);
  assert.equal((await localBOnly.json()).state,'granted');
- assert.equal(approvals,2);
+ assert.equal(approvals,3);
  assert.equal((await (await fetch(url+'/api/abv2/pending',{headers:{'x-test-owner':'owner'}})).json()).ownerConsentRequired,false);
+ signedConsentRequired=undefined;
+ assert.equal((await fetch(url+'/api/abv2/pending',{headers:{'x-test-owner':'owner'}})).status,503,
+  'unknown signed consent mode is not B-only');
+ assert.equal((await post('owner','fixture-csrf',
+   {requestId,expectedAttempt:1,bCode:'ABCD-2345'})).status,409,
+  'cannot mutate when signed consent mode is missing');
+ assert.equal(approvals,3);
  assert.match(wallAbV2PreviewFragment,/if\(consentRequired\)card.append\(consent\)/);
  await wall.close();wall=null;
  const fail=startLocalWall({host:'127.0.0.1',port:0,auth,
@@ -190,4 +213,15 @@ assert.match(router,/'abv2-pending-preview'/);
 assert.match(router,/'abv2-owner-approve'/);
 assert.match(agent,/channelRequest\(state,hub,'abv2-owner-approve'/);
 assert.match(agent,/getAbV2Approve:async data=>remoteAbV2OwnerApprove\(hub,data\)/);
+const operatorPreview=fs.readFileSync(new URL('../../operator-host/gold-ab-v2-signed-preview.mjs',import.meta.url),'utf8');
+const localWallSource=fs.readFileSync(new URL('../../device-agent/local-wall.mjs',import.meta.url),'utf8');
+const nativeIpc=fs.readFileSync(new URL('../../device-agent/desktop-abv2-native-ipc-v4.mjs',import.meta.url),'utf8');
+assert.match(operatorPreview,/ownerConsentRequired:!goldAbV2LabWallBOnly\(env\)/);
+assert.match(agent,/ownerConsentRequired:result.ownerConsentRequired/);
+assert.match(agent,/ownerConsentRequired:answer.ownerConsentRequired/);
+assert.match(agent,/const authority=await remoteAbV2PendingPreview\(hub,\{wallUsername\}\)/);
+assert.match(localWallSource,/ownerConsentRequired:response.ownerConsentRequired/);
+assert.match(nativeIpc,/typeof signed.ownerConsentRequired!=='boolean'/);
+assert.doesNotMatch(localWallSource,/ownerConsentRequired:!goldAbV2LabWallBOnly\(\)/);
+console.log('GOLD_ABV2_SIGNED_CONSENT_OPERATOR_AUTHORITY_NO_LOCAL_ENV_DRIFT_PASS');
 console.log('GOLD_ABV2_SIGNED_CHANNEL_WALL_OWNER_PREVIEW_AUTH_NO_GRANT=PASS');

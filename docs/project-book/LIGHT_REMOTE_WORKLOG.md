@@ -1333,3 +1333,14 @@ Exact Desktop SHA e780b7be178f7064806f572b8b6575e3dcef7d26: Windows Tray Client 
 Fix only the source-test line-ending handling: normalize CRLF using String.fromCharCode(13,10) to LF before checking the expected import order. Does not relax the module-doc-first check. Windows and Gold GC source regression must run this new test. Node --check, native source contract, git diff --check PASS locally.
 
 At exact prior SHA 743bc4dc, macOS job in Desktop V4 source QA 42343636705 had passed Native source parity and Owner/vault contract steps when inspected; final overall macOS/Linux run result still requires separate confirmation. New exact Windows full installer build is PENDING. Real physical Windows, production and GoldABV2 updater feed remain untouched/HOLD.
+
+## 2026-11-07 — T11-F07C Operator-signed consent-mode authority (T10-06)
+
+Owner-authorized VPS-ARM source/CI patch; no production, live Lab, Owner Windows, enrollment, grant or account settings changes.
+
+- operator-host/gold-ab-v2-signed-preview.mjs returns ownerConsentRequired from authoritative Operator GoldABV2 effective policy along with ownerApproveEnabled, after scoped authenticated signed-channel/device/connection verification.
+- device-agent/operator-agent.mjs demands both signed Boolean fields, relays the signed consent mode without local-process policy inference, and re-reads Operator signed current requestId/attempt/expiry/consent before mutation; the actual Operator signed approval and durable grant checks remain authoritative.
+- device-agent/local-wall.mjs renders signed consent state, validates fresh signed request, account approval enabled and consent before forwarding B; missing mode refuses read/mutation and local B-only env cannot override a signed Owner consent requirement. Retains Owner email authentication, same-origin CSRF, device policy, enrollment and B gates. device-agent/desktop-abv2-native-ipc-v4.mjs requires signed Boolean policy and refuses missing/unknown state.
+- Desktop fixture tests on signed preview, B-only despite local flag OFF, required consent despite local flag ON, missing policy fail closed, CSRF, separate Account route, durable signed approval and native IPC PASS. Backend Gold mirror retains its preexisting disposable two-key V1-lock function, and two-key fixture is adjusted. Gold tests PASS using a temporary symlink to Desktop node_modules because Gold worktree lacks zod; symlink removed without package installation. Regular Gold product unchanged.
+- Earlier native Windows full installer PASS on SHA 76131fec run 42343938447; native macOS/Linux QA PASS on 743bc4dc run 42343636705. Neither proves the NEW F07C SHA, real Owner B, or physical Windows; exact CI pending after commit.
+- Source rollback if needed: revert F07C commits on the two feature branches after review; no live rollback necessary since no deployment. Next T10-10 wrong-listener identity and current consent/polling hardening.

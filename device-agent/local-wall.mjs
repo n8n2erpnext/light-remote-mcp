@@ -8,7 +8,7 @@ import { createDesktopWallSsoBrowserBootstrapV4 } from './desktop-wall-sso-brows
 import { WALL_SSO_BROWSER_PAGE_V4, WALL_SSO_BROWSER_SCRIPT_V4, WALL_SSO_BROWSER_CSP_V4, desktopWallSsoBrowserPageV4, WALL_SSO_BROWSER_SCRIPT_SOURCE_V4 } from './desktop-wall-sso-browser-page-v4.mjs';
 import { createWallStatusCache } from './wall-status-cache.mjs';
 import { notificationBellStyles,notificationBellMarkup,notificationBellScript } from './wall-account-notifications.mjs';
-import {goldAbV2LabV1Disabled,goldAbV2LabWallBOnly} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
+import {goldAbV2LabV1Disabled} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import {wallAbV2PreviewFragment} from './wall-ab-v2-preview.mjs';
 import { localProcessPage } from './local-process-page.mjs';
 import { updateSettingsHtml } from './update-settings-page.mjs';
@@ -2804,11 +2804,13 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
         return json(res,403,{ok:false,error:'abv2_owner_account_login_required'});
       try{
         const response=await getAbV2Pending({wallUsername:owner.username});
-        if(response?.ok!==true||!Array.isArray(response.pending)||response.pending.length>5)
+        if(response?.ok!==true||!Array.isArray(response.pending)||response.pending.length>5||
+           typeof response.ownerConsentRequired!=='boolean'||
+           typeof response.ownerApproveEnabled!=='boolean')
           throw Error('abv2_wall_preview_invalid');
         return json(res,200,{ok:true,
           ownerApproveEnabled:response.ownerApproveEnabled===true,
-          ownerConsentRequired:!goldAbV2LabWallBOnly(),
+          ownerConsentRequired:response.ownerConsentRequired,
           shortId:/^[0-9A-HJKMNP-TV-Z]{6}$/.test(String(response.shortId||''))?response.shortId:null,
           pending:response.pending});
       }catch(error){
@@ -2833,9 +2835,25 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
          !/^av2_[a-f0-9]{32}$/.test(String(payload.requestId||''))||
          !Number.isSafeInteger(payload.expectedAttempt)||payload.expectedAttempt<1||
          !/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(String(payload.bCode||''))||
-         (!goldAbV2LabWallBOnly()&&!/^[A-Za-z0-9_-]{32}$/.test(String(payload.consentCode||''))))
+         (payload.consentCode!=null&&payload.consentCode!==''&&
+          !/^[A-Za-z0-9_-]{32}$/.test(String(payload.consentCode))))
         return json(res,400,{ok:false,error:'abv2_owner_approve_payload_invalid'});
       try{
+        // Re-read currently verified Operator attempt and effective consent
+        // before posting the mutation; stale/missing signed mode DENIES.
+        if(typeof getAbV2Pending!=='function')
+          throw Error('abv2_signed_consent_policy_unavailable');
+        const effective=await getAbV2Pending({wallUsername});
+        if(effective?.ok!==true||effective.ownerApproveEnabled!==true||
+           typeof effective.ownerConsentRequired!=='boolean'||
+           !Array.isArray(effective.pending)||!effective.pending.some(row=>
+             row.requestId===payload.requestId&&
+             row.attempt===payload.expectedAttempt&&
+             Number(row.expiresAt)>Date.now()))
+          return json(res,409,{ok:false,error:'abv2_signed_request_changed_or_policy_invalid'});
+        if(effective.ownerConsentRequired&&
+           !/^[A-Za-z0-9_-]{32}$/.test(String(payload.consentCode||'')))
+          return json(res,400,{ok:false,error:'abv2_owner_consent_required'});
         const approved=await getAbV2Approve({wallUsername,
           requestId:payload.requestId,expectedAttempt:payload.expectedAttempt,
           bCode:payload.bCode,consentCode:payload.consentCode});

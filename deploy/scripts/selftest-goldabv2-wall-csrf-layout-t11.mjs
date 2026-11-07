@@ -15,7 +15,7 @@ const wall=startLocalWall({
  getLocalStatus:async()=>({cloudDesiredConnected:true,cloudState:'connected'}),
  getRemoteStatus:async()=>({ok:true,pairingMode:'abv2_only'}),
  getAbV2Pending:async()=>({ok:true,ownerApproveEnabled:true,
-  pending:[{requestId:reqId,attempt:1,expiresAt:Date.now()+120000,
+  ownerConsentRequired:true,pending:[{requestId:reqId,attempt:1,expiresAt:Date.now()+120000,
     aCode:'ABCD02-GHFDX'}]}),
  getAbV2Approve:async payload=>{
   ownerApproved++;
