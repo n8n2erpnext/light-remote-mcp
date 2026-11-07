@@ -1088,3 +1088,6 @@ client/windows-native/GptOperator.Client/TrayApplicationContext.cs RelinkRuntime
 
 ## 2026-11-07 — T11-F07B-CI02 Rust module doc/import ordering
 client/desktop-v4/src-tauri/src/owner_vault.rs keeps //! inner docs before imports; the issuer-bound sha2 import follows the module attributes, required by Rust E0753. deploy/scripts/selftest-canonical-endpoints-native-t11.mjs checks header order. Native macOS/Linux CI on b8e947cf FAILED E0753; revalidation exact SHA pending.
+
+## 2026-11-07 — T11-F07B-CI03 Updater product-profile selftest compile
+client/windows-native/LightRemote.Updater/Program.cs uses System.Text.Json.JsonDocument to create offline valid and wrong-product fixture manifests. Compiler CS0103 on 312f31b8 Windows run; explicitly import System.Text.Json. deploy/scripts/selftest-canonical-endpoints-native-t11.mjs now protects namespace import. Gold updater feed stays on HOLD until approved product-bound manifest.
