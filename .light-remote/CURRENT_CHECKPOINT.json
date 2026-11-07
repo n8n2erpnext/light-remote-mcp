@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F15_P05_OWNER_ACTIVITY_PAGED_SOURCE_TEST_PASS_NATIVE_CI_PENDING_HISTORY_OPEN",
+  "status": "T11_F15_P05_NATIVE_WINDOWS_MAC_UBUNTU_WEB_GC_SUCCESS_H2_OPEN_PHYSICAL_HOLD",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "F15/P05 Owner current-month persisted usage and current in-memory job/session pagination source tests PASS; 40/40 Node, 95/95 Vitest, TypeScript/Vite, source fixture, P03/F10 PASS. Push and verify exact new SHA Windows/macos/Linux/Gold GC/Docs/Truth. True durable historical jobs/sessions F15-H2 OPEN; physical Windows/real B and updater HOLD.",
+  "nextAction": "F15 P05 source 189f90ba: Windows full installer 42362406168 SUCCESS, Gold GC 42362405957 4/4, Desktop Web/macOS/Ubuntu 42362405937 3/3. NEXT F15-H2: reuse existing PG GoldJobLedger.listForOwner and Redis GoldSessionRedis with Owner cursor & retention-safe scope. Real Windows signed B and updater production HOLD.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -175,7 +175,7 @@
     "treeDigest": "a34c5f8646e13dafad16f786be35c07067db1465b8d405ee0258485690f1d018",
     "trackedFiles": 1349,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T10:04:33.303Z"
+    "recordedAt": "2026-11-07T10:13:46.205Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2241,11 +2241,35 @@
     "localTypeScript": "PASS",
     "localViteBuild": "PASS",
     "nativeSourceGate": "PASS",
-    "newWindowsCI": "PENDING SHA",
-    "newGoldGC": "PENDING SHA",
-    "newDesktopQa": "PENDING SHA",
+    "newWindowsCI": "SUCCESS run 42362406168",
+    "newGoldGC": "4/4 SUCCESS run 42362405957",
+    "newDesktopQa": "3/3 SUCCESS run 42362405937",
     "physicalWindowsOwnerB": "OPEN",
     "goldUpdateFeed": "HOLD",
+    "productionTouched": false
+  },
+  "t11_f15_ci01": {
+    "date": "2026-11-07",
+    "exactSourceSha": "189f90ba580be6336e3361ab255d68fb3fd710c2",
+    "windowsRun": 42362406168,
+    "windowsStatus": "SUCCESS",
+    "artifactId": 13570224326,
+    "artifactSizeBytes": 180450242,
+    "artifactZipSha256": "cb8b6a84731f32a13c44a7aaa446ade022c097142c22dd33c1976a8100d8d6b6",
+    "desktopQaRun": 42362405937,
+    "desktopWebMacUbuntu": "3/3 SUCCESS",
+    "goldGCRun": 42362405957,
+    "goldGC": "4/4 SUCCESS",
+    "desktopDocsRun": 42362406048,
+    "desktopTruthRun": 42362406117,
+    "goldMirrorDocsRun": 42362431066,
+    "goldMirrorTruthRun": 42362431113,
+    "existingGoldJobLedger": "PostgreSQL lr_gold_job_records, listForOwner max250 deviceIds/max200 records, no cursor",
+    "existingGoldSessionRedis": "Redis session snapshot TTL 7d, SessionRegistry historyMs prunes",
+    "next": "F15-H2 reuse persistent stores for Owner keyset paging",
+    "durableHistoryOwnerPaging": "OPEN",
+    "physicalWindowsOwnerB": "OPEN",
+    "goldSignedUpdateFeed": "HOLD",
     "productionTouched": false
   }
 }
