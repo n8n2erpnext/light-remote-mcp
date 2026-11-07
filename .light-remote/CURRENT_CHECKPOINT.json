@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F14_CI01_GOLD_DOC_MIRROR_RETEST_PENDING",
+  "status": "T11_F14_CI02_P03_STATIC_TEST_GOLD_MIRROR_CI_PENDING",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "F14 first source c8fcca47 Windows 42358395152 and Gold GC 42358395294 FAILED from same F10 static call-count test (6 vs 5). CI01 scopes F10 baseline and separately asserts F14 Owner proof, local PASS. Push exact new SHA and rerun Windows/Gold GC; Web/macOS/Linux QA first SHA still running. Physical Owner/B and production HOLD.",
+  "nextAction": "F14 c8fcca47 Web/Ubuntu/macOS 42358395156 3/3 SUCCESS. Windows 42358602500 and Gold GC 42358602437 failed at P03 source fixture. CI02 fixes P03 full non-revoked Owner batch binding, local 1000/10000 F10 F14 32/32 PASS. Push then verify exact new Windows/GC SHA. Physical Owner/B and production HOLD.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "db3bb52458b27920d45e6ad2836d69596244187d2df6c02bbef145b1e24fc0fd",
     "trackedFiles": 1244,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T09:10:52.505Z"
+    "recordedAt": "2026-11-07T09:28:02.223Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2171,5 +2171,26 @@
     "runtimeChanged": false,
     "physicalOwnerB": "OPEN",
     "productionTouched": false
+  },
+  "t11_f14_ci02": {
+    "date": "2026-11-07",
+    "priorSourceSha": "175ad8d8eda514134a247b2cf016b7715f82a971",
+    "firstSourceSha": "c8fcca470ba1082bcf6f59a172b8023bd2b0fd5d",
+    "firstDesktopQaRun": 42358395156,
+    "webMacUbuntu": "3/3 SUCCESS",
+    "priorWindowsRun": 42358602500,
+    "priorWindows": "FAIL pre-native P03 fixture",
+    "priorGoldGCRun": 42358602437,
+    "priorGoldGC": "source-gate FAIL (3 others SUCCESS)",
+    "fixture": "deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs",
+    "localP03": "PASS 1000/10000 batch parity",
+    "localF10": "PASS",
+    "localF14": "PASS",
+    "localOperatorTests": "32/32 PASS",
+    "runtimeChanged": false,
+    "newWindowsCI": "PENDING NEW SHA",
+    "newGoldGC": "PENDING NEW SHA",
+    "physicalOwnerB": "OPEN",
+    "productionChanged": false
   }
 }
