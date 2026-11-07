@@ -4,7 +4,7 @@
 **Document status:** ACTIVE / MUST UPDATE AFTER EVERY TASK, including partial work and blocked work.
 **Created:** 2026-11-04, Asia/Ho_Chi_Minh (ICT, UTC+07).
 **Project:** Light Remote GoldABV2, Desktop V4 Native Owner Authentication, and T04 Desktop → Local Wall single sign-on.
-**Next active task:** **T11-F13/A03 Web/macOS/Linux source QA and Gold GC SUCCESS, exact Windows full installer 42355417770 pending.** Physical Owner/B and updater feed are separate HOLD gates. See newest CI receipt.
+**Next active task:** **T11-F14 — Owner-scoped pagination for over 200 devices/grants; F13 Windows/macOS/Linux/Web/Gold GC SUCCESS on 200e6410.** Physical Windows real Owner/B signed E2E and Gold updater feed remain HOLD. Latest CI02 receipt below.
 
 **Previous operational summary below is historical unless explicitly reverified in the 2026-11-07 T09 receipt.**
 **Safety state:** **SSO OFF / GOLDABV2 LAB PUBLIC mTLS LIVE (2026-11-05)**; Plugin/Operator base unchanged, isolated hardened TLS sidecar active, old plaintext15583 absent and public HTTPS200. Automatic rollback disarmed, manual rollback preserved. Scoped firewall15584 user timer is ENABLED/ACTIVE and successfully restored removed rule; actual VPS reboot NOT tested, disk rules.v4 still read-only and unchanged. No CA signer private key on ARM; Gold main UAT/production untouched.
@@ -1707,3 +1707,16 @@ F13/A03 source SHA Desktop 200e6410218c783dff1f359e59bfa10b7bc5ad21: Desktop V4 
 Windows Tray Client full integrated installer run 42355417770 on same exact source SHA was still IN PROGRESS when checked, no failure observed, NOT an acceptance PASS or downloadable release receipt yet. No physical Windows Owner/B signed E2E, deployment, enrollment/grants/SSO changes, live Lab mutation or signed Gold update feed. Do not use screenshots/browser fixture to assert installed Windows authority.
 
 NEXT: finish/inspect GitHub Windows run 42355417770, repair any failure by source patch + new CI or append exact SHA Windows SUCCESS and artifact SHA256 in a separate docs-only receipt. The remaining product gates are explicit durable pagination for fleet >200 and real signed Windows Owner/B acceptance only under separately approved scope.
+
+## 2026-11-07 — T11-F13-CI02 exact Windows/macOS/Linux/Web/GC SUCCESS and physical HOLD
+
+**Exact native evidence:** F13 source SHA 200e6410218c783dff1f359e59bfa10b7bc5ad21 on feat/desktop-v4-api-integration-20261103:
+- GitHub Windows Tray Client run 42355417770, job 128352326973 build-install-smoke COMPLETED SUCCESS. The integrated Desktop V4+Agent+Wall+RM build, full and compact installers, native Tray/package fixtures, installed smoke, updater helper staged promotion, broken-update rollback, uninstall and artifact upload all passed on GitHub-hosted runner. Complete ZIP artifact ID 13567343581, 180441089 bytes, ZIP SHA256 02fd630a131abdc397d95b04912c21413f0df2812eee45a8af391eca411dafc5; this is ZIP digest, NOT inner Setup.exe digest or signed production release.
+- Desktop V4 Source QA run 42355417736 3/3 SUCCESS: Web build, Vitest, isolated browser screenshot QA, macOS native and Ubuntu native parity. Gold Connection Lifecycle GC run 42355417670 4/4 SUCCESS, including 9/9 Owner session-history regression tests in source gate. Source Docs run 42355417700, Truth 42355417748 SUCCESS.
+- Follow-up F13-CI01 docs-only Desktop 4eb283f547539c471fcdb46da25993b161b42546 Docs 42355834846, Truth 42355834848 SUCCESS. Gold mirror d9227af933281df16c55da76eeef2d873223a0ed Docs 42355859167, Truth 42355859128 SUCCESS.
+
+**Scope and rollback HOLD:** No source deployment, production release, installed Windows client replacement, live Operator/Local Wall/Owner/B verification, enrollment/grant/SSO modification, or signed update-feed change. Existing Windows install and settings untouched. Any later physical UAT requires separately approved scoped installation and real B acceptance; preserve current installer/build and state, test local Wall versus /account independently, capture observations, and if regression restore trusted prior installer and state without altering revocation controls. This is preparation, NOT proof of physical rollback.
+
+**Status:** F13/A03 source and native CI FIXED + verified, physical real B E2E OPEN. Remaining source tasks: explicit cursor/pagination for fleet above 200 devices and over 200 active grants (current result is fail-closed rather than silently hide authority), Owner scoping and expiry/revocation negative tests, isolated p95/IOPS benchmarks. Gold signed updater feed stays HOLD; no fabricated URL.
+
+NEXT: T11-F14 scoped pagination design/source patch with regression and exact CI; no live deploy or Owner/Device policy change.
