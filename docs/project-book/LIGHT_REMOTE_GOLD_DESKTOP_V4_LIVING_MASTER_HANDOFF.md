@@ -1519,3 +1519,11 @@ F07B b8e947cf Desktop V4 source QA run 42343229392: Web build/browser job 128315
 Separately, F07B Windows run 42343229398 failed CS0133 at C# RelinkRuntimeSelfTest; F07B-CI01 commit 312f31b87eb23313f826070a1abb43aa3238e6c4 replaced const bridge with var, new Windows run 42343505401 was still in progress while this receipt was drafted. The Rust import repair is independent and does not change GoldABV2 device authority, grants, updater HOLD or configuration values.
 
 NEXT: verify new native macOS/Linux/Windows exact SHA, fix failures; no claim of completed signed/physical E2E, production or release signature.
+
+## 2026-11-07 — T11-F07B-CI03 Windows Updater C# JsonDocument compiler fix
+
+Exact F07B-CI01 Desktop SHA 312f31b87eb23313f826070a1abb43aa3238e6c4, Windows Tray Client run 42343505401 failed in Publish native tray client at updater compile, job 128316132218: Program.cs(73,29) and (77,29) CS0103 JsonDocument does not exist in current context. .NET Client publish had proceeded after previous CS0133 runtime const fix; this new error is missing using System.Text.Json in the updater Program.cs which performs the offline product-profile/wrong-signed-manifest test. Added the namespace import, no behavior/policy/feed changes. The executable-level wrong-product test remains in Windows CI; source contract checks this import to catch future removal. Static Node native-source regression PASS.
+
+Prior F07B-CI02 Rust E0753 module import fix is in Desktop SHA 743bc4dc1d7a09adb7e787f86c8ce73865303e3c; cross-platform macOS/Linux native CI still requires exact SHA PASS. This C# correction is independent. Full Windows .NET updater/watchdog/Tauri embedded app/installer smoke was NOT completed on failing 312f31b8 run. No production, Windows user app, Owner grant, enrollment or feed activation was changed.
+
+NEXT: new Windows + native macOS/Linux exact-run status and error repairs; only mark compiler, installer or E2E PASS when that specific job/step succeeded.

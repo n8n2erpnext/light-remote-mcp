@@ -45,6 +45,8 @@ assert.match(updater,/CanonicalEndpoints\.Gold\.UpdateManifestUrl \?\? throw new
 assert.match(updater,/RequireSignedUpdateIdentity\(root\)/);
 assert.match(updaterProgram,/LRU_PRODUCT_FEED_HOLD/);
 assert.match(updaterProgram,/wrongProductRejected/);
+assert.ok(updaterProgram.includes('using System.Text.Json;'),
+ 'Updater executable uses JsonDocument and must import System.Text.Json');
 assert.match(recovery,/"Updater", "GoldABV2"/);
 assert.match(src('client/windows-native/LightRemote.Updater/UpdateApplier.cs'),
  /CanonicalEndpoints\.Gold\.LocalPort\("wall"\)/);

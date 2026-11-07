@@ -1,4 +1,5 @@
 using LightRemote.Configuration;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace LightRemote.Updater;
