@@ -1204,3 +1204,15 @@ Reviewed desktop source `0f3c2ee1c826aa6a9e85a99b96811cd8cb2b2a92` plus Windows 
 ## 2026-11-07 — T10 documentation CI accepted; no remediation
 
 Gold527e82a1 Docs42266330285/Truth42266330287 SUCCESS; Desktop525b7eaf Docs42266341150/Truth42266341059 SUCCESS. Links/catalog/JSON/stagedTruth/whitespace/mirror PASS. Precision review clarified updater recovery check and proposal field names. Documentation only; T10-F01 review next, code/config/runtime changes NOT APPLIED.
+
+## 2026-11-07 — T11-F01 Implementation: rendered B CSRF and Wall three-region stream
+
+Owner authorized implementation/source/CI and explicitly superseded the former T09/T10 audit-only limitations, without changing local-first B/Owner policy or authorizing production deployment. Official Light Remote A/B session targets VPS-ARM; initial Desktop a4f7f98d and Gold 93f8a9d8 git states clean.
+
+T10-01 source fix: device-agent/local-wall.mjs V2-only approval renderer retains NO legacy V1 form/JS, but now emits its own escaped request-bound wallCsrf declaration before the V2 fragment. Existing local POST /api/abv2/approve Owner login, CSRF, origin, B validation and independent grant checks remain. Browser-script-from-actual-rendered-HTML test launches ephemeral HTTP Wall; simulated click sends real HTTP to fixture; valid Owner CSRF accepted, bad CSRF403, wrong Owner401. This is NOT a live durable B grant acceptance. /account retains its independent CSRF path, existing account-portal and Owner HTTP regressions tested separately.
+
+T10-02 source fix: device-agent/wall-ui-refinement.mjs removes late high-specificity four-column 58px/86px grid overriding the new three-child DOM. Explicit lead/command/actions grid, minmax(0,1fr), top alignment, separate mobile <=800px stacked regions; no command content truncated. New selftest-goldabv2-wall-csrf-layout-t11.mjs includes CSS contract. Real browser geometry, sidebar/DPI screenshots and physical Windows still OPEN.
+
+Both Windows full CI and Gold GC source workflow include the new regression. Exact SHA CI to be recorded separately; no production deploy/Windows install/Owner enrollment/grant/flag changes.
+
+Next T11-F02: symmetric Long Memory Enable/Disable; revision-monotonic store and multi-tab/CAS races; further T10/T09 fixes as separately reviewable patches.

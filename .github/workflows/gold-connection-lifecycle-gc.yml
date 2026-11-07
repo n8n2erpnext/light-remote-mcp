@@ -228,6 +228,7 @@ on:
       - 'plugin-server/device-public.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs'
       - 'deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs'
+      - 'deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs'
       - 'plugin-server/account-ab-v2.mjs'
       - 'plugin-server/account-portal.mjs'
       - 'plugin-server/account-portal/index.html'
@@ -487,6 +488,7 @@ jobs:
           node --check device-agent/wall-ab-v2-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-signed-preview.mjs
           node deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs
+          node deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs
           node deploy/scripts/selftest-gold-abv2-b-segmented-input.mjs
           node deploy/scripts/selftest-gold-wall-ui-refinement.mjs
           node deploy/scripts/selftest-gold-wall-pty-terminal-r3.mjs

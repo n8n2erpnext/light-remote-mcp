@@ -750,3 +750,6 @@ GoldABV2 Operator HTTP/helper/signed approval/grant and Pro Share owner/guest pa
 
 ## 2026-11-06 — T08/#617a V2-only approval page generation
 device-agent/local-wall.mjs /approve output builds only the signed V2 section or fail-closed notice when non-legacy; it strips the shared Gold V1 markup AND script. Gold regular legacy_allowed alone returns the legacy page. GoldABV2 /api/approve and pairing-code remain HTTP423 by product policy. Windows full CI excludes Linux-only POSIX 0600 key fixture but keeps platform-safe V2 authorization tests.
+
+## 2026-11-07 — T11-F01 signed V2 B CSRF and Wall grid
+device-agent/local-wall.mjs owns request-bound serialized CSRF initializer for V2-only /approve, independent of regular Gold legacy HTML. device-agent/wall-ui-refinement.mjs owns effective late .term .commandrow CSS with exactly three desktop regions and narrow one-column mobile. deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs runs request-rendered approval script click in isolated HTTP Wall fixture and static layout checks; wired to Windows installer and Gold GC workflows. Physical B and browser geometry OPEN.

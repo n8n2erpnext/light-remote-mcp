@@ -2732,8 +2732,15 @@ export function startLocalWall({modules=null,host='127.0.0.1',port=5491,brandSvg
         throw Error('wall_approve_layout_contract_changed');
       const notice=serverMode==='unknown'?
         '<section class="card" role="status"><strong>Agent authorization unavailable</strong><p class="muted">Waiting for signed Operator A/B mode. Reconnect the device and refresh. Legacy approval is unavailable while authority is unknown.</p></section>':'';
+      // The V2 renderer removes the V1 script too; supply its own request-bound
+      // CSRF initializer, not a hidden V1 dependency or a new authorization path.
+      const csrfToken=auth?.enabled?auth.csrfForRequest(req)||'':'';
+      const csrfLiteral=JSON.stringify(csrfToken).replace(/[<>&\u2028\u2029]/g,
+        c=>({'<':'\\u003c','>':'\\u003e','&':'\\u0026','\u2028':'\\u2028','\u2029':'\\u2029'}[c]));
+      const v2CsrfScript='<script>const wallCsrf='+csrfLiteral+';</script>';
       const html=serverMode==='legacy_allowed'?base:
-        base.slice(0,legacyStart)+fragment+notice+'</div></body></html>';
+        base.slice(0,legacyStart)+(serverMode==='abv2_only'?v2CsrfScript:'')+
+        fragment+notice+'</div></body></html>';
       res.writeHead(200,pageHeaders());res.end(decorateWallSubpage(html,{csrf:auth?.enabled?auth.csrfForRequest(req)||'':'',authEnabled:Boolean(auth?.enabled),moduleSupported:Boolean(modules),materialIcon,path:'/approve'}));return;
     }
     if(req.method==='GET'&&url.pathname==='/processes'){

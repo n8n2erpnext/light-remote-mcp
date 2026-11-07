@@ -76,7 +76,7 @@ body.wall-sidebar-collapsed .sidebar-items .pill,body.wall-sidebar-collapsed #en
 .term .head{font-size:12px;font-weight:650;padding:8px 10px}
 .term #jobs{padding:5px}
 .term .job{margin:5px 0}
-.term .commandrow{grid-template-columns:58px 86px minmax(220px,1fr) auto;gap:8px;padding:8px;align-items:center;font-size:13.5px}
+.term .commandrow{grid-template-columns:max-content minmax(0,1fr) auto;grid-template-areas:"lead command actions";gap:8px;padding:8px;align-items:start;font-size:13.5px}.term .joblead{grid-area:lead;display:flex;align-items:center;white-space:nowrap;gap:12px}.term .cmdwrap{grid-area:command;min-width:0}.term .actions{grid-area:actions;min-width:0;flex-wrap:wrap}
 .term .cmdwrap{gap:5px;align-items:center}
 .term .opbadge,.term .riskbadge{font:700 11px/1.4 'Google Sans Code',monospace;padding:1px 5px;border-radius:5px;margin-top:0;letter-spacing:0}
 .term .cmdtext{font-size:14px;line-height:1.5}
@@ -85,7 +85,7 @@ body.wall-sidebar-collapsed .sidebar-items .pill,body.wall-sidebar-collapsed #en
 .term .actions{gap:4px}
 .term .actions .btn{font:500 12px 'Google Sans Code',monospace;padding:4px 6px;gap:4px}
 .term .actions .mi{width:13px;height:13px}
-.term .resultline{font-size:13.5px}
+.term .resultline{font-size:13.5px}\n@media(max-width:800px){.term .commandrow{grid-template-columns:minmax(0,1fr);grid-template-areas:"lead" "command" "actions"}.term .cmdwrap,.term .actions{min-width:0;grid-column:1/-1}.term .joblead{grid-column:1/-1;flex-wrap:wrap}}
 
  /* Distribution-like outlined interactions: no underlined controls, hover border rather than label shift */
  :where(a,button,.btn,.tab,[role="button"],input[type="submit"]){text-decoration:none!important}
