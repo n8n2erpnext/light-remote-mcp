@@ -1,6 +1,6 @@
-//! Desktop V4 native shell. The ONLY IPC here opens the already-installed
-//! device's Local Wall in the system browser. Never boots an Agent, reads
-//! Owner credentials, changes a grant or takes a user-supplied URL/path.
+//! Desktop V4 native shell. The main-window ACL permits bounded local Wall,
+//! native Owner session commands, and Windows-only device Link/Relink IPC.
+//! No renderer-accessible credential vault, arbitrary user URL/path or shell.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 // Candidate native-only Owner refresh vault is never exposed by Tauri IPC.

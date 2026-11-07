@@ -53,6 +53,13 @@ describe('Unified Tauri2 Desktop V4 native trust boundary', () => {
     const authPermission = readFileSync(path.resolve(process.cwd(),'src-tauri/permissions/desktop-owner.toml'),'utf8');
     expect(authPermission).toContain('"desktop_owner_begin"');
     expect(authPermission).toContain('"desktop_owner_logout"');
+    const names=['desktop_native_action','desktop_link_ui_intent','desktop_owner_snapshot'];
+    for(const command of names){
+      expect(authPermission).toContain('"'+command+'"');
+      expect(manifest).toContain('"'+command+'"');
+    }
+    expect(rust).toContain('unified_tray::desktop_native_action');
+    expect(rust).toContain('unified_tray::desktop_link_ui_intent');
     expect(rust).toContain('#[cfg(not(feature = "desktop-owner-login"))]');
     expect(rust).toContain('tauri::generate_handler![open_local_wall, probe_local_wall]');
   });

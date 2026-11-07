@@ -763,6 +763,7 @@ jobs:
         env:
           VITE_LR_V4_UI_TEST: '0'
           VITE_LR_V4_OWNER_LOGIN: '1'
+          VITE_LR_V4_NATIVE_WINDOWS: '1'
           VITE_LR_V4_ABV2_NATIVE: '1'
           VITE_LR_V4_OWNER_SNAPSHOT: '1'
           VITE_LR_V4_WALL_SSO_CANDIDATE: '0'

@@ -10,7 +10,10 @@ function rec(v:unknown):Reply {
 }
 type Host=Window & {__TAURI_INTERNALS__?:{invoke?:(command:string,args?:Record<string,unknown>)=>Promise<unknown>}};
 export function nativeLinkAvailable(host:Window=window):boolean {
+  // The native Link command is registered ONLY in Windows Tauri. A compile-
+  // time Windows target marker avoids a broken Link UI on macOS/Linux Owner.
   return import.meta.env.VITE_LR_V4_OWNER_LOGIN==='1' &&
+    import.meta.env.VITE_LR_V4_NATIVE_WINDOWS==='1' &&
     typeof (host as Host).__TAURI_INTERNALS__?.invoke==='function';
 }
 async function invoke(action:string):Promise<Reply> {
@@ -45,6 +48,9 @@ export function DeviceLinkDialog({onClose}:{onClose:()=>void}){
   const [message,setMessage]=useState('');
   const [now,setNow]=useState(Date.now());
   const pollBusy=useRef(false);
+  // Parent snapshots/polling rerender often: onClose identity must never restart
+  // native status/preview requests and erase the currently visible device code.
+  const onCloseRef=useRef(onClose);onCloseRef.current=onClose;
   useEffect(()=>{
     let active=true;
     void Promise.all([invoke('status'),invoke('preview')]).then(([s,p])=>{
@@ -53,10 +59,10 @@ export function DeviceLinkDialog({onClose}:{onClose:()=>void}){
       if(s.ok!==true)setMessage('Device Agent is unavailable. Check Local Wall and try again.');
     });
     const clock=window.setInterval(()=>setNow(Date.now()),1000);
-    const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose();};
+    const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')onCloseRef.current();};
     window.addEventListener('keydown',onKey);
     return()=>{active=false;window.clearInterval(clock);window.removeEventListener('keydown',onKey);};
-  },[onClose]);
+  },[]);
   const remaining=Math.max(0,Math.ceil((link.expiresAt-now)/1000));
   useEffect(()=>{
     if(link.state!=='pending')return;

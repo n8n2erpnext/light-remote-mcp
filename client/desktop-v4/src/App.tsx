@@ -448,6 +448,7 @@ const titles: Record<RouteKey, { title: string; subtitle: string }> = {
 export function App() {
   const [route, setRoute] = useState<RouteKey>(() => parseRoute(window.location.hash));
   const [showDeviceLink,setShowDeviceLink]=useState(false);
+  const closeDeviceLink=useCallback(()=>setShowDeviceLink(false),[]);
   useEffect(()=>{
     if(!nativeLinkAvailable())return;
     let live=true;
@@ -623,7 +624,7 @@ export function App() {
         onCancelSignIn={nativeLoginAvailable ? cancelNativeOwner : undefined} />
       {nativeLinkAvailable()&&<Button type="button" variant="secondary"
         onClick={()=>setShowDeviceLink(true)}>Link / Relink this device</Button>}
-      {showDeviceLink&&nativeLinkAvailable()&&<DeviceLinkDialog onClose={()=>setShowDeviceLink(false)}/>}
+      {showDeviceLink&&nativeLinkAvailable()&&<DeviceLinkDialog onClose={closeDeviceLink}/>}
     </>;
   }
 
@@ -688,7 +689,7 @@ export function App() {
           {inDesignPreview ? 'Desktop V4 UI preview · not authenticated · no Owner grants or Agent mutations' : 'Desktop Owner verified - Local Wall and Agent A/B authorization remain separate'}
         </footer>
       </main>
-      {showDeviceLink&&nativeLinkAvailable()&&<DeviceLinkDialog onClose={()=>setShowDeviceLink(false)} />}
+      {showDeviceLink&&nativeLinkAvailable()&&<DeviceLinkDialog onClose={closeDeviceLink} />}
     </div>
   );
 }
