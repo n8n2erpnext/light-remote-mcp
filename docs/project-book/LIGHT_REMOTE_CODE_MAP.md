@@ -1094,3 +1094,6 @@ client/windows-native/LightRemote.Updater/Program.cs uses System.Text.Json.JsonD
 
 ## 2026-11-07 — T11-F07B-CI04 platform-portable Rust import source gate
 deploy/scripts/selftest-canonical-endpoints-native-t11.mjs normalizes Windows CRLF/LF before verifying owner_vault.rs module doc/import order. e780b7be Windows run 42343729271 failed the LF-only source regex; native code unchanged and new regression passes both checkout newline styles.
+
+## 2026-11-07 — T11-F07C signed consent authority
+operator-host/gold-ab-v2-signed-preview.mjs computes effective Owner consent in scoped signed preview. device-agent/operator-agent.mjs verifies/forwards signed consent and revalidates exact request before approval; device-agent/local-wall.mjs uses signed policy for display and fresh signed approval check; device-agent/desktop-abv2-native-ipc-v4.mjs fails closed on unknown. Signed-preview and wall-preview regression tests cover Operator B-only vs local flag, Owner-consent-required vs local B-only, missing policy, Owner CSRF and durable grant. Gold mirror retains its two-key disposable Lab V1-lock implementation. Live and physical proof pending.

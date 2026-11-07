@@ -50,6 +50,7 @@ try{
  const got=await preview(ctx);
  assert.equal(got.accountEmail,'owner@example.test');
  assert.equal(got.shortId,'R01KAP');
+ assert.equal(got.ownerConsentRequired,true,'normal Operator still demands independent Owner consent');
  assert.equal(got.pending.length,1);
  assert.equal(got.pending[0].aCode,'ABCD02-GHFDX');
  assert.ok(!JSON.stringify(got).includes('FORBIDDEN'));
@@ -57,6 +58,16 @@ try{
  assert.equal(calls[0].scope.owner,owner);
  assert.equal(calls[0].scope.device,deviceId);
  assert.equal(calls[0].scope.connection,connectionId);
+ const bOnly=await createGoldAbV2SignedPreview({
+   env:{...env,LR_GOLD_INSTANCE_ID:'abv2lab01',
+    LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1:'1',
+    LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY:'1'},
+   storage,accounts:{assertOperational:()=>account},
+   devices:{get:()=>device},connections:{assertConnected:()=>connection},
+   enrollments:{binding:()=>enrollment,policyView:()=>policy}
+ })(ctx);
+ assert.equal(bOnly.ownerConsentRequired,false,
+  'effective signed Operator Lab B-only mode must be displayed across devices');
  const count=calls.length;
  const denied=[
   ()=>preview({...ctx,proof:null}),

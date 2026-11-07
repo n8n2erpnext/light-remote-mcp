@@ -3,6 +3,7 @@
 import {GoldAbV2PendingRedis} from '../lib/gold-ab-v2-pending-redis.mjs';
 import {safeGoldAbV2Pending} from '../lib/gold-ab-v2-owner-pending-adapter.mjs';
 import {goldAbV2OwnerHttpConfig} from './gold-ab-v2-owner-http.mjs';
+import {goldAbV2LabWallBOnly} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import {EnrollmentError} from './enrollment-registry.mjs';
 
 // Preserve the Operator's canonical HTTP error→status mapping.
@@ -77,6 +78,9 @@ export function createGoldAbV2SignedPreview({
   return {ok:true,deviceId,accountEmail,shortId,
    ownerApproveEnabled:env.LR_GOLD_AB_V2_WALL_SIGNED_APPROVE==='1'&&
     env.LR_GOLD_AB_V2_WALL_OWNER_CONSENT==='1',
+   // The SAME Operator env and lab-only B policy govern the eventual durable
+   // grant; a signed device preview conveys the effective policy to Wall/IPC.
+   ownerConsentRequired:!goldAbV2LabWallBOnly(env),
    pending:rows.map(safeGoldAbV2Pending)};
  };
 }

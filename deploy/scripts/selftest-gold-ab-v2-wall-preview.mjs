@@ -69,18 +69,20 @@ const auth={
  csrfForRequest:()=> 'fixture-csrf',verifyRequestCsrf:(req,token)=>
   token==='fixture-csrf'&&req.headers['x-light-remote-csrf']==='fixture-csrf'
 };
-let calls=0,approvals=0,wall,approvalEnabled=true;
+let calls=0,approvals=0,wall,approvalEnabled=true,signedConsentRequired=true;
+let expectedConsent='a'.repeat(32);
 try{
  wall=startLocalWall({host:'127.0.0.1',port:0,auth,
   getLocalStatus:async()=>({cloudDesiredConnected:true,cloudState:'connected'}),
   getAbV2Pending:async({wallUsername})=>{
    calls++;assert.equal(wallUsername,'owner@example.invalid');
-   return {ok:true,ownerApproveEnabled:approvalEnabled,pending:preview.pending};
+   return {ok:true,ownerApproveEnabled:approvalEnabled,
+    ownerConsentRequired:signedConsentRequired,pending:preview.pending};
   },getAbV2Approve:async data=>{
    approvals++;
    assert.deepEqual(data,{wallUsername:'owner@example.invalid',
     requestId,expectedAttempt:1,bCode:'ABCD-2345',
-    consentCode:goldAbV2LabWallBOnly()?undefined:'a'.repeat(32)});
+    consentCode:expectedConsent});
    return {ok:true,state:'granted',requestId,agentId:'agent-one',
     expiresAt:Date.now()+200000,absoluteExpiresAt:Date.now()+86400000};
   }});
@@ -137,6 +139,10 @@ try{
  assert.equal(grant.status,200);
  assert.equal((await grant.json()).state,'granted');
  assert.equal(approvals,1);
+ signedConsentRequired=false;expectedConsent=undefined;
+ const signedBOnly=await post('owner','fixture-csrf',{requestId,expectedAttempt:1,bCode:'ABCD-2345'});
+ assert.equal(signedBOnly.status,200);
+ assert.equal(approvals,2,'Operator-signed B-only works independent of Local Wall env');
  // Same real Local Wall handler, but strictly isolated Lab Owner login + B.
  process.env.LR_GOLD_INSTANCE_ID='abv2lab01';
  process.env.LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1='1';
@@ -145,11 +151,23 @@ try{
  assert.equal((await post('owner',null,{requestId,expectedAttempt:1,bCode:'ABCD-2345'})).status,403);
  assert.equal((await post('', 'fixture-csrf',{requestId,expectedAttempt:1,bCode:'ABCD-2345'})).status,401);
  assert.equal((await post('owner','fixture-csrf',{requestId,expectedAttempt:1,bCode:'INVALID'})).status,400);
+ signedConsentRequired=true;
+ assert.equal((await post('owner','fixture-csrf',
+   {requestId,expectedAttempt:1,bCode:'ABCD-2345'})).status,400,
+   'Local B-only flag cannot overrule Operator-required Owner consent');
+ assert.equal(approvals,2);
+ signedConsentRequired=false;
  const localBOnly=await post('owner','fixture-csrf',{requestId,expectedAttempt:1,bCode:'ABCD-2345'});
  assert.equal(localBOnly.status,200);
  assert.equal((await localBOnly.json()).state,'granted');
- assert.equal(approvals,2);
+ assert.equal(approvals,3);
  assert.equal((await (await fetch(url+'/api/abv2/pending',{headers:{'x-test-owner':'owner'}})).json()).ownerConsentRequired,false);
+ signedConsentRequired=undefined;
+ assert.equal((await fetch(url+'/api/abv2/pending',{headers:{'x-test-owner':'owner'}})).status,503);
+ assert.equal((await post('owner','fixture-csrf',
+   {requestId,expectedAttempt:1,bCode:'ABCD-2345'})).status,409,
+   'Missing signed consent state cannot mutate a durable grant');
+ assert.equal(approvals,3);
  assert.match(wallAbV2PreviewFragment,/if\(consentRequired\)card.append\(consent\)/);
  await wall.close();wall=null;
  const fail=startLocalWall({host:'127.0.0.1',port:0,auth,

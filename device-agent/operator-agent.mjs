@@ -14,7 +14,6 @@ import { createPlatformAdapter } from './platform-adapters/index.mjs';
 import { invalidateCommandExistenceCache } from './platform-adapters/shared.mjs';
 import { startLocalWall } from './local-wall.mjs';
 import { startDesktopAbv2NativeAgentIpcV4 } from './desktop-abv2-native-ipc-v4.mjs';
-import {goldAbV2LabWallBOnly} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import {assertNotificationOwnerEmail} from './wall-account-notifications.mjs';
 import {createGoldWallModules} from './gold-wall-modules.mjs';
 import { filesystemVolumeInventory } from './filesystem-volume-inventory.mjs';
@@ -1306,11 +1305,14 @@ async function remoteAbV2PendingPreview(hub=DEFAULT_HUB,{wallUsername}={}){
   throw Object.assign(new Error('abv2_device_not_enrolled'),{status:403});
  const result=await channelRequest(state,hub,'abv2-pending-preview',{});
  if(result?.ok!==true||!Array.isArray(result.pending)||
-   result.deviceId!==state.enrollment.deviceId)
+   result.deviceId!==state.enrollment.deviceId||
+   typeof result.ownerConsentRequired!=='boolean'||
+   typeof result.ownerApproveEnabled!=='boolean')
   throw Object.assign(new Error('abv2_signed_preview_invalid'),{status:503});
  assertNotificationOwnerEmail(result.accountEmail,wallUsername);
  return {ok:true,shortId:/^[0-9A-HJKMNP-TV-Z]{6}$/.test(String(result.shortId||''))
   ?result.shortId:null,ownerApproveEnabled:result.ownerApproveEnabled===true,
+  ownerConsentRequired:result.ownerConsentRequired,
   pending:result.pending.slice(0,5).map(row=>({
   requestId:row.requestId,state:row.state,attempt:row.attempt,
   expiresAt:row.expiresAt,aCode:row.aCode,
@@ -1327,8 +1329,18 @@ async function remoteAbV2OwnerApprove(hub=DEFAULT_HUB,{wallUsername,requestId,ex
    !/^av2_[a-f0-9]{32}$/.test(String(requestId||''))||
    !Number.isSafeInteger(expectedAttempt)||expectedAttempt<1||
    !/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(String(bCode||''))||
-   (!goldAbV2LabWallBOnly()&&!/^[A-Za-z0-9_-]{32}$/.test(String(consentCode||''))))
+   (consentCode!=null&&consentCode!==''&&
+    !/^[A-Za-z0-9_-]{32}$/.test(String(consentCode))))
   throw Error('abv2_wall_approval_invalid');
+ // Never infer B-only from a Windows process environment. The signed
+ // Operator preview must show the exact current attempt and consent policy.
+ const authority=await remoteAbV2PendingPreview(hub,{wallUsername});
+ if(authority.ownerApproveEnabled!==true||
+    !authority.pending.some(row=>row.requestId===requestId&&
+      row.attempt===expectedAttempt&&Number(row.expiresAt)>Date.now())||
+    (authority.ownerConsentRequired&&
+     !/^[A-Za-z0-9_-]{32}$/.test(String(consentCode||''))))
+   throw Error('abv2_signed_attempt_or_consent_denied');
  const result=await channelRequest(state,hub,'abv2-owner-approve',{
   action:'approve',ownerLoggedIn:true,wallUsername,requestId,expectedAttempt,bCode,consentCode
  });
@@ -1535,7 +1547,7 @@ async function daemon(args){
         ok:true,deviceId:answer.deviceId,accountEmail:answer.accountEmail,
         shortId:answer.shortId||null,
         ownerApproveEnabled:answer.ownerApproveEnabled===true,
-        ownerConsentRequired:!goldAbV2LabWallBOnly(),
+        ownerConsentRequired:answer.ownerConsentRequired,
         pending:answer.pending.map(row=>({
           requestId:row.requestId,attempt:row.attempt,
           expiresAt:row.expiresAt,aCode:row.aCode

@@ -97,7 +97,9 @@ export async function startDesktopAbv2NativeAgentIpcV4({
         owner.accountId!==before.accountId)throw bad();
      const signed=await preview(owner);
      if(signed?.ok!==true||signed.deviceId!==before.deviceId||
-       !Array.isArray(signed.pending)||signed.pending.length>5)throw bad();
+       !Array.isArray(signed.pending)||signed.pending.length>5||
+       typeof signed.ownerConsentRequired!=='boolean'||
+       typeof signed.ownerApproveEnabled!=='boolean')throw bad();
      const rows=signed.pending.map(pendingRow);
      if(rows.some(row=>!row))throw bad();
      const current=readEnrollment();
