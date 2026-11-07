@@ -1479,3 +1479,11 @@ P03 source after verifying T09 findings against F11:
 Remaining: physical Owner/B Windows E2E, full installed fleet read p95, durable pagination when Owner has >200 devices, and real scaling benchmark are OPEN. Cap >200 still rejects fail-closed, it is NOT silently truncated. Production/UAT, Lab runtime, migration, enrollment/grants, SSO, signed updater/feed, Long Memory and Windows installation unchanged.
 
 NEXT: check exact new Desktop P03 Windows native installer, Gold GC/Docs/Truth; repair any CI source failure and record receipt. Continue only source/CI without independently authorized physical Windows or real signed B.
+
+## 2026-11-07 — T11-F11-CI01 P01 exact Windows acceptance; T11-F12 GC source acceptance
+
+F11/P01 Desktop SHA 766a5d32dabc421ca66ae3348c59271dda20730c GitHub Windows Tray Client run 42353489618 COMPLETE SUCCESS, including P01 executable source fixture, native .NET/Rust packaging, unified Windows Desktop V4+Agent+Wall+RM setup, installed smoke/rollback and upload. Complete ZIP artifact ID 13566009026, 180444427 bytes, SHA256 5d9f65c8145393d95e47aede8f098af466b2c17b14b716fbae4a9b4ac270b10f. ZIP checksum is not a claim about the Setup executable inside. F11 Gold GC 42353489622 all 4 jobs SUCCESS; Docs 42353489617 SUCCESS, Project Truth 42353489694 SUCCESS. Gold F11 mirror 48b6b957 Docs/Truth PASS.
+
+F12/P03 Desktop source SHA 0a7f1f6c444aaca0e9e191ebb590ef5f764051b8 Gold GC run 42354057994 all four jobs SUCCESS, including source-gate actual Node P01+P03 fixtures. GC logs independently show 1k/10k P03 synthetic batch, Owner/grant parity and P01 crash accounting PASS. Docs 42354057958 SUCCESS and Project Truth 42354057952 SUCCESS; Gold P03 mirror ee271ae4 Docs/Truth SUCCESS. Native Windows full installer run 42354058336 was STILL IN PROGRESS at this receipt and must not be marked passed. P03 frontend/Owner physical QA is not inferred from GC.
+
+No installed Windows owner QA, live signed Owner/B, production rollout, grant/SSO changes or updater feed release occurred. NEXT: check the exact F12 Windows run and append CI receipt only when complete. Physical Windows E2E and signed release remain separately gated.
