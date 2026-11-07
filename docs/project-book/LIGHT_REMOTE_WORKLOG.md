@@ -1325,3 +1325,11 @@ Exact F07B-CI01 Desktop SHA 312f31b87eb23313f826070a1abb43aa3238e6c4, Windows Tr
 Prior F07B-CI02 Rust E0753 module import fix is in Desktop SHA 743bc4dc1d7a09adb7e787f86c8ce73865303e3c; cross-platform macOS/Linux native CI still requires exact SHA PASS. This C# correction is independent. Full Windows .NET updater/watchdog/Tauri embedded app/installer smoke was NOT completed on failing 312f31b8 run. No production, Windows user app, Owner grant, enrollment or feed activation was changed.
 
 NEXT: new Windows + native macOS/Linux exact-run status and error repairs; only mark compiler, installer or E2E PASS when that specific job/step succeeded.
+
+## 2026-11-07 — T11-F07B-CI04 Windows CRLF source test portability correction
+
+Exact Desktop SHA e780b7be178f7064806f572b8b6575e3dcef7d26: Windows Tray Client GitHub run 42343729271 FAILED at Server authoritative GoldABV2 V1 lock regression. Job 128316830492 reported AssertionError Rust imports must be after module docs at deploy/scripts/selftest-canonical-endpoints-native-t11.mjs:69. The original CI02 test expected LF-only newline between keyring and sha2 imports; GitHub-hosted Windows checkout supplies CRLF for the Rust source. Native Rust source itself had correct order, no security boundary was bypassed, and the failure happened before subsequent .NET/installer acceptance checks.
+
+Fix only the source-test line-ending handling: normalize CRLF using String.fromCharCode(13,10) to LF before checking the expected import order. Does not relax the module-doc-first check. Windows and Gold GC source regression must run this new test. Node --check, native source contract, git diff --check PASS locally.
+
+At exact prior SHA 743bc4dc, macOS job in Desktop V4 source QA 42343636705 had passed Native source parity and Owner/vault contract steps when inspected; final overall macOS/Linux run result still requires separate confirmation. New exact Windows full installer build is PENDING. Real physical Windows, production and GoldABV2 updater feed remain untouched/HOLD.

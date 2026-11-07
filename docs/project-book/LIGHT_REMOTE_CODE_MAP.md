@@ -783,3 +783,6 @@ client/desktop-v4/src-tauri/src/owner_vault.rs keeps //! inner docs before impor
 
 ## 2026-11-07 — T11-F07B-CI03 Updater product-profile selftest compile
 client/windows-native/LightRemote.Updater/Program.cs uses System.Text.Json.JsonDocument to create offline valid and wrong-product fixture manifests. Compiler CS0103 on 312f31b8 Windows run; explicitly import System.Text.Json. deploy/scripts/selftest-canonical-endpoints-native-t11.mjs now protects namespace import. Gold updater feed stays on HOLD until approved product-bound manifest.
+
+## 2026-11-07 — T11-F07B-CI04 platform-portable Rust import source gate
+deploy/scripts/selftest-canonical-endpoints-native-t11.mjs normalizes Windows CRLF/LF before verifying owner_vault.rs module doc/import order. e780b7be Windows run 42343729271 failed the LF-only source regex; native code unchanged and new regression passes both checkout newline styles.
