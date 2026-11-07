@@ -104,7 +104,7 @@ function Sessions({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAc
     {snapshot&&coverage?.hasMore&&<div className="feature-unavailable" role="status">
       <ShieldAlert size={18} aria-hidden="true" />
       <div><strong>Verified session window — not complete history</strong>
-        <p>{paged?'Showing '+activity.loaded+' of '+activity.total+' current in-memory Owner sessions.':
+        <p>{paged?'Showing '+activity.loaded+' of '+activity.total+(activity.pages[0]?.coverage.source==='redis_retained_session_window'?' Redis-backed retention-window':' current in-memory')+' Owner sessions.':
           'Showing '+coverage.returned+' of '+coverage.total+' Owner sessions; loading paged read.'} Not a durable archive. Owner close actions are not connected.</p>
         {paged&&activity.hasMore&&<Button disabled={activity.pending} onClick={()=>void activity.loadMore()}>
           {activity.pending?'Loading…':'Load more sessions'}</Button>}</div>
@@ -117,9 +117,10 @@ function LiveMonitor({ status,snapshot,ownerAccountId }: { status: SnapshotResul
   const v = status?.state === 'ready' ? status.device : null;
   const connection = v?.connection === 'connected' ? 'Connected'
     : v?.connection === 'disconnected' ? 'Disconnected' : '—';
-  const needsPage=snapshot?.coverage?.jobs.hasMore===true;
-  const activity=useOwnerActivity('jobs',needsPage?ownerAccountId:null);
-  const paged=needsPage&&activity.pages.length>0;
+  // PostgreSQL can retain far more Owner jobs than the current in-memory
+  // snapshot even when its 200-row coverage is not truncated.
+  const activity=useOwnerActivity('jobs',ownerAccountId);
+  const paged=Boolean(ownerAccountId)&&activity.pages.length>0;
   const rows:ReadonlyArray<OwnerJob>=paged?activity.rows.filter(
     (row):row is OwnerJob=>'jobId' in row):snapshot?.jobs||[];
   const events=snapshot?.events||[];
@@ -127,7 +128,7 @@ function LiveMonitor({ status,snapshot,ownerAccountId }: { status: SnapshotResul
   return <div className="screen-content feature-dashboard">
     <div className="feature-kpi-grid">
       <UnknownKpi label="LOCAL CONNECTION" hint={v ? 'Read-only Local Wall response' : 'Not verified'} icon={WifiOff} value={connection} />
-      <UnknownKpi label="RUNNING JOBS" hint={jobWindowIncomplete?'At least this many in the bounded job window':'Current Owner-scoped jobs'} icon={Activity} value={snapshot?(jobWindowIncomplete?'≥':'')+String(rows.filter(j=>j.state==='running').length):'—'} />
+      <UnknownKpi label="RUNNING JOBS" hint={jobWindowIncomplete?'At least this many in the bounded job window':'Current Owner-scoped jobs'} icon={Activity} value={snapshot?(jobWindowIncomplete?'≥':'')+String(snapshot.jobs.filter(j=>j.state==='running').length):'—'} />
       <UnknownKpi label="EVENTS" hint="Recent Operator events" icon={Clock3} value={snapshot?String(events.length):'—'} />
     </div>
     <div className="feature-split">
@@ -162,14 +163,14 @@ function LiveMonitor({ status,snapshot,ownerAccountId }: { status: SnapshotResul
         </table></div>:<FeatureTable label="Agent jobs" columns={['Job', 'Device', 'Status', 'Started', 'Action']}
         description="Job cancellation is unavailable until a signed execution controller is connected. Stop-requested is not a terminal state." />}
     </Card>
-    {snapshot&&jobWindowIncomplete&&<div className="feature-unavailable" role="status">
+    {snapshot&&(jobWindowIncomplete||paged)&&<div className="feature-unavailable" role="status">
       <ShieldAlert size={18} aria-hidden="true" />
-      <div><strong>Current in-memory job window</strong>
-        <p>Showing {paged?activity.loaded:snapshot.coverage!.jobs.returned} of {paged?activity.total:snapshot.coverage!.jobs.total} Owner jobs. This is not persisted job history; cancellation is not connected.</p>
+      <div><strong>{paged&&activity.pages[0]?.coverage.source==='postgresql_owner_job_history'?'PostgreSQL Owner job history':'Current in-memory job window'}</strong>
+        <p>Showing {paged?activity.loaded:snapshot.coverage!.jobs.returned} of {paged?activity.total:snapshot.coverage!.jobs.total} Owner jobs. {paged&&activity.pages[0]?.coverage.source==='postgresql_owner_job_history'?'Persisted job metadata only; no command output or cancellation authority.':'Current Operator window only; not complete persisted history.'}</p>
         {paged&&activity.hasMore&&<Button disabled={activity.pending} onClick={()=>void activity.loadMore()}>
           {activity.pending?'Loading…':'Load more jobs'}</Button>}</div>
     </div>}
-    {snapshot&&!jobWindowIncomplete&&<SourceUnavailable description="Current Operator job view only, not persistent historical audit or execution authority." />}
+    {snapshot&&!jobWindowIncomplete&&!paged&&<SourceUnavailable description="Current Operator job view only. Signed PostgreSQL history read may provide additional rows." />}
     {activity.error&&<p role="alert">{activity.error}</p>}
     {!snapshot&&<SourceUnavailable description="A Local Wall device snapshot cannot authorize job inspection, cancellation or execution. No synthetic records are displayed." />}
   </div>;

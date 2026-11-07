@@ -73,6 +73,10 @@ try{
   run('./selftest-gold-p1-terminal-replay-pg.mjs');
   run('./selftest-gold-signed-http-duplex-pg.mjs');
   run('./selftest-gold-real-agent-daemon-pg.mjs');
+  // T11-F15-H2: actual PostgreSQL keyset/Owner/device-scope fixture,
+  // ONLY inside this disposable epoch database; production never touched.
+  run('./selftest-t11-owner-pg-history-pg.mjs',90000,
+    {LR_T11_OWNER_H2_PG_ALLOW:'1'});
   // Last, execute P1-E on disposable 1k/10k synthetic device population.
   // No live endpoints, real clients, external sockets or production DB.
   run('./selftest-gold-p1-e-load-chaos-pg.mjs',600000,

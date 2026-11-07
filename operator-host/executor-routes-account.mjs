@@ -16,7 +16,8 @@ export async function handleAccountRoutes(req,res,url,deps){
       const body=await readJson(req);
       if(body?.page!==undefined&&['usage','jobs','sessions'].includes(body?.page?.kind)){
         const activity=createDesktopV4OwnerActivityPage({
-          accounts,allDeviceViews,usage,sessions:deps.sessions,jobs:deps.jobs
+          accounts,allDeviceViews,usage,sessions:deps.sessions,jobs:deps.jobs,
+          goldJobs:deps.goldJobs,sessionBacking:deps.goldSessionState
         });
         return sendJson(res,200,await activity(body));
       }

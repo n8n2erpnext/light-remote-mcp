@@ -15,6 +15,11 @@ on:
       - 'operator-host/desktop-v4-owner-snapshot*.mjs'
       - 'operator-host/desktop-v4-owner-inventory-page*.mjs'
       - 'operator-host/desktop-v4-owner-activity-page*.mjs'
+      - 'lib/gold-job-ledger.mjs'
+      - 'lib/gold-job-ledger-owner-page.test.mjs'
+      - 'deploy/scripts/selftest-t11-owner-durable-activity-source.mjs'
+      - 'deploy/scripts/selftest-t11-owner-pg-history-pg.mjs'
+      - 'deploy/scripts/ci-gold-epoch-pg.mjs'
       - 'deploy/scripts/selftest-t11-owner-activity-native-source.mjs'
       - 'deploy/scripts/selftest-t11-owner-inventory-native-source.mjs'
       - 'operator-host/desktop-v4-owner-close*.mjs'
@@ -426,6 +431,9 @@ jobs:
           node --test operator-host/desktop-v4-owner-inventory-page.test.mjs
           node --check operator-host/desktop-v4-owner-activity-page.mjs
           node --test operator-host/desktop-v4-owner-activity-page.test.mjs
+          node --check lib/gold-job-ledger.mjs
+          node --test lib/gold-job-ledger-owner-page.test.mjs
+          node deploy/scripts/selftest-t11-owner-durable-activity-source.mjs
           node deploy/scripts/selftest-t11-owner-activity-native-source.mjs
           node deploy/scripts/selftest-t11-owner-inventory-native-source.mjs
           node --test operator-host/desktop-v4-owner-close.test.mjs

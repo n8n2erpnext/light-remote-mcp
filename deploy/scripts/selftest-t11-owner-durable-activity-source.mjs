@@ -1,0 +1,35 @@
+// T11-F15-H2: static Owner authority and canonical PG/Redis routing contract.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const read=path=>fs.readFileSync(new URL('../../'+path,import.meta.url),'utf8');
+const ledger=read('lib/gold-job-ledger.mjs');
+const operator=read('operator-host/desktop-v4-owner-activity-page.mjs');
+const routes=read('operator-host/executor-routes-account.mjs');
+const executor=read('operator-host/executor.mjs');
+const portal=read('plugin-server/desktop-owner-token-v4.mjs');
+const session=read('lib/gold-session-redis.mjs');
+const native=read('client/desktop-v4/src/lib/native-activity.ts');
+const ui=read('client/desktop-v4/src/FeatureScreens.tsx');
+const ci=read('deploy/scripts/ci-gold-epoch-pg.mjs');
+const pg=read('deploy/scripts/selftest-t11-owner-pg-history-pg.mjs');
+assert.match(ledger,/async pageForOwner\(\{accountId,deviceIds,limit=100,anchorMs,after=null\}/);
+assert.match(ledger,/account_id=\$1 AND device_id=ANY\(\$2::text\[\]\)/);
+assert.match(ledger,/ORDER BY started_at DESC,job_id DESC LIMIT \$6/);
+assert.doesNotMatch(ledger.split('async pageForOwner(')[1].split('async listForOwner(')[0],
+ /\.slice\(0,250\)/,'new Owner SQL must never truncate owned fleet');
+assert.match(operator,/goldJobs\.pageForOwner\(/);
+assert.match(operator,/currentMembership\(\)/);
+assert.match(operator,/desktop_activity_changed_during_read/);
+assert.match(operator,/sessionBacking\.flush\(\)/);
+assert.match(routes,/goldJobs:deps\.goldJobs,sessionBacking:deps\.goldSessionState/);
+assert.match(executor,/jobs,goldJobs,goldSessionState,deviceResourceLocks/);
+assert.match(portal,/postgresql_owner_job_history/);
+assert.match(portal,/redis_retained_session_window/);
+assert.match(session,/const TTL_SECONDS=7\*24\*60\*60/);
+assert.match(native,/postgresql_owner_job_history/);
+assert.match(native,/redis_retained_session_window/);
+assert.doesNotMatch(native,/\bfetch\s*\(|\.cookie\b|XMLHttpRequest/);
+assert.match(ui,/useOwnerActivity\('jobs',ownerAccountId\)/);
+assert.match(ci,/LR_T11_OWNER_H2_PG_ALLOW:'1'/);
+assert.match(pg,/^assert\.match\(db,\/\^lr_gold_epoch_fixture_/m);
+console.log('T11_F15_H2_PG_REDIS_OWNER_NATIVE_AUTHORITY_WIRING=PASS');

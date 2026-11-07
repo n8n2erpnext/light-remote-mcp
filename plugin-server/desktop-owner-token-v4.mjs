@@ -154,12 +154,13 @@ export function createDesktopOwnerTokenService({
       accountId:family.accountId,accountSessionId:family.accountSessionId,
       ...(inventory?{page:inventory}:{})
     });
+    const allowedPageSource=inventory?.kind==='usage'?['owner_current_month_usage']:
+      inventory?.kind==='jobs'?['postgresql_owner_job_history','in_memory_current_window']:
+      inventory?.kind==='sessions'?['redis_retained_session_window','in_memory_current_window']:
+      ['owner_live_membership_revision'];
     if(result?.ok!==true||result.accountId!==family.accountId||
        (inventory?result.kind!==inventory.kind||!Array.isArray(result.rows)||
-        result.rows.length>100||result.coverage?.source!==
-          (inventory.kind==='usage'?'owner_current_month_usage':
-           ['jobs','sessions'].includes(inventory.kind)?'in_memory_current_window':
-           'owner_live_membership_revision'):
+        result.rows.length>100||!allowedPageSource.includes(result.coverage?.source):
         !Array.isArray(result.devices)||!Array.isArray(result.sessions)||
         !Array.isArray(result.grants)||!Array.isArray(result.jobs)||
         !Array.isArray(result.events)))

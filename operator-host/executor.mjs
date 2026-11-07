@@ -1720,7 +1720,7 @@ const routeDeps=()=>({
   emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
   executionEpochs,requiresExecutionEpoch,
   fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),goldShortIdAfterEnrollment,fs,fullOutputFromDisk,
-  ingressTelemetry,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,adminJobRecovery,deviceResourceSampleCache,deviceBootObservations,memorySyncPolicy,memoryAccountDelete,
+  ingressTelemetry,jobView,jobs,goldJobs,goldSessionState,deviceResourceLocks,staleClaimMonitor,adminJobRecovery,deviceResourceSampleCache,deviceBootObservations,memorySyncPolicy,memoryAccountDelete,
   inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),
   abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),
   cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,licenses,normalizeUpdateReport,

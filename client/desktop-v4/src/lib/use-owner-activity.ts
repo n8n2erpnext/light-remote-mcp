@@ -33,7 +33,8 @@ export function useOwnerActivity(kind:ActivityKind,accountId:string|null){
    const reply=await nativeOwnerActivityPage(accountId,kind,cursor);
    if(generation.current!==seq)return;
    if(reply.state!=='ready'||reply.kind!==kind||
-      reply.coverage.total!==last.coverage.total||!reply.rows.length||
+      reply.coverage.total!==last.coverage.total||
+      reply.coverage.source!==last.coverage.source||!reply.rows.length||
       (kind==='usage'&&reply.kind==='usage'&&last.kind==='usage'&&reply.month!==last.month)){
     setError('Owner activity changed or cursor expired. Reopen tab to refresh.');
     return;

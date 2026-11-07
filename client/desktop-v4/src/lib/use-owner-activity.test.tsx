@@ -54,3 +54,20 @@ describe('F15 same-Owner typed page state',()=>{
   expect(screen.queryByText('old')).toBeNull();
  });
 });
+
+describe('F15-H2 cross-source cursor fence',()=>{
+ it('does not append a page after PG/Redis source type changes',async()=>{
+  const first=page('dev-a','cursorNextA',2);
+  const second={...page('dev-b',null,2),coverage:{
+    ...page('dev-b',null,2).coverage,
+    source:'in_memory_current_window' as const}};
+  vi.mocked(nativeOwnerActivityPage)
+   .mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+  render(<Harness owner="owner"/>);
+  await waitFor(()=>expect(screen.getByTestId('count').textContent).toBe('1/2'));
+  fireEvent.click(screen.getByRole('button',{name:'More'}));
+  await waitFor(()=>expect(screen.getByTestId('error').textContent)
+   .toContain('Owner activity changed'));
+  expect(screen.getByTestId('count').textContent).toBe('1/2');
+ });
+});

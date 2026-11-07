@@ -125,6 +125,11 @@ on:
       - 'operator-host/desktop-v4-owner-inventory-page.test.mjs'
       - 'operator-host/desktop-v4-owner-activity-page.mjs'
       - 'operator-host/desktop-v4-owner-activity-page.test.mjs'
+      - 'lib/gold-job-ledger.mjs'
+      - 'lib/gold-job-ledger-owner-page.test.mjs'
+      - 'deploy/scripts/selftest-t11-owner-durable-activity-source.mjs'
+      - 'deploy/scripts/selftest-t11-owner-pg-history-pg.mjs'
+      - 'deploy/scripts/ci-gold-epoch-pg.mjs'
       - 'deploy/scripts/selftest-t11-owner-activity-native-source.mjs'
       - 'deploy/scripts/selftest-t11-owner-inventory-native-source.mjs'
       - 'operator-host/executor-routes-account.mjs'
@@ -266,6 +271,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'T11 F14 Owner-scoped cursor inventory regression' }
           node --test operator-host/desktop-v4-owner-activity-page.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'T11 F15 Owner-scoped activity/usage paging regression' }
+          node --test lib/gold-job-ledger-owner-page.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F15-H2 PostgreSQL Owner history keyset regression' }
+          node deploy/scripts/selftest-t11-owner-durable-activity-source.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F15-H2 native PG/Redis Owner source authority boundary' }
           node deploy/scripts/selftest-t11-owner-activity-native-source.mjs
           if ($LASTEXITCODE -ne 0) { throw 'T11 F15 native Owner activity/usage IPC authority boundary' }
           node deploy/scripts/selftest-t11-owner-inventory-native-source.mjs

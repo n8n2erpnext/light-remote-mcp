@@ -26,10 +26,11 @@ function decode(input){
 }
 const stateOfSession=v=>['active','hold','closed','expired'].includes(v)?v:'unknown';
 const stateOfJob=v=>['running','queued','ok','error','timeout','killed',
- 'stop-requested','cancelled'].includes(v)?v:'unknown';
+ 'stop-requested','cancelled','interrupted'].includes(v)?v:'unknown';
 const makeKey=(v)=>v;
 export function createDesktopV4OwnerActivityPage({
- accounts,allDeviceViews,usage,sessions,jobs,now=Date.now,maxPageSize=100
+ accounts,allDeviceViews,usage,sessions,jobs,goldJobs=null,sessionBacking=null,
+ now=Date.now,maxPageSize=100
 }={}){
  if(!accounts?.desktopOwnerSessionActive||!accounts?.account||
     typeof allDeviceViews!=='function'||!usage?.summary||!sessions?.list||!jobs?.values)
@@ -58,7 +59,57 @@ export function createDesktopV4OwnerActivityPage({
     deny('desktop_activity_cursor_scope_mismatch',403);
   const ownerDevices=allDeviceViews({accountId})
     .filter(d=>d.accountId===accountId&&ID.test(d.deviceId||''));
-  const owned=new Set(ownerDevices.map(d=>d.deviceId));
+  const owned=new Set(ownerDevices.filter(d=>d.state!=='revoked').map(d=>d.deviceId));
+  // P05 in-memory page remains the compatibility fallback for tests and
+  // environments where the Gold durable job ledger is not injected.
+  if(kind==='jobs'&&goldJobs?.pageForOwner){
+    const currentMembership=()=>allDeviceViews({accountId})
+      .filter(d=>d.accountId===accountId&&ID.test(d.deviceId||'')&&d.state!=='revoked')
+      .map(d=>[d.deviceId,d.state,String(d.revokedAt||'')])
+      .sort((a,b)=>String(a[0]).localeCompare(String(b[0]),'en'));
+    const revision=fingerprint([accountId,kind,accounts.ownerRevision??null,
+      currentMembership()]);
+    const anchorMs=cursor?cursor.anchorMs:now();
+    if(!Number.isSafeInteger(anchorMs)||anchorMs<0||
+       anchorMs>now()+60000||now()-anchorMs>3600000)
+      deny('desktop_activity_cursor_expired',409);
+    if(cursor&&cursor.revision!==revision)
+      deny('desktop_activity_cursor_stale',409);
+    const match=cursor?.lastKey?.match(/^([0-9]{1,15})~([A-Za-z0-9._:-]{1,128})$/);
+    if(cursor&&!match)deny('desktop_activity_cursor_invalid',400);
+    const after=match?{startedAtMs:Number(match[1]),jobId:match[2]}:null;
+    const result=await goldJobs.pageForOwner({
+      accountId,deviceIds:[...owned],limit,anchorMs,after
+    });
+    checkOwner();
+    if(fingerprint([accountId,kind,accounts.ownerRevision??null,
+        currentMembership()])!==revision)
+      deny('desktop_activity_changed_during_read',409);
+    if(!result||!Array.isArray(result.rows)||result.rows.length>limit||
+       !Number.isSafeInteger(result.total)||result.total<result.rows.length||
+       typeof result.hasMore!=='boolean'||
+       (result.hasMore&&!result.rows.length))
+      deny('desktop_activity_pg_result_invalid',503);
+    const rows=result.rows.map(j=>{
+      if(!ID.test(j.jobId||'')||!owned.has(j.deviceId)||
+         !Number.isSafeInteger(j.startedAt)||j.startedAt>anchorMs)
+        deny('desktop_activity_pg_scope_invalid',503);
+      return {jobId:j.jobId,deviceId:j.deviceId,agentId:safe(j.agentId),
+        sessionId:safe(j.sessionId),state:stateOfJob(j.status),
+        startedAt:finite(j.startedAt),finishedAt:finite(j.finishedAt),
+        exitCode:Number.isSafeInteger(j.exitCode)?j.exitCode:null};
+    });
+    return Object.freeze({
+      ok:true,accountId,kind,asOf:now(),rows,
+      coverage:{returned:rows.length,total:result.total,hasMore:result.hasMore,
+        nextCursor:result.hasMore?encode({
+          v:1,accountId,kind,limit,revision,anchorMs,
+          lastKey:rows.at(-1).startedAt+'~'+rows.at(-1).jobId
+        }):null,
+        source:'postgresql_owner_job_history'}
+    });
+  }
+  if(kind==='sessions'&&sessionBacking?.flush)await sessionBacking.flush();
   const build=()=>{
     const rows=[];
     let month=null;
@@ -125,7 +176,9 @@ export function createDesktopV4OwnerActivityPage({
     coverage:{returned:window.length,total:current.rows.length,hasMore,
      nextCursor:hasMore?encode({v:1,accountId,kind,lastKey:window.at(-1).key,
         revision:current.revision,limit}):null,
-     source:kind==='usage'?'owner_current_month_usage':'in_memory_current_window'},
+     source:kind==='usage'?'owner_current_month_usage':
+       kind==='sessions'&&sessionBacking?'redis_retained_session_window':
+       'in_memory_current_window'},
     ...(kind==='usage'?{month:current.month}:{})
   });
  };

@@ -6,7 +6,7 @@ export type ActivityKind='usage'|'jobs'|'sessions';
 export type UsageDeviceRow=Readonly<{deviceId:string;toolCalls:number|null;onlineMs:number|null}>;
 export type ActivityCoverage=Readonly<{
  returned:number;total:number;hasMore:boolean;nextCursor:string|null;
- source:'owner_current_month_usage'|'in_memory_current_window'
+ source:'owner_current_month_usage'|'in_memory_current_window'|'postgresql_owner_job_history'|'redis_retained_session_window'
 }>;
 export type ActivityPage=
  | Readonly<{state:'ready';kind:'usage';accountId:string;asOf:number;month:string;
@@ -32,13 +32,17 @@ export function projectOwnerActivityPage(input:unknown,accountId:string,kind:Act
  const returned=count(coverage.returned),total=count(coverage.total),more=coverage.hasMore,
   nextCursor=coverage.nextCursor;
  const source:ActivityCoverage['source']=kind==='usage'?'owner_current_month_usage':'in_memory_current_window';
+ const allowed=kind==='jobs'?['postgresql_owner_job_history','in_memory_current_window']:
+   kind==='sessions'?['redis_retained_session_window','in_memory_current_window']:
+   ['owner_current_month_usage'];
  if(returned===null||total===null||returned!==rows.length||returned>total||
-    typeof more!=='boolean'||coverage.source!==source||
+    typeof more!=='boolean'||!allowed.includes(String(coverage.source))||
     (more&&(!nextCursor||typeof nextCursor!=='string'||!CURSOR.test(nextCursor)||!rows.length))||
     (!more&&nextCursor!==null)|| (kind==='usage'&&!MONTH.test(String(body.month||''))))
    return CLOSED;
  const common={state:'ready' as const,kind,accountId,asOf:count(body.asOf)!,
-  coverage:{returned,total,hasMore:more,nextCursor:more?String(nextCursor):null,source}};
+  coverage:{returned,total,hasMore:more,nextCursor:more?String(nextCursor):null,
+    source:coverage.source as ActivityCoverage['source']}};
  const keys=new Set<string>();
  if(kind==='usage'){
   const out:UsageDeviceRow[]=[];

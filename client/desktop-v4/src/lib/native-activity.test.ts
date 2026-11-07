@@ -63,3 +63,38 @@ describe('F15 Owner typed pages',()=>{
   expect((await nativeOwnerActivityPage('owner','sessions',null,host)).state).toBe('unavailable');
  });
 });
+
+describe('F15-H2 durable PG and Redis retention source discrimination',()=>{
+ it('accepts sanitized PG job history and Redis-backed session windows',()=>{
+  const c={...base.coverage,source:'postgresql_owner_job_history'};
+  const jobs={...base,kind:'jobs',coverage:c,rows:[{
+   jobId:'j-1',deviceId:'d-1',state:'ok',startedAt:10,finishedAt:12,
+   agentId:'agent',sessionId:'s-1',exitCode:0,stdout:'NEVER_SEND'
+  }]};
+  const v=projectOwnerActivityPage(jobs,'owner','jobs');
+  expect(v.state).toBe('ready');
+  if(v.state==='ready')expect(v.coverage.source).toBe('postgresql_owner_job_history');
+  expect(JSON.stringify(v)).not.toContain('NEVER_SEND');
+  const sessions={...base,kind:'sessions',
+   coverage:{...base.coverage,source:'redis_retained_session_window'},
+   rows:[{sessionId:'s-1',deviceId:'d-1',agentId:'agent',name:'Agent',
+     state:'hold',createdAt:1,lastSeenAt:2,expiresAt:3,holdReason:'restarted',
+     activeJobs:0,workspace:'SECRET_PATH'}]};
+  const s=projectOwnerActivityPage(sessions,'owner','sessions');
+  expect(s.state).toBe('ready');
+  if(s.state==='ready')expect(s.coverage.source).toBe('redis_retained_session_window');
+  expect(JSON.stringify(s)).not.toContain('SECRET_PATH');
+ });
+ it('rejects unauthorized cross-kind source and forged metadata',()=>{
+  for(const [kind,source] of [
+    ['usage','postgresql_owner_job_history'],
+    ['jobs','redis_retained_session_window'],
+    ['sessions','postgresql_owner_job_history'],
+    ['jobs','attacker_arbitrary_source']
+  ]){
+   const invalid={...base,kind,coverage:{...base.coverage,source}};
+   expect(projectOwnerActivityPage(invalid,'owner',kind as 'usage'|'jobs'|'sessions').state)
+    .toBe('unavailable');
+  }
+ });
+});

@@ -346,3 +346,40 @@ test('F15 usage/jobs/sessions remain native-only verified family, with source-sp
  assert.equal(logout.code,401);
  assert.equal(calls.length,3);
 });
+
+test('F15-H2 Owner HTTPS accepts only PG jobs/Redis sessions source markers',async()=>{
+ const calls=[];
+ let forged=null;
+ const x=setup({operatorCall:async(method,path,body)=>{
+  calls.push({method,path,body});
+  const kind=body.page.kind;
+  return {ok:true,accountId:ACCOUNT,kind,asOf:1234,rows:[],
+   coverage:{returned:0,total:0,hasMore:false,nextCursor:null,
+    source:forged|| (kind==='jobs'?'postgresql_owner_job_history':
+      'redis_retained_session_window')}};
+ }});
+ const token=(await x.service.exchange(x.input)).access_token;
+ const auth={method:'POST',headers:{'content-type':'application/json',
+  authorization:'Bearer '+token},query:{}};
+ for(const kind of ['jobs','sessions']){
+  const accepted=response();
+  await x.service.routeSnapshot({...auth,body:{page:{kind,limit:100}}},accepted);
+  assert.equal(accepted.code,200);
+ }
+ assert.equal(calls.length,2);
+ assert.ok(calls.every(call=>call.body.accountId===ACCOUNT&&
+   call.body.accountSessionId===SESSION&&!('accountId' in call.body.page)));
+ forged='postgresql_owner_job_history';
+ const wrong=response();
+ await x.service.routeSnapshot({...auth,body:{page:{kind:'sessions'}}},wrong);
+ assert.notEqual(wrong.code,200,'session must not impersonate PostgreSQL job source');
+ forged='some_untrusted_source';
+ const invalid=response();
+ await x.service.routeSnapshot({...auth,body:{page:{kind:'jobs'}}},invalid);
+ assert.notEqual(invalid.code,200,'unknown source must be rejected');
+ x.setPortalActive(false);
+ const revoked=response();
+ await x.service.routeSnapshot({...auth,body:{page:{kind:'jobs'}}},revoked);
+ assert.equal(revoked.code,401);
+ assert.equal(calls.length,4,'revoked family never reaches the Operator read');
+});
