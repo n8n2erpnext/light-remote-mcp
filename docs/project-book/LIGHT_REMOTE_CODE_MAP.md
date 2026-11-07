@@ -777,3 +777,6 @@ client/windows-native/Shared/CanonicalEndpoints.cs parses ONE repo/config/endpoi
 
 ## 2026-11-07 — T11-F07B-CI01 Native C# canonical endpoint constant correctness
 client/windows-native/GptOperator.Client/TrayApplicationContext.cs RelinkRuntimeSelfTest obtains its bridge value at runtime from ConnectionConfig.DefaultBridgeUrl. That property reads the validated embedded canonical GoldABV2 origin and cannot be assigned to a C# const. GitHub Windows native publish b8e947cf failed CS0133; follow-up fix uses var and requires full native CI rerun.
+
+## 2026-11-07 — T11-F07B-CI02 Rust module doc/import ordering
+client/desktop-v4/src-tauri/src/owner_vault.rs keeps //! inner docs before imports; the issuer-bound sha2 import follows the module attributes, required by Rust E0753. deploy/scripts/selftest-canonical-endpoints-native-t11.mjs checks header order. Native macOS/Linux CI on b8e947cf FAILED E0753; revalidation exact SHA pending.

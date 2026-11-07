@@ -1309,3 +1309,11 @@ Exact Desktop F07B SHA b8e947cf031f3bfc48a3f682ffde036dac44d084: Windows Tray Cl
 At that SHA, Windows native Rust-for-embedded-Desktop step SUCCESS; Inno Pascal fast compiler run 42343229482 SUCCESS; GC source run 42343229389 SUCCESS, Project Truth run 42343229396 SUCCESS, Docs run 42343229411 SUCCESS. The Windows publish and subsequent full installer/E2E were NOT PASS. Desktop Source QA 42343229392 was still in progress during initial log analysis. Local source grep verifies no other const expressions depend on ConnectionConfig; no Windows physical machine, runtime services, enrollment/grants, production or signed update feed modified.
 
 T11-F07B-CI01 next: new exact SHA Windows full installer / .NET native publish / Gold GC run; inspect real logs and repair any additional compiler or package regressions. F07B product profile config still embedded/build-bound without a detached release signature; GoldABV2 update feed remains null/HOLD.
+
+## 2026-11-07 — T11-F07B-CI02 macOS/Linux Rust E0753 syntax repair
+
+F07B b8e947cf Desktop V4 source QA run 42343229392: Web build/browser job 128315298327 SUCCESS, but macOS native job 128315575381 and Linux native job 128315575390 FAILED Rust E0753 at src-tauri/src/owner_vault.rs:2-6. Cause: new use sha2 import had been placed ABOVE the module inner documentation //! comments, which Rust only accepts before all items. It is a compile issue in code added for Owner issuer-bound keyring namespace, not an Owner policy result. Moved use sha2 after module documentation and existing keyring import, preserving authority-derived SHA hash; deploy/scripts/selftest-canonical-endpoints-native-t11.mjs now rejects this placement regression. Local source regression PASS; exact macOS/Linux native CI rerun REQUIRED, no user physical macOS/Windows touched.
+
+Separately, F07B Windows run 42343229398 failed CS0133 at C# RelinkRuntimeSelfTest; F07B-CI01 commit 312f31b87eb23313f826070a1abb43aa3238e6c4 replaced const bridge with var, new Windows run 42343505401 was still in progress while this receipt was drafted. The Rust import repair is independent and does not change GoldABV2 device authority, grants, updater HOLD or configuration values.
+
+NEXT: verify new native macOS/Linux/Windows exact SHA, fix failures; no claim of completed signed/physical E2E, production or release signature.

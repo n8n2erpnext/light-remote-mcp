@@ -62,6 +62,10 @@ assert.match(login,/endpoint_config::route\("ownerToken"\)/);
 assert.match(login,/endpoint_config::cloud_origin\("owner"\)/);
 assert.doesNotMatch(login,/const AUTH_ORIGIN: &str = "https:/);
 assert.match(vault,/Sha256::digest\(authority.as_bytes\(\)\)/);
+assert.ok(vault.startsWith('//! Desktop V4 private'),
+ 'Rust module inner docs must precede imports to pass macOS/Linux E0753');
+assert.ok(vault.includes('use keyring::{Entry, Error};'+String.fromCharCode(10)+
+  'use sha2::{Sha256,Digest};'),'Rust imports must be after module docs');
 assert.match(vault,/Entry::new\(SERVICE, &authority_account\(\)\?\)/);
 const ci=src('.github/workflows/windows-native-client.yml');
 assert.match(ci,/dotnet publish client\/windows-native\/LightRemote\.Updater\/LightRemote\.Updater\.csproj[\s\S]*?-o \$updaterStage @trayDefines/);

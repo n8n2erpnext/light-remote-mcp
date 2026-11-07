@@ -1,4 +1,3 @@
-use sha2::{Sha256,Digest};
 //! Desktop V4 private, OS-backed refresh credential storage.
 //! This module is never exposed as a Tauri invoke command; only the Rust
 //! native Owner login flow may touch the OS credential store.
@@ -7,6 +6,7 @@ use sha2::{Sha256,Digest};
 
 #![allow(dead_code)]
 use keyring::{Entry, Error};
+use sha2::{Sha256,Digest};
 
 const SERVICE: &str = "digital.thaiduy.lightremote.desktop.v4.owner";
 // The keyring account is tied to product, profile and Owner issuer. A
