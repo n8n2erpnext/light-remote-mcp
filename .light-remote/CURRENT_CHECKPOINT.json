@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F15_H2_P06_GOLD_DOC_MIRROR_NATIVE_REAL_PG_CI_PENDING",
+  "status": "T11_F15_H2_CI01_ALL_NATIVE_REAL_PG_GC_SUCCESS_GOLD_MIRROR_PHYSICAL_HOLD",
   "branch": "feat/goldabv2-desktop-owner-lab-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -159,7 +159,7 @@
     "SQL045 absent from signed migrations.lock, pending authorized sequential release. Existing GoldABV2 fake Owner is unverified, verified replacement not registered. GoldABV2 no-NIC SMTP verification path unverified. Bootstrap owner must use actual current Admin account ID, NOT OPERATOR_ACCOUNT_ID.",
     "Device-local Wall activity source is not deployed in GoldABV2 Lab or Windows/macOS until independent source CI and native installed acceptance"
   ],
-  "nextAction": "F15-H2 existing PG GoldJobLedger Owner keyset and Redis-retained session windows source implemented; local 51/51 Node, 98/98 Vitest, TS/Vite/source gates PASS. New SHA actual disposable PostgreSQL GC + Windows/macOS/Linux QA PENDING. Physical Owner/B and production signed updater HOLD.",
+  "nextAction": "F15-H2 source 9d0439c8: Gold GC 42364629403 4/4 incl REAL disposable PG17 p95 26.64/26.97ms from four page queries, Desktop QA 42364629400 3/3, Windows full installer 42364629522 SUCCESS. NEXT F15-H3 source-only session immutable audit retention requirements; physical Windows/real B and signed production updater HOLD.",
   "readFirst": [
     "docs/project-book/README.md",
     "docs/project-book/LIGHT_REMOTE_GOLD_P2_IMPLEMENTATION_HANDOFF.md",
@@ -175,7 +175,7 @@
     "treeDigest": "db3bb52458b27920d45e6ad2836d69596244187d2df6c02bbef145b1e24fc0fd",
     "trackedFiles": 1244,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T10:36:07.373Z"
+    "recordedAt": "2026-11-07T10:47:36.422Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -2285,11 +2285,51 @@
     "localDesktopVitest": "98/98 PASS 20 files",
     "localTypeScriptAndVite": "PASS",
     "localSourceGates": "PASS",
-    "realPostgres17DisposableCI": "PENDING exact H2 SHA",
-    "goldGC": "PENDING exact H2 SHA",
-    "windowsNativeInstaller": "PENDING exact H2 SHA",
-    "desktopMacUbuntuWeb": "PENDING exact H2 SHA",
+    "realPostgres17DisposableCI": "SUCCESS 2 PG fixture runs in 42364629403",
+    "goldGC": "4/4 SUCCESS run 42364629403",
+    "windowsNativeInstaller": "SUCCESS run 42364629522",
+    "desktopMacUbuntuWeb": "3/3 SUCCESS run 42364629400",
     "physicalWindowsOwnerB": "OPEN",
     "goldUpdateFeed": "HOLD"
+  },
+  "t11_f15_h2_ci01": {
+    "date": "2026-11-07",
+    "exactSourceSha": "9d0439c86ed8bf9f24cebd7b6282d5ae8e138e9c",
+    "goldGC": {
+      "run": 42364629403,
+      "status": "4/4 SUCCESS",
+      "realPostgres17": true,
+      "ownerDeviceScope": 10000,
+      "actualPgJobRows": 340,
+      "pageSizes": [
+        100,
+        100,
+        100,
+        40
+      ],
+      "p95MsFourQueries1000": 26.64,
+      "p95MsFourQueries10000": 26.97,
+      "notProductionBenchmark": true
+    },
+    "desktopQA": {
+      "run": 42364629400,
+      "status": "3/3 SUCCESS Web/Ubuntu/macOS"
+    },
+    "windows": {
+      "run": 42364629522,
+      "status": "SUCCESS",
+      "artifactId": 13571607215,
+      "artifactSizeBytes": 180449389,
+      "artifactZipSha256": "d18cd605b4c4d1c20e45ea31a007c267a8ea86d439af2a9039649b8450c26069",
+      "uiPreviewId": 13571318235
+    },
+    "desktopDocsRun": 42364629421,
+    "desktopTruthRun": 42364629471,
+    "goldMirrorDocsRun": 42364653864,
+    "goldMirrorTruthRun": 42364653843,
+    "immutableSessionAuditBeyondRedisTTL": "OPEN optional F15-H3",
+    "physicalWindowsOwnerB": "OPEN",
+    "goldSignedUpdaterFeed": "HOLD",
+    "productionTouched": false
   }
 }
