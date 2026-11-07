@@ -1058,3 +1058,6 @@ One React App (`client/desktop-v4/src/App.tsx`) + native Rust (`src-tauri/src/ma
 
 ### T06b4a source-only per-Agent Owner Close adapter
 `operator-host/desktop-v4-owner-close.mjs` calls proven `owner-session-close-abv2.mjs` only after exact verified Owner account session, Agent lane, enrolled device, live connection and zero active jobs. It is **not registered as a route** because Native Owner OAuth scope is `desktop:read`, not mutation authority. Tests `desktop-v4-owner-close.test.mjs` protect isolation; there is NO callable close API until a separately authorized Owner manage or signed local consent contract is accepted.
+
+## 2026-11-07 — T11-F01 signed V2 B CSRF and Wall grid
+device-agent/local-wall.mjs owns request-bound serialized CSRF initializer for V2-only /approve, independent of regular Gold legacy HTML. device-agent/wall-ui-refinement.mjs owns effective late .term .commandrow CSS with exactly three desktop regions and narrow one-column mobile. deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs runs request-rendered approval script click in isolated HTTP Wall fixture and static layout checks; wired to Windows installer and Gold GC workflows. Physical B and browser geometry OPEN.
