@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F08B_CI01_CLIENT_CORE_MANIFEST_MISSING_MODULE_FIXED_NATIVE_CI_PENDING",
+  "status": "T11_F08B_CI02_WINDOWS_NATIVE_FULL_INSTALLER_PASS_PHYSICAL_OWNER_QA_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "F08B-CI01 failed Windows 42347719633 static import closure: added new local-wall-instance-proof.mjs to client/core-files.json and regression. Local tests PASS; next native .NET/Rust Windows full installer CI on new SHA, Gold GC/Docs, macOS/Linux. No physical Windows/live deploy.",
+  "nextAction": "F08B-CI02 exact Windows native run 42347925595 SUCCESS incl HMAC fixture + complete install/uninstall, Gold GC 42347925570 4/4 PASS; Mac/Linux source QA 42347719583 PASS; current desktop source 6623b1a0. No physical owner Windows or prod changes. Next explicit Owner-scope Windows QA with captured rollback 42346197211, pending signed B/Owner E2E.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -1906,6 +1906,30 @@
     "newNativeWindowsCI": "PENDING",
     "goldGC": "prior SHA PASS",
     "physicalWindows": "OPEN",
+    "productionTouched": false
+  },
+  "t11_f08b_ci02": {
+    "date": "2026-11-07",
+    "desktopSourceSha": "6623b1a0ee2b76888f5073ecf273c27819b69598",
+    "windowsRun": 42347925595,
+    "windowsJob": 128329606750,
+    "windowsConclusion": "SUCCESS",
+    "windowsInstallerRoundTrip": "PASS",
+    "nativeWrongListenerHmacFixture": "PASS",
+    "goldGCRun": 42347925570,
+    "goldGC": "4/4 SUCCESS",
+    "docsRun": 42347925503,
+    "truthRun": 42347925450,
+    "nativeMacLinuxRunPriorSource": 42347719583,
+    "nativeMacLinux": "SUCCESS (prior F08B Rust source unchanged by CI01)",
+    "installerZipArtifactId": 13563774633,
+    "installerZipSha256": "4aacc71b60a019f8220ec7a8011971ba40cdbd70bcf66af92d29d7487bd1f807",
+    "rollbackZipArtifactId": 13563474763,
+    "rollbackZipSha256": "cc6adb4a8d4a9ed6b44db5390c4ade4c3f06344f04fe82a785543901fb937e2e",
+    "physicalWindows": "OPEN",
+    "realOwnerB": "OPEN",
+    "signedConfig": "HOLD",
+    "approvedGoldFeed": "HOLD",
     "productionTouched": false
   }
 }
