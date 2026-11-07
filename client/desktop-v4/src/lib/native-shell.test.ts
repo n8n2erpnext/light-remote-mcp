@@ -29,15 +29,15 @@ describe('Unified Tauri2 Desktop V4 native trust boundary', () => {
   it('always opens the same-device Local Wall, regardless of GoldABV2 backend', () => {
     expect(rust).toContain('tauri::Builder::default()');
     expect(rust).toContain('tauri::generate_handler![open_local_wall, probe_local_wall]');
-    expect(rust).toContain('http://127.0.0.1:5491/');
-    expect(rust).toContain('SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5491)');
-    expect(rust).toContain('Host: 127.0.0.1:5491');
+    expect(rust).toContain('endpoint_config::route("wallHome")');
+    expect(rust).toContain('endpoint_config::route("wallStatus")');
+    expect(rust).toContain('endpoint_config::local_socket("wall")');
     expect(rust).not.toContain('LR_V4_WALL_PROFILE');
     expect(rust).not.toContain('100.94.184.141');
     expect(rust).not.toContain('15591');
     expect(rust).not.toContain('goldabv2.light-remote.thaiduy.digital/mcp');
 
-    expect(rust).toContain('http://127.0.0.1:5491/settings#activityLogSettings');
+    expect(rust).toContain('endpoint_config::route("wallLogsPage")');
     expect(rust).toContain('unsupported_local_wall_view');
     for (const forbidden of [
       '.plugin(', 'tokio::process::Command',
@@ -70,7 +70,9 @@ describe('Unified Tauri2 Desktop V4 native trust boundary', () => {
     expect(cargo).toContain('desktop-owner-login = ["dep:keyring"');
     expect(cargo).toContain('"apple-native", "windows-native", "sync-secret-service"');
     expect(rust).toContain('#[cfg(feature = "desktop-owner-login")]');
-    expect(vault).toContain('Entry::new(SERVICE, ACCOUNT)');
+    expect(vault).toContain('Entry::new(SERVICE, &authority_account()?)');
+    expect(vault).toContain('endpoint_config::credential_authority()');
+    expect(vault).toContain('Sha256::digest(authority.as_bytes())');
     expect(vault).toContain('.set_password(token)');
     expect(vault).toContain('.get_password()');
     expect(vault).toContain('.delete_credential()');

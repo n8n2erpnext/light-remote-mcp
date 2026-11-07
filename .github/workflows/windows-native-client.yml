@@ -99,6 +99,7 @@ on:
       - 'lib/canonical-endpoints.mjs'
       - 'deploy/scripts/generate-endpoint-package-marker.mjs'
       - 'deploy/scripts/selftest-canonical-endpoints-t11.mjs'
+      - 'deploy/scripts/selftest-canonical-endpoints-native-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-module-state-t11.mjs'
       - 'deploy/scripts/selftest-gold-wall-history-reader-t11.mjs'
       - 'deploy/scripts/selftest-desktop-native-deadlines-t11.mjs'
@@ -213,6 +214,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 rendered B click CSRF + Wall layout contract regression' }
           node deploy/scripts/selftest-canonical-endpoints-t11.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 canonical endpoint schema/profile/packaging regression' }
+          node deploy/scripts/selftest-canonical-endpoints-native-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Node/Rust/NET canonical endpoint consumer regression' }
           node deploy/scripts/selftest-gold-wall-module-state-t11.mjs
           if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Long Memory module CAS/revision UI regression' }
           node deploy/scripts/selftest-gold-wall-history-reader-t11.mjs
@@ -254,10 +257,10 @@ jobs:
             -c Release -r win-x64 --self-contained true -o $stage @trayDefines
           if ($LASTEXITCODE -ne 0) { throw 'dotnet publish client failed' }
           dotnet publish client/windows-native/LightRemote.Updater/LightRemote.Updater.csproj `
-            -c Release -r win-x64 --self-contained true -o $updaterStage
+            -c Release -r win-x64 --self-contained true -o $updaterStage @trayDefines
           if ($LASTEXITCODE -ne 0) { throw 'dotnet publish updater failed' }
           dotnet publish client/windows-native/LightRemote.InstallWatchdog/LightRemote.InstallWatchdog.csproj `
-            -c Release -r win-x64 -o $watchdogStage
+            -c Release -r win-x64 -o $watchdogStage @trayDefines
           if ($LASTEXITCODE -ne 0) { throw 'dotnet publish native install watchdog failed' }
           $watchdogExe = Join-Path $watchdogStage 'LightRemote.InstallWatchdog.exe'
           if (-not (Test-Path $watchdogExe)) { throw 'native install watchdog publish missing' }
@@ -272,6 +275,11 @@ jobs:
           if ($subsystem -ne 2) { throw "native install watchdog must be Windows GUI/no-console subsystem, got=$subsystem" }
           Write-Host "windows-install-watchdog-no-console=PASS subsystem=$subsystem bytes=$((Get-Item $watchdogExe).Length)"
           "WINDOWS_INSTALL_WATCHDOG=$watchdogExe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $qaUpdaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            $qaUpdaterRoot = Join-Path $qaUpdaterRoot 'GoldABV2'
+          }
+          "WINDOWS_TEST_UPDATER_ROOT=$qaUpdaterRoot" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           $updaterConfig = Join-Path $updaterStage 'config'
           New-Item -ItemType Directory -Force -Path $updaterConfig | Out-Null
           Copy-Item client/update-public.pem (Join-Path $updaterConfig 'client-update-public.pem')
@@ -370,6 +378,18 @@ jobs:
           $agentRoot = Join-Path $stage 'agent'
           $updaterStage = Join-Path $PWD 'dist\windows\updater'
           $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            $profileProbe=Join-Path $env:RUNNER_TEMP 'goldabv2-updater-product-profile-fixture.json'
+            $p=Start-Process -FilePath $updater -ArgumentList @('--endpoint-profile-self-test-output',$profileProbe) -PassThru
+            if (-not $p.WaitForExit(25000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'GoldABV2 canonical updater profile fixture timeout' }
+            if ($p.ExitCode -ne 0 -or -not(Test-Path $profileProbe)) { throw 'GoldABV2 canonical updater profile fixture failed' }
+            $binding=Get-Content $profileProbe -Raw | ConvertFrom-Json
+            if (-not $binding.ok -or -not $binding.manifestOnHold -or -not $binding.wrongProductRejected -or
+                $binding.productId -ne 'goldabv2-desktop-v4' -or $binding.selectedProfile -ne 'goldabv2-lab') {
+              throw 'GoldABV2 product/profile/update feed not safely bound'
+            }
+            Write-Host 'goldabv2-native-updater-wrong-product-reject-hold-PASS'
+          }
           $cacheProbe = Join-Path $env:RUNNER_TEMP 'gold-updater-cache-fixture.json'
           $cacheSelf = Start-Process -FilePath $updater -ArgumentList @('--cache-self-test-output',$cacheProbe) -PassThru
           if (-not $cacheSelf.WaitForExit(30000)) { Stop-Process -Id $cacheSelf.Id -Force -ErrorAction SilentlyContinue; throw 'Independent updater cache self-test hung' }
@@ -943,7 +963,7 @@ jobs:
           if ($p.ExitCode -ne 0) {
             Write-Host '=== installer failure diagnostics ==='
             if (Test-Path $setupLog) { Get-Content $setupLog -Tail 220 | ForEach-Object { Write-Host $_ } }
-            $txnRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater\state\installer-txn'
+            $txnRoot = Join-Path $env:WINDOWS_TEST_UPDATER_ROOT 'state\installer-txn'
             if (Test-Path $txnRoot) {
               Get-ChildItem $txnRoot -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -in @('watchdog.log','watchdog-task.xml') } | ForEach-Object {
                 Write-Host ("--- " + $_.FullName + " ---")
@@ -999,7 +1019,7 @@ jobs:
           }
           Write-Host 'windows-installed-runtime-notices=PASS'
           $version = (Get-Content VERSION -Raw).Trim()
-          $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+          $updaterRoot = $env:WINDOWS_TEST_UPDATER_ROOT
           $updaterExe = Join-Path $updaterRoot 'LightRemote.Updater.exe'
           if (-not (Test-Path $updaterExe)) { throw "independent updater missing: $updaterExe" }
           $rollback = Join-Path $updaterRoot ("rollback\Light-Remote-MCP-Setup-$version-x64.exe")
@@ -1169,7 +1189,7 @@ jobs:
           if (-not $p.WaitForExit(30000)) { try{$p.Kill()}catch{}; throw 'helper promoter timed out' }
           $sw.Stop(); if ($p.ExitCode -ne 0) { throw "helper promoter exit=$($p.ExitCode)" }
           if ($sw.ElapsedMilliseconds -lt 1000) { throw 'helper promoter did not wait for parent exit' }
-          $root = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+          $root = $env:WINDOWS_TEST_UPDATER_ROOT
           $rootExe = Join-Path $root 'LightRemote.Updater.exe'
           $health = Join-Path $env:RUNNER_TEMP 'helper-promotion-root-health.json'; Remove-Item $health -Force -ErrorAction SilentlyContinue
           $hpsi=[Diagnostics.ProcessStartInfo]::new($rootExe);$hpsi.UseShellExecute=$false;$hpsi.CreateNoWindow=$true;foreach($arg in @('--self-test-output',$health,$installDir)){[void]$hpsi.ArgumentList.Add($arg)}
@@ -1187,7 +1207,7 @@ jobs:
           Copy-Item (Join-Path $env:SystemRoot 'System32\where.exe') $badInstaller -Force
           $helper = Join-Path $env:RUNNER_TEMP 'light-remote-update-helper.exe'
           Copy-Item $env:WINDOWS_UPDATER $helper -Force
-          $updateLog = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater\logs\update.log'
+          $updateLog = Join-Path $env:WINDOWS_TEST_UPDATER_ROOT 'logs\update.log'
           Remove-Item $updateLog -Force -ErrorAction SilentlyContinue
           Write-Host 'windows-independent-update-rollback=start'
           $psi = [System.Diagnostics.ProcessStartInfo]::new($helper)
@@ -1238,7 +1258,7 @@ jobs:
               if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'uninstaller timed out after 60s' }
               if ($p.ExitCode -ne 0) { throw "uninstaller exit=$($p.ExitCode)" }
             }
-            $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+            $updaterRoot = $env:WINDOWS_TEST_UPDATER_ROOT
             if (Test-Path $updaterRoot) { throw "updater recovery root survived uninstall: $updaterRoot" }
             Write-Host 'windows-native-installer-roundtrip=PASS'
           } else {
@@ -1258,7 +1278,7 @@ jobs:
           if (-not $p.WaitForExit(240000)) {
             Write-Host 'compact-install-timeout=diagnostics'
             if (Test-Path $log1) { Get-Content -LiteralPath $log1 -Tail 150 | Write-Host }
-            $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+            $updaterRoot = $env:WINDOWS_TEST_UPDATER_ROOT
             if (Test-Path $updaterRoot) {
               Get-ChildItem $updaterRoot -Filter '*.log' -File -Recurse -ErrorAction SilentlyContinue |
                 Select-Object -First 4 | ForEach-Object { Write-Host "diagnostic-log=$($_.FullName)"; Get-Content $_.FullName -Tail 35 | Write-Host }
@@ -1276,7 +1296,7 @@ jobs:
           & $node deploy/scripts/selftest-packaged-local-wall.mjs (Join-Path $installDir 'agent')
           if ($LASTEXITCODE -ne 0) { throw 'installed compact Windows Local Wall missing icons or failed HTTP page checks' }
           Write-Host 'windows-compact-installed-wall-assets=PASS'
-          $cache = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater\runtime-cache\node-v22.23.2-win-x64.zip'
+          $cache = Join-Path $env:WINDOWS_TEST_UPDATER_ROOT 'runtime-cache\node-v22.23.2-win-x64.zip'
           if (-not(Test-Path $cache)) { throw "compact Node cache missing: $cache" }
           $cacheHash=(Get-FileHash $cache -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($cacheHash -ne '1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97') { throw "compact Node cache hash mismatch: $cacheHash" }
@@ -1334,7 +1354,7 @@ jobs:
             if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'compact uninstaller timed out after 60s' }
             if ($p.ExitCode -ne 0) { throw "compact uninstaller exit=$($p.ExitCode)" }
           }
-          $updaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+          $updaterRoot = $env:WINDOWS_TEST_UPDATER_ROOT
           if (Test-Path $updaterRoot) { throw "compact updater recovery root survived uninstall: $updaterRoot" }
           Write-Host 'windows-compact-installer-roundtrip=PASS'
 

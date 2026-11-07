@@ -18,4 +18,8 @@
     <DebugSymbols>false</DebugSymbols>
     <TrimMode>partial</TrimMode>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\CanonicalEndpoints.cs" Link="CanonicalEndpoints.cs" />
+    <EmbeddedResource Include="..\..\..\config\endpoints.json" LogicalName="LightRemote.Canonical.Endpoints.json" />
+  </ItemGroup>
 </Project>

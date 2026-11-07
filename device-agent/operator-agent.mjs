@@ -137,7 +137,11 @@ const FLEET_WALL_PORT=GOLDABV2_ENDPOINTS?.localServices.fleet.port||
  Math.max(1024,Math.min(Number(process.env.OPERATOR_FLEET_WALL_PORT)||5492,65535));
 const FLEET_WALL_PUBLIC_URL=String(process.env.OPERATOR_FLEET_WALL_PUBLIC_URL||'').trim();
 const LOCAL_WALL_BRAND=fileURLToPath(new URL('../assets/branding/light-remote-mark.svg',import.meta.url));
-const UPDATE_RUNTIME_DIR=process.env.LIGHT_REMOTE_UPDATE_STATE_DIR||(process.platform==='win32'?path.join(process.env.LOCALAPPDATA||os.homedir(),'Light Remote','Updater','state'):path.join(path.dirname(STATE_FILE),'update-runtime'));
+const UPDATE_RUNTIME_DIR=process.env.LIGHT_REMOTE_UPDATE_STATE_DIR||
+ (process.platform==='win32'
+  ?path.join(process.env.LOCALAPPDATA||os.homedir(),'Light Remote','Updater',
+    ...(GOLDABV2_PACKAGE?['GoldABV2']:[]),'state')
+  :path.join(path.dirname(STATE_FILE),'update-runtime'));
 const UPDATE_REQUEST_FILE=path.join(UPDATE_RUNTIME_DIR,'request.json'),UPDATE_CHECK_REQUEST_FILE=path.join(UPDATE_RUNTIME_DIR,'check-request.json'),UPDATE_TRANSACTION_FILE=path.join(UPDATE_RUNTIME_DIR,'transaction.json'),UPDATE_ACK_FILE=path.join(UPDATE_RUNTIME_DIR,'core-health-ack.json'),UPDATE_REPORT_FILE=path.join(UPDATE_RUNTIME_DIR,'pending-report.json'),UPDATE_STATUS_FILE=path.join(UPDATE_RUNTIME_DIR,'status.json');
 const MAX_OUTPUT=4*1024*1024;
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));

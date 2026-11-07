@@ -1,3 +1,4 @@
+using LightRemote.Configuration;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -147,6 +148,12 @@ internal static class AgentHost
         var connection = ConnectionConfig.Load();
         psi.Environment["OPERATOR_AGENT_BASE_URL"] = connection.BridgeUrl;
         psi.Environment["OPERATOR_AGENT_HUB_URL"] = connection.HubUrl;
+#if LIGHT_REMOTE_GOLDABV2_V4
+        psi.Environment["OPERATOR_AGENT_WALL_HOST"] = "127.0.0.1";
+        psi.Environment["OPERATOR_AGENT_WALL_PORT"] = CanonicalEndpoints.Gold.LocalPort("wall").ToString();
+        psi.Environment["OPERATOR_FLEET_WALL_HOST"] = "127.0.0.1";
+        psi.Environment["OPERATOR_FLEET_WALL_PORT"] = CanonicalEndpoints.Gold.LocalPort("fleet").ToString();
+#endif
         ConfigureRealRemoteEnvironment(psi);
         bootRecoveryPath = WindowsBootEvidence.Configure(psi);
         return psi;

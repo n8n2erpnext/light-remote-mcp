@@ -1,3 +1,4 @@
+using LightRemote.Configuration;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Text.Json;
@@ -25,9 +26,19 @@ internal sealed class TrayApplicationContext : ApplicationContext
 {
     private const string AgentTask = "LightRemoteDeviceAgent";
     private const string UpdateTask = "LightRemoteUpdater";
+#if LIGHT_REMOTE_GOLDABV2_V4
+    private static string WallUrl => CanonicalEndpoints.Gold.Route("wallHome");
+    private static int WallPort => CanonicalEndpoints.Gold.LocalPort("wall");
+#else
     private const string WallUrl = "http://127.0.0.1:5491/";
+    private const int WallPort = 5491;
+#endif
     private static string AccountUrl => ConnectionConfig.Load().BridgeUrl.TrimEnd('/') + "/account";
+#if LIGHT_REMOTE_GOLDABV2_V4
+    private static string LocalFleetUrl => CanonicalEndpoints.Gold.LocalBase("fleet") + "/";
+#else
     private const string LocalFleetUrl = "http://127.0.0.1:5492/";
+#endif
 
     private readonly NotifyIcon _tray;
     // Genuine Windows native context menu. The old 500x740 custom popup is
@@ -121,6 +132,12 @@ internal sealed class TrayApplicationContext : ApplicationContext
         var c = ConnectionConfig.Load();
         p.Environment["OPERATOR_AGENT_BASE_URL"] = c.BridgeUrl;
         p.Environment["OPERATOR_AGENT_HUB_URL"] = c.HubUrl;
+#if LIGHT_REMOTE_GOLDABV2_V4
+        p.Environment["OPERATOR_AGENT_WALL_HOST"] = "127.0.0.1";
+        p.Environment["OPERATOR_AGENT_WALL_PORT"] = CanonicalEndpoints.Gold.LocalPort("wall").ToString();
+        p.Environment["OPERATOR_FLEET_WALL_HOST"] = "127.0.0.1";
+        p.Environment["OPERATOR_FLEET_WALL_PORT"] = CanonicalEndpoints.Gold.LocalPort("fleet").ToString();
+#endif
         AgentHost.ConfigureRealRemoteEnvironment(p);
         return p;
     }
@@ -217,7 +234,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         try
         {
             foreach (var ep in IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners())
-                if (ep.Port == 5491) return true;
+                if (ep.Port == WallPort) return true;
             return false;
         }
         catch { return false; }
@@ -263,7 +280,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             {
                 var parts = raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 5 || !parts[0].Equals("TCP", StringComparison.OrdinalIgnoreCase)) continue;
-                if (!parts[1].EndsWith(":5491", StringComparison.OrdinalIgnoreCase)) continue;
+                if (!parts[1].EndsWith(":" + WallPort, StringComparison.OrdinalIgnoreCase)) continue;
                 if (!parts[3].Equals("LISTENING", StringComparison.OrdinalIgnoreCase)) continue;
                 if (int.TryParse(parts[^1], out var pid) && pid > 0) result.Add(pid);
             }
@@ -308,7 +325,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         ClientEvent("agent_stop_stale_listener", new { killed });
         if (WaitForWall(false, 5000)) return (true, "");
 
-        return (false, "Light Remote could not release Local Wall port 5491.");
+        return (false, "Light Remote could not release Local Wall port " + WallPort + ".");
     }
 
     private static (bool Ok, string Message) StartAgentTaskVerified()
@@ -329,7 +346,11 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private static (bool Ok, string Message) RestartAgentTransactional()
     {
         ClientEvent("restart_requested");
+#if LIGHT_REMOTE_GOLDABV2_V4
+        var stateDir=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Light Remote","Updater","GoldABV2","state");
+#else
         var stateDir=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Light Remote","Updater","state");
+#endif
         var request=Path.Combine(stateDir,"restart-request.json");
         try
         {

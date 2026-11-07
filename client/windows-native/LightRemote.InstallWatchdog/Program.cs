@@ -1,3 +1,4 @@
+using LightRemote.Configuration;
 using System.Diagnostics;
 using System.Net;
 using System.Security.Principal;
@@ -269,7 +270,11 @@ static class Program
         {
             try
             {
+#if LIGHT_REMOTE_GOLDABV2_V4
+                using var res = client.GetAsync(CanonicalEndpoints.Gold.Route("wallHome")).GetAwaiter().GetResult();
+#else
                 using var res = client.GetAsync("http://127.0.0.1:5491/").GetAwaiter().GetResult();
+#endif
                 stable = res.StatusCode == HttpStatusCode.OK ? stable + 1 : 0;
             }
             catch

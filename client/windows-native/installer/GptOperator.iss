@@ -551,7 +551,11 @@ procedure PrepareInstallerTransaction();
 var
   SourceVersion, TempWatchdog: String;
 begin
+#ifdef UnifiedDesktopV4
+  InstallerTxnDir := ExpandConstant('{localappdata}\\Light Remote\\Updater\\GoldABV2\\state\\installer-txn') + '\\' + IntToStr(GetCurrentProcessId());
+#else
   InstallerTxnDir := ExpandConstant('{localappdata}\\Light Remote\\Updater\\state\\installer-txn') + '\\' + IntToStr(GetCurrentProcessId());
+#endif
   InstallerTxnWatchdogTask := 'LightRemoteInstallWatchdog-' + IntToStr(GetCurrentProcessId());
   ForceDirectories(InstallerTxnDir);
   InstallerTxnCommitMarker := InstallerTxnDir + '\\commit.ok';
@@ -691,7 +695,11 @@ var
   Attempt: Integer;
   Cached: Boolean;
 begin
+#ifdef UnifiedDesktopV4
+  RollbackDir := ExpandConstant('{localappdata}\Light Remote\Updater\GoldABV2\rollback');
+#else
   RollbackDir := ExpandConstant('{localappdata}\Light Remote\Updater\rollback');
+#endif
   if not ForceDirectories(RollbackDir) then
     RaiseException('Unable to create rollback installer cache directory: ' + RollbackDir);
   RollbackFile := RollbackDir + '\Light-Remote-MCP-Setup-{#AppVersion}-x64.exe';
@@ -767,4 +775,8 @@ Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN ""LightRemoteUpdater"" 
 #ifdef CompactNodeBootstrap
 Type: filesandordirs; Name: "{app}\runtime"
 #endif
+#ifdef UnifiedDesktopV4
+Type: filesandordirs; Name: "{localappdata}\Light Remote\Updater\GoldABV2"
+#else
 Type: filesandordirs; Name: "{localappdata}\Light Remote\Updater"
+#endif

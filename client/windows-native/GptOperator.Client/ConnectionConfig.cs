@@ -1,3 +1,4 @@
+using LightRemote.Configuration;
 using System.Text.Json;
 
 namespace GptOperator.Client;
@@ -9,12 +10,12 @@ internal static class ConnectionConfig
 #if LIGHT_REMOTE_GOLDABV2_V4
     // New V4 QA installs use the GoldABV2 backend. Existing saved enrollment
     // URLs are NEVER silently migrated: Owner must explicitly relink devices.
-    public const string StablePublicEndpoint = "https://goldabv2.light-remote.thaiduy.digital";
+    public static string StablePublicEndpoint => CanonicalEndpoints.Gold.CloudOrigin("deviceChannel");
 #else
     public const string StablePublicEndpoint = "https://gold.light-remote.thaiduy.digital";
 #endif
-    public const string DefaultBridgeUrl = StablePublicEndpoint;
-    public const string DefaultHubUrl = StablePublicEndpoint;
+    public static string DefaultBridgeUrl => StablePublicEndpoint;
+    public static string DefaultHubUrl => StablePublicEndpoint;
 
     private static readonly string[] LegacyBridgeUrls =
     [
@@ -81,7 +82,8 @@ internal static class ConnectionConfig
         var effective = Load();
         return effective.BridgeUrl == StablePublicEndpoint
             && effective.HubUrl == StablePublicEndpoint
-            && StablePublicEndpoint == "https://goldabv2.light-remote.thaiduy.digital"
+            && CanonicalEndpoints.Gold.ProductId == "goldabv2-desktop-v4"
+            && CanonicalEndpoints.Gold.UpdateOnHold
             && AppPaths.ConnectionFile.Contains("LightRemoteGoldABV2", StringComparison.Ordinal)
             && AppPaths.StateFile.Contains("gpt-operator-agent-goldabv2", StringComparison.Ordinal)
             && !AppPaths.StateFile.Contains("gpt-operator-agent\\device.json", StringComparison.OrdinalIgnoreCase);

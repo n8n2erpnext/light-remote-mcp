@@ -2,8 +2,15 @@ namespace LightRemote.Updater;
 
 internal static class RecoveryPaths
 {
+#if LIGHT_REMOTE_GOLDABV2_V4
+    // A GoldABV2 helper must never read legacy cache, rollback or pending txn.
+    public static readonly string Root = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Light Remote", "Updater", "GoldABV2");
+#else
     public static readonly string Root = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Light Remote", "Updater");
+#endif
     public static readonly string ConfigDir = Path.Combine(Root, "config");
     public static string UpdatePublicKey { get { var adjacent=Path.Combine(AppContext.BaseDirectory,"config","client-update-public.pem"); return File.Exists(adjacent)?adjacent:Path.Combine(ConfigDir,"client-update-public.pem"); } }
     public static readonly string CacheDir = Path.Combine(Root, "cache");

@@ -24,13 +24,15 @@ use tauri::State;
 use url::Url;
 use crate::owner_vault;
 
-const AUTH_ORIGIN: &str = "https://goldabv2.light-remote.thaiduy.digital";
-const AUTHORIZE: &str = "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/authorize";
-const TOKEN: &str = "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/token";
-const REFRESH: &str = "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/refresh";
-const SESSION: &str = "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/session";
-const SNAPSHOT: &str = "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/snapshot";
-const LOGOUT: &str = "https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/logout";
+// Auth endpoints are compiled from the one canonical JSON, never a dynamic
+// browser path, inherited env or fallback to regular Gold production.
+fn auth_origin()->&'static str { crate::endpoint_config::cloud_origin("owner").unwrap_or("") }
+fn authorize_url()->&'static str { crate::endpoint_config::route("ownerAuthorize").unwrap_or("") }
+fn token_url()->&'static str { crate::endpoint_config::route("ownerToken").unwrap_or("") }
+fn refresh_url()->&'static str { crate::endpoint_config::route("ownerRefresh").unwrap_or("") }
+fn session_url()->&'static str { crate::endpoint_config::route("ownerSession").unwrap_or("") }
+fn snapshot_url()->&'static str { crate::endpoint_config::route("ownerSnapshot").unwrap_or("") }
+fn logout_url()->&'static str { crate::endpoint_config::route("ownerLogout").unwrap_or("") }
 const RESOURCE: &str = "urn:light-remote:desktop-owner:v4";
 const CLIENT_ID: &str = "light-remote-desktop-v4";
 const SCOPE: &str = "desktop:read";
@@ -228,13 +230,13 @@ fn check_token_set(response:Value) -> Result<TokenSet,String> {
 }
 fn revoke_remote(client:&Client, refresh:&str) {
     if token_ok(refresh) {
-        let _=client.post(LOGOUT).json(&json!({"refresh_token":refresh})).send();
+        let _=client.post(logout_url()).json(&json!({"refresh_token":refresh})).send();
     }
 }
 fn exchange(code:&str, verifier:&str, redirect:&str, install_nonce:&str, state:&str)
         -> Result<TokenSet,String> {
     let client=http()?;
-    let response=client.post(TOKEN).json(&json!({
+    let response=client.post(token_url()).json(&json!({
         "code":code,"code_verifier":verifier,"redirect_uri":redirect,
         "install_nonce":install_nonce,"state":state
     })).send().map_err(|_|"owner_https_unavailable")?;
@@ -247,7 +249,7 @@ fn refresh_from_vault() -> Result<TokenSet,String> {
     let existing=owner_vault::read_refresh()?
         .ok_or_else(||"owner_not_signed_in".to_string())?;
     let client=http()?;
-    let response=client.post(REFRESH)
+    let response=client.post(refresh_url())
         .json(&json!({"refresh_token":existing}))
         .send().map_err(|_|"owner_https_unavailable")?;
     let received=match read_json(response).and_then(check_token_set) {
@@ -259,7 +261,7 @@ fn refresh_from_vault() -> Result<TokenSet,String> {
 }
 fn auth_url(redirect:&str, verifier:&str, state:&str, install_nonce:&str)
         -> Result<String,String> {
-    let mut url=Url::parse(AUTHORIZE).map_err(|_|"owner_url_invalid")?;
+    let mut url=Url::parse(authorize_url()).map_err(|_|"owner_url_invalid")?;
     url.query_pairs_mut()
         .append_pair("client_id",CLIENT_ID)
         .append_pair("resource",RESOURCE)
@@ -273,7 +275,7 @@ fn auth_url(redirect:&str, verifier:&str, state:&str, install_nonce:&str)
     Ok(url.to_string())
 }
 fn system_browser(url:&str) -> Result<(),String> {
-    if !url.starts_with(AUTHORIZE) {return Err("owner_url_invalid".into());}
+    if !url.starts_with(authorize_url()) {return Err("owner_url_invalid".into());}
     #[cfg(target_os="windows")]
     let result=Command::new("rundll32.exe").arg("url.dll,FileProtocolHandler").arg(url).spawn();
     #[cfg(target_os="macos")]
@@ -302,7 +304,7 @@ fn validate_callback(target:&str, state:&str) -> Result<String,String> {
             _=>return Err("owner_callback_invalid".into())
         }
     }
-    if returned_state.as_deref()!=Some(state) || issuer.as_deref()!=Some(AUTH_ORIGIN){
+    if returned_state.as_deref()!=Some(state) || issuer.as_deref()!=Some(auth_origin()){
         return Err("owner_callback_mismatch".into());
     }
     if error.as_deref()==Some("access_denied") && code.is_none(){
@@ -398,7 +400,7 @@ pub(crate) fn desktop_owner_begin(state:State<'_,OwnerRuntime>) -> Result<OwnerV
 // resurrect a session invalidated by Sign out.
 fn verify_owner_session(access: &str, account: &str) -> bool {
     let response=http().and_then(|client|{
-        let res=client.get(SESSION).bearer_auth(access)
+        let res=client.get(session_url()).bearer_auth(access)
             .send().map_err(|_|"owner_https_unavailable")?;
         read_json(res)
     });
@@ -528,7 +530,7 @@ pub(crate) fn desktop_owner_logout(state:State<'_,OwnerRuntime>) -> Result<Owner
     // a revoked/expired access token must not prevent family invalidation.
     if let Some(value)=stored.or(access) {
         let client=http()?;
-        client.post(LOGOUT)
+        client.post(logout_url())
             .header("Authorization",format!("Bearer {}",value))
             .json(&json!({}))
             .send().map_err(|_|"owner_server_logout_unconfirmed")?
@@ -674,7 +676,7 @@ pub(crate) async fn desktop_owner_snapshot(
             return Err("desktop_owner_data_unavailable".to_string());
         }
         let response=http().map_err(|_|"desktop_owner_data_unavailable".to_string())?
-            .post(SNAPSHOT).bearer_auth(&access).json(&json!({}))
+            .post(snapshot_url()).bearer_auth(&access).json(&json!({}))
             .send().map_err(|_|"desktop_owner_data_unavailable".to_string())?;
         if !response.status().is_success() {
             return Err("desktop_owner_data_unavailable".into());
@@ -817,7 +819,7 @@ mod tests {
         let u=auth_url("http://127.0.0.1:49152/desktop/v4/callback",
             &"V".repeat(43),&"S".repeat(43),&"I".repeat(43)).unwrap();
         let parsed=Url::parse(&u).unwrap();
-        assert_eq!(parsed.origin().ascii_serialization(),AUTH_ORIGIN);
+        assert_eq!(parsed.origin().ascii_serialization(),auth_origin());
         assert_eq!(parsed.path(),"/account/desktop/v4/authorize");
         assert!(!parsed.path().contains("/mcp"));
         assert!(u.contains("code_challenge_method=S256"));

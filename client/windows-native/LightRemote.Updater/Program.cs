@@ -1,3 +1,4 @@
+using LightRemote.Configuration;
 using System.Text.Json.Nodes;
 
 namespace LightRemote.Updater;
@@ -14,12 +15,15 @@ internal static class Program
             var verify=Array.IndexOf(args,"--verify-update-fixture");if(verify>=0&&verify+3<args.Length)return VerifyFixture(args[verify+1],args[verify+2],args[verify+3])?0:1;
             var self=Array.IndexOf(args,"--self-test-output");if(self>=0&&self+2<args.Length)return SelfTest(args[self+1],args[self+2])?0:1;
             var cacheSelf=Array.IndexOf(args,"--cache-self-test-output");if(cacheSelf>=0&&cacheSelf+1<args.Length)return await CacheSelfTestAsync(args[cacheSelf+1])?0:1;
+            var profileSelf=Array.IndexOf(args,"--endpoint-profile-self-test-output");
+            if(profileSelf>=0&&profileSelf+1<args.Length)return EndpointProfileSelfTest(args[profileSelf+1])?0:1;
             var check=Array.IndexOf(args,"--check-update");if(check>=0&&check+2<args.Length&&string.Equals(args[check+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunCheckUpdateAsync(args[check+2]);
             var now=Array.IndexOf(args,"--apply-update-now");if(now>=0&&now+2<args.Length&&string.Equals(args[now+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunApplyUpdateNowAsync(args[now+2]);
             var scheduled=Array.IndexOf(args,"--scheduled-update");if(scheduled>=0&&scheduled+2<args.Length&&string.Equals(args[scheduled+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunCheckUpdateAsync(args[scheduled+2]);
             return 2;
         }
         catch(FileNotFoundException){return 0;}
+        catch(UpdateChannelHeldException){return 0;}
         catch(Exception ex){UpdateApplier.Log($"updater_failed {ex.GetType().Name}: {ex.Message}");return 1;}
     }
 
@@ -40,18 +44,49 @@ internal static class Program
             WriteStatus("ready",current,update.Version);
             return 0;
         }
+        catch(UpdateChannelHeldException){WriteStatus("hold",current,null,"LRU_PRODUCT_FEED_HOLD");return 0;}
         catch(FileNotFoundException){WriteStatus("idle",current);return 0;}
         catch(Exception){WriteStatus("failed",current,null,"LRU100");throw;}
     }
     private static async Task<int> RunApplyUpdateNowAsync(string installDir)
     {
-        var current=CurrentVersion(installDir);WriteStatus("checking",current);var client=new UpdateClient();UpdateInfo? update;try{update=await client.CheckAsync(current);}catch(FileNotFoundException){WriteStatus("idle",current);return 0;}catch{WriteStatus("failed",current,null,"LRU100");throw;}if(update is null){WriteStatus("idle",current);return 0;}WriteStatus("verifying_cache",current,update.Version);string installer;
+        var current=CurrentVersion(installDir);WriteStatus("checking",current);UpdateClient client;UpdateInfo? update;try{client=new UpdateClient();update=await client.CheckAsync(current);}catch(UpdateChannelHeldException){WriteStatus("hold",current,null,"LRU_PRODUCT_FEED_HOLD");return 0;}catch(FileNotFoundException){WriteStatus("idle",current);return 0;}catch{WriteStatus("failed",current,null,"LRU100");throw;}if(update is null){WriteStatus("idle",current);return 0;}WriteStatus("verifying_cache",current,update.Version);string installer;
         try{installer=await client.DownloadAndVerifyAsync(update);}
         catch{WriteStatus("failed",current,update.Version,"LRU111");throw;}
         var txId="ut_"+Guid.NewGuid().ToString("N");WriteJson(RecoveryPaths.TransactionFile,new JsonObject{{"schemaVersion",1},{"txId",txId},{"fromVersion",current},{"targetVersion",update.Version},{"startedAt",DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}});try{File.Delete(RecoveryPaths.AckFile);}catch{}WriteStatus("installing_core",current,update.Version);
         try{client.LaunchApplyHelper(installer,installDir,current,update.Version,txId);}
         catch{WriteStatus("failed",current,update.Version,"LRU120");try{File.Delete(RecoveryPaths.TransactionFile);}catch{}throw;}
         return 0;
+    }
+    // Native executable proof: valid signed-manifest PRODUCT metadata cannot
+    // silently select another product/profile, and ABV2 has no approved feed.
+    // No HTTP calls, install, account access or update state is changed.
+    private static bool EndpointProfileSelfTest(string output)
+    {
+        bool ok=false;
+        try
+        {
+            var e=CanonicalEndpoints.Gold;
+            if(e.ProductId!="goldabv2-desktop-v4"||!e.UpdateOnHold||
+               e.UpdateManifestUrl is not null||e.UpdateSignatureUrl is not null)
+                throw new InvalidOperationException("goldabv2_feed_not_on_hold");
+            using var wrong=JsonDocument.Parse("""{"productId":"regular-gold","profile":"goldabv2-lab","channel":"goldabv2-lab"}""");
+            bool wrongRejected=false;
+            try { e.RequireSignedUpdateIdentity(wrong.RootElement); }
+            catch(InvalidDataException){ wrongRejected=true; }
+            using var valid=JsonDocument.Parse("""{"productId":"goldabv2-desktop-v4","profile":"goldabv2-lab","channel":"goldabv2-lab"}""");
+            e.RequireSignedUpdateIdentity(valid.RootElement);
+            ok=wrongRejected;
+            File.WriteAllText(output,new JsonObject{{"ok",ok},{"productId",e.ProductId},
+                {"selectedProfile",e.SelectedProfile},{"revision",e.ConfigRevision},
+                {"manifestOnHold",e.UpdateOnHold},{"wrongProductRejected",wrongRejected}}.ToJsonString());
+            return ok;
+        }
+        catch(Exception ex)
+        {
+            File.WriteAllText(output,new JsonObject{{"ok",false},{"error",ex.GetType().Name}}.ToJsonString());
+            return false;
+        }
     }
     // Executable-level cache proof on a Windows runner. No network or real
     // installer is launched, and the updater's production files are untouched.

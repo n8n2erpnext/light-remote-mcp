@@ -1,3 +1,4 @@
+using LightRemote.Configuration;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -63,7 +64,12 @@ internal static class UpdateApplier
         }
         catch(Exception ex){EnsureInstalledTray(installDir);Log($"restart_agent_exception {ex.GetType().Name}: {ex.Message}");return 34;}
     }
-    private static bool WallPortListening(){try{return System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(ep=>ep.Port==5491);}catch{return false;}}
+    private static bool WallPortListening(){try{return System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(ep=>ep.Port==WallPort);}catch{return false;}}
+#if LIGHT_REMOTE_GOLDABV2_V4
+    private static int WallPort => CanonicalEndpoints.Gold.LocalPort("wall");
+#else
+    private const int WallPort = 5491;
+#endif
     private static async Task<bool> WaitForWallStateAsync(bool listening,TimeSpan timeout)
     {
         var deadline=DateTimeOffset.UtcNow+timeout;

@@ -5,6 +5,7 @@
 
 // Candidate native-only Owner refresh vault is never exposed by Tauri IPC.
 // All credential use will stay in Rust, never React JS or Local Wall cookies.
+mod endpoint_config;
 #[cfg(feature = "desktop-owner-login")]
 mod owner_vault;
 #[cfg(feature = "desktop-owner-login")]
@@ -22,8 +23,8 @@ mod unified_tray;
 // A Linux LXD NetBird NAT access URL is only external QA, never App Wall.
 fn exact_wall_view(view: &str) -> Result<&'static str, String> {
     match view {
-        "home" => Ok("http://127.0.0.1:5491/"),
-        "logs" => Ok("http://127.0.0.1:5491/settings#activityLogSettings"),
+        "home" => endpoint_config::route("wallHome"),
+        "logs" => endpoint_config::route("wallLogsPage"),
         _ => Err("unsupported_local_wall_view".into()),
     }
 }
@@ -47,18 +48,21 @@ fn open_local_wall(view: &str) -> Result<(), String> {
 // This classifies a lock screen, NOT an authenticated Agent/device connection.
 fn probe_wall_presence() -> &'static str {
     use std::io::{Read, Write};
-    use std::net::{SocketAddrV4, TcpStream, Ipv4Addr};
+    use std::net::TcpStream;
     use std::time::Duration;
-    let addr=SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5491);
-    let request=b"GET /api/status HTTP/1.1\r\nHost: 127.0.0.1:5491\r\nConnection: close\r\nAccept: application/json\r\n\r\n";
-    let Ok(mut socket) = TcpStream::connect_timeout(&addr.into(), Duration::from_millis(500)) else {
+    let Ok(addr)=endpoint_config::local_socket("wall") else {return "unavailable";};
+    let Ok(status_url)=endpoint_config::route("wallStatus") else {return "unavailable";};
+    let Ok(parsed)=url::Url::parse(status_url) else {return "unavailable";};
+    let request=format!("GET {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\nAccept: application/json\r\n\r\n",
+        parsed.path(),parsed.host_str().unwrap_or("127.0.0.1"));
+    let Ok(mut socket)=TcpStream::connect_timeout(&addr,Duration::from_millis(500)) else {
         return "unavailable";
     };
     if socket.set_read_timeout(Some(Duration::from_millis(500))).is_err() ||
         socket.set_write_timeout(Some(Duration::from_millis(500))).is_err() {
         return "unavailable";
     }
-    if socket.write_all(request).is_err() {
+    if socket.write_all(request.as_bytes()).is_err() {
         return "unavailable";
     }
     // Strict upper bound: 4KiB, no redirects, no user URL, no reading tokens.

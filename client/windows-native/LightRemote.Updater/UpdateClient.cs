@@ -1,3 +1,4 @@
+using LightRemote.Configuration;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -6,6 +7,10 @@ namespace LightRemote.Updater;
 
 internal sealed record UpdateArtifact(string Url,string Sha256,long Size,string? InstallerArgs);
 internal sealed record UpdateInfo(string Version,string? Notes,UpdateArtifact Artifact);
+internal sealed class UpdateChannelHeldException : Exception
+{
+    public UpdateChannelHeldException() : base("goldabv2_update_channel_hold_no_approved_feed") { }
+}
 
 internal sealed class UpdateClient
 {
@@ -13,14 +18,24 @@ internal sealed class UpdateClient
     private const string DefaultSignatureUrl="https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json.sig";
     private const int ManifestPairAttempts=3;
     private readonly HttpClient _http=new(){Timeout=TimeSpan.FromSeconds(30)};
+#if LIGHT_REMOTE_GOLDABV2_V4
+    // No legacy or env override: until an authenticated, product-bound feed is
+    // approved, even an otherwise valid signed regular-Gold release is HOLD.
+    private readonly string _manifestUrl=CanonicalEndpoints.Gold.UpdateManifestUrl ?? throw new UpdateChannelHeldException();
+    private readonly string _signatureUrl=CanonicalEndpoints.Gold.UpdateSignatureUrl ?? throw new UpdateChannelHeldException();
+#else
     private readonly string _manifestUrl=Environment.GetEnvironmentVariable("GPT_OPERATOR_UPDATE_MANIFEST_URL")??DefaultManifestUrl;
     private readonly string _signatureUrl=Environment.GetEnvironmentVariable("GPT_OPERATOR_UPDATE_SIGNATURE_URL")??DefaultSignatureUrl;
+#endif
 
     public async Task<UpdateInfo?> CheckAsync(string currentVersion,CancellationToken cancellationToken=default)
     {
         var (manifestBytes,signatureText)=await DownloadVerifiedManifestPairAsync(cancellationToken);
         using var doc=JsonDocument.Parse(manifestBytes);var root=doc.RootElement;
         if(root.GetProperty("schemaVersion").GetInt32()!=1)throw new InvalidOperationException("Unsupported update manifest schema.");
+#if LIGHT_REMOTE_GOLDABV2_V4
+        CanonicalEndpoints.Gold.RequireSignedUpdateIdentity(root);
+#endif
         var versionText=root.GetProperty("version").GetString()??throw new InvalidOperationException("Update version missing.");
         if(!SemanticVersion.TryParse(versionText,out var candidate)||candidate is null)throw new InvalidOperationException("Invalid update version.");
         if(!SemanticVersion.TryParse(currentVersion,out var current)||current is null)throw new InvalidOperationException("Invalid current version.");

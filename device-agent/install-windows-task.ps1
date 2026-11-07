@@ -16,7 +16,11 @@ trap{Write-InstallDiag ('ERROR line='+$_.InvocationInfo.ScriptLineNumber+' messa
 if($env:OS -ne 'Windows_NT'){throw 'This installer must run on Windows.'}
 if([string]::IsNullOrWhiteSpace($InstallRoot)){$InstallRoot=(Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path}
 $Node=Join-Path $InstallRoot 'runtime\node.exe';$Agent=Join-Path $InstallRoot 'agent\device-agent\operator-agent.mjs';$Tray=Join-Path $InstallRoot 'GptOperator.Client.exe'
-$UpdaterRoot=Join-Path $env:LOCALAPPDATA 'Light Remote\Updater';$Updater=Join-Path $UpdaterRoot 'LightRemote.Updater.exe';$UpdaterKey=Join-Path $UpdaterRoot 'config\client-update-public.pem'
+$UpdaterRoot=Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+if(Test-Path (Join-Path $InstallRoot 'agent\device-agent\goldabv2-package-profile.json')){
+  $UpdaterRoot=Join-Path $UpdaterRoot 'GoldABV2'
+}
+$Updater=Join-Path $UpdaterRoot 'LightRemote.Updater.exe';$UpdaterKey=Join-Path $UpdaterRoot 'config\client-update-public.pem'
 $AgentTask='LightRemoteDeviceAgent';$UpdateTask='LightRemoteUpdater';$Legacy='GPTOperatorDeviceAgent';$LegacyRoot=Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent';$LegacyNode=Join-Path $LegacyRoot 'runtime\node.exe';$LegacyLauncher=Join-Path $LegacyRoot 'run-device-agent.ps1';$LegacyAgent=Join-Path $LegacyRoot 'device-agent\operator-agent.mjs';$account=[System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 $HelperCandidate=Join-Path $InstallRoot 'helper-candidate'
 if(-not(Test-Path $Updater)){

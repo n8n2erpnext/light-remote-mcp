@@ -1,3 +1,4 @@
+use sha2::{Sha256,Digest};
 //! Desktop V4 private, OS-backed refresh credential storage.
 //! This module is never exposed as a Tauri invoke command; only the Rust
 //! native Owner login flow may touch the OS credential store.
@@ -8,7 +9,14 @@
 use keyring::{Entry, Error};
 
 const SERVICE: &str = "digital.thaiduy.lightremote.desktop.v4.owner";
-const ACCOUNT: &str = "owner_refresh_goldabv2";
+// The keyring account is tied to product, profile and Owner issuer. A
+// changed issuer receives a DIFFERENT OS credential; never forward old bearer.
+fn authority_account()->Result<String,String>{
+    let authority=crate::endpoint_config::credential_authority()?;
+    let digest=Sha256::digest(authority.as_bytes());
+    let suffix=digest[..12].iter().map(|b|format!("{:02x}",b)).collect::<String>();
+    Ok(format!("owner_refresh_goldabv2_{}",suffix))
+}
 const TOKEN_LEN: usize = 43;
 
 fn valid_token(token: &str) -> bool {
@@ -16,7 +24,7 @@ fn valid_token(token: &str) -> bool {
         token.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
 }
 fn entry() -> Result<Entry, String> {
-    Entry::new(SERVICE, ACCOUNT).map_err(|_| "os_vault_unavailable".to_string())
+    Entry::new(SERVICE, &authority_account()?).map_err(|_| "os_vault_unavailable".to_string())
 }
 
 /// Store one opaque rotating refresh credential. Never print it or expose it

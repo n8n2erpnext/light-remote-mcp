@@ -39,4 +39,8 @@
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\CanonicalEndpoints.cs" Link="CanonicalEndpoints.cs" />
+    <EmbeddedResource Include="..\..\..\config\endpoints.json" LogicalName="LightRemote.Canonical.Endpoints.json" />
+  </ItemGroup>
 </Project>
