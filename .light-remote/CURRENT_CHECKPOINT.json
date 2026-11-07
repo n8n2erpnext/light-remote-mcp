@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.current-checkpoint.v1",
   "updatedDate": "2026-11-07",
-  "status": "T11_F08B_LOCAL_WALL_INSTANCE_NONCE_HMAC_NATIVE_CI_PENDING",
+  "status": "T11_F08B_CI01_CLIENT_CORE_MANIFEST_MISSING_MODULE_FIXED_NATIVE_CI_PENDING",
   "branch": "feat/desktop-v4-api-integration-20261103",
   "referenceSourceBaseline": "47556b829425784e4c1240c88f08e7272970595f",
   "documentationGovernanceCommit": "9297977b6a55e0111847d5c704105dccb4c93c18",
@@ -158,7 +158,7 @@
     "Billing-once currently verified only by existing source fixture and PostgreSQL SQL044 owner/operation unique key; no actual Agent/Paddle end-to-end. Guest Fleet adapter remains prior safety HOLD.",
     "Desktop V4 pilot needs Tauri2 IPC security spike, Owner-scoped signed API contract, browser/physical Windows10 150% visual acceptance, Figma Design Freeze before runtime replacement."
   ],
-  "nextAction": "F08B canonical route rev2 + Node/NET/Rust local Wall fresh nonce HMAC and current-user private key. Source HTTP/raw TCP, crypto vector, TS Vitest PASS; next inspect exact GitHub native Windows/Gold GC CI; fix failures. No owner Windows/production changes, signed feed HOLD.",
+  "nextAction": "F08B-CI01 failed Windows 42347719633 static import closure: added new local-wall-instance-proof.mjs to client/core-files.json and regression. Local tests PASS; next native .NET/Rust Windows full installer CI on new SHA, Gold GC/Docs, macOS/Linux. No physical Windows/live deploy.",
   "readFirst": [
     "docs/project-book/LIGHT_REMOTE_GOLDABV2_DESKTOP_V4_FULL_HANDOFF_20261106.md",
     "docs/project-book/README.md",
@@ -172,10 +172,10 @@
   ],
   "sourceSync": {
     "algorithm": "sha256-git-blobs-v1",
-    "treeDigest": "b4a5e9f5c0c21c4b9ec3be5002932e3ef439a93c1853a5d72bc6549ec2a863b0",
+    "treeDigest": "b9abe29492871733b4e32079386e79b945919a34b3913fef177c0a7afccbcead",
     "trackedFiles": 1329,
     "sourceOfTruth": "staged Git blob tree (excludes docs and checkpoint)",
-    "recordedAt": "2026-11-07T06:35:42.649Z"
+    "recordedAt": "2026-11-07T06:38:36.056Z"
   },
   "sourceDocsGate": {
     "commit": "01791be27c10e0624df99876407cbfe7670ae16d",
@@ -1894,5 +1894,18 @@
     "releaseFeed": "HOLD",
     "productionTouched": false,
     "priorF08aWinInstallerPass": 42346197211
+  },
+  "t11_f08b_ci01": {
+    "date": "2026-11-07",
+    "priorDesktopSha": "5bccdd33626e538331e9fc86235e1e013b55516e",
+    "failedWindowsRun": 42347719633,
+    "failedJob": 128328975644,
+    "failure": "Gold Client Core manifest missing device-agent/local-wall-instance-proof.mjs",
+    "fix": "staging allowlist and static contract",
+    "localClosure": "PASS files=75",
+    "newNativeWindowsCI": "PENDING",
+    "goldGC": "prior SHA PASS",
+    "physicalWindows": "OPEN",
+    "productionTouched": false
   }
 }

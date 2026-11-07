@@ -7,6 +7,10 @@ assert.equal(config.configRevision,2);
 assert.deepEqual(config.routeCatalog.wallInstanceProof,{
  originRole:'local.wall',method:'GET',path:'/api/local-instance/proof'
 });
+const staged=JSON.parse(read('client/core-files.json'));
+assert.ok(staged.files.some(f=>f.source==='device-agent/local-wall-instance-proof.mjs'&&
+ f.destination==='device-agent/local-wall-instance-proof.mjs'),
+ 'bundled Windows Agent must stage the new Local Wall proof implementation');
 const key=read('device-agent/local-wall-instance-proof.mjs');
 const agent=read('device-agent/operator-agent.mjs');
 const wall=read('device-agent/local-wall.mjs');
