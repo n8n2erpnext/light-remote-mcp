@@ -17,6 +17,10 @@ const app=read('client/desktop-v4/src/App.tsx');
 const wf=read('.github/workflows/windows-native-client.yml');
 // One Windows native GUI/Tray, separate internal non-interactive Agent
 assert.match(main,/unified_tray::already_running\(\)/);
+const host=read('client/desktop-v4/src-tauri/src/windows_host.rs');
+assert.match(rust,/if crate::windows_host::required\(\) \{/);
+assert.doesNotMatch(rust,/windows_host::available/);
+assert.match(host,/pub\(crate\) fn dispatch\(\)->Option<i32>\{\s*if !required\(\)\{return None;\}/);
 assert.match(main,/unified_tray::attach\(app\)/);
 assert.match(main,/unified_tray::hide_on_close/);
 assert.match(cargo,/\[target\.'cfg\(target_os = "windows"\)'\.dependencies\]/);

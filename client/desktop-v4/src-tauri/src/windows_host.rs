@@ -36,9 +36,6 @@ pub(crate) fn required()->bool{
         .and_then(|path|path.file_name().map(|name|name.to_string_lossy().eq_ignore_ascii_case("LightRemote.exe")))
         .unwrap_or(false)
 }
-pub(crate) fn available()->bool{
-    install_root().map(|p|p.join("windows-host/LightRemote.WindowsHost.dll").is_file()).unwrap_or(false)
-}
 
 fn load()->Result<Api,String>{
     let root=install_root()?;
@@ -127,6 +124,7 @@ pub(crate) fn action(action:&str)->Result<serde_json::Value,String>{
 
 /// Dispatch before GUI mutex, Tauri, WebView and Owner vault initialization.
 pub(crate) fn dispatch()->Option<i32>{
+    if !required(){return None;}
     let raw:Vec<_>=std::env::args_os().skip(1).collect();
     let role=raw.first()?.to_str()?.to_ascii_lowercase();
     if !["--agent-host","--stop-agent-host","--managed-process","--self-test-output","--boot-evidence-self-test",

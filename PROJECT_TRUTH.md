@@ -82,3 +82,7 @@ Compatibility helper executable resolver fixtures passed CI42503527848. That run
 ## Fix locatable WMI identity for owned Agent stop
 
 Bridge0.10.1-dev.1 remains pending a fully successful CI. Two failures in42504277501 are addressed: stale two-target installer regression and WMI projected object identity for GetOwnerSid. Native library compilation succeeded; no final package switch, Owner install or public feed promotion occurred.
+
+## Bind hosted component activation to the primary executable
+
+The final bridge adds explicit primary-executable host selection to prevent opportunistic DLL loading by a restored old Desktop. Current native bridge validation remains pending. The candidate primary layout and real migration fixtures are being prepared independently; no stable main or installed runtime has been changed.

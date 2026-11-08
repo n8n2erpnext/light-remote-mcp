@@ -88,3 +88,7 @@ The shared CoreLayout now cleans only the known obsolete LightRemote.exe/primary
 ## Fix locatable WMI identity for owned Agent stop
 
 OwnedAgentHostStopper uses EnsureLocatable=true with its bounded projected WQL query. This retains the WMI object identity needed by GetOwnerSid; SID, exact executable/parsed argv and creation-time checks remain mandatory. Diagnostics expose phase/type only, never command lines, SID values, credentials or local state. The source installer guard now requires legacy core, new primary core, legacy Desktop and bundled Node exact paths.
+
+## Bind hosted component activation to the primary executable
+
+In-process component activation and headless worker dispatch are now restricted to the exact primary LightRemote.exe. Legacy LightRemote.Desktop.exe always calls its fixed matching GptOperator.Client.exe bridge; a leftover windows-host DLL from a rolled-back installer cannot opt it into a newer implementation. No renderer/env/path selector was added. Source lifecycle regression requires this isolation.

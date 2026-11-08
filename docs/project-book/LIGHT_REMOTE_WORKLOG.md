@@ -121,3 +121,9 @@ Prepare reversible fixed-name installer/task layout support, exact runtime quies
 Receipt: 20261109-oneexe-p2-wmi-owner-stop-proof
 
 Retain WMI instance paths for exact SID-verified Agent stop and update the installer regression to require all four fixed quiesce paths. CI42504277501 compiled the managed component, passed native layout and prior worker fixtures, then failed Agent-only stop. Reproduced InvalidOperationException with a read-only WMI self-process query; EnsureLocatable=true resolves it and returns matching owner/file/creation evidence. Core source gate failed only on its obsolete two-path quiesce literal, now updated to four. Full bridge CI rerun pending. Local broad suite was not a clean native environment: spawn EPERM, missing dependencies and no staged helper; it is not claimed PASS. Next: Verify bridge CI and archive its exact successful installer; then enable the primary layout and execute real fresh/reinstall/bridge upgrade/rollback proof.
+
+## 2026-11-09 — Bind hosted component activation to the primary executable
+
+Receipt: 20261109-oneexe-p2-explicit-primary-host-selection
+
+Only LightRemote.exe may activate the hosted component or worker dispatch; the compatibility Desktop always uses its matching legacy core, including after rollback leaves supporting DLLs behind. Source lifecycle/endpoint/package regressions PASS before commit. This closes a rollback risk found while designing the real post-install failure fixture: DLL presence alone must never make an old Desktop opportunistically load a newer component. Existing SID/argv/creation checks and primary early worker dispatch remain unchanged. Exact native bridge CI pending; no physical acceptance. Next: Require final bridge CI PASS, pin and retain its exact installer/hash for migration testing, then publish the one-primary candidate with native install/upgrade/rollback tests.
