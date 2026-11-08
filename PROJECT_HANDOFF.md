@@ -82,3 +82,11 @@ This is the **only rolling project handoff**. Together with the single root `MAS
 - Verification: CI truth and baseline-required PASS (native build jobs skipped as documented-only), 27 old directories/artifact paths removed, 503 old handoffs archived/removed, 24 symlinks removed, SHA256/Git bundle verified. Agent and release-sync timer active. Release-sync service remains pre-existing failed, no production or Windows physical acceptance claimed.
 - Next: push this final docs-only receipt on `work`, confirm `baseline-required` PASS, fast-forward protected `main` and leave `work` checked out, with clean Git tree; next feature starts with full checkpoint.
 - Rollback: `checkpoint/20261108-before-legacy-fs-cleanup`, private `legacy-preservation-20261108` recovery artifacts under Unified.
+
+
+## Task Receipt: 20261108-release-asset-cache-cleanup
+- Status: DONE_LOCAL_CI_PENDING — deleted only the 372 historical downloaded release asset blobs inside Unified `recovery/release-assets/objects` after 421/421 GitHub archive SHA-256/size metadata match and a real HTTP 206 asset-download check.
+- Source: active `work` baseline `120b48b6ff1d2545af48ea06d102aa2dbde94f87`; application code, Agent, Wall, Owner Windows install and production runtime untouched. Evidence only in Unified `recovery/release-assets/{manifest.json,VERIFICATION.json,verification.jsonl,LOCAL_OBJECTS_REMOVED.json}`, outside source Git checkout.
+- Verification: deletion target absent, 372/372 matched manifest before removal, no service reference detected, disk reclaimed `14,442,455,040 bytes (13.451 GiB)`; `df` now reports ~39 GB free / 69% used. The historical `VERIFICATION.json` PASS is a **pre-removal check**, not local presence after removal.
+- Next: publish atomic docs/checkpoint/handoff/Worklog receipt on existing `work` and require GitHub `baseline-required` PASS before fast-forwarding protected `main`. Keep only the one approved work branch. If old releases are needed, fetch the specific asset from archived GitHub repository.
+- Rollback: regenerate recovery objects by downloading corresponding archived GitHub Release assets according to the preserved manifest/digests; don't restore the 13.45 GiB cache without a concrete need.

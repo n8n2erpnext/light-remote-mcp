@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T14:47:01.454Z",
+  "updatedAt": "2026-11-08T15:50:00.171Z",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -279,23 +279,23 @@
     ],
     "longTaskCadence": "checkpoint and rolling handoff at each meaningful completed step before the next step",
     "workingBranch": "work",
-    "repositoryPublicationStatus": "Cleanup docs commit e6338e12 passed baseline-required GitHub CI 42491303164 and was fast-forwarded to main; final receipt commit on work pending CI.",
-    "taskStatus": "LEGACY_FS_CLEANUP_COMPLETE_MAIN_WORK_SYNCED",
+    "repositoryPublicationStatus": "Local cleanup done; docs/checkpoint/handoff commit pending publication on work; main baseline currently 120b48b",
+    "taskStatus": "RELEASE_RECOVERY_OBJECT_CACHE_REMOVED_LOCAL_CI_PENDING",
     "stableSourceBaseline": "c03b50f4328e07138f350532c31dfc8b260311ce",
     "preChangeCommit": "fd25174ac3e43a4e3ea6b3feed4ae0bf1b42587",
     "runtimeChanged": false,
-    "nextAction": "Publish final docs-only receipt, CI PASS, fast-forward main; keep work as development branch. Next feature starts full checkpoint.",
+    "nextAction": "Atomic docs/checkpoint/handoff commit on work, CI baseline-required PASS, then fast-forward main; preserve old manifest outside Git.",
     "atomicCommitRule": "Every Git commit must stage MASTER_CHECKPOINT, PROJECT_HANDOFF, Worklog, generated docs status and applicable Code Map/API/build documentation; unique task receipt + staged-source blob digest.",
     "localGuard": ".githooks/pre-commit invokes deploy/unified/commit-sync-gate.mjs --staged",
     "ciGuard": ".github/workflows/ci.yml truth job checks each new commit via --range"
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261108-legacy-cleanup-promotion-closure",
-    "status": "CLEANUP_DONE_MAIN_PROMOTED_CLOSURE_DOCS_PENDING",
-    "summary": "Finalize Light Remote old-source cleanup handoff after GitHub CI PASS and protected main fast-forward of cleanup receipt, retaining work branch.",
-    "verification": "cleanup receipt e6338e12 GitHub run 42491303164 baseline-required PASS; main/work both e6338e12; private recovery and active Agent/timer verified; no runtime deployment.",
-    "nextAction": "Push this docs-only closeout to work, require baseline-required, promote final receipt to main; continue development only within Unified.",
+    "taskId": "20261108-release-asset-cache-cleanup",
+    "status": "DONE_LOCAL_CI_PENDING",
+    "summary": "Removed redundant 372 old GitHub Release asset blobs from Unified recovery after remote archived 421/421 SHA and size match; kept historical audit manifests.",
+    "verification": "421/421 archive metadata SHA256/size match; HTTP 206 download; 372 local blobs removed; df reclaimed 13.451 GiB; no runtime references found.",
+    "nextAction": "Commit and publish docs/handoff/checkpoint/Worklog on work, CI baseline-required PASS, fast-forward protected main.",
     "sourceDigest": "361b21e8ff2026fcc4876c175ba6602224b5ff8d786082ca0495e71967b36f0c",
     "sourceFileCount": 1614
   },
@@ -329,5 +329,28 @@
     "verifiedCiResult": "success",
     "mainPromoted": true,
     "workBranchRetained": true
+  },
+  "releaseRecoveryCacheCleanup": {
+    "taskId": "20261108-release-asset-cache-cleanup",
+    "status": "DONE_LOCAL_DOCS_CI_PENDING",
+    "path": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/recovery/release-assets/objects",
+    "objectsRemoved": 372,
+    "releaseCount": 22,
+    "remoteAssetRecordsVerified": 421,
+    "manifestSha256AndSizeMatching": true,
+    "directArchivedAssetDownloadHTTP": 206,
+    "reclaimedBytes": 14442455040,
+    "reclaimedGiB": 13.451,
+    "filesystemFreeAfter": "39G",
+    "filesystemUseAfterPercent": 69,
+    "remainingAudit": [
+      "manifest.json",
+      "VERIFICATION.json",
+      "verification.jsonl",
+      "LOCAL_OBJECTS_REMOVED.json"
+    ],
+    "archiveUrl": "https://github.com/n8n2erpnext/light-remote-mcp-archive-20261108/releases",
+    "noRuntimeOrSourceChanges": true,
+    "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
   }
 }

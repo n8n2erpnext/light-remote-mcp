@@ -82,3 +82,12 @@ Historical Gold/Windows chronologies remain in the old read-only archive; do not
 - Receipt: 20261108-legacy-cleanup-promotion-closure
 - GitHub `work` commit `e6338e12` passed CI run 42491303164 `baseline-required=PASS`; the same commit fast-forwarded to protected `main` without force or new branch. Checks covered truth/docs and commit integrity; native Windows/macOS/Linux jobs were intentionally skipped for docs-only changes.
 - Cleanup completed and private local recovery snapshots remain within Unified. Device Agent and release-sync timer still active; historical old source/backup directories outside Unified removed. This is the final documentation-only closeout, not a runtime deployment.
+
+
+## 2026-11-08 — Removed redundant historical release asset blobs
+
+- Receipt: 20261108-release-asset-cache-cleanup
+- Explicit Owner-approved cleanup of `recovery/release-assets/objects`, holding 372 content-addressed objects for 421 asset records across 22 old Light Remote releases. Not source code; old SHA-256 verification archive created by earlier source-unification/recovery audit.
+- All 421 remote GitHub Archive release assets matched metadata SHA-256 and byte size; real archived asset HTTP Range GET returned 206. No direct runtime refs to local objects were found.
+- Deleted precisely the 372 local blob files; retained small manifest and old verification reports plus explicit `LOCAL_OBJECTS_REMOVED.json` outside Git to prevent misreading verification as current file presence.
+- Freed `13.451 GiB` (14,442,455,040 bytes). Disk usage 80% → 69%, about 39 GB available. No source, active release, production service or alternate backups changed.
