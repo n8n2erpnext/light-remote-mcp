@@ -1,0 +1,30 @@
+{
+  "publishedAt": "2026-11-08T12:29:54.760132+00:00",
+  "repositoryId": 1450214328,
+  "repository": "n8n2erpnext/light-remote-mcp",
+  "sourceDocumentDate": "2026-11-07",
+  "baseCommitAtPublication": "de7eb2264d88546ecea00991730e596ee42768d3",
+  "originalFileSha256": {
+    "LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md": "60fa4cb0f3b023d903de933cbffbfb2b263a5f2edfc5a190cae91dab337f4df2",
+    "LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json": "cccd37f78676a45a4605c91cbe37ac46b647e24024d9bef663a90d3abcdfbc4d",
+    "LIGHT_REMOTE_SINGLE_CORE_EXE_BUILD_REVIEW_20261107.md": "e7b2a808dea163bad917fa9284c8435615461265977e8954d1890b889f17f2f6"
+  },
+  "publishedFileSha256": {
+    "LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md": "8803418d5f846a3568be08128a70e21a53ccee6e7d2083a41dcd005c2e8bd237",
+    "LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json": "cccd37f78676a45a4605c91cbe37ac46b647e24024d9bef663a90d3abcdfbc4d",
+    "LIGHT_REMOTE_SINGLE_CORE_EXE_BUILD_REVIEW_20261107.md": "7b73c419d2302a21ad01c278d8696640fd144b7346a1135242aa1c64c620f1c3"
+  },
+  "activePlan": "LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md",
+  "historicalReviewOnly": "LIGHT_REMOTE_SINGLE_CORE_EXE_BUILD_REVIEW_20261107.md",
+  "targetExecutable": "LightRemote.exe",
+  "merge": [
+    "GptOperator.Client.exe",
+    "desktop-v4/LightRemote.Desktop.exe"
+  ],
+  "nodeRemainsSeparate": true,
+  "rmUpdaterOtherHelpersRemainSeparate": true,
+  "implementationStatus": "NOT_STARTED",
+  "newNativeBuild": "NOT_BUILT",
+  "physicalAcceptance": "NOT_RUN",
+  "scopeOfThisChange": "Publish existing handoff, historical branch evidence and links only"
+}
