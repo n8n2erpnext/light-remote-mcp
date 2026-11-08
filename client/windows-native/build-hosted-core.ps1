@@ -56,4 +56,17 @@ $manifest = @{
     hostfxrSha256 = (Get-FileHash -LiteralPath (Join-Path $component 'hostfxr.dll') -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $component 'host-runtime.json') -Encoding utf8NoBOM
+$configDir = Join-Path $install 'config'
+New-Item -ItemType Directory -Force -Path $configDir | Out-Null
+$catalog = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../../config/endpoints.json') -Raw | ConvertFrom-Json
+if ($catalog.selectedProfile -ne 'goldabv2-lab' -or $catalog.profiles.'goldabv2-lab'.productId -ne 'goldabv2-desktop-v4') {
+    throw 'Hosted primary builder is restricted to the canonical Windows product'
+}
+$layout = @{
+    schemaVersion = 1; layoutId = 'lightremote-primary-hosted-v1'; entryPoint = 'LightRemote.exe'
+    productId = $catalog.profiles.'goldabv2-lab'.productId; profile = $catalog.selectedProfile
+    version = (Get-Content -LiteralPath (Join-Path $install 'VERSION') -Raw).Trim()
+    component = 'windows-host/LightRemote.WindowsHost.dll'; minimumHelperCoreLayoutContract = 1
+}
+$layout | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $configDir 'core-layout.json') -Encoding utf8NoBOM
 Write-Host 'WINDOWS_IN_PROCESS_COMPONENT_STAGED=PASS'

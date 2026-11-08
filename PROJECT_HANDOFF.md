@@ -111,3 +111,10 @@ This is the **only rolling project handoff**. Together with the single root `MAS
 - Verification: four native lifecycle/tray/endpoint/version source checks PASS. New executable layout fixtures and actual WMI owned-stop isolation are CI_PENDING; no physical Owner/backend assertion. Package and runtime not switched yet.
 - Next: retain the verified bridge installer by exact source/version/hash; switch the following candidate0.10.1-dev.2 to LightRemote.exe, then test fresh/reinstall/bridge upgrade/rollback and task/GUI preservation.
 - Runtime: no existing ARM or Owner Windows installation changed; public update feed HOLD. Full checkpoint/tag remains checkpoint/20261108-before-lightremote-exe-c8d308c.
+
+## Task Receipt: 20261109-oneexe-p2-bridge-recovery-layout
+- Status: BRIDGE_IMPLEMENTED_NATIVE_CI_PENDING. Prepare reversible fixed-name installer/task layout support, exact runtime quiesce and legacy rollback cleanup while keeping the bridge installer on its old two-core layout. Fix the WMI compile namespace caught by CI.
+- Source: work after `ed10983d5d0fbc18d018135612cb1cc13942e2bd`, candidate0.10.1-dev.1; exact source digest is stamped atomically. Installer supports a dormant SinglePrimaryExe define but this bridge workflow does not enable it. No production package/layout or feed switch yet.
+- Verification: CI42503527848: helper dual-layout executable fixture PASS, portable/core/browser/macOS/Linux PASS; Windows hosted proof failed compilation due ambiguous EnumerationOptions and WMI constructor binding, now explicitly qualified. Source regressions run before commit; full native bridge rebuild pending, not physical acceptance.
+- Next: Verify this compatibility bridge CI and retain its exact installer/hash; then switch candidate0.10.1-dev.2 primary package and prove real bridge upgrade, rollback and fresh/reinstall lifecycle.
+- Runtime: no existing ARM/Owner Windows install or public feed changed. Full checkpoint checkpoint/20261108-before-lightremote-exe-c8d308c remains the recovery reference.

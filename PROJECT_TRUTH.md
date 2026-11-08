@@ -74,3 +74,7 @@ On work, native early worker dispatch and an in-process WindowsHost DLL adapter 
 ### Single-primary work — bridge candidate
 
 PoC work9248b29 passed CI42501889183 (9/9), including actual hosted Windows proof. Candidate0.10.1-dev.1 implements dual-layout helper/watchdog support and owned Agent-only stop; native compatibility checks pending CI. The primary installer switch is next. Stable main, runtime and public feeds remain unchanged.
+
+## Complete compatibility bridge recovery and installer layout guards
+
+Compatibility helper executable resolver fixtures passed CI42503527848. That run's hosted Windows component compile failed on an ambiguous WMI type; corrected source is submitted with installer/task layout guards and verified legacy rollback cleanup. Final bridge native rebuild and primary package switch remain pending.

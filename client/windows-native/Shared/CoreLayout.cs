@@ -77,6 +77,28 @@ internal static class CoreLayout
         Path.GetFullPath(Path.Combine(installDir, "runtime", "node.exe"))
     };
 
+    // Call only after a restored legacy Core passed its executable health
+    // gate (or watchdog observed its owned Wall). Old Inno packages do not
+    // know the new files and can otherwise leave a third primary EXE behind.
+    internal static bool CleanupRestoredLegacy(string installDir)
+    {
+        try
+        {
+            var core = ResolveCore(installDir);
+            if (core is null) return false;
+            if (IsPrimary(installDir)) return true;
+            var marker = Path.Combine(installDir, "config", "core-layout.json");
+            if (!File.Exists(marker)) return true;
+            using var json = JsonDocument.Parse(File.ReadAllText(marker));
+            if (json.RootElement.GetProperty("layoutId").GetString() != PrimaryId) return true;
+            if (json.RootElement.GetProperty("version").GetString() == File.ReadAllText(Path.Combine(installDir, "VERSION")).Trim()) return false;
+            File.Delete(Path.Combine(installDir, PrimaryName));
+            File.Delete(marker);
+            return ResolveCore(installDir) == core;
+        }
+        catch { return false; }
+    }
+
     internal static async Task<bool> StopPrimaryAgentAsync(string installDir)
     {
         var core = ResolveCore(installDir);
@@ -130,6 +152,7 @@ internal static class CoreLayout
             File.WriteAllText(Path.Combine(root, "VERSION"), "0.10.0-dev.1");
 #if LIGHT_REMOTE_GOLDABV2_V4
             var rollbackOk = ResolveCore(root) == legacy;
+            rollbackOk = rollbackOk && CleanupRestoredLegacy(root) && !File.Exists(primary) && !File.Exists(marker) && File.Exists(legacy);
 #else
             var rollbackOk = ResolveCore(root) is null;
 #endif

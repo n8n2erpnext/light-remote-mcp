@@ -52,10 +52,14 @@ DisableDirPage=yes
 DisableReadyPage=yes
 CloseApplications=yes
 RestartApplications=no
+#ifdef SinglePrimaryExe
+UninstallDisplayIcon={app}\LightRemote.exe
+#else
 #ifdef UnifiedDesktopV4
 UninstallDisplayIcon={app}\desktop-v4\LightRemote.Desktop.exe
 #else
 UninstallDisplayIcon={app}\GptOperator.Client.exe
+#endif
 #endif
 UninstallDisplayName=Light Remote
 SetupIconFile={#StageDir}\Assets\light-remote.ico
@@ -69,15 +73,35 @@ Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs c
 
 [InstallDelete]
 Type: files; Name: "{app}\realremote-v2\GptOperator.RealRemoteV2.*"
+#ifdef SinglePrimaryExe
+// Exact obsolete primary executables only. Device/config/LM/vault/log data
+// and unrelated files in desktop-v4 are preserved, including on upgrade.
+Type: files; Name: "{app}\GptOperator.Client.exe"
+Type: files; Name: "{app}\desktop-v4\LightRemote.Desktop.exe"
+#else
+#ifdef UnifiedDesktopV4
+// A compatibility installer can also restore the legacy layout cleanly.
+Type: files; Name: "{app}\LightRemote.exe"
+Type: files; Name: "{app}\config\core-layout.json"
+#endif
+#endif
 
 [Registry]
+#ifdef SinglePrimaryExe
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\LightRemote.exe"" --background"; Flags: uninsdeletevalue
+#else
 #ifdef UnifiedDesktopV4
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\desktop-v4\LightRemote.Desktop.exe"""; Flags: uninsdeletevalue
 #else
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Light Remote MCP"; ValueData: """{app}\GptOperator.Client.exe"" --background"; Flags: uninsdeletevalue
 #endif
+#endif
 
 [Icons]
+#ifdef SinglePrimaryExe
+Name: "{group}\Light Remote"; Filename: "{app}\LightRemote.exe"
+Name: "{userdesktop}\Light Remote"; Filename: "{app}\LightRemote.exe"; Tasks: desktopicon
+#else
 #ifdef UnifiedDesktopV4
 Name: "{group}\Light Remote"; Filename: "{app}\desktop-v4\LightRemote.Desktop.exe"
 Name: "{userdesktop}\Light Remote"; Filename: "{app}\desktop-v4\LightRemote.Desktop.exe"; Tasks: desktopicon
@@ -85,17 +109,22 @@ Name: "{userdesktop}\Light Remote"; Filename: "{app}\desktop-v4\LightRemote.Desk
 Name: "{group}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"; Parameters: "--launch"
 Name: "{userdesktop}\Light Remote MCP"; Filename: "{app}\GptOperator.Client.exe"; Parameters: "--launch"; Tasks: desktopicon
 #endif
+#endif
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Windows shortcuts:"
 
 [Run]
+#ifdef SinglePrimaryExe
+Filename: "{app}\LightRemote.exe"; Description: "Open Light Remote"; Flags: nowait postinstall skipifsilent
+#else
 #ifdef UnifiedDesktopV4
 // The scheduled Agent task is installed separately; this launches exactly
 // ONE user-facing Tauri GUI + its built-in native Windows Tray.
 Filename: "{app}\desktop-v4\LightRemote.Desktop.exe"; Description: "Open Light Remote"; Flags: nowait postinstall skipifsilent
 #else
 Filename: "{app}\GptOperator.Client.exe"; Description: "Start Light Remote Agent and tray"; Flags: nowait postinstall skipifsilent
+#endif
 #endif
 
 [Code]
@@ -661,29 +690,31 @@ end;
 
 procedure QuiesceInstalledRuntime();
 var
-  ScriptFile, ScriptText, AppExe, NodeExe, Args: String;
+  ScriptFile, ScriptText, AppExe, PrimaryExe, DesktopExe, NodeExe, Args: String;
   ResultCode: Integer;
 begin
   AppExe := ExpandConstant('{app}\GptOperator.Client.exe');
+  PrimaryExe := ExpandConstant('{app}\LightRemote.exe');
+  DesktopExe := ExpandConstant('{app}\desktop-v4\LightRemote.Desktop.exe');
   NodeExe := ExpandConstant('{app}\runtime\node.exe');
   ScriptFile := ExpandConstant('{tmp}\light-remote-preinstall-quiesce.ps1');
   ScriptText :=
-    'param([string]$AppExe,[string]$NodeExe)' + #13#10 +
+    'param([string]$AppExe,[string]$PrimaryExe,[string]$DesktopExe,[string]$NodeExe)' + #13#10 +
     '$ErrorActionPreference=''SilentlyContinue''' + #13#10 +
-    '$targets=@($AppExe,$NodeExe)' + #13#10 +
+    '$targets=@($AppExe,$PrimaryExe,$DesktopExe,$NodeExe)' + #13#10 +
     '$deadline=(Get-Date).AddSeconds(10)' + #13#10 +
     'do {' + #13#10 +
-    '  $p=@(Get-Process -Name ''GptOperator.Client'',''node'' -ErrorAction SilentlyContinue | Where-Object { try { $targets -contains $_.Path } catch { $false } })' + #13#10 +
+    '  $p=@(Get-Process -Name ''GptOperator.Client'',''LightRemote'',''LightRemote.Desktop'',''node'' -ErrorAction SilentlyContinue | Where-Object { try { $targets -contains $_.Path } catch { $false } })' + #13#10 +
     '  if(-not $p){ exit 0 }' + #13#10 +
     '  $p | Stop-Process -Force -ErrorAction SilentlyContinue' + #13#10 +
     '  Start-Sleep -Milliseconds 200' + #13#10 +
     '} while((Get-Date) -lt $deadline)' + #13#10 +
-    '$left=@(Get-Process -Name ''GptOperator.Client'',''node'' -ErrorAction SilentlyContinue | Where-Object { try { $targets -contains $_.Path } catch { $false } })' + #13#10 +
+    '$left=@(Get-Process -Name ''GptOperator.Client'',''LightRemote'',''LightRemote.Desktop'',''node'' -ErrorAction SilentlyContinue | Where-Object { try { $targets -contains $_.Path } catch { $false } })' + #13#10 +
     'if($left){ exit 41 }' + #13#10 +
     'exit 0' + #13#10;
   if not SaveStringToFile(ScriptFile, ScriptText, False) then
     RaiseException('Unable to stage Light Remote runtime quiesce helper');
-  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -AppExe "' + AppExe + '" -NodeExe "' + NodeExe + '"';
+  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -AppExe "' + AppExe + '" -PrimaryExe "' + PrimaryExe + '" -DesktopExe "' + DesktopExe + '" -NodeExe "' + NodeExe + '"';
   if (not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
     RaiseException('Unable to stop the installed Light Remote runtime before replacement (exit ' + IntToStr(ResultCode) + ')');
   Log('light-remote-runtime-quiesced');
@@ -724,8 +755,39 @@ begin
 
 end;
 
+#ifdef SinglePrimaryExe
+procedure RequireCompatibleIndependentHelper();
+var
+  Helper, ScriptFile, ScriptText, Args: String;
+  ResultCode: Integer;
+begin
+  Helper := ExpandConstant('{localappdata}\Light Remote\Updater\GoldABV2\LightRemote.Updater.exe');
+  if not FileExists(Helper) then Exit; // Fresh installs bootstrap the packaged helper.
+  ScriptFile := ExpandConstant('{tmp}\light-remote-core-layout-preflight.ps1');
+  ScriptText :=
+    'param([string]$Helper,[string]$InstallRoot,[string]$Out)' + #13#10 +
+    '$ErrorActionPreference=''Stop''' + #13#10 +
+    'try {' + #13#10 +
+    ' $args=@(''--self-test-output'',(''"''+$Out+''"''),(''"''+$InstallRoot+''"''))' + #13#10 +
+    ' $p=Start-Process -FilePath $Helper -ArgumentList $args -WindowStyle Hidden -PassThru' + #13#10 +
+    ' if(-not $p.WaitForExit(10000)){Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue;exit 42}' + #13#10 +
+    ' if($p.ExitCode -ne 0 -or -not(Test-Path -LiteralPath $Out)){exit 42}' + #13#10 +
+    ' $j=Get-Content -LiteralPath $Out -Raw|ConvertFrom-Json' + #13#10 +
+    ' if(-not $j.ok -or -not $j.updaterOutsideApp -or -not $j.supportsPrimaryHostedLayout -or $j.coreLayoutContract -ne 1){exit 42}' + #13#10 +
+    ' exit 0' + #13#10 +
+    '} catch {exit 42} finally {Remove-Item -LiteralPath $Out -Force -ErrorAction SilentlyContinue}' + #13#10;
+  if not SaveStringToFile(ScriptFile, ScriptText, False) then RaiseException('Unable to stage helper compatibility preflight');
+  Args := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptFile + '" -Helper "' + Helper + '" -InstallRoot "' + ExpandConstant('{app}') + '" -Out "' + ExpandConstant('{tmp}\light-remote-layout-preflight.json') + '"';
+  if (not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) then
+    RaiseException('Install the Light Remote compatibility bridge 0.10.1-dev.1 before this primary EXE upgrade. The existing Core has not been stopped or replaced.');
+end;
+#endif
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
+#ifdef SinglePrimaryExe
+  RequireCompatibleIndependentHelper();
+#endif
 #ifdef CompactNodeBootstrap
   try
     PrepareCompactNodeArchive();

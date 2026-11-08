@@ -16,6 +16,18 @@ trap{Write-InstallDiag ('ERROR line='+$_.InvocationInfo.ScriptLineNumber+' messa
 if($env:OS -ne 'Windows_NT'){throw 'This installer must run on Windows.'}
 if([string]::IsNullOrWhiteSpace($InstallRoot)){$InstallRoot=(Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path}
 $Node=Join-Path $InstallRoot 'runtime\node.exe';$Agent=Join-Path $InstallRoot 'agent\device-agent\operator-agent.mjs';$Tray=Join-Path $InstallRoot 'GptOperator.Client.exe'
+$LayoutFile=Join-Path $InstallRoot 'config\core-layout.json'
+$PrimaryLayout=$false
+if(Test-Path -LiteralPath $LayoutFile){
+  if((Get-Item -LiteralPath $LayoutFile).Length -gt 16384){throw 'Core layout metadata too large'}
+  $layout=Get-Content -LiteralPath $LayoutFile -Raw|ConvertFrom-Json
+  if($layout.schemaVersion -ne 1 -or $layout.productId -ne 'goldabv2-desktop-v4' -or $layout.profile -ne 'goldabv2-lab'){throw 'Core layout product/profile rejected'}
+  if($layout.layoutId -eq 'lightremote-primary-hosted-v1' -and $layout.entryPoint -eq 'LightRemote.exe'){
+    $restoredVersion=(Get-Content -LiteralPath (Join-Path $InstallRoot 'VERSION') -Raw).Trim()
+    if($layout.version -eq $restoredVersion){$Tray=Join-Path $InstallRoot 'LightRemote.exe';$PrimaryLayout=$true}
+    elseif(-not(Test-Path -LiteralPath $Tray)){throw 'Core layout version mismatch without a restored legacy Core'}
+  }elseif($layout.layoutId -ne 'legacy-dotnet-v1' -or $layout.entryPoint -ne 'GptOperator.Client.exe'){throw 'Core layout entry point rejected'}
+}
 $UpdaterRoot=Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
 if(Test-Path (Join-Path $InstallRoot 'agent\device-agent\goldabv2-package-profile.json')){
   $UpdaterRoot=Join-Path $UpdaterRoot 'GoldABV2'
@@ -29,6 +41,18 @@ if(-not(Test-Path $Updater)){
   New-Item -ItemType Directory -Force -Path $UpdaterRoot|Out-Null;Copy-Item (Join-Path $HelperCandidate '*') $UpdaterRoot -Recurse -Force
 }
 foreach($f in @($Node,$Agent,$Tray,$Updater,$UpdaterKey)){if(-not(Test-Path $f)){throw "Required Light Remote file missing: $f"}}
+if($PrimaryLayout){
+  $proof=Join-Path $DiagRoot 'primary-helper-compatibility.json'
+  Remove-Item -LiteralPath $proof -Force -ErrorAction SilentlyContinue
+  try{
+    $probeArgs=@('--self-test-output',('"'+$proof+'"'),('"'+$InstallRoot+'"'))
+    $probe=Start-Process -FilePath $Updater -ArgumentList $probeArgs -PassThru -WindowStyle Hidden
+    if(-not $probe.WaitForExit(10000)){Stop-Process -Id $probe.Id -Force -ErrorAction SilentlyContinue;throw 'Independent helper compatibility timeout'}
+    if($probe.ExitCode -ne 0 -or -not(Test-Path -LiteralPath $proof)){throw 'Independent helper compatibility failed'}
+    $compat=Get-Content -LiteralPath $proof -Raw|ConvertFrom-Json
+    if(-not $compat.ok -or -not $compat.supportsPrimaryHostedLayout -or $compat.coreLayoutContract -ne 1){throw 'Install compatibility bridge before primary Core migration'}
+  }finally{Remove-Item -LiteralPath $proof -Force -ErrorAction SilentlyContinue}
+}
 Write-InstallDiag 'FILES_OK'
 $legacyNodeFull=[IO.Path]::GetFullPath($LegacyNode)
 $legacyDeadline=(Get-Date).AddSeconds(8)

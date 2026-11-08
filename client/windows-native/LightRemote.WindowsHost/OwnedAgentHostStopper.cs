@@ -37,9 +37,9 @@ internal static class OwnedAgentHostStopper
             var expected = Path.GetFullPath(AppPaths.CoreExecutable);
             var sid = WindowsIdentity.GetCurrent().User?.Value;
             if (sid is null || !string.Equals(Path.GetFileName(expected), "LightRemote.exe", StringComparison.OrdinalIgnoreCase)) return 1;
-            using var search = new ManagementObjectSearcher("root\\CIMV2",
-                "SELECT ProcessId,ExecutablePath,CommandLine,CreationDate FROM Win32_Process WHERE Name='LightRemote.exe'",
-                new EnumerationOptions { ReturnImmediately = false, Timeout = TimeSpan.FromSeconds(4) });
+            using var search = new ManagementObjectSearcher(new ManagementScope("root\\CIMV2"),
+                new ObjectQuery("SELECT ProcessId,ExecutablePath,CommandLine,CreationDate FROM Win32_Process WHERE Name='LightRemote.exe'"),
+                new System.Management.EnumerationOptions { ReturnImmediately = false, Timeout = TimeSpan.FromSeconds(4) });
             using var rows = search.Get();
             foreach (ManagementObject row in rows)
             {

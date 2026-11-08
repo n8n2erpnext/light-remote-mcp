@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T17:09:18.527Z",
+  "updatedAt": "2026-11-08T17:18:08.406Z",
   "version": "0.10.1-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -291,12 +291,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-oneexe-p2-compatibility-helper",
-    "status": "COMPATIBILITY_IMPLEMENTED_CI_PENDING",
-    "summary": "Prepare dual-layout updater/watchdog and exact owned-agent stop before changing installer primary layout; version the compatibility bridge independently.",
-    "verification": "Previous native PoC CI42501889183 PASS9/9. Four targeted source/version checks PASS. New helper layout executable proof, AOT and owned-stop mode remain CI_PENDING. No Owner install/runtime changed.",
-    "nextAction": "Verify bridge CI, retain exact bridge installer/manifest, then switch primary installer/tasks to LightRemote.exe and prove upgrade/rollback from that bridge.",
-    "sourceDigest": "08714c0e811a1cb2d1f40ced8c8b57c523cc79b022279e4106db0db3aa1cbc6b",
+    "taskId": "20261109-oneexe-p2-bridge-recovery-layout",
+    "status": "BRIDGE_IMPLEMENTED_NATIVE_CI_PENDING",
+    "summary": "Prepare reversible fixed-name installer/task layout support, exact runtime quiesce and legacy rollback cleanup while keeping the bridge installer on its old two-core layout. Fix the WMI compile namespace caught by CI.",
+    "verification": "CI42503527848: helper dual-layout executable fixture PASS, portable/core/browser/macOS/Linux PASS; Windows hosted proof failed compilation due ambiguous EnumerationOptions and WMI constructor binding, now explicitly qualified. Source regressions run before commit; full native bridge rebuild pending, not physical acceptance.",
+    "nextAction": "Verify this compatibility bridge CI and retain its exact installer/hash; then switch candidate0.10.1-dev.2 primary package and prove real bridge upgrade, rollback and fresh/reinstall lifecycle.",
+    "sourceDigest": "3abf6d1e869c6fbad1e18e800f32049626ec79060fb3745b020ff90520139a66",
     "sourceFileCount": 1621
   },
   "legacyFilesystemCleanup": {
@@ -354,7 +354,7 @@
     "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
   },
   "singlePrimaryWindowsExe": {
-    "status": "IN_PROGRESS_COMPATIBILITY_HELPER_CI_PENDING",
+    "status": "IN_PROGRESS_BRIDGE_RECOVERY_NATIVE_CI_PENDING",
     "ownerImplementationAuthorized": true,
     "target": "LightRemote.exe",
     "merge": [
@@ -374,12 +374,12 @@
     "steps": {
       "P0Checkpoint": "DONE",
       "P0ContractInventory": "DONE",
-      "P1UpdaterCompatibility": "IMPLEMENTED_CI_PENDING",
+      "P1UpdaterCompatibility": "IMPLEMENTED_BRIDGE_RECOVERY_CI_PENDING",
       "P2NativeHost": "POC_CI_PASS",
       "P3DesktopActions": "IN_PROCESS_ADAPTER_CI_PASS",
       "P4PackageSwitch": "NOT_STARTED",
       "P5Acceptance": "NOT_RUN",
-      "P4Packaging": "NOT_STARTED"
+      "P4Packaging": "LAYOUT_GUARDS_IMPLEMENTED_NOT_SWITCHED"
     },
     "newNativeBuild": {
       "sourceCommit": "9248b2925ad87d91ae86fb21d693240fbc8bae5d",
@@ -395,6 +395,7 @@
       "bridgeVersion": "0.10.1-dev.1",
       "primaryVersion": "0.10.1-dev.2",
       "policy": "Install and verify the dual-layout independent helper first. Never offer primary layout to an unverified old helper. Public feed remains HOLD."
-    }
+    },
+    "bridgeCompileCorrection": "Fully qualify System.Management.EnumerationOptions and typed ManagementScope/ObjectQuery. Helper layout native fixture already PASS, hosted role proof rerun pending."
   }
 }

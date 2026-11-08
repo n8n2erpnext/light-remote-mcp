@@ -186,6 +186,7 @@ static class Program
         {
             Log(logPath, "rollback_begin " + rollback);
             TryRun("schtasks.exe", $"/End /TN \"{taskName}\"", wait: true);
+            QuiesceInstalledRuntime(installRoot, logPath);
             var rollbackExit = RunProcess(
                 rollback!,
                 "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-",
@@ -209,6 +210,7 @@ static class Program
 
         if (WaitWall(TimeSpan.FromSeconds(20),installRoot))
         {
+            if (!CoreLayout.CleanupRestoredLegacy(installRoot)) throw new InvalidOperationException("rollback_layout_cleanup_failed");
             Log(logPath, "rollback_restore_wall_healthy");
             return 0;
         }
@@ -235,12 +237,35 @@ static class Program
 
             if (WaitWall(TimeSpan.FromSeconds(20),installRoot))
             {
+                if (!CoreLayout.CleanupRestoredLegacy(installRoot)) throw new InvalidOperationException("rollback_layout_cleanup_failed");
                 Log(logPath, "direct_agent_recovery_wall_healthy");
                 return 0;
             }
         }
 
         throw new InvalidOperationException("rollback_restore_wall_failed");
+    }
+
+    static void QuiesceInstalledRuntime(string installRoot, string logPath)
+    {
+        var targets = CoreLayout.RuntimeFiles(installRoot);
+        foreach (var process in Process.GetProcesses())
+        {
+            using (process)
+            {
+                try
+                {
+                    var file = process.MainModule?.FileName;
+                    if (file is null || !targets.Any(t => string.Equals(Path.GetFullPath(file), t, StringComparison.OrdinalIgnoreCase))) continue;
+                    process.Kill(entireProcessTree: false);
+                    if (!process.WaitForExit(5000)) throw new InvalidOperationException("rollback_runtime_quiesce_timeout");
+                }
+                catch (ArgumentException) { }
+                catch (System.ComponentModel.Win32Exception) { /* Inaccessible unrelated system processes are not targets. */ }
+                catch (InvalidOperationException) when (process.HasExited) { }
+            }
+        }
+        Log(logPath, "rollback_exact_runtime_quiesced");
     }
 
     static void TryKillProcessTree(int pid)

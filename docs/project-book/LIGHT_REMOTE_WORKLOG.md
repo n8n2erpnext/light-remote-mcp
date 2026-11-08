@@ -109,3 +109,9 @@ Implemented a Tauri/Rust native hostfxr adapter and framework-dependent WindowsH
 Receipt: 20261109-oneexe-p2-compatibility-helper
 
 Native PoC source9248b29 has CI42501889183 PASS9/9. Implemented fixed-name dual-layout updater/watchdog resolver, version-aware rollback, owned Agent-only stop and background GUI preservation. Candidate0.10.1-dev.1 is the compatibility bridge, not the final layout. Four source/version regressions PASS; executable helper/stop checks CI_PENDING. Next: bridge CI then one-primary packaging and real install/upgrade/rollback CI fixtures.
+
+## 2026-11-09 — Complete compatibility bridge recovery and installer layout guards
+
+Receipt: 20261109-oneexe-p2-bridge-recovery-layout
+
+Prepare reversible fixed-name installer/task layout support, exact runtime quiesce and legacy rollback cleanup while keeping the bridge installer on its old two-core layout. Fix the WMI compile namespace caught by CI. CI42503527848: helper dual-layout executable fixture PASS, portable/core/browser/macOS/Linux PASS; Windows hosted proof failed compilation due ambiguous EnumerationOptions and WMI constructor binding, now explicitly qualified. Source regressions run before commit; full native bridge rebuild pending, not physical acceptance. Next: Verify this compatibility bridge CI and retain its exact installer/hash; then switch candidate0.10.1-dev.2 primary package and prove real bridge upgrade, rollback and fresh/reinstall lifecycle.

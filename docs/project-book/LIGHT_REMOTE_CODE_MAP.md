@@ -80,3 +80,7 @@ Change this file when executable ownership, route/flag, IPC/transport, SQL or pa
 - [CoreLayout](../../client/windows-native/Shared/CoreLayout.cs) is shared by updater and AOT installer watchdog. Installer metadata selects only fixed legacy/primary names for the compiled canonical product/profile; VERSION mismatch permits verified old-installer rollback selection, never an arbitrary JSON executable.
 - [OwnedAgentHostStopper](../../client/windows-native/LightRemote.WindowsHost/OwnedAgentHostStopper.cs) is an OS-only CLI role. Exact executable/argv/SID/creation-time checks constrain stop to AgentHost. It never kills by port or generic image name, never stops the GUI or a managed command wrapper.
 - Full updater quiesce includes exact installed core/legacy Desktop/Node paths. Agent-only restart remains separate. Native background GUI launches preserve an existing hidden window.
+
+## Complete compatibility bridge recovery and installer layout guards
+
+The shared CoreLayout now cleans only the known obsolete LightRemote.exe/primary marker after verified legacy rollback; it never recursively deletes supporting/runtime/data directories. The AOT watchdog quiesces only exact installed core/legacy Desktop/Node paths before restoring a prior installer. Installer SinglePrimaryExe and task marker support are prepared but dormant for the bridge. WMI stop implementation uses explicit System.Management types.
