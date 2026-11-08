@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T13:18:39.417627+00:00",
+  "updatedAt": "2026-11-08T13:23:09.929085+00:00",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -245,5 +245,37 @@
     "historical": "existing folders outside approvedParent are preserved for historical comparison and are not new-development destinations",
     "exception": "stop and obtain explicit prior Owner permission if a directory would fall outside approvedParent",
     "branchPolicy": "directory containment does not grant permission to create any branch"
+  },
+  "taskContinuityGovernance": {
+    "rule": "after every completed task and each meaningful completed subtask in a long-running assignment, update existing PROJECT_HANDOFF.md and single MASTER_CHECKPOINT.json; append Worklog milestone",
+    "readFirst": [
+      "PROJECT_HANDOFF.md",
+      "MASTER_CHECKPOINT.json",
+      "docs/project-book/README.md"
+    ],
+    "handoffPath": "PROJECT_HANDOFF.md",
+    "checkpointPath": "MASTER_CHECKPOINT.json",
+    "worklogPath": "docs/project-book/LIGHT_REMOTE_WORKLOG.md",
+    "noDuplicateHandoffOrCheckpoint": true,
+    "requiredFields": [
+      "objective",
+      "step_or_task_status",
+      "source_commit_and_tree",
+      "publication_local_or_github",
+      "changed_components",
+      "tests_evidence_scope",
+      "runtime_status",
+      "regression_or_rollback",
+      "remaining_work",
+      "exact_next_action"
+    ],
+    "longTaskCadence": "checkpoint and rolling handoff at each meaningful completed step before the next step",
+    "workingBranch": "main",
+    "repositoryPublicationStatus": "LOCAL_ONLY / GITHUB_NOT_SYNCED — protected main requires baseline-required and no new branch is Owner-authorized",
+    "taskStatus": "DOCUMENTATION_COMPLETED_PENDING_COMMIT_AND_GITHUB_SYNC",
+    "stableSourceBaseline": "c03b50f4328e07138f350532c31dfc8b260311ce",
+    "preChangeCommit": "fd25174ac3e43a4e3ea6b3feed4ae0bf1b42587",
+    "runtimeChanged": false,
+    "nextAction": "Commit documentation-only per-task/step continuity update on main; report protected-main sync blocker, do not create a new branch."
   }
 }

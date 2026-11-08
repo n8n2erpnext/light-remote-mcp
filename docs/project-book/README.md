@@ -24,4 +24,6 @@ Do not create ANY branch, even a temporary CI/PR branch, without the Owner's **e
 
 **VPS-ARM directory rule:** new Light Remote development folders must remain beneath `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/`. Never create new sibling Light Remote directories in `/home/ubuntu/n8n2erpnext/`. See [Library Rules](LIBRARY_RULES.md).
 
+**Task continuity:** After each completed task — or each meaningful completed subtask of a long task — refresh the **same** root [Project Handoff](../../PROJECT_HANDOFF.md) and [Master Checkpoint](../../MASTER_CHECKPOINT.json), then append one dated [Worklog](LIGHT_REMOTE_WORKLOG.md) milestone. Preserve exact Git/source/runtime and remaining work; never create competing handoffs.
+
 The former docs/project-book content in the old repository is a historical reference for workflow only. This book was authored for the unified repository and its new API contracts, paths, and proof boundaries.

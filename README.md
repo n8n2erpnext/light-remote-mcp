@@ -39,4 +39,16 @@ This is the only approved **parent workspace**. New clones, worktrees (only if t
 
 This directory rule is independent of the **no-new-branch-without-Owner-approval** rule above.
 
+### TASK COMPLETION AND SUBTASK CHECKPOINTS — mandatory
+
+**Do not finish a task without a current handoff and checkpoint.** Continue using the **single** `PROJECT_HANDOFF.md` and `MASTER_CHECKPOINT.json`; record each completed task's durable milestone in `docs/project-book/LIGHT_REMOTE_WORKLOG.md`. Do not make new per-session HANDOFF_FINAL/LATEST files or additional active checkpoints.
+
+- **Before** substantive implementation: read the current handoff/checkpoint and capture the verified pre-change Full Checkpoint/tag as already required.
+- **After each completed task**, regardless of whether it changes code, runtime, configuration, documentation, or only discovers a blocker: update the same handoff and checkpoint, with exact completion/blocked status, changed files/commits, build or test evidence **and scope**, what remains unverified, issues and the **single actionable next step**.
+- For a **long-running task with multiple smaller steps**, write a checkpoint + concise rolling handoff entry after **each completed meaningful step**, before beginning the next; preserve which steps are DONE, IN_PROGRESS, BLOCKED, FAILED or NOT_TESTED and which baseline is still stable. Do not postpone all documentation until the end.
+- At **task finish or handover/session interruption**, reconcile handoff, checkpoint and Worklog with the actual Git tree and deployed runtime. If working locally without successful GitHub push, explicitly record `LOCAL_ONLY / GITHUB_NOT_SYNCED` and the reason. Do not claim unpushed work is published, or CI tests as physical acceptance.
+- A checkpoint is a state record, not authority to create a branch, a new directory outside the approved parent, or bypass `baseline-required`.
+
+See [Project Handoff](PROJECT_HANDOFF.md), [Master Checkpoint](MASTER_CHECKPOINT.json) and [Worklog](docs/project-book/LIGHT_REMOTE_WORKLOG.md).
+
 See [Agent rules](AGENTS.md), [Project Book rules](docs/project-book/LIBRARY_RULES.md) and [Master Checkpoint](MASTER_CHECKPOINT.json).

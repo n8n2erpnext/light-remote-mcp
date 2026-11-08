@@ -38,6 +38,14 @@ New development checkouts, builds, tests, staging, temporary data, artifacts, ca
 
 Resolve the intended path and verify it cannot escape through symlinks or `..`. Existing historical folders outside the approved parent must remain untouched and cannot be reused for new development. Stop for an explicit Owner decision if the requested workspace falls outside. This rule also applies to Codex and other Agent tools; it does not authorize new Git branches.
 
+## TASK COMPLETION AND SUBTASK CHECKPOINTS
+
+The existing before-task Full Checkpoint rule remains. **In addition**, every task MUST close with a refreshed **single root `MASTER_CHECKPOINT.json` and rolling root `PROJECT_HANDOFF.md`**, plus a durable `LIGHT_REMOTE_WORKLOG.md` milestone. Each meaningful completed subtask in a multi-step/long-running assignment MUST receive an interim handoff + checkpoint **before** the next phase, not just a final summary after all work.
+
+Minimum receipt: objective, step/task status (DONE/IN_PROGRESS/BLOCKED/FAILED/NOT_TESTED), exact Git source commit/tree and uncommitted changes, GitHub publication status, actual files/APIs impacted, CI vs real integration vs physical evidence, deployed-runtime distinction, remaining gaps/regressions, rollback checkpoint, and the next concrete action. Do not mistake tests from an older artifact as proof about the current artifact.
+
+Do not create per-session handoff copies, alternate checkpoints, branch checkpoints or new gates. **Update the existing canonical files**. A task blocked by permission still gets a truthful current handoff/checkpoint. Local-only commits must be labeled `LOCAL_ONLY / GITHUB_NOT_SYNCED`. When current files are updated but cannot be pushed because of protected main, keep the local commit; no new branch without Owner approval.
+
 ## Library discipline
 
 Search canonical docs before writing; edit an existing owner file instead of creating overlapping truth. Use [Library Map](DOCUMENT_LIBRARY_MAP.md). Preserve historical paths unless consumers have been audited. The only new canonical governance shelf is docs/project-book; code and deployment evidence stay in their current locations.

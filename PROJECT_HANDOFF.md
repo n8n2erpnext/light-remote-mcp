@@ -2,7 +2,7 @@
 
 Read PROJECT_TRUTH.md and MASTER_CHECKPOINT.json first. Official repository: n8n2erpnext/light-remote-mcp, **new ID 1450214328**. Initial root aa378ba has no historical parent; verified build source `c03b50f4328e07138f350532c31dfc8b260311ce` passed [CI 9/9](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42475715858). Current checkpoint commits may contain documentation/evidence only; installer manifest identifies its exact compiled source, never assume the newest documentation commit was rebuilt.
 
-All source writes use Git-over-SSH from ARM. main requires baseline-required from GitHub Actions, including admins, and blocks force-push/deletion. Work on codex/* branches, run the relevant CI scope and fast-forward/merge only verified commits. Product source changes must update current truth/checkpoint. Native apps build in Actions; builds and deployment candidates identify exact GitHub commit/tree and artifact hashes.
+All source writes use Git-over-SSH from ARM. main requires baseline-required from GitHub Actions, including admins, and blocks force-push/deletion. Work on main only; **do not create any new branch unless the Owner has explicitly authorized it**. If main blocks publication because baseline-required is unavailable, preserve the local commit and report the blocker. Run relevant checks without bypassing branch protection. Product source changes must update current truth/checkpoint. Native apps build in Actions; builds and deployment candidates identify exact GitHub commit/tree and artifact hashes.
 
 New independent runtime: `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/runtime-from-github-c03b50f432`, candidate `lru-c03b50f432-114436`. After successful new CI and artifact verification, it fetched the official GitHub commit and passed 21 real backend/Agent checks. It is internal-only, with private synthetic accounts, certificates and state; no public/host ports. Inspect actual Docker labels/state for liveness; dev.py status only prints its last receipt. Do not upload .unified, credentials, raw logs or signing keys.
 
@@ -20,4 +20,17 @@ Read [the existing T12 implementation plan](docs/plans/windows-single-primary-ex
 
 ## Unified documentation continuation
 
-Start at [Project Book](docs/project-book/README.md), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md), [Worklog](docs/project-book/LIGHT_REMOTE_WORKLOG.md) and the single [MASTER_CHECKPOINT](MASTER_CHECKPOINT.json). These were authored from the unified new repository; the archived Gold Project Book is historical. For meaningful source changes keep root truth, checkpoint, and one cumulative Worklog consistent; regenerate/validate via npm run docs:refresh and npm run check:docs. No new side branches except when truly necessary and authorized.
+Start at [Project Book](docs/project-book/README.md), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md), [Worklog](docs/project-book/LIGHT_REMOTE_WORKLOG.md) and the single [MASTER_CHECKPOINT](MASTER_CHECKPOINT.json). These were authored from the unified new repository; the archived Gold Project Book is historical. For meaningful source changes keep root truth, checkpoint, and one cumulative Worklog consistent; regenerate/validate via npm run docs:refresh and npm run check:docs. No new branches of any kind without explicit prior Owner approval.
+
+## Task-continuity operating rule — 2026-11-08
+
+This is the **only rolling project handoff**. Together with the single root `MASTER_CHECKPOINT.json` and cumulative `docs/project-book/LIGHT_REMOTE_WORKLOG.md`, it must be updated at completion of **every task** and **each meaningful completed step in multi-step/long-running work**. Record objective, status, exact Git source/tree/published vs local-only status, actual runtime, evidence scopes, blockers/regressions, rollback baseline and the next action. Never rely on a dated historical handoff as new-repository source truth.
+
+### Current governance task — handoff/checkpoint cadence
+
+- DONE: inspected existing single-checkpoint, Worklog and Project Handoff conventions; identified missing mandatory **after-task and after-subtask** continuity cadence.
+- DONE: updated README, AGENTS, Library Rules and this rolling handoff to enforce after-each-task/step receipts without new handoff/checkpoint copies.
+- SOURCE: documentation/governance only; no application runtime, API contract, database, Wall, Agent or Owner physical acceptance affected. Version remains 0.10.0-dev.1.
+- GIT: work carried out on existing `main`; pending governance commit will be local-only until GitHub accepts it. Earlier local commits `0c4cb98` and `fd25174` remain ahead of protected `origin/main`, not published.
+- BLOCKER: protected GitHub main requires `baseline-required` before direct push. No new branch is permitted without Owner approval.
+- NEXT: continue development from the canonical source and preserve/resolve the protected-main publication block without bypass. For every future task/subtask, update this file and the single checkpoint with exact results.
