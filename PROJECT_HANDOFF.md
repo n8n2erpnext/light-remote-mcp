@@ -58,3 +58,11 @@ This is the **only rolling project handoff**. Together with the single root `MAS
 - Verification: CI 42487422841 `truth` PASS, Core PASS, Desktop Web FAIL and Windows complete-installer FAIL on the **same** hardcoded `codex/**` matcher; earlier installer/Agent/Wall/RM steps succeeded. Targeted assertion checks and commit integrity must pass locally. A new GitHub CI run remains NOT_TESTED until push.
 - Next: push to existing `work`, verify new `baseline-required` PASS, fast-forward protected `main` when allowed, keep `work` as sole permanent development branch.
 - Rollback: controlled revert of this isolated test correction if necessary, no runtime/DB/Agent/Wall changes.
+
+
+## Task Receipt: 20261108-work-ci-success-handoff
+- Status: DONE — Owner-approved `work` branch created, published and retained as permanent working branch. Full CI run [42487968019](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42487968019) completed SUCCESS at source `4ad70f9541d86c074e6f4c8b37c05196beda6ed2`.
+- Source: before this closing documentation receipt, GitHub `main` and `work` both point to the same CI-verified `4ad70f9541d8` commit. Four previously local-only governance commits and targeted Desktop branch-contract correction are published; no source code left stranded on VPS-ARM.
+- Verification: Github CI `baseline-required` PASS, including truth/atomic checkpoint gate, Core PostgreSQL/Redis, Desktop Web, Windows installer/install/update/rollback/uninstall, macOS and Linux native source checks. This is CI evidence only; no new physical Owner or production acceptance claimed.
+- Next: keep `work` checked out for future tasks. Publish this docs-only final checkpoint/handoff receipt to work, verify its scoped CI, and fast-forward the docs-only commit to protected `main`; then continue features on work with full checkpoint before each task. No new branches.
+- Rollback: tagged pre-change baseline `checkpoint/20261108-before-atomic-commit-gate`; verified stable `4ad70f9541d8`. Revert later work commits instead of force-pushing; no old runtime/DB/Agent/Wall changes.
