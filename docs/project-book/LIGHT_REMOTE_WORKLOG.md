@@ -18,3 +18,9 @@ Historical Gold/Windows chronologies remain in the old read-only archive; do not
 - Kept MASTER_CHECKPOINT.json as the sole active checkpoint; did not reintroduce the forbidden legacy .light-remote/CURRENT_CHECKPOINT.json.
 - No runtime rollout, native Windows physical test, A/B grant, DB/schema change or feature-flag change is claimed.
 - Verification: local repository source-link and catalog checks; exact results to be recorded in the task completion report (not implicitly production evidence).
+
+## 2026-11-08 — Owner SSH authority and no-branch policy
+
+- README/AGENTS record the verified GitHub SSH remote and identity on VPS-ARM; connector API 403 is not loss of Git-over-SSH access.
+- New branches (including CI/PR workaround branches) are prohibited without prior Owner approval; checkpoint-first, same-main development and controlled rollback are mandatory.
+- Documentation governance only; no Agent, Wall, runtime, schema, grants or production deployment changed.

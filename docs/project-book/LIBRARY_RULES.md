@@ -20,7 +20,7 @@ Source at an exact SHA plus actual runtime/build provenance outranks a document 
 
 Before substantive new functionality, verify clean working tree, capture a full checkpoint at the current main commit and create an annotated checkpoint tag. The root checkpoint records component/source identity, contract, currently known proof and limitations, next action and rollback boundary; tags preserve the exact pre-change Git tree.
 
-Continue on **main** unless branch protection or actual parallel development requires an explicitly approved short-lived branch. Do not branch for each fix or write new side-by-side handoffs. On failed work, prefer a controlled revert of published commits or isolated reset of *unpublished* work; DB/runtime rollback requires separate verified snapshots and migration instructions.
+Continue only on **main**. **No branch of any kind (including temporary PR/CI, `codex/*` and branch-backed worktrees) without explicit prior Owner permission.** If branch protection rejects a push, preserve the local commit and report the block — do not branch, bypass `baseline-required` or force-push. Git-over-SSH `git@github.com:n8n2erpnext/light-remote-mcp.git` works on VPS-ARM (authenticated 2026-11-08); a GitHub API connector 403 does not establish missing Git write access. Do not write new side-by-side handoffs. On failed work, prefer a controlled revert of published commits or isolated reset of *unpublished* work; DB/runtime rollback requires separate verified snapshots and migration instructions.
 
 Update MASTER_CHECKPOINT.json and PROJECT_TRUTH.md for meaningful source changes. Update Worklog for consequential milestones. Rebuild generated catalogs with:
 - node deploy/unified/project-book.mjs --write

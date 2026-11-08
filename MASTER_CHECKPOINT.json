@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T12:42:40.493047+00:00",
+  "updatedAt": "2026-11-08T13:02:39.686763+00:00",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -228,5 +228,13 @@
     "preChangeTag": "checkpoint/20261108-before-project-book",
     "sourceReferenceHead": "de7eb2264d88546ecea00991730e596ee42768d3",
     "scope": "documentation-governance-only; no runtime or binary change"
+  },
+  "gitGovernance": {
+    "sshOrigin": "git@github.com:n8n2erpnext/light-remote-mcp.git",
+    "sshVerifiedHost": "VPS-ARM",
+    "sshVerifiedDate": "2026-11-08",
+    "branchPolicy": "main only; no new branches or branch-backed worktrees without explicit prior Owner permission",
+    "protectedMainPolicy": "baseline-required; stop and report rejected push; no auto-branch or bypass",
+    "checkpointPolicy": "full checkpoint before substantive work; controlled rollback to verified checkpoint"
   }
 }
