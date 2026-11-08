@@ -50,3 +50,11 @@ This is the **only rolling project handoff**. Together with the single root `MAS
 - Verification: source and checkpoint verified before edit; commit-sync pre-commit and project-book checks are mandatory, CI must PASS `baseline-required` before promotion to `main`. Live CI outcome NOT_TESTED before push; do not claim success prematurely.
 - Next: publish `work` via configured Git-over-SSH; inspect GitHub CI `baseline-required` and then fast-forward protected `main` if allowed. Keep `work` as the sole active development branch, no others.
 - Rollback: pre-branch source baseline `047c744`, earlier gate checkpoint tag `checkpoint/20261108-before-atomic-commit-gate`; no source history rewrite or production changes.
+
+
+## Task Receipt: 20261108-work-ci-selector-regression
+- Status: DONE_LOCAL_CI_PENDING — targeted correction of one obsolete branch-selector expectation in Desktop packaging contract test.
+- Source: published `work` commit `6207e696b24fb6575ee90d3dd087096f9430dddf`. Changed only `client/desktop-v4/e2e/tauri-production-packaging-contract.mjs` and required checkpoint/handoff/docs in this task.
+- Verification: CI 42487422841 `truth` PASS, Core PASS, Desktop Web FAIL and Windows complete-installer FAIL on the **same** hardcoded `codex/**` matcher; earlier installer/Agent/Wall/RM steps succeeded. Targeted assertion checks and commit integrity must pass locally. A new GitHub CI run remains NOT_TESTED until push.
+- Next: push to existing `work`, verify new `baseline-required` PASS, fast-forward protected `main` when allowed, keep `work` as sole permanent development branch.
+- Rollback: controlled revert of this isolated test correction if necessary, no runtime/DB/Agent/Wall changes.

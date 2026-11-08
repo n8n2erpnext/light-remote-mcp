@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T13:57:12.142Z",
+  "updatedAt": "2026-11-08T14:04:12.138Z",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -275,24 +275,24 @@
     ],
     "longTaskCadence": "checkpoint and rolling handoff at each meaningful completed step before the next step",
     "workingBranch": "work",
-    "repositoryPublicationStatus": "WORK_BRANCH_CREATED_LOCAL / CI_NOT_RUN; main still at e96c0c5; no product runtime change",
-    "taskStatus": "WORK_BRANCH_BOOTSTRAP_LOCAL_PENDING_CI",
+    "repositoryPublicationStatus": "work 6207e69 published; CI 42487422841 Web/Windows failed same historical codex/** matcher; main still e96c0c5",
+    "taskStatus": "WORK_CI_TEST_CORRECTION_LOCAL_PENDING_CI",
     "stableSourceBaseline": "c03b50f4328e07138f350532c31dfc8b260311ce",
     "preChangeCommit": "fd25174ac3e43a4e3ea6b3feed4ae0bf1b42587",
     "runtimeChanged": false,
-    "nextAction": "Publish work over VPS-ARM SSH; verify baseline-required and then fast-forward protected main if allowed.",
+    "nextAction": "Push corrected test on work, require baseline-required PASS, then promote verified source to main.",
     "atomicCommitRule": "Every Git commit must stage MASTER_CHECKPOINT, PROJECT_HANDOFF, Worklog, generated docs status and applicable Code Map/API/build documentation; unique task receipt + staged-source blob digest.",
     "localGuard": ".githooks/pre-commit invokes deploy/unified/commit-sync-gate.mjs --staged",
     "ciGuard": ".github/workflows/ci.yml truth job checks each new commit via --range"
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261108-work-branch-ci-bootstrap",
-    "status": "INTEGRATION_PENDING_CI",
-    "summary": "Create single Owner-approved permanent work development branch; CI on work, promote verified source to protected main without new branches.",
-    "verification": "Source and exact branch verified; local hook/docs checks and GitHub CI will run; no live CI success claimed before push.",
-    "nextAction": "Push work via VPS-ARM SSH, verify baseline-required CI, fast-forward main if permitted, preserve work as sole development branch.",
-    "sourceDigest": "663d84538f8c62467771876c35af8b85d01fbf8976a94a1bf2d0fbe8178da464",
+    "taskId": "20261108-work-ci-selector-regression",
+    "status": "DONE_LOCAL_CI_PENDING",
+    "summary": "Align Desktop source packaging controller-branch assertion to Owner-approved permanent work/main without weakening packaging tests.",
+    "verification": "Initial work CI 42487422841 truth/Core PASS, Desktop Web and Windows both failed same stale codex/** matcher; fixed assertion and local trigger check PASS.",
+    "nextAction": "Push correction to work and verify baseline-required before protected main promotion.",
+    "sourceDigest": "361b21e8ff2026fcc4876c175ba6602224b5ff8d786082ca0495e71967b36f0c",
     "sourceFileCount": 1614
   }
 }

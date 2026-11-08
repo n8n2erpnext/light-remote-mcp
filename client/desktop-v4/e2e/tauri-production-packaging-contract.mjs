@@ -19,8 +19,10 @@ assert.doesNotMatch(sourceCI,/\n  native-shell:|\n  owner-login-lab-candidate:/,
   'Old UI-only and Owner-only build variants must not exist');
 assert.match(sourceCI,/tauri build --no-bundle --features desktop-owner-login --ci/);
 const controller=fs.readFileSync(path.join(repository,'.github/workflows/ci.yml'),'utf8');
-assert.match(controller,/branches: \[main, 'codex\/\*\*'\]/,
-  'One controller must trigger main and the new repository codex branch namespace');
+assert.match(controller,/branches: \[main, work\]/,
+  'One controller must trigger protected main and the Owner-approved work branch');
+assert.doesNotMatch(controller,/branches: \[main, 'codex\/\*\*'\]/,
+  'Do not restore arbitrary codex/** CI branch triggers');
 assert.match(controller,/uses: \.\/\.github\/workflows\/windows-native-client\.yml/,
   'The controller must call the actual complete Windows installer workflow');
 assert.match(installerCI,/workflow_call:/);
