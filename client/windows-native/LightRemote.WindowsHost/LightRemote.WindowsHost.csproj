@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- A managed component, with no apphost/EXE or assembly entry point. -->
+    <OutputType>Library</OutputType>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>LightRemote.WindowsHost</AssemblyName>
+    <RootNamespace>GptOperator.Client</RootNamespace>
+    <DefineConstants>$(DefineConstants);LIGHT_REMOTE_GOLDABV2_V4;LIGHT_REMOTE_EMBEDDED_CORE</DefineConstants>
+    <Version>0.10.0-dev.1</Version>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <UseAppHost>false</UseAppHost>
+    <SelfContained>false</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\GptOperator.Client\**\*.cs"
+             Exclude="..\GptOperator.Client\obj\**;..\GptOperator.Client\bin\**" />
+    <Compile Include="EmbeddedHostExports.cs" />
+    <Compile Include="..\Shared\CanonicalEndpoints.cs" Link="CanonicalEndpoints.cs" />
+    <Compile Include="..\Shared\WallListenerOwnership.cs" Link="WallListenerOwnership.cs" />
+    <Compile Include="..\Shared\LocalWallChallengeProof.cs" Link="LocalWallChallengeProof.cs" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+    <EmbeddedResource Include="..\..\..\config\endpoints.json" LogicalName="LightRemote.Canonical.Endpoints.json" />
+    <EmbeddedResource Include="..\GptOperator.Client\Assets\light-remote-mark.png" LogicalName="LightRemoteMark.png" />
+    <EmbeddedResource Include="..\GptOperator.Client\Assets\TrayStates\connected-32.png" LogicalName="LightRemoteTray.connected.png" />
+    <EmbeddedResource Include="..\GptOperator.Client\Assets\TrayStates\disconnected-32.png" LogicalName="LightRemoteTray.disconnected.png" />
+    <EmbeddedResource Include="..\GptOperator.Client\Assets\TrayStates\dormant-32.png" LogicalName="LightRemoteTray.dormant.png" />
+    <EmbeddedResource Include="..\GptOperator.Client\Assets\TrayStates\unlinked-32.png" LogicalName="LightRemoteTray.unlinked.png" />
+    <EmbeddedResource Include="..\GptOperator.Client\Assets\TrayStates\stopped-32.png" LogicalName="LightRemoteTray.stopped.png" />
+  </ItemGroup>
+</Project>

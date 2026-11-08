@@ -143,7 +143,7 @@ internal static class AgentHost
         psi.ArgumentList.Add(AppPaths.AgentScript);
         psi.ArgumentList.Add("daemon");
         psi.Environment["OPERATOR_AGENT_STATE"] = AppPaths.StateFile;
-        psi.Environment["LIGHT_REMOTE_MANAGED_PROCESS_HELPER"] = Path.Combine(AppPaths.Root, "GptOperator.Client.exe");
+        psi.Environment["LIGHT_REMOTE_MANAGED_PROCESS_HELPER"] = AppPaths.CoreExecutable;
         psi.Environment["HOME"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var connection = ConnectionConfig.Load();
         psi.Environment["OPERATOR_AGENT_BASE_URL"] = connection.BridgeUrl;
@@ -207,7 +207,7 @@ internal static class AgentHost
     // environment variables: Tray and AgentHost are separate processes.
     internal static void ConfigureRealRemoteEnvironment(ProcessStartInfo psi)
     {
-        var companion = Path.Combine(AppContext.BaseDirectory, "realremote-v2", "LightRemote.RM.exe");
+        var companion = Path.Combine(AppPaths.Root, "realremote-v2", "LightRemote.RM.exe");
         if (File.Exists(companion))
         {
             psi.Environment["LIGHT_REMOTE_REAL_REMOTE"] = "1";
@@ -244,7 +244,7 @@ internal static class AgentHost
         lock (LogGate)
         {
             Append(AppPaths.AgentLog, line);
-            var installAgentLog = Path.Combine(AppContext.BaseDirectory, "logs", "agent.log");
+            var installAgentLog = Path.Combine(AppPaths.Root, "logs", "agent.log");
             if (!string.Equals(AppPaths.AgentLog, installAgentLog, StringComparison.OrdinalIgnoreCase))
                 Append(installAgentLog, line);
         }

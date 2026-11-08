@@ -65,6 +65,9 @@ fn run_native(action:&str)->Result<serde_json::Value,String>{
     const ACTIONS:&[&str]=&["status","preview","link","poll","disconnect","service","restart",
         "update","open-wall","open-account","open-fleet","open-activation"];
     if !ACTIONS.contains(&action){return Err("desktop_action_denied".into());}
+    if crate::windows_host::required() || crate::windows_host::available() {
+        return crate::windows_host::action(action);
+    }
     // The .NET bridge is an owned short-lived process. A hung bridge may not
     // stall the tray or accumulate unbounded output. Never kill another PID.
     let mut child=Command::new(bridge_exe()?)

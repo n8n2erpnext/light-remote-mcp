@@ -779,6 +779,30 @@ jobs:
           foreach($required in @($agent,$rm)) { if (-not(Test-Path $required)) { throw "Same-installer A/B or RM missing: $required" } }
           Write-Host "windows-unified-stage=PASS v4=$bytes Agent_ABV2=PASS Local_Wall=in_agent RM=PASS"
           "WINDOWS_V4_DESKTOP=$target" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Prove in-process Windows host with one native core executable
+        if: env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
+        shell: pwsh
+        run: |
+          $stage = (Resolve-Path 'dist/windows/stage').Path
+          $poc = [IO.Path]::GetFullPath((Join-Path $PWD 'dist/windows/hosted-poc'))
+          $allowed = [IO.Path]::GetFullPath((Join-Path $PWD 'dist/windows')) + [IO.Path]::DirectorySeparatorChar
+          if (-not $poc.StartsWith($allowed, [StringComparison]::OrdinalIgnoreCase)) { throw 'PoC path escaped build workspace' }
+          if (Test-Path -LiteralPath $poc) { throw 'PoC must use a fresh isolated stage' }
+          Copy-Item -LiteralPath $stage -Destination $poc -Recurse
+          foreach ($relative in @('GptOperator.Client.exe', 'desktop-v4/LightRemote.Desktop.exe')) {
+            $owned = [IO.Path]::GetFullPath((Join-Path $poc $relative))
+            if (-not $owned.StartsWith($poc + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'PoC file target escaped' }
+            Remove-Item -LiteralPath $owned -Force
+          }
+          Copy-Item -LiteralPath 'client/desktop-v4/src-tauri/target/release/light-remote-desktop-v4-pilot.exe' -Destination (Join-Path $poc 'LightRemote.exe')
+          & client/windows-native/build-hosted-core.ps1 -InstallRoot $poc
+          & client/windows-native/test-hosted-core.ps1 -InstallRoot $poc -EvidenceDir (Join-Path $PWD 'dist/windows/hosted-poc-evidence')
+      - uses: actions/upload-artifact@v4
+        if: always() && env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
+        with:
+          name: light-remote-one-core-proof-${{ github.sha }}
+          path: dist/windows/hosted-poc-evidence/
+          if-no-files-found: warn
       - name: Install Inno Setup
         shell: pwsh
         run: |

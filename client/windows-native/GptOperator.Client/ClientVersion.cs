@@ -6,7 +6,7 @@ internal static class ClientVersion
     public static string Display {
         get {
             try {
-                var file = Path.Combine(AppContext.BaseDirectory, "VERSION");
+                var file = Path.Combine(AppPaths.Root, "VERSION");
                 var value = File.Exists(file) ? File.ReadAllText(file).Trim() : "";
                 return string.IsNullOrWhiteSpace(value) ? Fallback : value;
             } catch { return Fallback; }

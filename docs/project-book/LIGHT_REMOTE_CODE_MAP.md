@@ -68,3 +68,9 @@ Other route families exist; this table intentionally documents the relevant V4 c
 ## Updating this map
 
 Change this file when executable ownership, route/flag, IPC/transport, SQL or packaging boundary changes. Link to actual files in the **new** repo. Record the milestone in [Worklog](LIGHT_REMOTE_WORKLOG.md) and root [Checkpoint](../../MASTER_CHECKPOINT.json); run the project-book check. Do not paste a 188 KB legacy map or infer present truth from a historical handoff.
+
+## Single-primary-executable work — prototype source boundaries
+
+- [Native host adapter](../../client/desktop-v4/src-tauri/src/windows_host.rs): fixed installed paths and hostfxr ABI, twelve allowed Desktop actions and OS-only worker dispatch before Tauri/Owner initialization. No renderer-selected assembly/method/path.
+- [Managed component](../../client/windows-native/LightRemote.WindowsHost/LightRemote.WindowsHost.csproj) and [bounded exports](../../client/windows-native/LightRemote.WindowsHost/EmbeddedHostExports.cs): reuse existing host WMI/Job Objects/native profile; library has no standalone managed entry point. Native Tauri remains the window/tray and Owner-vault authority.
+- [Private runtime builder](../../client/windows-native/build-hosted-core.ps1) and [native proof](../../client/windows-native/test-hosted-core.ps1): a framework-dependent component resolves against private Microsoft frameworks, with executable fixture checks on hosted Windows CI. Current package switch and updater compatibility are pending.

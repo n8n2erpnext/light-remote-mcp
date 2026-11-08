@@ -10,6 +10,11 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+#if LIGHT_REMOTE_EMBEDDED_CORE
+        // Library builds expose only bounded UnmanagedCallersOnly methods.
+        // There is no assembly entry point and no second WinForms app.
+        throw new InvalidOperationException("managed_component_has_no_main");
+#else
         if (args.Length > 0 && string.Equals(args[0], "--managed-process", StringComparison.OrdinalIgnoreCase))
         {
             Environment.ExitCode = ManagedProcessEnvelope.Run(args.Skip(1).ToArray());
@@ -83,12 +88,13 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayApplicationContext());
 #endif
+#endif
     }
 
     // Offline native Windows fixture. An unrelated TCP listener on loopback
     // must be detected as occupied but must NOT be accepted as OUR Agent.
     // Product marker and exact installed Node.exe path are separate gates.
-    private static bool WallListenerSelfTest(string output)
+    internal static bool WallListenerSelfTest(string output)
     {
         var temp=Path.Combine(Path.GetTempPath(),"lr-wall-instance-"+Guid.NewGuid().ToString("N"));
         try
@@ -166,7 +172,7 @@ internal static class Program
         catch { }
     }
 
-    private static async Task<bool> RunSelfTestAsync(string output)
+    internal static async Task<bool> RunSelfTestAsync(string output)
     {
         try
         {

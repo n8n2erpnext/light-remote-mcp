@@ -2,7 +2,25 @@ namespace GptOperator.Client;
 
 internal static class AppPaths
 {
+#if LIGHT_REMOTE_EMBEDDED_CORE
+    // The component's own BaseDirectory is windows-host. Product data and
+    // bundled tools stay rooted at the native executable's installation.
+    public static readonly string CoreExecutable = Environment.ProcessPath
+        ?? throw new InvalidOperationException("native_core_executable_missing");
+    public static readonly string Root = NativeInstallRoot();
+    private static string NativeInstallRoot()
+    {
+        var parent = Path.GetDirectoryName(Path.GetFullPath(Environment.ProcessPath
+            ?? throw new InvalidOperationException("native_core_executable_missing")))!;
+        // The compatibility bridge release may still use the old GUI path.
+        return Path.GetFileName(CoreExecutable).Equals("LightRemote.Desktop.exe", StringComparison.OrdinalIgnoreCase)
+            && Path.GetFileName(parent).Equals("desktop-v4", StringComparison.OrdinalIgnoreCase)
+            ? Directory.GetParent(parent)!.FullName : parent;
+    }
+#else
     public static readonly string Root = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+    public static readonly string CoreExecutable = Path.Combine(Root, "GptOperator.Client.exe");
+#endif
     public static readonly string NodeExe = Path.Combine(Root, "runtime", "node.exe");
     public static readonly string AgentScript = Path.Combine(Root, "agent", "device-agent", "operator-agent.mjs");
     public static readonly string UpdatePublicKey = Path.Combine(Root, "config", "client-update-public.pem");

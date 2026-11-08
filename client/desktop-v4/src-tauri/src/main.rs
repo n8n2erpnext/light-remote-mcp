@@ -19,6 +19,8 @@ mod owner_abv2;
 
 #[cfg(all(feature = "desktop-owner-login", target_os = "windows"))]
 mod unified_tray;
+#[cfg(all(feature = "desktop-owner-login", target_os = "windows"))]
+mod windows_host;
 
 // Every desktop host opens its OWN device-local Wall. GoldABV2 is the
 // cloud Owner/Operator backend, never an alternate Wall destination.
@@ -114,6 +116,7 @@ fn main() {
 // Desktop V4 production on Windows owns the single visible window + OS tray.
 #[cfg(all(feature = "desktop-owner-login", target_os = "windows"))]
 fn main() {
+    if let Some(code) = windows_host::dispatch() { std::process::exit(code); }
     if unified_tray::already_running() { return; }
     tauri::Builder::default()
         .manage(owner_login::OwnerRuntime::default())

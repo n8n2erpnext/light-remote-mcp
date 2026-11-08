@@ -409,7 +409,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     {
         try
         {
-            var dir = Path.Combine(AppContext.BaseDirectory, "logs");
+            var dir = Path.Combine(AppPaths.Root, "logs");
             Directory.CreateDirectory(dir);
             var line = JsonSerializer.Serialize(new
             {
@@ -881,7 +881,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     internal static void OpenDesktopApp()
     {
-        var exe = Path.Combine(AppContext.BaseDirectory, "desktop-v4", "LightRemote.Desktop.exe");
+        var exe = Path.Combine(AppPaths.Root, "desktop-v4", "LightRemote.Desktop.exe");
         if (!File.Exists(exe))
         {
             ClientEvent("desktop_v4_missing");
@@ -946,7 +946,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             "http://localhost:5583/enroll?id=" + token, bridge);
         var expected = bridge + "/enroll?id=" + token;
         var p = AgentStart("status");
-        var companion = Path.Combine(AppContext.BaseDirectory, "realremote-v2", "LightRemote.RM.exe");
+        var companion = Path.Combine(AppPaths.Root, "realremote-v2", "LightRemote.RM.exe");
         var present = File.Exists(companion);
         var realRemoteSelected = p.Environment.TryGetValue("LIGHT_REMOTE_REAL_REMOTE", out var enabled)
             && enabled == "1";
@@ -999,6 +999,17 @@ internal sealed class TrayApplicationContext : ApplicationContext
     // No Window, NotifyIcon or Owner bearer is created here.
     internal static async Task<int> DesktopBridgeAsync(string action)
     {
+        var json = await DesktopBridgeJsonAsync(action);
+        Console.WriteLine(json);
+        using var result = JsonDocument.Parse(json);
+        return result.RootElement.TryGetProperty("state", out var state)
+            && state.GetString() == "desktop_bridge_unavailable" ? 1 : 0;
+    }
+
+    // Shared implementation for the legacy CLI and the native in-process
+    // component. It returns only the existing sanitized action projection.
+    internal static async Task<string> DesktopBridgeJsonAsync(string action)
+    {
         try
         {
             object response;
@@ -1049,7 +1060,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
                     if (!s.StatusAvailable) {response = new {ok=false,state="agent_unavailable"};break;}
                     if (!string.IsNullOrWhiteSpace(s.PendingEnrollmentId))
                     {
-                        return await DesktopBridgeAsync("preview");
+                        return await DesktopBridgeJsonAsync("preview");
                     }
                     if (s.Enrolled && s.CloudDesiredConnected
                         && s.CloudState.Equals("connected", StringComparison.OrdinalIgnoreCase))
@@ -1063,7 +1074,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
                         response = new {ok=false,state="link_failed"};
                         break;
                     }
-                    return await DesktopBridgeAsync("preview");
+                    return await DesktopBridgeJsonAsync("preview");
                 }
                 case "poll":
                 {
@@ -1159,14 +1170,12 @@ internal sealed class TrayApplicationContext : ApplicationContext
                 }
                 default: response = new {ok=false,state="action_not_allowed"};break;
             }
-            Console.WriteLine(JsonSerializer.Serialize(response));
-            return 0;
+            return JsonSerializer.Serialize(response);
         }
         catch (Exception ex)
         {
             ClientEvent("desktop_bridge_failed",new {action, error=ex.GetType().Name});
-            Console.WriteLine(JsonSerializer.Serialize(new {ok=false,state="desktop_bridge_unavailable"}));
-            return 1;
+            return JsonSerializer.Serialize(new {ok=false,state="desktop_bridge_unavailable"});
         }
     }
 #endif

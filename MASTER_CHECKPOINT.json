@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T16:07:14.306Z",
+  "updatedAt": "2026-11-08T16:49:58.190Z",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -291,13 +291,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261108-oneexe-p0-full-checkpoint",
-    "status": "BASELINE_CHECKPOINT_DONE_IMPLEMENTATION_IN_PROGRESS",
-    "summary": "Owner authorized implementation of the existing T12 plan; full exact pre-change source checkpoint/tag and independent Git restore verified on approved work branch.",
-    "verification": "Clean work c8d308c; annotated checkpoint tag pushed; full Git bundle restored and fsck PASS; no application/runtime/database changes.",
-    "nextAction": "Complete current Windows caller/host/updater contracts, then implement compatible updater and Rust primary host on work with atomic receipts.",
-    "sourceDigest": "361b21e8ff2026fcc4876c175ba6602224b5ff8d786082ca0495e71967b36f0c",
-    "sourceFileCount": 1614
+    "taskId": "20261108-oneexe-p1-inprocess-host-poc",
+    "status": "IMPLEMENTED_POC_NATIVE_CI_PENDING",
+    "summary": "Implement fixed-path in-process CLR component hosting, shared sanitized Desktop actions and headless worker dispatch; add native Windows fixture proof before package switch.",
+    "verification": "Three targeted source contracts PASS on Windows and ARM; PowerShell scripts parse PASS. Native compilation, private-runtime proof, WMI/stdio/Job Object/supervisor executable tests are CI_PENDING, not physical acceptance.",
+    "nextAction": "Run work baseline CI and inspect the new hosted-core Windows proof; then complete updater compatibility and primary installer/task layout without changing identities or public feeds.",
+    "sourceDigest": "86c083cb656b56db632110b9596cf75a3e502ef7339724e7d9f99cdc7f0415db",
+    "sourceFileCount": 1619
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -354,7 +354,7 @@
     "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
   },
   "singlePrimaryWindowsExe": {
-    "status": "IN_PROGRESS_BASELINE_CHECKPOINT_COMPLETE",
+    "status": "IN_PROGRESS_NATIVE_HOST_POC_CI_PENDING",
     "ownerImplementationAuthorized": true,
     "target": "LightRemote.exe",
     "merge": [
@@ -373,15 +373,17 @@
     },
     "steps": {
       "P0Checkpoint": "DONE",
-      "P0ContractInventory": "IN_PROGRESS",
+      "P0ContractInventory": "DONE",
       "P1UpdaterCompatibility": "NOT_STARTED",
-      "P2NativeHost": "NOT_STARTED",
-      "P3DesktopActions": "NOT_STARTED",
+      "P2NativeHost": "POC_IMPLEMENTED_NATIVE_CI_PENDING",
+      "P3DesktopActions": "IN_PROCESS_ADAPTER_IMPLEMENTED_NATIVE_CI_PENDING",
       "P4PackageSwitch": "NOT_STARTED",
       "P5Acceptance": "NOT_RUN"
     },
-    "newNativeBuild": "NOT_BUILT",
+    "newNativeBuild": "CI_PENDING",
     "physicalAcceptance": "NOT_RUN",
-    "runtimeChanged": false
+    "runtimeChanged": false,
+    "architectureUnderTest": "Tauri LightRemote.exe hosts a framework-dependent managed WindowsHost DLL in-process using private .NET frameworks; no second managed apphost/EXE.",
+    "pocScope": "Isolated one-executable stage proof only; current shipped installer layout remains two EXEs until updater/installer/task migration passes."
   }
 }

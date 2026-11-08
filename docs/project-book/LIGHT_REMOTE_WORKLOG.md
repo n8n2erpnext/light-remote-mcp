@@ -97,3 +97,9 @@ Historical Gold/Windows chronologies remain in the old read-only archive; do not
 Receipt: 20261108-oneexe-p0-full-checkpoint
 
 Owner authorized implementing T12. Full annotated tag `checkpoint/20261108-before-lightremote-exe-c8d308c` at c8d308c and independently restored Git bundle PASS. Only existing work branch is used; main remains stable. Baseline checkpoint DONE, caller inventory IN_PROGRESS; native consolidation build and physical acceptance NOT_RUN. Next: port compatible updater/host contracts without changing Node, RM, data identities or live runtime.
+
+## 2026-11-08 — in-process Windows host proof implementation
+
+Receipt: 20261108-oneexe-p1-inprocess-host-poc
+
+Implemented a Tauri/Rust native hostfxr adapter and framework-dependent WindowsHost DLL reusing existing WMI, Job Object, supervisor and sanitized bridge logic. Private .NET frameworks are packaged for the prototype; no managed EXE is published. Three relevant source checks PASS. Native proof CI_PENDING; current installer remains the previous two-core layout. Next: actual native proof then updater/task/installer compatibility and switch.
