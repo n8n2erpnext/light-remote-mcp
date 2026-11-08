@@ -92,3 +92,7 @@ OwnedAgentHostStopper uses EnsureLocatable=true with its bounded projected WQL q
 ## Bind hosted component activation to the primary executable
 
 In-process component activation and headless worker dispatch are now restricted to the exact primary LightRemote.exe. Legacy LightRemote.Desktop.exe always calls its fixed matching GptOperator.Client.exe bridge; a leftover windows-host DLL from a rolled-back installer cannot opt it into a newer implementation. No renderer/env/path selector was added. Source lifecycle regression requires this isolation.
+
+## Hosted-core other-role fixture readiness
+
+The native hosted-core proof starts a distinct managed-worker role with redirected stdin/stdout/stderr and a child-written readiness marker before calling Agent-only stop. The verified Agent host must exit while this wrapper and its child remain alive. This changes test setup only; the exact path/argv/SID/creation-time production stop guard remains required.

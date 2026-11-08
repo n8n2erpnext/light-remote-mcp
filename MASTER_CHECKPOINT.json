@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T17:39:34.998Z",
+  "updatedAt": "2026-11-08T17:45:26.162Z",
   "version": "0.10.1-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -291,12 +291,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-oneexe-p2-explicit-primary-host-selection",
-    "status": "BRIDGE_HOST_SELECTION_IMPLEMENTED_CI_PENDING",
-    "summary": "Only LightRemote.exe may activate the hosted component or worker dispatch; the compatibility Desktop always uses its matching legacy core, including after rollback leaves supporting DLLs behind.",
-    "verification": "Source lifecycle/endpoint/package regressions PASS before commit. This closes a rollback risk found while designing the real post-install failure fixture: DLL presence alone must never make an old Desktop opportunistically load a newer component. Existing SID/argv/creation checks and primary early worker dispatch remain unchanged. Exact native bridge CI pending; no physical acceptance.",
-    "nextAction": "Require final bridge CI PASS, pin and retain its exact installer/hash for migration testing, then publish the one-primary candidate with native install/upgrade/rollback tests.",
-    "sourceDigest": "d4f8f819599cfe898d857449652ddb3e196b8b4789a81056987cbffc78975472",
+    "taskId": "20261109-oneexe-p2-other-role-fixture-stdio",
+    "status": "BRIDGE_FIXTURE_CORRECTED_CI_PENDING",
+    "summary": "Give the unrelated managed-worker fixture real inherited stdio pipes and require its child readiness before testing Agent-only stop isolation.",
+    "verification": "CI42505457103 core/backend/browser/macOS/Linux PASS; Windows successfully compiled and passed owned Agent stop after EnsureLocatable, then the other-role assertion failed. The comparison worker had no redirected stdin/stdout/stderr and could fail its existing fail-closed handle contract before the stop call. The fixture now redirects all three, asserts readiness and verifies both wrapper and child survive. The isolation assertion remains required; native final bridge rerun pending.",
+    "nextAction": "Require final bridge full CI PASS, retain exact verified bridge installer, then run primary candidate packaging and real migration acceptance in hosted Windows.",
+    "sourceDigest": "5b30757323eb4cd79c576343a44fd78714625ad3b5a8b808e6b8018ec8884239",
     "sourceFileCount": 1621
   },
   "legacyFilesystemCleanup": {
@@ -354,7 +354,7 @@
     "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
   },
   "singlePrimaryWindowsExe": {
-    "status": "IN_PROGRESS_FINAL_BRIDGE_CI_PENDING",
+    "status": "IN_PROGRESS_FINAL_BRIDGE_FIXTURE_CI_PENDING",
     "ownerImplementationAuthorized": true,
     "target": "LightRemote.exe",
     "merge": [
@@ -374,7 +374,7 @@
     "steps": {
       "P0Checkpoint": "DONE",
       "P0ContractInventory": "DONE",
-      "P1UpdaterCompatibility": "FINAL_BRIDGE_CI_PENDING",
+      "P1UpdaterCompatibility": "FINAL_BRIDGE_FIXTURE_CI_PENDING",
       "P2NativeHost": "POC_CI_PASS",
       "P3DesktopActions": "IN_PROCESS_ADAPTER_CI_PASS",
       "P4PackageSwitch": "NOT_STARTED",
@@ -398,6 +398,7 @@
     },
     "bridgeCompileCorrection": "Fully qualify System.Management.EnumerationOptions and typed ManagementScope/ObjectQuery. Helper layout native fixture already PASS, hosted role proof rerun pending.",
     "wmiOwnerStopCorrection": "EnsureLocatable=true preserves __PATH/__RELPATH for GetOwnerSid after WQL projection. Read-only self-process SID/file/creation proof PASS; actual host stop remains native CI_PENDING.",
-    "hostSelectionPolicy": "Exact LightRemote.exe filename activates hosted library. Legacy Desktop never chooses a component by DLL presence, so rollback remains bound to the restored legacy implementation."
+    "hostSelectionPolicy": "Exact LightRemote.exe filename activates hosted library. Legacy Desktop never chooses a component by DLL presence, so rollback remains bound to the restored legacy implementation.",
+    "ownedStopProof": "WMI owner validation and actual Agent-host termination passed in CI42505457103; unrelated-worker readiness was not established, so overall isolation is not yet PASS."
   }
 }

@@ -132,3 +132,10 @@ This is the **only rolling project handoff**. Together with the single root `MAS
 - Verification: Source lifecycle/endpoint/package regressions PASS before commit. This closes a rollback risk found while designing the real post-install failure fixture: DLL presence alone must never make an old Desktop opportunistically load a newer component. Existing SID/argv/creation checks and primary early worker dispatch remain unchanged. Exact native bridge CI pending; no physical acceptance.
 - Next: Require final bridge CI PASS, pin and retain its exact installer/hash for migration testing, then publish the one-primary candidate with native install/upgrade/rollback tests.
 - Runtime: no existing ARM/Owner Windows install or public feed changed. Full checkpoint checkpoint/20261108-before-lightremote-exe-c8d308c remains the recovery reference.
+
+## Task Receipt: 20261109-oneexe-p2-other-role-fixture-stdio
+- Status: BRIDGE_FIXTURE_CORRECTED_CI_PENDING. Give the unrelated managed-worker fixture real inherited stdio pipes and require its child readiness before testing Agent-only stop isolation.
+- Source: work after `69511f4e0d07b46c04a8a30a632fa0ce5055a0dd`, candidate0.10.1-dev.1; exact source digest is stamped atomically.
+- Verification: CI42505457103 core/backend/browser/macOS/Linux PASS; Windows successfully compiled and passed owned Agent stop after EnsureLocatable, then the other-role assertion failed. The comparison worker had no redirected stdin/stdout/stderr and could fail its existing fail-closed handle contract before the stop call. The fixture now redirects all three, asserts readiness and verifies both wrapper and child survive. The isolation assertion remains required; native final bridge rerun pending.
+- Next: Require final bridge full CI PASS, retain exact verified bridge installer, then run primary candidate packaging and real migration acceptance in hosted Windows.
+- Runtime: no existing ARM/Owner Windows install or public feed changed. Full checkpoint checkpoint/20261108-before-lightremote-exe-c8d308c remains the recovery reference.

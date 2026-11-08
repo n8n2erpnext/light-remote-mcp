@@ -86,3 +86,7 @@ Bridge0.10.1-dev.1 remains pending a fully successful CI. Two failures in4250427
 ## Bind hosted component activation to the primary executable
 
 The final bridge adds explicit primary-executable host selection to prevent opportunistic DLL loading by a restored old Desktop. Current native bridge validation remains pending. The candidate primary layout and real migration fixtures are being prepared independently; no stable main or installed runtime has been changed.
+
+## Establish managed-role fixture readiness before Agent stop
+
+CI42505457103 passed core/backend and WMI-owned Agent termination; its other-role fixture failed without proving successful startup. The comparison worker now has valid pipes and explicit readiness. Final bridge CI and primary installer/real migration tests are still pending; main and existing installations remain unchanged.

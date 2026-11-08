@@ -39,3 +39,7 @@ Bridge native CI42504277501 caught an actual GetOwnerSid failure after projected
 ## Bind hosted component activation to the primary executable
 
 The final compatibility bridge is still0.10.1-dev.1. Its native Desktop is explicitly bound to the legacy bridge whenever it runs under the legacy executable name; DLL presence is not a migration switch. This preserves rollback behavior even when old installers leave unknown supporting files. The following primary0.10.1-dev.2 candidate enables hosted operation only after the proven native file is staged as LightRemote.exe. Preserve the final bridge installer by exact source and SHA-256 before enabling that layout.
+
+## Establish managed-role fixture readiness before Agent stop
+
+The same-executable other-role isolation fixture must first establish valid inherited stdio and a live managed child. It now redirects stdin/stdout/stderr, waits for a child-written readiness marker, and only then calls --stop-agent-host; wrapper and child must survive. A worker that failed before the operation is a fixture failure, not stop-isolation evidence. The actual primary GUI/hidden-window restart acceptance remains an additional installed-package test.

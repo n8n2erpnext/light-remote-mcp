@@ -149,12 +149,25 @@ try {
     $other = [Diagnostics.ProcessStartInfo]::new($exe)
     $other.UseShellExecute = $false
     $other.CreateNoWindow = $true
-    foreach ($arg in @('--managed-process', $node, '-e', 'setInterval(()=>{},1000)')) { $other.ArgumentList.Add($arg) }
+    $other.RedirectStandardInput = $true
+    $other.RedirectStandardOutput = $true
+    $other.RedirectStandardError = $true
+    $otherReady = Join-Path $evidence 'other-role.ready'
+    foreach ($arg in @('--managed-process', $node, '-e', 'require("fs").writeFileSync(process.argv[1],String(process.pid));setInterval(()=>{},1000)', $otherReady)) { $other.ArgumentList.Add($arg) }
     $unrelatedWrapper = [Diagnostics.Process]::Start($other)
-    Start-Sleep -Milliseconds 400
+    $otherErrors = $unrelatedWrapper.StandardError.ReadToEndAsync()
+    $deadline = [DateTime]::UtcNow.AddSeconds(8)
+    do {
+        if ($unrelatedWrapper.HasExited) { throw "Other-role fixture exited before stop: code=$($unrelatedWrapper.ExitCode) error=$($otherErrors.GetAwaiter().GetResult())" }
+        if (Test-Path -LiteralPath $otherReady) { break }
+        Start-Sleep -Milliseconds 80
+    } while ([DateTime]::UtcNow -lt $deadline)
+    if (-not (Test-Path -LiteralPath $otherReady)) { throw 'Other-role managed fixture did not become ready' }
     $stop = Invoke-Core @('--stop-agent-host')
     if ($stop.Code -ne 0 -or -not $hostProcess.WaitForExit(5000)) { throw "Owned Agent-only stop failed: code=$($stop.Code) phase=$($stop.Err)" }
     if ($unrelatedWrapper.HasExited) { throw 'Agent-only stop killed another role of the same executable' }
+    $otherChildId = [int](Get-Content -LiteralPath $otherReady -Raw)
+    if (-not (Get-Process -Id $otherChildId -ErrorAction SilentlyContinue)) { throw 'Agent-only stop killed the other role child' }
     $checks['agent-only-stop-preserves-other-native-core-role'] = 'PASS'
     Start-Sleep -Milliseconds 300
     foreach ($row in $attempts) {
