@@ -1,6 +1,6 @@
 # Light Remote MCP architecture
 
-The official project is `n8n2erpnext/light-remote-mcp`. This workspace has a new Git object store and no old parents or alternates. GitHub cutover has not occurred.
+The official project is `n8n2erpnext/light-remote-mcp`. This workspace has a new Git object store and no old parents or alternates. The new GitHub repository (ID1450214328) is the development/build source; old ARM source remains preserved reference truth.
 
 ```mermaid
 flowchart LR
@@ -24,3 +24,5 @@ Core migrations are checksum-locked through 043. Owner authority 045 is an expli
 Windows currently has the existing C# native Agent/tray host plus Tauri V4 UI. Combining these into one `LightRemote.exe` is a later product change. Node, RM V2, updater/helper and current feature behavior remain intact in this baseline.
 
 Project Continuity, Chrome Long Memory extension and RC50 portability source were recovered separately. Their availability in the tree is distinct from wiring into the active profile; see the feature matrix.
+
+The proposed single-primary-Windows-EXE architecture is specified in [the T12 handoff](docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md); it is a future implementation, with Node/RM/update helpers retained separately.

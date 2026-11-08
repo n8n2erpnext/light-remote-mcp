@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T11:45:49.840469+00:00",
+  "updatedAt": "2026-11-08T12:29:58.356053+00:00",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -204,5 +204,17 @@
   "receiptNote": "Documentation/evidence-only commits may follow the immutable build source commit; native inputs remain pinned.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
-  "repositoryId": 1450214328
+  "repositoryId": 1450214328,
+  "plannedWork": {
+    "singlePrimaryWindowsExe": {
+      "target": "LightRemote.exe",
+      "handoff": "docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md",
+      "coverage": "docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json",
+      "status": "HANDOFF_PUBLISHED_IMPLEMENTATION_NOT_STARTED",
+      "nodeRemainsSeparate": true,
+      "rmUpdaterOtherHelpersRemainSeparate": true,
+      "nativeBuild": "NOT_BUILT",
+      "physicalAcceptance": "NOT_RUN"
+    }
+  }
 }
