@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T12:29:58.356053+00:00",
+  "updatedAt": "2026-11-08T12:42:40.493047+00:00",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -216,5 +216,17 @@
       "nativeBuild": "NOT_BUILT",
       "physicalAcceptance": "NOT_RUN"
     }
+  },
+  "documentation": {
+    "projectBook": "docs/project-book/README.md",
+    "libraryRules": "docs/project-book/LIBRARY_RULES.md",
+    "codeMap": "docs/project-book/LIGHT_REMOTE_CODE_MAP.md",
+    "worklog": "docs/project-book/LIGHT_REMOTE_WORKLOG.md",
+    "sourceCatalog": "docs/project-book/source_catalog.json",
+    "activeCheckpoint": "MASTER_CHECKPOINT.json",
+    "legacyCheckpointRestored": false,
+    "preChangeTag": "checkpoint/20261108-before-project-book",
+    "sourceReferenceHead": "de7eb2264d88546ecea00991730e596ee42768d3",
+    "scope": "documentation-governance-only; no runtime or binary change"
   }
 }

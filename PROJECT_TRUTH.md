@@ -15,3 +15,7 @@ Product source matches the audited snapshot; publication changed governance/CI c
 Product gaps remain explicit in KNOWN_ISSUES.md: new-backend native GUI acceptance, local Agent/browser SSO wiring, new signed B-command exercise, restored prototypes, full Mac/Linux packages, complete endpoint catalog and the future single LightRemote.exe. Preserved signed legacy beta feeds do not advertise this 0.10.0 candidate; Fleet Wall's old GitHub release URL needs a controlled feed/release migration. No new public update feed was promoted.
 
 Owner-requested handoff publication (2026-11-08): [T12 LightRemote.exe consolidation plan](docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md) is now in the official repository with its branch-coverage evidence. It merges only the two primary Windows EXEs; Node/RM/updater/helpers remain separate. Status: design/handoff, NOT_IMPLEMENTED; baseline binaries/runtime and acceptance evidence are unchanged.
+
+## Documentation authority — 2026-11-08
+
+The new [Project Book](docs/project-book/README.md), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md), [Worklog](docs/project-book/LIGHT_REMOTE_WORKLOG.md), generated [Source Catalog](docs/project-book/SOURCE_CATALOG.md) and [machine status](docs/project-book/PROJECT_TRUTH_STATUS.json) describe the unified codebase. The sole live checkpoint remains [MASTER_CHECKPOINT.json](MASTER_CHECKPOINT.json), not the old .light-remote checkpoint. Documentation checks do not mean native Owner acceptance or production release.

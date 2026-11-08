@@ -20,7 +20,10 @@ if(process.argv.includes('--staged')){
  if(out.status!==0)throw Error('unified_staged_read_failed');
  const changed=out.stdout.split('\0').filter(Boolean);
  const source=changed.some(p=>/\.(mjs|js|ts|tsx|rs|cs|sql|ps1|sh|yml|yaml|toml|csproj)$/.test(p)||p==='project.manifest.json'||p==='VERSION');
- if(source&&!['PROJECT_TRUTH.md','MASTER_CHECKPOINT.json'].every(p=>changed.includes(p)))
-  throw Error('unified_source_requires_current_truth_and_checkpoint');
+ if(source&&!['PROJECT_TRUTH.md','MASTER_CHECKPOINT.json','docs/project-book/LIGHT_REMOTE_WORKLOG.md'].every(p=>changed.includes(p)))
+  throw Error('unified_source_requires_truth_checkpoint_and_worklog');
+ const contractChanged=changed.some(p=>p==='config/endpoints.json'||p==='contracts/api.v1.json');
+ if(contractChanged&&!changed.includes('docs/project-book/LIGHT_REMOTE_CODE_MAP.md'))
+  throw Error('unified_api_contract_requires_code_map');
 }
 console.log('UNIFIED_PROJECT_TRUTH=PASS');

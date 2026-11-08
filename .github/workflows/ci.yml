@@ -43,6 +43,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm run check:truth
+      - run: npm run check:docs
   dependency-lock:
     name: Committed native dependency resolution
     needs: [changes, truth]

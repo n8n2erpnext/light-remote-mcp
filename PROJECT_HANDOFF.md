@@ -17,3 +17,7 @@ Preserved signed beta client feed is legacy 0.9.0-rc.47 (external asset URLs); F
 ## Windows LightRemote.exe consolidation handoff
 
 Read [the existing T12 implementation plan](docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md) and [its scope/coverage index](docs/plans/windows-single-primary-exe/README.md). It contains the updater compatibility/bridge-release sequence, Rust headless host port, task/package/Job Object changes, feature-preservation gates and performance measurements. Owner requested publishing this plan only in this task. Consolidation implementation/native build/physical acceptance remain NOT_STARTED/NOT_BUILT/NOT_RUN; Node and the permitted helpers stay separate. Historical T11 Node-embedding advice is superseded.
+
+## Unified documentation continuation
+
+Start at [Project Book](docs/project-book/README.md), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md), [Worklog](docs/project-book/LIGHT_REMOTE_WORKLOG.md) and the single [MASTER_CHECKPOINT](MASTER_CHECKPOINT.json). These were authored from the unified new repository; the archived Gold Project Book is historical. For meaningful source changes keep root truth, checkpoint, and one cumulative Worklog consistent; regenerate/validate via npm run docs:refresh and npm run check:docs. No new side branches except when truly necessary and authorized.

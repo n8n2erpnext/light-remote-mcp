@@ -21,6 +21,8 @@
     "test:host": "node deploy/scripts/selftest-systemd.mjs",
     "test:source": "node deploy/unified/test.mjs --source-only",
     "check:truth": "node deploy/unified/check-truth.mjs",
-    "build:manifest": "node deploy/unified/build-manifest.mjs"
+    "build:manifest": "node deploy/unified/build-manifest.mjs",
+    "check:docs": "node deploy/unified/project-book.mjs --check",
+    "docs:refresh": "node deploy/unified/project-book.mjs --write"
   }
 }

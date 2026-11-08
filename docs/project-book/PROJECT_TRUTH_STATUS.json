@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "light-remote.unified.project-truth-status.v1",
+  "generatedFrom": [
+    "project.manifest.json",
+    "MASTER_CHECKPOINT.json",
+    "contracts/api.v1.json",
+    "config/endpoints.json"
+  ],
+  "repository": "n8n2erpnext/light-remote-mcp",
+  "activeCheckpoint": "MASTER_CHECKPOINT.json",
+  "projectVersion": "0.10.0-dev.1",
+  "apiContractVersion": "light-remote.api.v1",
+  "profile": "goldabv2-desktop-v4",
+  "officialRepositoryId": 1450214328,
+  "verifiedBuiltSourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+  "verifiedBuiltSourceTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
+  "checkpointUpdatedAt": "2026-11-08T12:42:40.493047+00:00",
+  "migrationPhase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
+  "ci": {
+    "status": "success",
+    "runId": 42475715858,
+    "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+    "passedJobs": 9,
+    "totalJobs": 9
+  },
+  "isolatedDev": {
+    "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+    "checks": 21,
+    "status": "PASS",
+    "evidence": "docs/evidence/dev-integration.json"
+  },
+  "windows": {
+    "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+    "artifactId": 13615761284,
+    "sha256": "23b746d2b820da1303fa1834c8e9f2d83e1bcad66a9c8d0580532ae60358b52f",
+    "physicalOwnerAcceptance": "NOT_RUN"
+  },
+  "sourcePresenceDoesNotProveDeployment": true,
+  "productionRelease": false,
+  "remaining": [
+    "Owner acceptance/native end-to-end with the new backend; controlled candidate routing required before Windows UAT",
+    "Local Agent/browser SSO wiring and positive redemption remain unfinished",
+    "Live signed B/command on new candidate not yet exercised",
+    "Continuity modern Wall/core hook and old-history-dependent packaging test unresolved",
+    "Legacy LM extension/RC50 prototypes not active; full Mac/Linux packages not rebuilt",
+    "Single primary Windows EXE remains future product work",
+    "Full endpoint/schema catalog coverage and remaining server route constants",
+    "Signed legacy beta/feed migration before a new public release; historical Fleet Wall URL targets the old repository name"
+  ],
+  "historicalRefsOnly": {
+    "oldRepository": "n8n2erpnext/light-remote-mcp-archive-20261108",
+    "auditedArmSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08"
+  }
+}
