@@ -106,3 +106,7 @@ The official Windows V4 complete package now stages root `LightRemote.exe` after
 ## Verify watchdog recovery by commit evidence and preserve migration failures
 
 Primary migration proof now writes per-stage progress and captures only isolated CI updater status/report/log/watchdog diagnostics. A postinstall failpoint is proven by its actual abort log and independent watchdog recovery; it does not equate an installer process exit0 with a committed transaction. Cleanup waits for owned native watchdog completion and cannot mask the original failure. Shared CoreLayout exposes a compile-time supported-layout capability, so a regular non-V4 helper does not advertise the primary hosted product; updater self-test includes product/profile diagnostics.
+
+## Record Owner pause and exact running primary build handoff
+
+Owner pause receipt only: current executable implementation is work source1fb8335a21d0a6716df2322c8ed6f19265421421. Running CI42511023888 contains the final native migration/watchdog proof; inspect its actual result when Owner resumes. No executable boundary or runtime was changed by this documentation receipt.

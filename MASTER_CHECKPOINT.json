@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T18:38:32.372Z",
+  "updatedAt": "2026-11-08T18:42:44.044Z",
   "version": "0.10.1-dev.2",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
-  "status": "PRIMARY_WINDOWS_EXE_CANDIDATE_FULL_CI_PENDING",
+  "status": "OWNER_PAUSED_PRIMARY_WINDOWS_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -291,11 +291,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-oneexe-p4-watchdog-recovery-proof",
-    "status": "PRIMARY_RUNTIME_PASS_FINAL_MIGRATION_CI_PENDING",
-    "summary": "Use observed failpoint/abort and actual native watchdog recovery as the postinstall-failure acceptance gate. Wait for watchdog completion before uninstall and preserve the original failure with recovery diagnostics. Report hosted-layout capability only for the compiled supported Windows profile.",
-    "verification": "CI42509136055: native primary stage/install, private CLR in GUI with global DOTNET_ROOT disabled, shortcut/autostart, hidden GUI singleton/restart, independent helper, normal broken-update rollback and uninstall PASS. Actual bridge→primary upgrade, reinstall, controlled legacy downgrade, injected runtimeconfig health-failure rollback and legacy GUI isolation also reached PASS; cross-layout rollback report confirms success. Last manual watchdog fixture assumed nonzero exit, but Inno logged the injected ssPostInstall exception and abort while returning zero; premature cleanup then masked the original assertion with an active-watchdog recovery-root error. The fixture now waits for actual restored version/task/Wall and rollback_restore_wall_healthy, retains isolation assertions and preserves root errors. Parser PASS; full native rerun pending, no physical Owner acceptance.",
-    "nextAction": "Require full primary CI PASS including native manual watchdog recovery and clean fixture uninstall; verify final installer/source/hash, then promote under baseline-required and reconcile the single checkpoint/handoff.",
+    "taskId": "20261109-oneexe-owner-pause-quota",
+    "status": "OWNER_PAUSED_CI_RUNNING_WORK_PUBLISHED_MAIN_PENDING",
+    "summary": "Owner explicitly requested a quota pause: record the current single-primary implementation and let the already-running GitHub build finish without waiting for or acting on its result this session.",
+    "verification": "At handoff, code source1fb8335a21d0a6716df2322c8ed6f19265421421 is published on work and CI42511023888 is IN_PROGRESS (https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42511023888). Its result is NOT assumed PASS. Prior trial727b841 CI42509136055 failed overall in the final watchdog test/cleanup, while primary fresh installation, private CLR in GUI, same-file task/shortcut/autostart, hidden GUI restart, bridge upgrade/reinstall, real health-failure rollback and legacy GUI isolation passed. The last code commit corrects the fixture to follow actual abort/watchdog recovery rather than exit code and preserves original failure/cleanup evidence; full native rerun pending. No Owner physical/account/vault/B acceptance or production runtime/feed change.",
+    "nextAction": "ONLY when Owner resumes after quota recovery: read README + MASTER_CHECKPOINT.json + this handoff; check CI42511023888 for exact source1fb8335 first. If FAIL, inspect primary migration progress/failure/recovery/watchdog proof artifact and fix on existing work with same-commit checkpoint/handoff/docs. If PASS, verify installer SHA-256, BUILD_MANIFEST and PRIMARY_EXE_MANIFEST/test scope, then finish verified promotion to protected main under baseline-required. Do not create branches, force-push, install on Owner Windows or cut over existing ARM runtime as part of this pause.",
     "sourceDigest": "c744a74c12a5dd5235ea220e6cdfbcc157b550cb9f010c3e5301b9be7e1c3668",
     "sourceFileCount": 1626
   },
@@ -354,7 +354,7 @@
     "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
   },
   "singlePrimaryWindowsExe": {
-    "status": "IN_PROGRESS_PRIMARY_FINAL_WATCHDOG_PROOF_CI_PENDING",
+    "status": "OWNER_PAUSED_CI_RUNNING_WORK_PUBLISHED_MAIN_PENDING",
     "ownerImplementationAuthorized": true,
     "target": "LightRemote.exe",
     "merge": [
@@ -424,7 +424,17 @@
       "realUpgradeReinstallAndHealthFailureRollback": "PASS",
       "manualWatchdogFixture": "EXIT_CODE_ASSUMPTION_FAILED_CORRECTED",
       "overallResult": "FAIL_NOT_RELEASED"
-    }
+    },
+    "ownerPause": {
+      "requested": true,
+      "reason": "Owner requested quota pause; allow current build to finish and resume only on a later Owner request.",
+      "codeSourceCommit": "1fb8335a21d0a6716df2322c8ed6f19265421421",
+      "ciRunId": 42511023888,
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42511023888",
+      "statusAtHandoff": "IN_PROGRESS_RESULT_NOT_ASSUMED",
+      "stableMainCommit": "c8d308c82d17b5a4052163377d23f4514da6db02"
+    },
+    "primaryReleasePublished": false
   },
   "activeDevelopmentWorkspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/single-primary-exe"
 }
