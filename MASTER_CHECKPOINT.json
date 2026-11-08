@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T14:44:11.892Z",
+  "updatedAt": "2026-11-08T14:47:01.454Z",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -279,29 +279,29 @@
     ],
     "longTaskCadence": "checkpoint and rolling handoff at each meaningful completed step before the next step",
     "workingBranch": "work",
-    "repositoryPublicationStatus": "GitHub work and main both 4ad70f9541d8; full CI 42487968019 PASS. This closing docs-only commit pending CI/promotion.",
-    "taskStatus": "LEGACY_FS_CLEANUP_DOCS_COMMIT_CI_PENDING",
+    "repositoryPublicationStatus": "Cleanup docs commit e6338e12 passed baseline-required GitHub CI 42491303164 and was fast-forwarded to main; final receipt commit on work pending CI.",
+    "taskStatus": "LEGACY_FS_CLEANUP_COMPLETE_MAIN_WORK_SYNCED",
     "stableSourceBaseline": "c03b50f4328e07138f350532c31dfc8b260311ce",
     "preChangeCommit": "fd25174ac3e43a4e3ea6b3feed4ae0bf1b42587",
     "runtimeChanged": false,
-    "nextAction": "Commit and push docs/Checkpoint/Handoff receipt on work, CI baseline-required then fast-forward protected main.",
+    "nextAction": "Publish final docs-only receipt, CI PASS, fast-forward main; keep work as development branch. Next feature starts full checkpoint.",
     "atomicCommitRule": "Every Git commit must stage MASTER_CHECKPOINT, PROJECT_HANDOFF, Worklog, generated docs status and applicable Code Map/API/build documentation; unique task receipt + staged-source blob digest.",
     "localGuard": ".githooks/pre-commit invokes deploy/unified/commit-sync-gate.mjs --staged",
     "ciGuard": ".github/workflows/ci.yml truth job checks each new commit via --range"
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261108-legacy-fs-cleanup-v1",
-    "status": "DONE_LOCAL_VERIFIED_CI_PENDING",
-    "summary": "Owner-approved cleanup of old Light Remote source and historical staging/backups outside Unified, preserving local-only Git refs and uncommitted deltas.",
-    "verification": "GitHub old archive verified; Git bundle and three SHA256 PASS; 27 historical locations, 503 handoff files, 24 links and 2 caches removed; 7.229 GiB reclaimed; active Agent and timer verified.",
-    "nextAction": "Commit atomic checkpoint/handoff/docs on work, require CI baseline-required PASS, fast-forward protected main. Keep private backups and runtime intact.",
+    "taskId": "20261108-legacy-cleanup-promotion-closure",
+    "status": "CLEANUP_DONE_MAIN_PROMOTED_CLOSURE_DOCS_PENDING",
+    "summary": "Finalize Light Remote old-source cleanup handoff after GitHub CI PASS and protected main fast-forward of cleanup receipt, retaining work branch.",
+    "verification": "cleanup receipt e6338e12 GitHub run 42491303164 baseline-required PASS; main/work both e6338e12; private recovery and active Agent/timer verified; no runtime deployment.",
+    "nextAction": "Push this docs-only closeout to work, require baseline-required, promote final receipt to main; continue development only within Unified.",
     "sourceDigest": "361b21e8ff2026fcc4876c175ba6602224b5ff8d786082ca0495e71967b36f0c",
     "sourceFileCount": 1614
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
-    "status": "DONE_LOCAL_VERIFIED_PENDING_CI",
+    "status": "DONE_GITHUB_VERIFIED_AND_PROMOTED_CLOSURE_DOCS_PENDING",
     "archiveRepository": "n8n2erpnext/light-remote-mcp-archive-20261108",
     "archiveConfirmed": true,
     "preservationRoot": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/legacy-preservation-20261108",
@@ -323,6 +323,11 @@
     "runtimeProtected": "/opt/gpt-operator-agent and user config/state, shared gpt-vps-bridge",
     "serviceCompatibility": "two existing symlinks redirected into Unified; active timer preserved; systemd unit read-only and unchanged; previous service failure not fixed",
     "preCleanupTag": "checkpoint/20261108-before-legacy-fs-cleanup",
-    "auditJson": "legacy-preservation-20261108/cleanup-audit.json outside Git"
+    "auditJson": "legacy-preservation-20261108/cleanup-audit.json outside Git",
+    "verifiedGitCommit": "e6338e12d7c6432719f27505dd658c7b99cb4df9",
+    "verifiedCiRunId": 42491303164,
+    "verifiedCiResult": "success",
+    "mainPromoted": true,
+    "workBranchRetained": true
   }
 }

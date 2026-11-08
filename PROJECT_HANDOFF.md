@@ -74,3 +74,11 @@ This is the **only rolling project handoff**. Together with the single root `MAS
 - Verification: archived old GitHub repo verified; private Git bundle verify PASS, three SHA256 checks PASS, 47 untracked source files and six tracked changesets preserved. Recovered net `7.235 GiB` (`5.43 → 12.66 GiB` free). Device Agent and release-sync timer active, compatible symlinks point into Unified. Existing release-sync service failure remains and is not represented as PASS.
 - Next: publish this cleanup checkpoint/handoff/Worklog/docs as one atomic commit on `work`, run baseline-required CI, promote verified commit to protected `main`. Retain private archives off GitHub and continue all development under Unified only.
 - Rollback: `checkpoint/20261108-before-legacy-fs-cleanup` and the private old refs bundle, uncommitted source delta tar and historical handoff tar under Unified legacy-preservation-20261108.
+
+
+## Task Receipt: 20261108-legacy-cleanup-promotion-closure
+- Status: DONE_PROMOTED — historical Light Remote cleanup completed; previous cleanup receipt commit `e6338e12d7c6432719f27505dd658c7b99cb4df9` passed GitHub `baseline-required` in run 42491303164 and fast-forwarded into protected `main`. `work` is retained as permanent development branch. This final docs-only receipt itself is pending separate CI.
+- Source: `main` and `work` both verified at `e6338e12d7c6432719f27505dd658c7b99cb4df9` before the closing docs-only commit. Canonical source code unchanged, no new branch.
+- Verification: CI truth and baseline-required PASS (native build jobs skipped as documented-only), 27 old directories/artifact paths removed, 503 old handoffs archived/removed, 24 symlinks removed, SHA256/Git bundle verified. Agent and release-sync timer active. Release-sync service remains pre-existing failed, no production or Windows physical acceptance claimed.
+- Next: push this final docs-only receipt on `work`, confirm `baseline-required` PASS, fast-forward protected `main` and leave `work` checked out, with clean Git tree; next feature starts with full checkpoint.
+- Rollback: `checkpoint/20261108-before-legacy-fs-cleanup`, private `legacy-preservation-20261108` recovery artifacts under Unified.

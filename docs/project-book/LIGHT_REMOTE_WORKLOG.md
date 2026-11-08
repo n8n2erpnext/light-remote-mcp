@@ -75,3 +75,10 @@ Historical Gold/Windows chronologies remain in the old read-only archive; do not
 - GitHub old repository verified archived. From 73 old registered worktrees (12 dirty), preserved all local refs in Git bundle, six tracked diffs, 47 unique non-build untracked files and 503 historical handoff/evidence/config files in checked private snapshots under Unified, not in new Git.
 - Removed 27 historical source/backup/artifact locations, 503 individual handoff files, 24 dangling symlinks and two Gold UAT caches. Net `7.235 GiB` reclaimed (`5.43 to 12.66 GiB` free), no deletion errors.
 - Active Device Agent and release-sync timer were preserved. Old systemd service unit could not be edited on a read-only filesystem; two compatibility symlinks were retargeted to Unified source and staging. Existing failed release-sync service status not corrected. Other projects and live `/opt`/config/state remained untouched.
+
+
+## 2026-11-08 — Legacy cleanup verified/published on protected main
+
+- Receipt: 20261108-legacy-cleanup-promotion-closure
+- GitHub `work` commit `e6338e12` passed CI run 42491303164 `baseline-required=PASS`; the same commit fast-forwarded to protected `main` without force or new branch. Checks covered truth/docs and commit integrity; native Windows/macOS/Linux jobs were intentionally skipped for docs-only changes.
+- Cleanup completed and private local recovery snapshots remain within Unified. Device Agent and release-sync timer still active; historical old source/backup directories outside Unified removed. This is the final documentation-only closeout, not a runtime deployment.
