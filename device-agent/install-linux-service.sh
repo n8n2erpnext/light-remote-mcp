@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+USER_NAME="${SUDO_USER:-${USER}}"
+HOME_DIR="$(getent passwd "$USER_NAME" | cut -d: -f6)"
+NODE_BIN="$(command -v node)"
+STATE_FILE="$HOME_DIR/.config/gpt-operator-agent/device.json"
+HOST_WRITE_PATHS=()
+HOST_WRITE_ACK=0
+HOST_WRITE_CLEAR=0
+HOST_WRITE_EXPLICIT=0
+while (($#)); do
+  case "$1" in
+    --host-write-path) HOST_WRITE_PATHS+=("$2"); HOST_WRITE_EXPLICIT=1; shift 2;;
+    --acknowledge-host-write-risk) HOST_WRITE_ACK=1; shift;;
+    --clear-host-write-paths) HOST_WRITE_CLEAR=1; shift;;
+    *) echo "Unknown Linux service installer argument: $1" >&2; exit 2;;
+  esac
+done
+HOST_WRITE_POLICY_FILE="/etc/gpt-operator-agent/host-write-paths.list"
+if [[ "$HOST_WRITE_EXPLICIT" == "1" || "$HOST_WRITE_CLEAR" == "1" ]]; then
+  [[ "$HOST_WRITE_ACK" == "1" ]] || { echo "Host-write paths require explicit owner acknowledgement" >&2; exit 2; }
+  [[ ! ( "$HOST_WRITE_EXPLICIT" == "1" && "$HOST_WRITE_CLEAR" == "1" ) ]] || { echo "Conflicting host-write options" >&2; exit 2; }
+elif sudo test -f "$HOST_WRITE_POLICY_FILE"; then
+  mapfile -t HOST_WRITE_PATHS < <(sudo cat "$HOST_WRITE_POLICY_FILE")
+fi
+if ((${#HOST_WRITE_PATHS[@]})); then
+  HOST_WRITE_VALIDATED="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" hostWritePaths "${HOST_WRITE_PATHS[@]}")"
+else
+  HOST_WRITE_VALIDATED=""
+fi
+if [[ "$HOST_WRITE_EXPLICIT" == "1" || "$HOST_WRITE_CLEAR" == "1" ]]; then
+  sudo install -d -m 0700 /etc/gpt-operator-agent
+  printf '%s\n' "${HOST_WRITE_PATHS[@]}" | sudo tee "$HOST_WRITE_POLICY_FILE" >/dev/null
+  if [[ "$HOST_WRITE_CLEAR" == "1" ]]; then sudo truncate -s 0 "$HOST_WRITE_POLICY_FILE"; fi
+  sudo chown root:root "$HOST_WRITE_POLICY_FILE"
+  sudo chmod 0600 "$HOST_WRITE_POLICY_FILE"
+fi
+NO_NEW_PRIVILEGES="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" noNewPrivileges)"
+RESTRICT_SUID_SGID="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" restrictSuidSgid)"
+CLEAR_CAPABILITY_BOUNDING_SET="$($NODE_BIN "$ROOT_DIR/device-agent/linux-service-policy.mjs" "$STATE_FILE" clearCapabilityBoundingSet)"
+if [[ "$CLEAR_CAPABILITY_BOUNDING_SET" == "true" ]]; then
+  CAPABILITY_BOUNDING_SET_LINE="CapabilityBoundingSet="
+else
+  CAPABILITY_BOUNDING_SET_LINE="# CapabilityBoundingSet left at the system default for approved sudo-on-demand"
+fi
+sudo install -d -m 0755 /opt/gpt-operator-agent/device-agent /opt/gpt-operator-agent/device-agent/platform-adapters /opt/gpt-operator-agent/lib /opt/gpt-operator-agent/assets/branding /opt/gpt-operator-agent/assets/fonts/web /opt/gpt-operator-agent/assets/icons/material
+sudo install -m 0755 "$ROOT_DIR/device-agent/operator-agent.mjs" /opt/gpt-operator-agent/device-agent/operator-agent.mjs
+# Keep the original Wall Link for NEW/REVOKED devices. ACTIVE devices can
+# only change owner from the local OS administrator terminal (including SSH
+# with sudo), via this root-owned helper. Wall never starts that Relink.
+sudo install -m 0700 -o root -g root "$ROOT_DIR/device-agent/relink-linux-server.py" /usr/local/sbin/light-remote-device
+sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall.mjs" /opt/gpt-operator-agent/device-agent/local-wall.mjs
+sudo install -m 0644 "$ROOT_DIR/device-agent/local-wall-auth.mjs" /opt/gpt-operator-agent/device-agent/local-wall-auth.mjs
+sudo install -m 0644 "$ROOT_DIR/device-agent/update-settings-page.mjs" /opt/gpt-operator-agent/device-agent/update-settings-page.mjs
+sudo install -m 0644 "$ROOT_DIR/device-agent/fleet-component-manager.mjs" /opt/gpt-operator-agent/device-agent/fleet-component-manager.mjs
+sudo install -m 0644 "$ROOT_DIR/device-agent/fleet-component-supervisor.mjs" /opt/gpt-operator-agent/device-agent/fleet-component-supervisor.mjs
+sudo install -m 0644 "$ROOT_DIR/device-agent/result-delivery.mjs" /opt/gpt-operator-agent/device-agent/result-delivery.mjs
+sudo install -m 0644 "$ROOT_DIR"/device-agent/platform-adapters/*.mjs /opt/gpt-operator-agent/device-agent/platform-adapters/
+for lib in brand.mjs material-icon.mjs web-typography.mjs device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs; do
+  sudo install -m 0644 "$ROOT_DIR/lib/$lib" "/opt/gpt-operator-agent/lib/$lib"
+done
+sudo install -m 0644 "$ROOT_DIR/assets/branding/light-remote-mark.svg" /opt/gpt-operator-agent/assets/branding/light-remote-mark.svg
+sudo install -m 0644 "$ROOT_DIR/assets/fonts/CascadiaMono.ttf" /opt/gpt-operator-agent/assets/fonts/CascadiaMono.ttf
+sudo install -m 0644 "$ROOT_DIR/assets/fonts/web/CascadiaCode.ttf" /opt/gpt-operator-agent/assets/fonts/web/CascadiaCode.ttf
+sudo install -m 0644 "$ROOT_DIR"/assets/icons/material/*.svg /opt/gpt-operator-agent/assets/icons/material/
+unit="$(mktemp)"
+trap 'rm -f "$unit"' EXIT
+cat > "$unit" <<UNIT
+[Unit]
+Description=Light Remote Device Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=$USER_NAME
+Environment=HOME=$HOME_DIR
+ExecStart=$NODE_BIN /opt/gpt-operator-agent/device-agent/operator-agent.mjs daemon
+Restart=always
+RestartSec=5
+UMask=0077
+NoNewPrivileges=$NO_NEW_PRIVILEGES
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=$HOME_DIR/.config/gpt-operator-agent $HOST_WRITE_VALIDATED
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictSUIDSGID=$RESTRICT_SUID_SGID
+RestrictRealtime=true
+$CAPABILITY_BOUNDING_SET_LINE
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+sudo install -m 0644 "$unit" /etc/systemd/system/gpt-operator-device-agent.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now gpt-operator-device-agent.service
+echo "Installed gpt-operator-device-agent.service for $USER_NAME"
+WALL_HOST="127.0.0.1"
+WALL_PORT="5491"
+SERVICE_ENV="$(systemctl show gpt-operator-device-agent.service --property=Environment --value 2>/dev/null || true)"
+for item in $SERVICE_ENV; do
+  case "$item" in
+    OPERATOR_AGENT_WALL_HOST=*) WALL_HOST="${item#*=}";;
+    OPERATOR_AGENT_WALL_PORT=*) WALL_PORT="${item#*=}";;
+  esac
+done
+WALL_HOST="${WALL_HOST%\"}"; WALL_HOST="${WALL_HOST#\"}"
+WALL_PORT="${WALL_PORT%\"}"; WALL_PORT="${WALL_PORT#\"}"
+WALL_DISPLAY_HOST="$WALL_HOST"
+if [[ "$WALL_DISPLAY_HOST" == *:* && "$WALL_DISPLAY_HOST" != \[*\] ]]; then WALL_DISPLAY_HOST="[$WALL_DISPLAY_HOST]"; fi
+printf 'Local Wall: http://%s:%s/ (service stays alive even before enrollment or while cloud is dormant).\n' "$WALL_DISPLAY_HOST" "$WALL_PORT"

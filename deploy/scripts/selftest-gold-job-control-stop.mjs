@@ -1,0 +1,126 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {FleetRouter} from '../../operator-host/fleet-router.mjs';
+import {cleanJob} from '../../plugin-server/job-view.mjs';
+import vm from 'node:vm';
+const src=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
+const events=[];
+const f=new FleetRouter({emit:e=>events.push(e),channelTtlMs:20000,commandLeaseMs:5000,requireExecutorReady:true});
+const ctx={accountId:'owner-1',deviceId:'device-1',nodeId:'device-1',sessionCeiling:2,capabilities:['filesystem'],executorReady:true};
+f.touch(ctx);
+const queued=f.enqueue({...ctx,jobId:'job_alpha',payload:{type:'exec',script:'echo one'}});
+assert.equal(f.cancelUndispatched(queued.commandId)?.abandoned,true,'owner cancellation must remove undispatched command');
+assert.equal(f.view(ctx.nodeId).queuedCommands,0);
+assert.equal(f.poll(ctx).state,'idle','a cancelled queue entry must never dispatch');
+assert.equal(f.receipt(queued.commandId)?.abandonReason,'owner_cancelled_before_dispatch');
+const dispatched=f.enqueue({...ctx,jobId:'job_beta',payload:{type:'exec',script:'echo two'}});
+assert.equal(f.poll(ctx).command?.commandId,dispatched.commandId);
+assert.equal(f.cancelUndispatched(dispatched.commandId),null,'cannot call a running effect cancelled');
+assert.equal(f.view(ctx.nodeId).inFlightCommands,1,'refused cancellation retains genuine in-flight command');
+assert.equal(f.command(dispatched.commandId).dispatchedAt!==null,true);
+const route=src('operator-host/executor-routes-device-channel.mjs');
+assert.match(route,/verifiedChannelContext\(body,'job-cancel'\)/);
+assert.match(route,/accountId:ctx.binding.accountId,deviceId:ctx.binding.deviceId/);
+assert.doesNotMatch(route,/verifiedFleetContext\(await verifiedChannelContext\(body,'job-cancel'\)\)/);
+const runtime=src('operator-host/executor-routes-runtime.mjs');
+assert.match(runtime,/jobCancelMatch/);
+assert.match(runtime,/session.accountId!==job.accountId\|\|session.deviceId!==job.deviceId/);
+assert.match(runtime,/job.agentId!==agentId/);
+assert.ok(runtime.includes('const historical=await goldJobs.get(jobCancelMatch[1])'),
+ 'restart-safe Cancel uses durable record instead of re-dispatch');
+assert.match(runtime,/historical.agentId!==agentId/,'historical retry must retain exact Agent authorization');
+assert.match(runtime,/historical.status==='cancelled'&&historical.finishedAt&&historical.exitCode===130/,
+ 'only confirmed cancelled terminal records may be replay-acknowledged');
+assert.match(runtime,/'job_effect_unknown'/,'interrupted effects must remain unknown');
+const host=src('operator-host/executor.mjs');
+assert.match(host,/job.status==='cancelled'&&job.exitCode===130/,
+ 'in-memory second Cancel is idempotent only for terminal cancellation');
+assert.match(host,/stopRequestedAt: Number.isSafeInteger\(job.stopRequestedAt\)/,
+ 'live job view retains the same Stop metadata as the durable ledger');
+assert.match(host,/pendingForegroundExec.has\(jobId\)/);
+assert.match(host,/command.dispatchedAt!==null/);
+assert.match(host,/cancelUndispatched\(command.commandId\)/);
+assert.match(host,/job_already_dispatched_stop_requires_device_receipt/);
+assert.match(host,/pendingDeviceJobStops.set\(command.commandId/);
+assert.match(host,/deviceStopRequests\(accountId,deviceId\)/);
+// A stop request must survive outages longer than the old 15-minute TTL.
+// Never infer a terminal result from a deadline or from a retry.
+const fnText=host.match(/function deviceStopRequests\(accountId,deviceId\)\{[\s\S]*?\n\}/)?.[0];
+assert.ok(fnText,'stop-request source is readable');
+const testJobs=new Map([['job-stall',{finishedAt:null}]]);
+const requestMap=new Map([['cmd_00000000-0000-4000-8000-000000000000',{
+  jobId:'job-stall',accountId:'owner-1',deviceId:'device-1',requestedAt:1
+}]]);
+const stopList=vm.runInNewContext(fnText+';deviceStopRequests',{
+ jobs:testJobs,pendingDeviceJobStops:requestMap,Date:{now:()=>60*60*1000}
+});
+assert.equal(stopList('owner-1','device-1').length,1,'stop intent survives a 60-minute disconnect');
+assert.equal(stopList('owner-2','device-1').length,0,'no cross-owner stop intents');
+assert.equal(stopList('owner-1','device-2').length,0,'no cross-device stop intents');
+testJobs.get('job-stall').finishedAt=Date.now();
+assert.equal(stopList('owner-1','device-1').length,0,'verified finished state retires stop');
+assert.equal(requestMap.size,0);
+const leaf=src('device-agent/operator-agent.mjs');
+assert.match(leaf,/ACTIVE_EXEC_CHILDREN.set\(command.commandId,execStopState\)/);
+assert.match(leaf,/taskkill.exe/);
+assert.match(leaf,/applyDeviceStopRequests\(pulseAck.stopRequests\)/);
+assert.match(leaf,/applyDeviceStopRequests\(frame.stopRequests\)/);
+assert.match(leaf,/status:cancelled\?'cancelled'/);
+const channel=src('operator-host/executor-routes-device-channel.mjs');
+assert.match(channel,/stopRequests:deviceStopRequests\(ctx.binding.accountId,ctx.binding.deviceId\)/);
+assert.match(channel,/result.status\|\|''\)==='cancelled'&&job.stopRequestedAt/);
+const wall=src('device-agent/local-wall.mjs');
+assert.match(wall,/data-copy="cmd".*?data-stop="job"/);
+assert.match(wall,/wallMutation\('\/api\/jobs\/cancel',\{jobId:id\}\)/);
+assert.match(wall,/job_cancel_owner_auth_required/);
+assert.match(wall,/csrf_invalid/);
+assert.match(wall,/j.stopRequested=true/);
+assert.match(wall,/j.stopRequested\?'Stopping…'/);
+assert.doesNotMatch(wall,/j.status='stop_requested'/,'pending Kill must not replace running primary status');
+assert.match(wall,/finishedAt:e.finishedAt\|\|e.at/,'terminal stop state requires a monotonic finishedAt');
+assert.match(wall,/stopRequested:false,/,'signed terminal status clears pending Stop');
+// Job status is provided as `status` by both in-memory and durable
+// Operator records. The plugin must not erase terminal cancelled status.
+assert.match(src('plugin-server/operator-adapter.mjs'),/import \{ cleanJob \} from '.\/job-view.mjs'/,
+ 'the real adapter must use the regression-tested mapper');
+for(const status of ['queued','running','ok','error','timeout','cancelled','interrupted','unknown']){
+ const finishedAt=['queued','running','unknown','interrupted'].includes(status)?null:Date.now();
+ const view=cleanJob({jobId:'job-test',status,finishedAt,exitCode:status==='cancelled'?130:null});
+ assert.equal(view.state,status,'Gold plugin must preserve '+status);
+ if(['unknown','interrupted'].includes(status)){
+  assert.equal(view.running,null,'unknown effect must not claim process running or stopped');
+  assert.equal(view.effectUnknown,true);
+ }else{
+  assert.equal(view.running,!finishedAt);
+  assert.equal(view.effectUnknown,undefined);
+ }
+ if(status==='cancelled')assert.equal(view.exitCode,130);
+}
+assert.equal(cleanJob({jobId:'job-test',state:'ok',status:'running',finishedAt:123}).state,'ok');
+const held=cleanJob({jobId:'job-stop-unknown',status:'interrupted',finishedAt:null,
+ stopRequestedAt:1234567890,exitCode:null});
+assert.equal(held.running,null);
+assert.equal(held.effectUnknown,true);
+assert.equal(held.stopRequestedAt,1234567890);
+assert.equal(held.stopRequestVerified,false,'requested does not mean killed');
+const terminated=cleanJob({jobId:'job-stop-ok',status:'cancelled',finishedAt:1234567999,
+ stopRequestedAt:1234567890,exitCode:130});
+assert.equal(terminated.stopRequestVerified,true);
+assert.equal(terminated.running,false);
+const plugin=src('plugin-server/tools.mjs');
+assert.match(plugin,/add\(server,'light_remote_cancel_job'/);
+assert.match(plugin,/security\(\['remote:execute'\]\)/);
+assert.match(src('plugin-server/operator-adapter.mjs'),/async cancelJob\(jobId\)/);
+assert.match(src('device-agent/operator-agent.mjs'),/channelRequest\(state,hub,'job-cancel',\{jobId\}\)/);
+// A large result must preserve the signed cancellation state through 413
+// compaction, otherwise the Operator would report Error instead of Kill.
+const {fitResultForDelivery}=await import('../../device-agent/result-delivery.mjs');
+const compact=fitResultForDelivery({
+  commandId:'cmd_00000000-0000-4000-8000-000000000000',
+  status:'cancelled',exitCode:130,stdout:'x'.repeat(110000),
+  stderr:'owner requested stop',durationMs:250
+},{maxBytes:65536,forceCompact:true});
+assert.equal(compact.status,'cancelled');
+assert.equal(compact.exitCode,130);
+assert.match(src('device-agent/operator-agent.mjs'),/taskkill.exe/);
+console.log('GOLD_JOB_CONTROL_QUEUED_CANCEL_INFLIGHT_DENY_OWNER_SCOPE_PASS');

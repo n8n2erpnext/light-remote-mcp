@@ -1,0 +1,20 @@
+{
+  "runId": 42468832737,
+  "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42468832737",
+  "sourceCommit": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
+  "sourceTree": "d517bb7b10bb99af6db346eff4e1f53af6f416a9",
+  "conclusion": "success",
+  "jobs": 8,
+  "passedJobs": 8,
+  "nodeTests": 270,
+  "portableSourceInvocations": 69,
+  "armPlatformSkips": [
+    "Windows file lock",
+    "Windows Job Object",
+    "Windows process tree"
+  ],
+  "devIntegrationChecks": 21,
+  "windowsCiInstallUpdateRollbackUninstall": "PASS",
+  "physicalOwnerAcceptance": "NOT_RUN",
+  "nativeMacLinux": "locked source build/tests PASS; full installers NOT_BUILT"
+}

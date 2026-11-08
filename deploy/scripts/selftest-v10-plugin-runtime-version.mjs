@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const expected=fs.readFileSync(new URL('../../VERSION',import.meta.url),'utf8').trim();
+const prior=process.env.LIGHT_REMOTE_VERSION;
+delete process.env.LIGHT_REMOTE_VERSION;
+const a=await import(`../../plugin-server/config.mjs?release=${Date.now()}`);
+assert.equal(a.VERSION,expected);
+process.env.LIGHT_REMOTE_VERSION='9.9.9-selftest';
+const b=await import(`../../plugin-server/config.mjs?override=${Date.now()}`);
+assert.equal(b.VERSION,'9.9.9-selftest');
+if(prior===undefined)delete process.env.LIGHT_REMOTE_VERSION;else process.env.LIGHT_REMOTE_VERSION=prior;
+console.log(`plugin-runtime-version=${expected}=PASS`);

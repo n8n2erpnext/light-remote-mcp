@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "images": {
+    "postgres": {
+      "image": "postgres@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b",
+      "imageIdObserved": "sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b",
+      "architectureObserved": "arm64",
+      "tagForReferenceOnly": "postgres:17-alpine"
+    },
+    "redis": {
+      "image": "redis@sha256:09160599abd229764c0fb44cb6be640294e1d360a54b19985ab4843dcf2d90f1",
+      "imageIdObserved": "sha256:09160599abd229764c0fb44cb6be640294e1d360a54b19985ab4843dcf2d90f1",
+      "architectureObserved": "arm64",
+      "tagForReferenceOnly": "redis:8-alpine"
+    },
+    "node": {
+      "image": "node@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9",
+      "imageIdObserved": "sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9",
+      "architectureObserved": "arm64",
+      "tagForReferenceOnly": "node:22.23.2-bookworm-slim"
+    }
+  }
+}

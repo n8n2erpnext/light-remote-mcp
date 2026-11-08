@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+  <title>Light Remote — Plan & billing</title>
+  <link rel="icon" href="/account/assets/light-remote.ico" sizes="any"><link rel="icon" type="image/svg+xml" href="/account/assets/light-remote-mark.svg">
+  <script src="/account/assets/theme.js"></script><link rel="stylesheet" href="/account/assets/portal.css">
+</head>
+<body><div class="app billing-app">
+<aside class="sidebar">
+  <div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
+  <nav class="nav">
+    <a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/devices.svg" alt=""></span>Devices</a>
+    <a href="/account/team"><span class="icon"><img class="material-icon" src="/assets/icons/material/groups.svg" alt=""></span>Pro Team</a><a href="/account/inbox"><span class="icon"><img class="material-icon" src="/assets/icons/material/mark_email_unread.svg" alt=""></span>Inbox</a><a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a>
+    <a class="active" href="/account/billing"><span class="icon"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt=""></span>Plan & billing</a>
+    <a href="/account/settings"><span class="icon"><img class="material-icon" src="/assets/icons/material/settings.svg" alt=""></span>Settings</a>
+  </nav>
+  <div class="account-foot"><div id="accountEmail" class="account-email">…</div><div id="accountPlan" class="account-meta">…</div><div class="footer-links"><a href="/support">Support</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><button id="logout" class="footer-logout">Logout</button></div></div>
+</aside>
+<main class="main billing-pricing-main">
+  <div class="page-head"><div><h1>Plan & billing</h1><p id="planSummary">Loading your plan…</p></div></div>
+
+  <div class="billing-cycle-header">
+    <div class="billing-cycle-tabs" role="tablist" aria-label="Billing period">
+      <button type="button" id="billingMonthlyTab" class="billing-cycle-tab active" role="tab" aria-selected="true" aria-controls="billingPlans" tabindex="0" data-cycle="monthly">Monthly</button>
+      <button type="button" id="billingYearlyTab" class="billing-cycle-tab" role="tab" aria-selected="false" aria-controls="billingPlans" tabindex="-1" data-cycle="yearly">Yearly <span class="billing-save-chip">2 months free</span></button>
+    </div>
+    <p id="billingCycleExplanation" class="billing-cycle-subtext" aria-live="polite">Renews each month until you cancel.</p>
+  </div>
+  <div id="billingPlans" class="plan-grid billing-tabbed-plans" role="tabpanel" aria-labelledby="billingMonthlyTab">
+    <section id="freeCard" class="plan-card">
+      <div class="plan-card-head"><div><h2>Free</h2><div class="price"><span id="freePriceValue">$0</span> <span id="freePriceUnit">/ month</span></div></div><span id="freeCurrent" class="badge hide">Current plan</span></div>
+      <ul><li>10,000 tool calls per month</li><li>ChatGPT, Claude and any MCP client</li><li>Community support</li></ul>
+      <div id="freeFooter" class="plan-footer muted">Free forever</div>
+    </section>
+    <section id="proCard" class="plan-card featured">
+      <div class="plan-card-head"><div><h2>Pro</h2><div class="price"><span id="proPriceValue">$20</span> <span id="proPriceUnit">/ month</span></div></div><span id="proCurrent" class="badge hide">Current plan</span></div>
+      <div id="proPriceMeta" class="tax-note">USD 20 base monthly price. Paddle displays any applicable localized taxes at checkout.</div><div id="proYearlySavings" class="billing-plan-saving hide">Save $40/year · 2 months free</div>
+      <ul><li>Unlimited tool calls</li><li>Fleet / multi-device console</li><li>Priority support</li></ul>
+      <button id="upgrade" class="btn primary wide">Request Pro upgrade</button>
+      <div id="upgradeHelp" class="tax-note">No license key required. Approved upgrades attach directly to this account.</div>
+      <div id="paddleMode" class="tax-note hide">Paddle Sandbox · test payments only · no real charge.</div><div id="upgradeNote" class="setting-note"></div>
+    </section>
+    <section id="proTeamCard" class="plan-card">
+      <div class="plan-card-head"><div><h2>Pro Team</h2><div class="price"><span id="proTeamPriceValue">$55</span> <span id="proTeamPriceUnit">/ month</span></div></div><span class="badge">Team subscription</span></div>
+      <div class="tax-note">Owner + 4 invited members · 5 seats total</div><div id="proTeamYearlySavings" class="billing-plan-saving hide">Save $110/year · 2 months free</div>
+      <ul>
+        <li>3 simultaneous workers per shared device, across owner and members</li>
+        <li>Owner keeps unlimited personal Pro tool calls</li>
+        <li>Invited Free members stay Free outside shared Team devices</li>
+        <li>Member calls use the owner's separate, metered Team quota</li>
+      </ul>
+      <div class="tax-note">Commercial Team call allowance is being tested (20,000–25,000/month). It is not a finalized billed limit.</div>
+      <a href="/account/team" class="btn wide">View Pro Team</a>
+      <div class="tax-note">Team checkout is not enabled on rc.50 staging yet. No payment will be collected through this card.</div>
+    </section>
+  </div>
+  <div id="billingCycleNotice" class="billing-cycle-footnote" role="status" aria-live="polite">Team checkout is not enabled on this staging release.</div>
+
+  <section id="paddleBillingPanel" class="panel billing-details hide">
+    <div class="panel-head"><div><h2>Subscription & invoices</h2><div class="muted">Payments, invoices and subscription management are provided by Paddle.</div></div><span id="billingStatusBadge" class="badge">—</span></div>
+    <div class="settings-body">
+      <div class="status-line"><span class="muted">Last payment</span><strong id="billingLastPayment">—</strong></div>
+      <div class="status-line"><span class="muted">Purchase date</span><strong id="billingPurchaseDate">—</strong></div>
+      <div class="status-line"><span class="muted">Billing cycle</span><strong id="billingCycle">—</strong></div>
+      <div class="status-line"><span class="muted">Next renewal</span><strong id="billingNextRenewal">—</strong></div>
+      <div class="status-line"><span class="muted">Paddle invoice</span><strong id="billingInvoice">—</strong></div>
+      <div class="status-line"><span class="muted">Transaction</span><strong id="billingTransaction">—</strong></div>
+      <div class="auth-actions"><button id="manageBilling" class="btn primary" type="button">Manage subscription & invoices</button></div>
+      <div id="billingPortalNote" class="setting-note muted">Open Paddle to download invoices, update payment details, or manage the subscription.</div>
+    </div>
+  </section>
+
+  <section class="panel billing-usage">
+    <div class="panel-head"><div><h2>Current month</h2><div class="muted">Tool-call usage resets at the start of each UTC month.</div></div><span id="usageBadge" class="badge">…</span></div>
+    <div class="billing-usage-body">
+      <div class="usage-progress"><div id="usageBar"></div></div>
+      <div class="usage-progress-meta"><span id="usageText">—</span><span id="usageRemaining">—</span></div>
+    </div>
+  </section>
+
+  <section class="panel license-panel">
+    <div class="panel-head"><div><h2>Have a license key?</h2><div class="muted">Redeem an existing PRO / VIP entitlement.</div></div></div>
+    <div class="settings-body"><form id="redeemForm" class="license-form"><input id="licenseKey" autocomplete="off" spellcheck="false" placeholder="LR-XXXX-XXXX-XXXX-XXXX-XXXX" maxlength="80" required><button class="btn" type="submit">Redeem key</button></form><div id="redeemMsg" class="setting-note"></div></div>
+  </section>
+</main></div>
+<script>
+const fmt=n=>new Intl.NumberFormat().format(Number(n)||0);const money=(n,c='USD')=>n==null?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:String(c||'USD').toUpperCase(),minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0);const dateText=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric'}).format(d)};const cycleText=c=>{const i=String(c?.interval||'').toLowerCase(),f=Math.max(1,Number(c?.frequency)||1);if(!i)return '—';if(f===1)return i==='year'?'Yearly':i==='week'?'Weekly':i==='day'?'Daily':'Monthly';return 'Every '+f+' '+i+'s'};const paddleReturnSuccess=new URLSearchParams(location.search).get('paddle')==='success';let me=null,usage=null,upgradeState=null,paddleConfig=null,billingSummary=null,paddleReady=false,paddlePricePreview=null,paddlePriceError=null,paddleSuccessSyncing=paddleReturnSuccess;let pricingCycle='monthly';
+async function api(action,options={}){const r=await fetch('/account/api?action='+encodeURIComponent(action),{cache:'no-store',...options,headers:{'content-type':'application/json',...(options.headers||{})}});let j={};try{j=await r.json()}catch{}if(r.status===401){location.href='/account/login';throw new Error('login_required')}if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
+let paddleScriptPromise=null;
+function ensurePaddleJs(){
+  if(window.Paddle)return Promise.resolve(window.Paddle);
+  if(paddleScriptPromise)return paddleScriptPromise;
+  paddleScriptPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://cdn.paddle.com/paddle/v2/paddle.js';
+    script.async=true;
+    script.onload=()=>window.Paddle?resolve(window.Paddle):reject(new Error('paddle_js_unavailable'));
+    script.onerror=()=>reject(new Error('paddle_js_unavailable'));
+    document.head.appendChild(script);
+  });
+  return paddleScriptPromise;
+}
+async function initPaddle(){
+  if(!paddleConfig?.enabled||paddleReady)return;
+  await ensurePaddleJs();
+  if(paddleConfig.environment==='sandbox')Paddle.Environment.set('sandbox');
+  Paddle.Initialize({
+    token:paddleConfig.clientToken,
+    eventCallback:event=>{
+      if(event?.name==='checkout.completed'){
+        paddleSuccessSyncing=true;
+        upgrade.disabled=true;
+        upgradeNote.className='setting-note ok';
+        upgradeNote.textContent='Payment received. Activating PRO from the verified Paddle webhook…';
+        let tries=0;const poll=setInterval(async()=>{tries++;try{await load();const plan=String(me?.account?.plan||'free').toLowerCase();if(plan!=='free'){paddleSuccessSyncing=false;clearInterval(poll);render()}else if(tries>=8)clearInterval(poll)}catch{if(tries>=8)clearInterval(poll)}},1500);
+      }else if(event?.name==='checkout.closed'){
+        if(!paddleSuccessSyncing)upgrade.disabled=false;
+      }
+    }
+  });
+  paddleReady=true;
+  await refreshPaddlePrice();
+}
+async function refreshPaddlePrice(){
+  if(!paddleConfig?.enabled||!paddleReady||!paddleConfig?.proPriceId)return;
+  paddlePriceError=null;
+  try{
+    const result=await Paddle.PricePreview({items:[{priceId:paddleConfig.proPriceId,quantity:1}]});
+    const details=result?.data?.details||{};
+    const line=details?.lineItems?.[0];
+    const formatted=line?.formattedTotals||{};
+    const total=String(formatted?.total||'').trim();
+    if(!total)throw new Error('paddle_price_preview_missing_total');
+    paddlePricePreview={total};
+    if(pricingCycle==='monthly')updateBillingCycleUI();
+  }catch(e){
+    paddlePricePreview=null;
+    paddlePriceError=e;
+    if(pricingCycle==='monthly')updateBillingCycleUI();
+  }
+}
+function render(){
+  const plan=String(me.account?.plan||'free').toLowerCase(),ent=me.entitlements||{},used=Number(usage?.toolCallsThisMonth)||0,limit=ent.toolCallLimit==null?null:Number(ent.toolCallLimit);
+  accountEmail.textContent=me.account.email||'';accountPlan.textContent=plan.toUpperCase()+' plan';
+  freeCurrent.classList.toggle('hide',plan!=='free');proCurrent.classList.toggle('hide',plan!=='pro'&&plan!=='vip');
+  freeCard.classList.toggle('current',plan==='free');proCard.classList.toggle('current',plan==='pro'||plan==='vip');
+  const paddleOn=Boolean(paddleConfig?.enabled),paddlePaused=Boolean(paddleConfig?.paused),sandbox=paddleConfig?.environment==='sandbox';
+  paddleMode.classList.toggle('hide',(!paddleOn&&!paddlePaused)||!sandbox);
+  const bill=billingSummary,tx=bill?.transaction,sub=bill?.subscription,refundStatus=String(tx?.refund?.status||'').toLowerCase(),billingStatus=refundStatus==='approved'?'Refunded':String(sub?.status||tx?.status||'Paddle');
+  paddleBillingPanel.classList.toggle('hide',!bill?.available);
+  if(bill?.available){
+    billingStatusBadge.textContent=billingStatus;
+    billingLastPayment.textContent=tx?money(tx.total,tx.currency)+(Number(tx.tax)>0?' · '+(tx.taxMode==='internal'?'includes ':'tax ')+money(tx.tax,tx.currency):''):'—';
+    billingPurchaseDate.textContent=dateText(tx?.purchasedAt);
+    billingCycle.textContent=cycleText(sub?.billingCycle);
+    billingNextRenewal.textContent=dateText(sub?.nextBilledAt);
+    billingInvoice.textContent=tx?.invoiceNumber||'Available in Paddle';
+    billingTransaction.textContent=tx?.transactionId||'—';
+    manageBilling.disabled=!bill.portalAvailable;
+    billingPortalNote.textContent=bill.portalAvailable?'Open Paddle to download invoices, update payment details, or manage the subscription.':'Paddle billing history is not available for this account yet.';
+  }
+  if(paddleSuccessSyncing&&plan==='free'){
+    upgradeHelp.textContent='Paddle payment was received. Light Remote is waiting for the verified webhook to activate PRO.';
+    upgrade.textContent='Payment received — activating PRO…';
+    upgrade.disabled=true;
+    upgradeNote.className='setting-note ok';
+    upgradeNote.textContent='Do not purchase again. Your payment is already being processed.';
+  }else if(paddlePaused){
+    upgradeHelp.textContent='Paddle sandbox checkout is temporarily paused.';
+    upgrade.textContent='Sandbox checkout paused';
+    upgrade.disabled=true;
+    upgradeNote.className='setting-note muted';
+    upgradeNote.textContent='Sandbox payments are temporarily disabled. Existing subscriptions, refunds and webhook processing continue normally.';
+  }else if(paddleOn){
+    upgradeHelp.textContent='Paddle checkout attaches PRO directly to this account. No license key is required.';
+    upgrade.textContent=plan==='free'?(sandbox?'Upgrade to Pro — Sandbox':'Upgrade to Pro'):'Current plan: '+plan.toUpperCase();
+    upgrade.disabled=plan!=='free';
+    if(sandbox&&!upgradeNote.textContent){
+      upgradeNote.className='setting-note muted';
+      upgradeNote.textContent=plan==='free'
+        ?'Sandbox mode: Paddle test cards only. No real charge.'
+        :'Sandbox mode: this account is already on '+plan.toUpperCase()+'. A second subscription checkout is disabled.';
+    }
+  }else{
+    upgradeHelp.textContent='No license key required. Approved upgrades attach directly to this account.';
+    const pending=(upgradeState?.requests||[]).find(x=>x.status==='pending');
+    upgrade.textContent=plan==='free'?(pending?'Pro upgrade pending':'Request Pro upgrade'):'Current plan: '+plan.toUpperCase();
+    upgrade.disabled=plan!=='free'||Boolean(pending);
+    if(pending){upgradeNote.className='setting-note ok';upgradeNote.textContent='Upgrade request received. PRO will be attached directly to this account when approved.'}
+  }
+  if(paddleOn&&plan==='free'&&!paddleSuccessSyncing&&!paddlePricePreview){
+    upgrade.disabled=true;
+    if(paddlePriceError){upgradeNote.className='setting-note error';upgradeNote.textContent='Paddle pricing is temporarily unavailable. Checkout is disabled so the displayed price cannot differ from the charged price.'}
+  }
+  updateBillingCycleUI();
+  if(limit==null){planSummary.textContent='You are on '+plan.toUpperCase()+'. Tool calls are unlimited.';usageBadge.textContent='Unlimited';usageText.textContent=fmt(used)+' calls this month';usageRemaining.textContent='Unlimited';usageBar.style.width='100%';usageBar.classList.add('unlimited')}
+  else {const remaining=Math.max(0,limit-used),pct=Math.min(100,used/Math.max(1,limit)*100);planSummary.textContent='You are on the Free plan. '+fmt(remaining)+' tool calls left this month.';usageBadge.textContent=Math.round(pct)+'%';usageText.textContent=fmt(used)+' of '+fmt(limit)+' calls';usageRemaining.textContent=fmt(remaining)+' remaining';usageBar.style.width=pct+'%';usageBar.classList.toggle('warn',pct>=85);usageBar.classList.toggle('danger-bar',pct>=100)}
+}
+const billingPeriods=Object.freeze({
+  monthly:Object.freeze({free:'$0',pro:'$20',team:'$55',unit:'/ month'}),
+  yearly:Object.freeze({free:'$0',pro:'$200',team:'$550',unit:'/ year'})
+});
+function updateBillingCycleUI(){
+  const annual=pricingCycle==='yearly',prices=billingPeriods[pricingCycle];
+  freePriceValue.textContent=prices.free;
+  freePriceUnit.textContent=prices.unit;
+  proPriceUnit.textContent=prices.unit;
+  proTeamPriceValue.textContent=prices.team;
+  proTeamPriceUnit.textContent=prices.unit;
+  proYearlySavings.classList.toggle('hide',!annual);
+  proTeamYearlySavings.classList.toggle('hide',!annual);
+  billingMonthlyTab.classList.toggle('active',!annual);
+  billingYearlyTab.classList.toggle('active',annual);
+  billingMonthlyTab.setAttribute('aria-selected',String(!annual));
+  billingYearlyTab.setAttribute('aria-selected',String(annual));
+  billingMonthlyTab.tabIndex=annual?-1:0;
+  billingYearlyTab.tabIndex=annual?0:-1;
+  billingPlans.setAttribute('aria-labelledby',annual?'billingYearlyTab':'billingMonthlyTab');
+  billingCycleExplanation.textContent=annual
+    ?'Annual pricing preview: 2 months free (16.7% savings). Renews yearly when annual checkout becomes available.'
+    :'Paid plans renew monthly until canceled; Free remains free.';
+  billingCycleNotice.textContent=annual
+    ?'Annual pricing is a staging preview. Annual Paddle checkout is not configured; choosing Yearly does not change your current subscription.'
+    :'Monthly Pro checkout follows the existing Paddle configuration. Pro Team checkout remains unavailable in rc.50 staging.';
+  if(annual){
+    proPriceValue.textContent=prices.pro;
+    proPriceMeta.textContent='Planned annual rate · $200 per year · save $40 versus 12 monthly payments. Annual checkout is not enabled.';
+    if(typeof upgrade!=='undefined'){
+      upgrade.disabled=true;
+      const alreadyPaid=String(me?.account?.plan||'free').toLowerCase()!=='free';
+      upgrade.textContent=alreadyPaid?'Current plan · annual switch unavailable':'Annual checkout coming soon';
+    }
+  }else{
+    proPriceValue.textContent=paddlePriceError?'Unavailable':
+      (paddlePricePreview?.total||prices.pro);
+    proPriceMeta.textContent=paddlePriceError
+      ?'Localized Paddle price unavailable. Checkout is disabled until pricing can be verified.'
+      :paddlePricePreview?.total?'Localized by Paddle · taxes included where applicable.'
+      :'USD 20 base monthly price. Paddle displays any applicable localized taxes at checkout.';
+  }
+}
+function selectBillingCycle(cycle){
+  if(cycle!=='monthly'&&cycle!=='yearly')return;
+  pricingCycle=cycle;
+  if(me)render();else updateBillingCycleUI();
+}
+[billingMonthlyTab,billingYearlyTab].forEach(btn=>{
+  btn.addEventListener('click',()=>selectBillingCycle(btn.dataset.cycle));
+  btn.addEventListener('keydown',event=>{
+    if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;
+    event.preventDefault();
+    const next=event.key==='Home'?'monthly':event.key==='End'?'yearly':btn.dataset.cycle==='monthly'?'yearly':'monthly';
+    selectBillingCycle(next);
+    (next==='monthly'?billingMonthlyTab:billingYearlyTab).focus();
+  });
+});
+updateBillingCycleUI();
+async function load(){const [m,ur,up,pb,bs]=await Promise.all([api('me'),fetch('/account/api?action=usage&months=1',{cache:'no-store'}),api('upgrade-request'),api('paddle-config'),api('paddle-summary').catch(()=>({billing:null}))]);if(ur.status===401){location.href='/account/login';return}const u=await ur.json();if(!ur.ok)throw new Error(u.error||'usage_unavailable');me=m;usage=u.usage;upgradeState=up;paddleConfig=pb.paddle||null;billingSummary=bs.billing||null;if(paddleConfig?.enabled&&!paddleReady)await initPaddle();render()}
+upgrade.onclick=async()=>{
+  if(pricingCycle!=='monthly'){
+    billingCycleNotice.textContent='Annual checkout is not configured. No billing action was taken.';
+    return;
+  }
+  upgrade.disabled=true;
+  if(paddleConfig?.enabled){
+    upgradeNote.className='setting-note muted';upgradeNote.textContent='Creating secure Paddle sandbox checkout…';
+    try{
+      await initPaddle();
+      if(!paddlePricePreview?.total)throw new Error('paddle_price_preview_required');
+      const r=await api('paddle-checkout',{method:'POST',body:'{}'});
+      Paddle.Checkout.open({transactionId:r.checkout.transactionId,settings:{displayMode:'overlay',variant:'one-page',theme:'dark',successUrl:location.origin+'/account/billing?paddle=success'}});
+      upgradeNote.className='setting-note muted';upgradeNote.textContent='Paddle sandbox checkout opened. No real charge will be made.';
+    }catch(e){upgradeNote.className='setting-note error';upgradeNote.textContent=e.message;upgrade.disabled=false}
+    return;
+  }
+  upgradeNote.className='setting-note muted';upgradeNote.textContent='Submitting account-bound upgrade request…';
+  try{upgradeState=await api('upgrade-request',{method:'POST',body:JSON.stringify({plan:'pro'})});upgradeNote.className='setting-note ok';upgradeNote.textContent='Request received. No key is needed; PRO will attach directly to this account when approved.';await load()}catch(e){upgradeNote.className='setting-note error';upgradeNote.textContent=e.message;upgrade.disabled=false}
+};
+manageBilling.onclick=async()=>{
+  manageBilling.disabled=true;billingPortalNote.className='setting-note muted';billingPortalNote.textContent='Opening secure Paddle billing portal…';
+  try{const r=await api('paddle-portal',{method:'POST',body:'{}'});if(!r.portal?.url)throw new Error('paddle_portal_unavailable');location.href=r.portal.url}
+  catch(e){billingPortalNote.className='setting-note error';billingPortalNote.textContent=e.message;manageBilling.disabled=false}
+};
+redeemForm.onsubmit=async ev=>{ev.preventDefault();redeemMsg.className='setting-note muted';redeemMsg.textContent='Redeeming…';try{const r=await api('redeem-license',{method:'POST',body:JSON.stringify({key:licenseKey.value.trim()})});me.account=r.account;me.entitlements=r.entitlements||me.entitlements;licenseKey.value='';redeemMsg.className='setting-note ok';redeemMsg.textContent='Activated '+String(r.account?.plan||'').toUpperCase();render()}catch(e){redeemMsg.className='setting-note error';redeemMsg.textContent=e.message}};
+logout.onclick=async()=>{await fetch('/account/api?action=logout',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});location.href='/account/login'};
+async function syncPaddleReturn(){
+  if(!paddleReturnSuccess)return;
+  paddleSuccessSyncing=true;render();
+  for(let tries=0;tries<20;tries++){
+    const plan=String(me?.account?.plan||'free').toLowerCase();
+    if(plan!=='free'){
+      paddleSuccessSyncing=false;
+      history.replaceState(null,'',location.pathname);
+      upgradeNote.className='setting-note ok';
+      upgradeNote.textContent='Payment confirmed. PRO is active on this account.';
+      render();
+      return;
+    }
+    await new Promise(resolve=>setTimeout(resolve,1000));
+    await load();
+  }
+  upgrade.disabled=true;
+  upgradeNote.className='setting-note muted';
+  upgradeNote.textContent='Payment received. Activation is taking longer than usual; do not purchase again. Refresh later or contact support if PRO does not appear.';
+}
+async function boot(){await load();await syncPaddleReturn()}
+boot().catch(e=>{if(e.message!=='login_required')upgradeNote.textContent=e.message});
+</script><script src="/account/assets/notifications.js" defer></script></body></html>

@@ -1,0 +1,13 @@
+[Unit]
+Description=Light Remote tray status helper
+After=graphical-session.target light-remote-agent.service
+Wants=light-remote-agent.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/gpt-operator-agent/current/client/linux-debian/tray/light-remote-tray.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

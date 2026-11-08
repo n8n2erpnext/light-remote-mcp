@@ -1,0 +1,22 @@
+[
+  {
+    "test": "selftest-gold-lm-extension-abv2.mjs",
+    "exit": 0,
+    "tail": "Light Remote LM ABV2 v0.3: chunk SHA-256, restricted NetBird Lab origin and Owner manual Wall staging PASS (not real Chrome E2E).\n"
+  },
+  {
+    "test": "selftest-project-continuity-p1.mjs",
+    "exit": 1,
+    "tail": " triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n404 !== 200\n\n    at file:///home/ubuntu/n8n2erpnext/light-remote-unified-20261108/source/light-remote-mcp/deploy/scripts/selftest-project-continuity-p1.mjs:116:70\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: 404,\n  expected: 200,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v22.23.4\n"
+  },
+  {
+    "test": "selftest-project-continuity-device-modules.mjs",
+    "exit": 1,
+    "tail": "cePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {\n  status: 128,\n  signal: null,\n  output: [\n    null,\n    '',\n    \"fatal: path 'client/core-files.json' exists on disk, but not in '30766940ac18e55cb735354b40a3af9ba37eddb8'\\n\"\n  ],\n  pid: 3234059,\n  stdout: '',\n  stderr: \"fatal: path 'client/core-files.json' exists on disk, but not in '30766940ac18e55cb735354b40a3af9ba37eddb8'\\n\"\n}\n\nNode.js v22.23.4\n"
+  },
+  {
+    "test": "selftest-project-continuity-multios-contract.mjs",
+    "exit": 0,
+    "tail": "CONTINUITY_FOUR_OS_SERVICE_CONTRACT_SOURCE_PASS\nCONTINUITY_WINDOWS_DACL_FAIL_CLOSED_MAC_LINUX_DESKTOP_PENDING_PASS\n"
+  }
+]

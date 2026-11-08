@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "channel": "beta",
+  "requiredPlatforms": [
+    "windows-x64",
+    "macos-x64",
+    "macos-arm64",
+    "linux-x64",
+    "linux-arm64"
+  ],
+  "requireHttps": true,
+  "backwardReleases": 3
+}

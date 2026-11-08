@@ -1,0 +1,12 @@
+**
+!gateway/
+!gateway/*.mjs
+!gateway/package.json
+!gateway/package-lock.json
+!lib/
+!lib/runtime-version.mjs
+!lib/brand.mjs
+!assets/
+!assets/branding/
+!assets/branding/light-remote-mark.svg
+!VERSION

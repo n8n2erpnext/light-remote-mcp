@@ -1,0 +1,200 @@
+import crypto from 'node:crypto';
+
+export class FleetError extends Error {
+  constructor(message, status = 400) { super(message); this.status = status; }
+}
+
+const ID_RE = /^[A-Za-z0-9._:-]{1,128}$/;
+function validId(value, name) {
+  const v = String(value || '').trim();
+  if (!ID_RE.test(v)) throw new FleetError(`invalid_${name}`);
+  return v;
+}
+function cleanCapabilities(value) {
+  const out=[];
+  for (const raw of Array.isArray(value)?value:[]) {
+    const item=String(raw||'').trim();
+    if (/^[A-Za-z0-9._:-]{1,80}$/.test(item) && !out.includes(item) && out.length<64) out.push(item);
+  }
+  return out.sort();
+}
+
+export class FleetRouter {
+  constructor({ now=()=>Date.now(), emit=()=>{}, channelTtlMs=20_000, commandLeaseMs=12_000, maxQueuedPerNode=64, requireExecutorReady=false }={}) {
+    if (!Number.isFinite(channelTtlMs) || channelTtlMs < 5_000) throw new FleetError('invalid_channel_ttl');
+    if (!Number.isFinite(commandLeaseMs) || commandLeaseMs < 2_000 || commandLeaseMs >= channelTtlMs) throw new FleetError('invalid_command_lease');
+    this.now=now; this.emit=emit; this.channelTtlMs=Math.round(channelTtlMs); this.commandLeaseMs=Math.round(commandLeaseMs);
+    this.maxQueuedPerNode=Math.max(1,Math.min(Number(maxQueuedPerNode)||64,1024));
+    this.requireExecutorReady=requireExecutorReady===true;
+    this.nodes=new Map(); this.commands=new Map(); this.completed=new Map(); this.waiters=new Map();
+  }
+  _channelFresh(node, now=this.now()) { return now>=node.lastSeenAt && now-node.lastSeenAt<=this.channelTtlMs; }
+  // In-flight work may survive channel loss, but cannot prove that the Agent
+  // can accept a NEW dispatch. Only a fresh authenticated channel can.
+  _state(node, now=this.now()) { return this._channelFresh(node,now)?'online':'offline'; }
+  _view(node, now=this.now()) {
+    const channelFresh=this._channelFresh(node,now),draining=Boolean(node.agentDraining||node.ownerDraining);
+    const executorKnown=typeof node.executorReady==='boolean';
+    const admissionAllowed=channelFresh&&!draining&&node.executorReady!==false&&(!this.requireExecutorReady||node.executorReady===true);
+    const readinessReason=!channelFresh?'channel_stale':draining?'draining':node.executorReady===false?'executor_unavailable':!executorKnown?(this.requireExecutorReady?'executor_unknown':'executor_unknown_compat'):'ready';
+    return { accountId:node.accountId, deviceId:node.deviceId, nodeId:node.nodeId, state:this._state(node,now), channelFresh, executorReady:node.executorReady??null, executorReadinessProven:node.executorReady===true, dispatchReady:admissionAllowed, readinessReason, draining,
+      agentDraining:Boolean(node.agentDraining), ownerDraining:Boolean(node.ownerDraining), sessionCeiling:node.sessionCeiling,
+      capabilities:[...node.capabilities], reportedPolicyRevision:node.reportedPolicyRevision??null,
+      firstSeenAt:node.firstSeenAt, lastSeenAt:node.lastSeenAt,
+      queuedCommands:node.queue.length, inFlightCommands:node.inFlight.size, channelTtlMs:this.channelTtlMs, commandLeaseMs:this.commandLeaseMs };
+  }
+  touch(input={}) {
+    const accountId=validId(input.accountId,'account_id'), deviceId=validId(input.deviceId,'device_id'), nodeId=validId(input.nodeId,'node_id');
+    const now=this.now(), prior=this.nodes.get(nodeId);
+    if (prior && (prior.accountId!==accountId || prior.deviceId!==deviceId)) throw new FleetError('fleet_node_identity_conflict',409);
+    const ceiling=Math.max(1,Math.min(Number(input.sessionCeiling)||2,100));
+    const node=prior||{accountId,deviceId,nodeId,firstSeenAt:now,lastSeenAt:now,sessionCeiling:ceiling,capabilities:[],agentDraining:false,ownerDraining:false,executorReady:null,queue:[],inFlight:new Map()};
+    const wasOffline=prior ? this._state(prior,now)==='offline' : true;
+    const drainBefore=Boolean(node.agentDraining||node.ownerDraining);
+    const executorBefore=node.executorReady??null;
+    node.lastSeenAt=now; node.sessionCeiling=ceiling; node.capabilities=cleanCapabilities(input.capabilities);
+    // Diagnostic only, sourced from an already-authenticated Agent channel.
+    const revision=Number(input.policyRevision);
+    node.reportedPolicyRevision=input.policyRevision!=null&&Number.isSafeInteger(revision)&&revision>=0?revision:null;
+    node.agentDraining=Boolean(input.draining);
+    // A fresh authenticated frame lacking executor proof is UNKNOWN, including
+    // after a previously healthy Agent has downgraded to a legacy runtime.
+    // Compatibility can still dispatch, but must not reuse stale proof.
+    node.executorReady=typeof input.executorReady==='boolean'?input.executorReady:null;
+    this.nodes.set(nodeId,node);
+    const drainAfter=Boolean(node.agentDraining||node.ownerDraining);
+    if (!prior || wasOffline) this.emit({type:'node_channel_online',accountId,deviceId,nodeId,status:'online',sessionCeiling:ceiling});
+    if (drainBefore!==drainAfter) this.emit({type:'node_drain_changed',accountId,deviceId,nodeId,status:drainAfter?'draining':'online',draining:drainAfter});
+    if(prior && executorBefore!==node.executorReady) this.emit({type:'node_executor_readiness_changed',accountId,deviceId,nodeId,status:node.executorReady===false?'degraded':node.executorReady===true?'ready':'unknown',executorReady:node.executorReady});
+    return this._view(node,now);
+  }
+  node(nodeId) { const node=this.nodes.get(String(nodeId||'')); if(!node) throw new FleetError('target_node_channel_not_found',404); return node; }
+  view(nodeId) { const node=this.node(nodeId); return this._view(node); }
+  list() { return [...this.nodes.values()].map(n=>this._view(n)).sort((a,b)=>a.nodeId.localeCompare(b.nodeId)); }
+  _notify(nodeId) {
+    const set=this.waiters.get(String(nodeId||''));
+    if(!set)return;
+    for(const resolve of [...set])resolve();
+    set.clear();
+  }
+  async waitPoll(input={}, waitMs=8_000, shouldStop=()=>false) {
+    const latestInput=()=>typeof input==='function'?input():input;
+    if(shouldStop())return {node:this.view(latestInput().nodeId),state:'closed',command:null};
+    let result=this.poll(latestInput());
+    if(result.state==='command' || result.node.draining || waitMs<=0)return result;
+    const nodeId=result.node.nodeId, delay=Math.max(0,Math.min(Number(waitMs)||0,15_000));
+    let set=this.waiters.get(nodeId);
+    if(!set){set=new Set();this.waiters.set(nodeId,set);}
+    let wake;
+    const signal=new Promise(resolve=>{wake=resolve;set.add(resolve);});
+    let timer;
+    await Promise.race([signal,new Promise(resolve=>{timer=setTimeout(resolve,delay);})]);
+    if(timer)clearTimeout(timer);
+    set.delete(wake);
+    if(!set.size)this.waiters.delete(nodeId);
+    if(shouldStop())return {node:this.view(nodeId),state:'closed',command:null};
+    // The heartbeat may update authenticated readiness while waiting;
+    // never re-touch the Fleet using a snapshot from before the wake.
+    return this.poll(latestInput());
+  }
+  wake(nodeId) { this._notify(validId(nodeId,'node_id')); }
+  resume(nodeId) {
+    const node=this.node(validId(nodeId,'node_id'));
+    for(const commandId of node.inFlight.keys()){
+      const command=this.commands.get(commandId);
+      if(command)command.dispatchedAt=0;
+    }
+    this._notify(node.nodeId);
+    return this._view(node);
+  }
+  setOwnerDrain(nodeId, draining=true) {
+    const node=this.node(nodeId), before=Boolean(node.agentDraining||node.ownerDraining); node.ownerDraining=Boolean(draining); const after=Boolean(node.agentDraining||node.ownerDraining);
+    if(before!==after)this.emit({type:'node_drain_changed',accountId:node.accountId,deviceId:node.deviceId,nodeId:node.nodeId,status:after?'draining':'online',draining:after});
+    this._notify(node.nodeId);
+    return this._view(node);
+  }
+  assertRoutable(nodeId,{accountId=null,deviceId=null}={}) {
+    const node=this.node(nodeId); const view=this._view(node);
+    if(accountId && node.accountId!==accountId) throw new FleetError('target_node_account_mismatch',403);
+    if(deviceId && node.deviceId!==deviceId) throw new FleetError('target_node_device_mismatch',409);
+    if(view.state!=='online') throw new FleetError('target_node_offline',409);
+    if(view.draining) throw new FleetError('target_node_draining',409);
+    if(view.executorReady===false) throw new FleetError('target_node_executor_unavailable',409);
+    if(this.requireExecutorReady&&view.executorReady!==true) throw new FleetError('target_node_executor_unknown',409);
+    return view;
+  }
+  enqueue(input={}) {
+    const accountId=validId(input.accountId,'account_id'),deviceId=validId(input.deviceId,'device_id'),nodeId=validId(input.nodeId,'node_id'),jobId=validId(input.jobId,'job_id');
+    const node=this.node(nodeId); this.assertRoutable(nodeId,{accountId,deviceId});
+    if(node.queue.length+node.inFlight.size>=this.maxQueuedPerNode) throw new FleetError('target_node_queue_full',429);
+    const commandId=input.commandId?validId(input.commandId,'command_id'):`cmd_${crypto.randomUUID()}`;
+    if(this.commands.has(commandId)) throw new FleetError('command_already_exists',409);
+    const command={commandId,jobId,accountId,deviceId,nodeId,payload:input.payload||{},createdAt:this.now(),dispatchedAt:null,attempts:0};
+    this.commands.set(commandId,command); node.queue.push(commandId); this._notify(nodeId);
+    this.emit({type:'node_command_queued',accountId,deviceId,nodeId,jobId,commandId,status:'queued'});
+    return {...command};
+  }
+  poll(input={}) {
+    const view=this.touch(input), node=this.node(view.nodeId), now=this.now();
+    if(!view.dispatchReady) return {node:view,state:'idle',command:null};
+    let command=[...node.inFlight.values()].map(id=>this.commands.get(id)).find(c=>c && c.dispatchedAt+this.commandLeaseMs<=now);
+    let redelivery=Boolean(command);
+    if(!command) {
+      while(node.queue.length && !command) { const id=node.queue.shift(), candidate=this.commands.get(id); if(candidate) command=candidate; }
+      if(command) node.inFlight.set(command.commandId,command.commandId);
+    }
+    if(!command) return {node:this._view(node,now),state:'idle',command:null};
+    // The HTTP route supplies this server-trusted transport marker. Never infer
+    // Duplex from mere stream presence: signed poll can race the same queue.
+    const dispatchTransport=['device-duplex-v1','signed-poll-v1'].includes(input.transport)?input.transport:'unspecified';
+    command.dispatchedAt=now; command.attempts++;
+    command.firstDispatchTransport??=dispatchTransport;
+    command.lastDispatchTransport=dispatchTransport;
+    this.emit({type:redelivery?'node_command_redelivered':'node_command_dispatched',accountId:command.accountId,deviceId:command.deviceId,nodeId:command.nodeId,jobId:command.jobId,commandId:command.commandId,status:'running',attempts:command.attempts,dispatchTransport,firstDispatchTransport:command.firstDispatchTransport});
+    return {node:this._view(node,now),state:'command',command:{...command}};
+  }
+  _pruneCompleted(now=this.now()) { for(const [id,row] of this.completed) if(row.expiresAt<=now)this.completed.delete(id); }
+  command(commandId) {
+    this._pruneCompleted();
+    const command=this.commands.get(validId(commandId,'command_id'));
+    if(!command) throw new FleetError('command_not_found',404);
+    return {...command};
+  }
+  receipt(commandId) {
+    this._pruneCompleted();
+    const row=this.completed.get(validId(commandId,'command_id'));
+    return row ? {...row.command,duplicate:true} : null;
+  }
+  // The state check and removal are synchronous: poll cannot race between
+  // validating the command and removing it from its undispatched queue.
+  cancelUndispatched(commandId) {
+    const command=this.commands.get(validId(commandId,'command_id'));
+    if(!command||command.dispatchedAt!==null)return null;
+    const node=this.nodes.get(command.nodeId);
+    if(!node||!node.queue.includes(command.commandId)||node.inFlight.has(command.commandId))return null;
+    return this.abandon(command.commandId,'owner_cancelled_before_dispatch');
+  }
+  abandon(commandId, reason='abandoned') {
+    const command=this.commands.get(validId(commandId,'command_id'));
+    if(!command) return null;
+    const now=this.now(), abandonReason=String(reason||'abandoned').slice(0,80), node=this.nodes.get(command.nodeId);
+    if(node) { node.inFlight.delete(command.commandId); node.queue=node.queue.filter(id=>id!==command.commandId); }
+    this.commands.delete(command.commandId);
+    this.completed.set(command.commandId,{command:{...command,abandoned:true,abandonReason},expiresAt:now+Math.max(10*60_000,this.channelTtlMs*30)});
+    this.emit({type:'node_command_abandoned',accountId:command.accountId,deviceId:command.deviceId,nodeId:command.nodeId,jobId:command.jobId,commandId:command.commandId,status:'error',reason:abandonReason});
+    return {...command,abandoned:true,abandonReason};
+  }
+
+  complete(input={}) {
+    const commandId=validId(input.commandId,'command_id'), command=this.commands.get(commandId);
+    if(!command) throw new FleetError('command_not_found',404);
+    if(input.accountId && command.accountId!==input.accountId) throw new FleetError('command_account_mismatch',403);
+    if(input.deviceId && command.deviceId!==input.deviceId) throw new FleetError('command_device_mismatch',403);
+    if(input.nodeId && command.nodeId!==input.nodeId) throw new FleetError('command_node_mismatch',409);
+    const now=this.now(), node=this.node(command.nodeId); node.inFlight.delete(commandId); node.lastSeenAt=now; this.commands.delete(commandId);
+    this.completed.set(commandId,{command:{...command},expiresAt:now+Math.max(120_000,this.channelTtlMs*6)});
+    const resultTransport=['device-duplex-v1','signed-poll-v1'].includes(input.resultTransport)?input.resultTransport:'unspecified';
+    this.emit({type:'node_command_completed',accountId:command.accountId,deviceId:command.deviceId,nodeId:command.nodeId,jobId:command.jobId,commandId,status:'completed',firstDispatchTransport:command.firstDispatchTransport||'unspecified',dispatchTransport:command.lastDispatchTransport||'unspecified',resultTransport,attempts:command.attempts});
+    return {...command,duplicate:false};
+  }
+}

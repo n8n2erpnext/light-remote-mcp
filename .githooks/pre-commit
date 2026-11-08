@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+node deploy/unified/check-truth.mjs --staged
+git diff --cached --check

@@ -1,0 +1,143 @@
+using LightRemote.Configuration;
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text.Json;
+
+namespace LightRemote.Updater;
+
+internal sealed record UpdateArtifact(string Url,string Sha256,long Size,string? InstallerArgs);
+internal sealed record UpdateInfo(string Version,string? Notes,UpdateArtifact Artifact);
+internal sealed class UpdateChannelHeldException : Exception
+{
+    public UpdateChannelHeldException() : base("goldabv2_update_channel_hold_no_approved_feed") { }
+}
+
+internal sealed class UpdateClient
+{
+    private const string DefaultManifestUrl="https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json";
+    private const string DefaultSignatureUrl="https://raw.githubusercontent.com/n8n2erpnext/light-remote-mcp/main/channels/beta/client-update.json.sig";
+    private const int ManifestPairAttempts=3;
+    private readonly HttpClient _http=new(){Timeout=TimeSpan.FromSeconds(30)};
+#if LIGHT_REMOTE_GOLDABV2_V4
+    // No legacy or env override: until an authenticated, product-bound feed is
+    // approved, even an otherwise valid signed regular-Gold release is HOLD.
+    private readonly string _manifestUrl=CanonicalEndpoints.Gold.UpdateManifestUrl ?? throw new UpdateChannelHeldException();
+    private readonly string _signatureUrl=CanonicalEndpoints.Gold.UpdateSignatureUrl ?? throw new UpdateChannelHeldException();
+#else
+    private readonly string _manifestUrl=Environment.GetEnvironmentVariable("GPT_OPERATOR_UPDATE_MANIFEST_URL")??DefaultManifestUrl;
+    private readonly string _signatureUrl=Environment.GetEnvironmentVariable("GPT_OPERATOR_UPDATE_SIGNATURE_URL")??DefaultSignatureUrl;
+#endif
+
+    public async Task<UpdateInfo?> CheckAsync(string currentVersion,CancellationToken cancellationToken=default)
+    {
+        var (manifestBytes,signatureText)=await DownloadVerifiedManifestPairAsync(cancellationToken);
+        using var doc=JsonDocument.Parse(manifestBytes);var root=doc.RootElement;
+        if(root.GetProperty("schemaVersion").GetInt32()!=1)throw new InvalidOperationException("Unsupported update manifest schema.");
+#if LIGHT_REMOTE_GOLDABV2_V4
+        CanonicalEndpoints.Gold.RequireSignedUpdateIdentity(root);
+#endif
+        var versionText=root.GetProperty("version").GetString()??throw new InvalidOperationException("Update version missing.");
+        if(!SemanticVersion.TryParse(versionText,out var candidate)||candidate is null)throw new InvalidOperationException("Invalid update version.");
+        if(!SemanticVersion.TryParse(currentVersion,out var current)||current is null)throw new InvalidOperationException("Invalid current version.");
+        if(candidate.CompareTo(current)<=0)return null;var platforms=root.GetProperty("artifacts");if(!platforms.TryGetProperty("windows-x64",out var item))return null;
+        var artifact=new UpdateArtifact(item.GetProperty("url").GetString()??"",item.GetProperty("sha256").GetString()??"",item.GetProperty("size").GetInt64(),item.TryGetProperty("installerArgs",out var args)?args.GetString():null);
+        if(!Uri.TryCreate(artifact.Url,UriKind.Absolute,out _))throw new InvalidOperationException("Invalid update artifact URL.");
+        if(!System.Text.RegularExpressions.Regex.IsMatch(artifact.Sha256,"^[a-fA-F0-9]{64}$"))throw new InvalidOperationException("Invalid update artifact SHA256.");return new UpdateInfo(versionText,root.TryGetProperty("notes",out var notes)?notes.GetString():null,artifact);
+    }
+
+    // Cache is durable ON DISK, not a 180 MB in-memory buffer. Never expose a
+    // partially downloaded installer at the final (trusted) cache path.
+    internal static async Task<bool> VerifyCachedFileAsync(string file,UpdateArtifact artifact,CancellationToken cancellationToken=default)
+    {
+        if(!File.Exists(file)||artifact.Size<=0||artifact.Size>1024L*1024*1024||
+           !System.Text.RegularExpressions.Regex.IsMatch(artifact.Sha256,"^[a-fA-F0-9]{64}$"))return false;
+        try
+        {
+            var info=new FileInfo(file);
+            if(info.Length!=artifact.Size||(info.Attributes&FileAttributes.ReparsePoint)!=0)return false;
+            await using var stream=new FileStream(file,FileMode.Open,FileAccess.Read,FileShare.Read);
+            var actual=await SHA256.HashDataAsync(stream,cancellationToken);
+            return CryptographicOperations.FixedTimeEquals(actual,Convert.FromHexString(artifact.Sha256));
+        }
+        catch(IOException){return false;}
+        catch(UnauthorizedAccessException){return false;}
+    }
+    public async Task<string> DownloadAndVerifyAsync(UpdateInfo update,CancellationToken cancellationToken=default)
+    {
+        RecoveryPaths.EnsureDirectories();
+        if(update.Artifact.Size<=0||update.Artifact.Size>1024L*1024*1024)
+            throw new InvalidOperationException("Update artifact size out of bounds.");
+        var file=Path.Combine(RecoveryPaths.CacheDir,$"Light-Remote-MCP-Setup-{update.Version}-x64.exe");
+        if(await VerifyCachedFileAsync(file,update.Artifact,cancellationToken))
+        {
+            UpdateApplier.Log($"installer_cached_verified version={update.Version}");
+            return file;
+        }
+        var temp=file+"."+Guid.NewGuid().ToString("N")+".part";
+        try
+        {
+            using var response=await _http.GetAsync(update.Artifact.Url,HttpCompletionOption.ResponseHeadersRead,cancellationToken);
+            response.EnsureSuccessStatusCode();
+            await using(var input=await response.Content.ReadAsStreamAsync(cancellationToken))
+            await using(var output=new FileStream(temp,FileMode.CreateNew,FileAccess.Write,FileShare.None))
+                await input.CopyToAsync(output,cancellationToken);
+            if(!await VerifyCachedFileAsync(temp,update.Artifact,cancellationToken))
+                throw new InvalidOperationException("Update installer size or SHA256 mismatch.");
+            // If another updater already installed an identical verified cache,
+            // avoid replacing a file that an installer subprocess may be using.
+            if(await VerifyCachedFileAsync(file,update.Artifact,cancellationToken))return file;
+            File.Move(temp,file,true);
+            if(!await VerifyCachedFileAsync(file,update.Artifact,cancellationToken))
+                throw new InvalidOperationException("Update cache integrity lost after promotion.");
+            UpdateApplier.Log($"installer_download_verified version={update.Version}");
+            return file;
+        }
+        finally{try{File.Delete(temp);}catch{}}
+    }
+    public void LaunchApplyHelper(string installerPath,string installDir,string currentVersion,string targetVersion,string txId)
+    {
+        RecoveryPaths.EnsureDirectories();var helper=Path.Combine(RecoveryPaths.CacheDir,$"updater-helper-{Guid.NewGuid():N}.exe");File.Copy(Environment.ProcessPath??throw new InvalidOperationException("Updater executable path unavailable."),helper,true);
+        var psi=new ProcessStartInfo(helper){UseShellExecute=false,CreateNoWindow=true};psi.ArgumentList.Add("--apply-update");psi.ArgumentList.Add(installerPath);psi.ArgumentList.Add(installDir);psi.ArgumentList.Add(currentVersion);psi.ArgumentList.Add(Environment.ProcessId.ToString());psi.ArgumentList.Add(targetVersion);psi.ArgumentList.Add(txId);
+        using var child=Process.Start(psi)??throw new InvalidOperationException("Update helper launch returned no process.");
+        UpdateApplier.Log($"helper_apply_spawned pid={child.Id} transaction={txId}");
+        if(child.WaitForExit(1000))throw new InvalidOperationException($"Update helper exited prematurely with code={child.ExitCode}.");
+    }
+
+    internal static void VerifySignedManifest(byte[] manifestBytes,string signatureText,string publicKeyFile)
+    {
+        if(!File.Exists(publicKeyFile))throw new FileNotFoundException("Update public key is missing.",publicKeyFile);byte[] signature;try{signature=Convert.FromBase64String(signatureText);}catch{throw new InvalidOperationException("Update manifest signature encoding is invalid.");}
+        using var ecdsa=ECDsa.Create();ecdsa.ImportFromPem(File.ReadAllText(publicKeyFile));if(!ecdsa.VerifyData(manifestBytes,signature,HashAlgorithmName.SHA256,DSASignatureFormat.Rfc3279DerSequence))throw new CryptographicException("Update manifest signature is invalid.");
+    }
+    private async Task<(byte[] ManifestBytes,string SignatureText)> DownloadVerifiedManifestPairAsync(CancellationToken cancellationToken)
+    {
+        for(var attempt=1;attempt<=ManifestPairAttempts;attempt++)
+        {
+            var retry=attempt>1;
+            var nonce=$"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{attempt}-{Guid.NewGuid():N}";
+            var manifestUrl=retry?WithCacheBuster(_manifestUrl,nonce):_manifestUrl;
+            var signatureUrl=retry?WithCacheBuster(_signatureUrl,nonce):_signatureUrl;
+            try
+            {
+                var manifestBytes=await DownloadRequiredAsync(manifestUrl,cancellationToken,retry);
+                var signatureText=System.Text.Encoding.UTF8.GetString(await DownloadRequiredAsync(signatureUrl,cancellationToken,retry)).Trim();
+                VerifySignedManifest(manifestBytes,signatureText,RecoveryPaths.UpdatePublicKey);
+                return (manifestBytes,signatureText);
+            }
+            catch(Exception ex) when(attempt<ManifestPairAttempts&&IsPairVerificationFailure(ex))
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(250*attempt),cancellationToken);
+            }
+        }
+        throw new CryptographicException("Update manifest signature verification exhausted.");
+    }
+    private static bool IsPairVerificationFailure(Exception error)=>error is CryptographicException||(error is InvalidOperationException&&error.Message=="Update manifest signature encoding is invalid.");
+    private static string WithCacheBuster(string url,string nonce)=>url+(url.Contains('?')?"&":"?")+"lrpair="+Uri.EscapeDataString(nonce);
+    private async Task<byte[]> DownloadRequiredAsync(string url,CancellationToken cancellationToken,bool noCache=false)
+    {
+        using var request=new HttpRequestMessage(HttpMethod.Get,url);
+        if(noCache){request.Headers.CacheControl=new System.Net.Http.Headers.CacheControlHeaderValue{NoCache=true,NoStore=true};request.Headers.Pragma.ParseAdd("no-cache");}
+        using var response=await _http.SendAsync(request,HttpCompletionOption.ResponseContentRead,cancellationToken);
+        if(response.StatusCode==System.Net.HttpStatusCode.NotFound)throw new FileNotFoundException("No update release manifest is published yet.");
+        response.EnsureSuccessStatusCode();return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
+}

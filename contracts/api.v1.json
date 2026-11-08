@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "light-remote.api.v1",
+  "routeCatalog": "config/endpoints.json#/routeCatalog (public/local) and #/internalRoutes (private Unix transport)",
+  "versionHeader": "X-Light-Remote-API-Version",
+  "authorityRules": {
+    "owner": "Native Desktop Owner token derived from verified Portal Owner + PKCE; Redis family and Operator live session revalidated. Never an Agent grant.",
+    "agent": "Device/Agent/session-bound A/B authorization and local policy remain mandatory.",
+    "internalOperator": "Private Unix socket, exact verified Owner/session purpose; not a public unauthenticated route.",
+    "wall": "Same-device Owner/CSRF/origin and signed B checks; not implied by native login."
+  },
+  "routes": {
+    "ownerAuthorize": {
+      "component": "plugin-server/desktop-auth-v4-server.mjs",
+      "native": "client/desktop-v4/src-tauri/src/owner_login.rs",
+      "request": [
+        "client_id",
+        "resource",
+        "scope",
+        "response_type",
+        "code_challenge_method",
+        "code_challenge",
+        "redirect_uri",
+        "state",
+        "install_nonce"
+      ],
+      "response": "Verified Owner HTML consent -> one-use loopback authorization code",
+      "flags": [
+        "LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4"
+      ]
+    },
+    "ownerToken": {
+      "component": "plugin-server/desktop-owner-token-v4.mjs",
+      "request": [
+        "code",
+        "code_verifier",
+        "redirect_uri",
+        "install_nonce",
+        "state"
+      ],
+      "response": [
+        "token_type",
+        "access_token",
+        "expires_in",
+        "refresh_token",
+        "scope",
+        "resource",
+        "account_id"
+      ],
+      "flags": [
+        "LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4",
+        "LR_GOLD_ABV2_DESKTOP_TOKEN_V4"
+      ]
+    },
+    "ownerRefresh": {
+      "component": "plugin-server/desktop-owner-token-v4.mjs",
+      "request": [
+        "refresh_token"
+      ],
+      "response": "Same token model; refresh token is atomically consumed, live Owner family rechecked",
+      "flags": [
+        "LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4",
+        "LR_GOLD_ABV2_DESKTOP_TOKEN_V4"
+      ]
+    },
+    "ownerSession": {
+      "component": "plugin-server/desktop-owner-token-v4.mjs",
+      "request": "Native-only Authorization Bearer, no browser Origin/cookie",
+      "response": [
+        "ok",
+        "verified",
+        "accountId",
+        "scope",
+        "resource",
+        "expiresAt"
+      ],
+      "flags": [
+        "LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4",
+        "LR_GOLD_ABV2_DESKTOP_TOKEN_V4"
+      ]
+    },
+    "ownerSnapshot": {
+      "component": "plugin-server/desktop-owner-token-v4.mjs",
+      "native": "client/desktop-v4/src-tauri/src/owner_login.rs",
+      "frontend": [
+        "client/desktop-v4/src/lib/native-snapshot.ts",
+        "client/desktop-v4/src/lib/native-inventory.ts",
+        "client/desktop-v4/src/lib/native-activity.ts"
+      ],
+      "request": {
+        "page": "optional",
+        "pageKinds": [
+          "devices",
+          "grants",
+          "usage",
+          "jobs",
+          "sessions"
+        ],
+        "pageFields": [
+          "kind",
+          "cursor",
+          "limit"
+        ],
+        "limit": "1..100"
+      },
+      "response": "Bounded Owner viewport or strict typed Owner-bound page; source/coverage/retention fields required as applicable",
+      "flags": [
+        "LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4",
+        "LR_GOLD_ABV2_DESKTOP_TOKEN_V4",
+        "LR_GOLD_ABV2_DESKTOP_READ_V4"
+      ]
+    },
+    "operatorOwnerSnapshot": {
+      "component": "operator-host/executor-routes-account.mjs",
+      "request": "Verified native Owner/accountSessionId purpose over private socket, optional typed page",
+      "response": "Owner-scoped snapshot/pages from real device/grant registries, PG job ledger and Redis retained sessions",
+      "flags": [
+        "LR_GOLD_ABV2_DESKTOP_READ_V4"
+      ]
+    },
+    "ownerLogout": {
+      "component": "plugin-server/desktop-owner-token-v4.mjs",
+      "request": "Native-only Bearer",
+      "response": "Family revoked, native vault/session cleared by client; no Agent grant mutation",
+      "flags": [
+        "LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4",
+        "LR_GOLD_ABV2_DESKTOP_TOKEN_V4"
+      ]
+    },
+    "ownerWallTicket": {
+      "component": "plugin-server/desktop-wall-sso-native-router-v4.mjs",
+      "request": "Native Owner bearer + exact owned device; mTLS/pinned trusted edge",
+      "response": "One-use short ticket bound to Owner family/device, delivered by signed device relay",
+      "flagsSource": "operator-host/desktop-wall-sso-operator-gate-v4.mjs exports DESKTOP_WALL_SSO_OPERATOR_REQUIRED_FLAGS + DESKTOP_WALL_SSO_ISSUER_FLAG_V4; mTLS edge has its separate flag"
+    },
+    "wallBApprove": {
+      "component": "device-agent/local-wall.mjs",
+      "request": "Authenticated local Owner, CSRF, explicit B, signed pending request/device binding",
+      "response": "Durable scoped grant only after all independent consent checks",
+      "flags": [
+        "LR_GOLD_AB_V2_WALL_SIGNED_APPROVE"
+      ]
+    },
+    "wallModulesRead": {
+      "component": "device-agent/local-wall.mjs",
+      "request": "Authenticated local Owner",
+      "response": "Persisted owner-identity partition + monotonically increasing local module revision"
+    },
+    "wallModulesConfigure": {
+      "component": "device-agent/local-wall.mjs",
+      "request": "Explicit desired state + expectedRevision CAS + Owner/CSRF",
+      "response": "Persisted new state or 409; disabling Memory does not delete data"
+    }
+  },
+  "nonClaims": [
+    "A route in source is not DEPLOYED/ENABLED.",
+    "A source/CI PASS is not PHYSICAL_PASS.",
+    "Snapshot TTL/historyMs are not an immutable audit archive."
+  ]
+}

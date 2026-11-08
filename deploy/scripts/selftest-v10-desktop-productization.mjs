@@ -1,0 +1,112 @@
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const read=p=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
+const exists=p=>fs.existsSync(new URL(`../../${p}`,import.meta.url));
+const need=(ok,name)=>{if(!ok)throw new Error(name);console.log(`${name}=PASS`);};
+const csproj=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
+const winTray=read('client/windows-native/GptOperator.Client/TrayApplicationContext.cs');
+const winInstall=read('device-agent/install-windows-task.ps1');
+const winProgram=read('client/windows-native/GptOperator.Client/Program.cs');
+const winHost=read('client/windows-native/GptOperator.Client/AgentHost.cs');
+const winUpdaterProgram=read('client/windows-native/LightRemote.Updater/Program.cs');
+const winUpdaterPaths=read('client/windows-native/LightRemote.Updater/RecoveryPaths.cs');
+const winIss=read('client/windows-native/installer/GptOperator.iss');
+const debBuild=read('client/linux-debian/build-deb.sh');
+const debAgent=read('client/linux-debian/systemd/light-remote-agent.service');
+const debTray=read('client/linux-debian/tray/light-remote-tray.py');
+const debUpdate=read('client/linux-debian/systemd/light-remote-update.service');
+const macTray=read('client/macos/tray/main.swift');
+const macAgent=read('client/macos/launchd/com.lightremote.agent.plist');
+const macUpdate=read('client/macos/updater.mjs');
+const macPkg=read('client/macos/build-pkg.sh');
+const macTrayPlist=read('client/macos/launchd/com.lightremote.tray.plist');
+// Historical recipe for preserved macOS compatibility source; new installer status is tracked separately.
+const macFlow=read('docs/history/pre-reconstruction/workflows/macos-client-build.yml');
+const adapter=read('device-agent/platform-adapters/index.mjs');
+const realRemoteInput=require('../../lib/real-remote-input.cjs');
+const nativeDesktop=read('lib/native-desktop.mjs');
+const operatorAgent=read('device-agent/operator-agent.mjs');
+const semanticManager=read('client/windows-native/GptOperator.RealRemoteV2/SemanticSessionManager.cs');
+const uiSensor=read('client/windows-native/GptOperator.RealRemoteV2/UiSensor.cs');
+const visualManager=read('client/windows-native/GptOperator.RealRemoteV2/VisualSessionManager.cs');
+const nativeInput=read('client/windows-native/GptOperator.RealRemoteV2/NativeInput.cs');
+const robotContext=read('client/windows-native/GptOperator.RealRemoteV2/RobotContext.cs');
+const systemCursor=read('client/windows-native/GptOperator.RealRemoteV2/SystemCursorOverride.cs');
+const desktopVisual=read('client/windows-native/GptOperator.RealRemoteV2/DesktopVisual.cs');
+const rmProject=read('client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj');
+const agentHost=read('client/windows-native/GptOperator.Client/AgentHost.cs');
+const windowsWorkflow=read('.github/workflows/windows-native-client.yml');
+const windowsInstaller=read('client/windows-native/installer/GptOperator.iss');
+need(!exists('client/windows-native/GptOperator.Client/MainForm.cs')&&!exists('client/windows-native/GptOperator.Client/ConnectionSwitch.cs')&&!exists('client/windows-native/GptOperator.Client/ConnectionSettingsDialog.cs')&&!csproj.includes('<Compile Remove='),'desktop-no-native-window');
+need(csproj.includes('net8.0-windows10.0.17763.0'),'windows-10-11-target');
+const nativeWindowsTray = winTray.includes('new("Open Wall")') &&
+ winTray.includes('new("Open Light Remote")') &&
+ winTray.includes('new("Link / Relink")') &&
+ winTray.includes('new("Stop")') &&
+ winTray.includes('new("Exit")') &&
+ winTray.includes('ContextMenuStrip = menu') &&
+ !winTray.includes('new TrayPopoverForm(');
+const legacyWindowsTray = winTray.includes('Open Local Wall') &&
+ winTray.includes('Exit Tray UI') && winTray.includes('Stop Light Remote');
+need(nativeWindowsTray || legacyWindowsTray, 'windows-tray-controls');
+need(winInstall.includes("LightRemoteDeviceAgent")&&winInstall.includes("LightRemoteUpdater")&&winInstall.includes('-Execute $Updater')&&winInstall.includes('Light Remote\\Updater'),'windows-independent-runtime-updater');
+need(winInstall.includes('-Execute $Tray')&&winInstall.includes("--agent-host"),'windows-hidden-agent-task-host');
+need(winProgram.includes('--agent-host')&&winHost.includes('CreateNoWindow = true'),'windows-agent-no-console-window');
+need(!winProgram.includes('--scheduled-update')&&!winProgram.includes('--apply-update')&&winUpdaterProgram.includes('--scheduled-update')&&winUpdaterProgram.includes('--apply-update'),'windows-updater-authority-separated');
+need(winUpdaterPaths.includes('\"Light Remote\", \"Updater\"')&&winUpdaterPaths.includes('RollbackDir'),'windows-updater-recovery-root-outside-app');
+need(winIss.includes('--launch')&&!winIss.includes('Description: "Start Light Remote MCP"'),'windows-shortcut-opens-wall');
+need(debAgent.includes('operator-agent.mjs daemon')&&debAgent.includes('WantedBy=default.target'),'debian-user-agent');
+need(debTray.includes("SERVICE='light-remote-agent.service'")&&debTray.includes('Quit tray'),'debian-tray-controls');
+need(debUpdate.includes('Type=oneshot')&&debBuild.includes('light-remote-update.timer'),'debian-privileged-updater');
+need(macTray.includes('Open Local Wall')&&macTray.includes('Quit tray')&&macTray.includes('Stop Light Remote'),'macos-menu-bar-controls');
+need(macTray.includes('login", "--no-wait')&&macTray.includes('Activation URL:')&&macTray.includes('Account / Logout…'),'macos-account-first-onboarding');
+need(macTray.includes('.systemGreen')&&macTray.includes('.systemOrange')&&macTray.includes('.systemGray')&&macTray.includes('.systemRed'),'macos-tray-state-indicator');
+need(macPkg.includes('/Applications/Light Remote.app')&&macPkg.includes('LightRemoteLauncher')&&macPkg.includes('CFBundleIdentifier')&&macPkg.includes('iconutil -c icns'),'macos-launchpad-app-bundle');
+need(macTrayPlist.includes('<key>KeepAlive</key><false/>'),'macos-quit-tray-reopen-contract');
+need(macAgent.includes('com.lightremote.agent')&&macAgent.includes('operator-agent.mjs'),'macos-launch-agent');
+need(macUpdate.includes('invalid_manifest_signature')&&macUpdate.includes('update_rollback'),'macos-signed-update-rollback');
+need(macFlow.includes('x86_64-apple-macos11.0')&&macFlow.includes('arm64-apple-macos11.0'),'macos-big-sur-both-arches');
+need(adapter.includes("platform==='darwin'")&&adapter.includes('createMacOSAdapter'),'macos-agent-adapter');
+need(winTray.includes('ExitThreadCore')&&!winTray.includes('StopServiceAsync'),'quit-tray-does-not-stop-agent');
+const guarded=realRemoteInput.normalizeDesktopInput({events:[{type:'move',x:10,y:20,guardTitleContains:'Device Wall'}]});
+need(guarded.events[0].guardTitleContains==='Device Wall','rmv2-input-guard-normalized');
+let guardRejected=false;
+try{realRemoteInput.normalizeDesktopInput({events:[{type:'move',x:10,y:20,guardTitleContains:'x'.repeat(257)}]});}catch(error){guardRejected=error?.message==='desktop_input_invalid_guard_title';}
+need(guardRejected,'rmv2-input-guard-bounded');
+need(nativeDesktop.includes('guardTitleContains:guard')&&nativeDesktop.includes('guarded([{op:'),'rmv2-input-guard-forwarded');
+const topologyId='a'.repeat(64);
+const richInput=realRemoteInput.normalizeDesktopInput({displayTopologyId:topologyId,events:[{type:'drag',x:10,y:20,toX:30,toY:40,screen:0,toScreen:0,durationMs:120,steps:8,guardTitleContains:'Device Wall'},{type:'text',text:'abc',intervalMs:4}]});
+need(richInput.displayTopologyId===topologyId&&richInput.events[0].type==='drag'&&richInput.events[0].screen===0&&richInput.events[0].toScreen===0&&richInput.events[1].intervalMs===4,'rmv2-input-superset-normalized');
+need(nativeDesktop.includes("type==='drag'")&&nativeDesktop.includes('drag.toScreen')&&nativeDesktop.includes('out.displayTopologyId')&&nativeDesktop.includes('out.settleMs'),'rmv2-input-superset-forwarded');
+need(robotContext.includes('ValidateDisplayTopology(r);')&&robotContext.includes('InputPoint(r,"fromX","fromY","screen")')&&desktopVisual.includes('LocalToVirtualPoint'),'rmv2-topology-screen-local-enforced');
+need(nativeDesktop.includes("if(operation==='run')")&&nativeDesktop.includes("op:'desktop.run'")&&nativeDesktop.includes("scope:String(args.scope||'foreground')"),'rmv2-m6-native-task-run-forwarded');
+need(nativeDesktop.includes("durationMs:boundedInt(event.durationMs,90,0,500)")&&nativeDesktop.includes("steps:boundedInt(event.steps,8,1,32)"),'rmv2-m6-smooth-mouse-forwarded');
+need(nativeDesktop.includes("const delayMs=boundedInt(event?.delayMs,0,0,2000)")&&nativeDesktop.includes("index===actions.length-1?{...next,delayMs}:next"),'rmv2-m6-action-delay-forwarded');
+need(operatorAgent.includes("if(op==='run')")&&operatorAgent.includes('pushDirectRealRemoteDelta')&&operatorAgent.includes('Array.isArray(data.events)')&&operatorAgent.includes("request.scope==='foreground'?'foreground':'desktop'"),'rmv2-m6-agent-direct-delta-task-scope');
+need(semanticManager.includes('RootEpoch')&&semanticManager.includes('kind="semantic.delta"')&&semanticManager.includes('"desktop" or "task"=>"desktop"'),'rmv2-m6-persistent-task-semantic');
+need(semanticManager.includes('scopeChanged && session.Scope!="desktop"')&&!semanticManager.includes('read.Gap || scopeChanged || focusOutsideScope'),'rmv2-m6-task-root-transition-no-resync');
+need(nativeInput.includes('durationMs=90')&&nativeInput.includes('SmoothMoveMathSelfTest')&&nativeInput.includes('MoveImmediate'),'rmv2-m6-smooth-mouse');
+need(robotContext.includes('"desktop.run" => await RunPlanAsync(request)')&&robotContext.includes('AwaitUiAsync')&&robotContext.includes('_sensor.Changed+=OnChanged'),'rmv2-m6-local-action-await');
+need(read('operator-host/executor.mjs').includes("const semanticAction=Boolean(String(request.nodeId||'').trim()&&String(request.action||'').trim()&&!Array.isArray(request.events))")&&read('operator-host/executor.mjs').includes("}else normalized={op,...normalizeDesktopInput(request,{platform:targetPlatform})};"),'rmv2-focused-semantic-run-server-bridge');
+need(nativeDesktop.includes("operation==='visual-attach'")&&nativeDesktop.includes("op:'desktop.visual.resume'")&&nativeDesktop.includes("operation==='semantic-act'")&&nativeDesktop.includes("op:'desktop.semantic.act'"),'rmv2-focused-native-bridge');
+need(operatorAgent.includes('attachRealRemoteVisual')&&operatorAgent.includes('REAL_REMOTE_VISUAL')&&operatorAgent.includes("if(op==='attach')")&&operatorAgent.includes("if(op==='act')")&&operatorAgent.includes("NATIVE_DESKTOP.request('semantic-act'"),'rmv2-focused-agent-bridge');
+need(uiSensor.includes('ResolveSemanticElement')&&uiSensor.includes('SemanticNodeId')&&uiSensor.includes('string NodeId')&&uiSensor.includes('string[] Actions'),'rmv2-semantic-node-id-contract');
+need(semanticManager.includes('ActMutation')&&semanticManager.includes('InvokePattern.Pattern')&&semanticManager.includes('TogglePattern.Pattern')&&semanticManager.includes('ExpandCollapsePattern.Pattern')&&semanticManager.includes('NativeInput.Click("left",1)'),'rmv2-semantic-action-runtime');
+need(robotContext.includes('"desktop.semantic.act" or "desktop-semantic-act" => SemanticAct(request)')&&robotContext.includes('mutation=_semantic.ActMutation')&&visualManager.includes('MaxLeaseMs=900_000'),'rmv2-focused-run-await-and-lease');
+need(!read('plugin-server/tools.mjs').includes('leaseToken:z.')&&!read('plugin-server/tools.mjs').includes('visualSessionId:z.'),'rmv2-visual-lease-private');
+need(nativeDesktop.includes("const error=new Error('real_remote_helper_timeout');")&&nativeDesktop.includes("try{this.close();}catch{}"),'rmv2-helper-timeout-hard-reset');
+need(operatorAgent.includes("desktop_visual_cleanup_failed")&&operatorAgent.includes("stopRealRemoteVisual(row).catch")&&operatorAgent.includes("stopRealRemoteVisual(row,{detach:false}).catch"),'rmv2-visual-cleanup-rejection-contained');
+need(rmProject.includes('<AssemblyName>LightRemote.RM</AssemblyName>')&&rmProject.includes('<Product>Light Remote RM</Product>')&&rmProject.includes('<ApplicationIcon>Assets\\light-remote-rm.ico</ApplicationIcon>'),'rm-branding-project');
+need(robotContext.includes('Text="Agent Remote Active"')&&!robotContext.includes('ShowBalloonTip(')&&robotContext.includes('Icon.ExtractAssociatedIcon'),'rm-branding-tray-tooltip');
+need(systemCursor.includes('SetSystemCursor')&&systemCursor.includes('CreateCodexCursor')&&systemCursor.includes('SPI_SETCURSORS'),'rm-native-system-cursor');
+need(agentHost.includes('"LightRemote.RM.exe"'),'rm-branding-agent-host-path');
+need(windowsWorkflow.includes('LightRemote.RM.exe')&&!windowsWorkflow.includes('GptOperator.RealRemoteV2.exe'),'rm-branding-workflow-path');
+const rmMainWorkflowSteps=['RM V2 push live lane contract','Publish isolated Real Remote V2 companion','Real Remote V2 self test','Real Remote V2 full duplex lifecycle','Stage Real Remote V2 lazy companion','Real Remote V2 lazy broker smoke','Real Remote V2 push bridge smoke'];
+for(const step of rmMainWorkflowSteps){const marker='- name: '+step;const at=windowsWorkflow.indexOf(marker);need(at>=0&&!windowsWorkflow.slice(at,at+260).includes("if: github.ref_name == 'feature/real-remote-v2-golden'"),'rmv2-main-workflow-unconditional:'+step);}
+need(windowsWorkflow.includes("$dest = Join-Path $stage 'realremote-v2'")&&windowsWorkflow.includes("Copy-Item (Join-Path (Split-Path $env:RMV2_EXE -Parent) '*') $dest -Recurse -Force"),'rmv2-main-installer-stage');
+need(windowsInstaller.includes('[InstallDelete]')&&windowsInstaller.includes('{app}\\realremote-v2\\GptOperator.RealRemoteV2.*'),'rm-branding-obsolete-binary-cleanup');
+need(operatorAgent.includes("if(NATIVE_DESKTOP.running){try{detached=await NATIVE_DESKTOP.request('semantic-detach'")&&operatorAgent.includes("if(REAL_REMOTE_LIVE.size===0){NATIVE_DESKTOP.closeIfIdle();scheduleDeviceDuplexIdleClose();}"),'rmv2-stale-live-close-no-helper-spawn');
+console.log('V10_DESKTOP_PRODUCTIZATION_GATE=PASS');
+
+console.log('UNIFIED_MACOS_FULL_INSTALLER=NOT_BUILT; HISTORICAL_RECIPE_ONLY');

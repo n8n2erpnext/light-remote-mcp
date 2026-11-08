@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>GptOperator.Client</AssemblyName>
+    <RootNamespace>GptOperator.Client</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationIcon>Assets\light-remote.ico</ApplicationIcon>
+    <Version>0.10.0-dev.1</Version>
+    <FileVersion>0.10.0.0</FileVersion>
+    <AssemblyVersion>0.10.0.0</AssemblyVersion>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>false</PublishTrimmed>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\light-remote-mark.png" LogicalName="LightRemoteMark.png" />
+    <EmbeddedResource Include="Assets\TrayStates\connected-32.png" LogicalName="LightRemoteTray.connected.png" />
+    <EmbeddedResource Include="Assets\TrayStates\disconnected-32.png" LogicalName="LightRemoteTray.disconnected.png" />
+    <EmbeddedResource Include="Assets\TrayStates\dormant-32.png" LogicalName="LightRemoteTray.dormant.png" />
+    <EmbeddedResource Include="Assets\TrayStates\unlinked-32.png" LogicalName="LightRemoteTray.unlinked.png" />
+    <EmbeddedResource Include="Assets\TrayStates\stopped-32.png" LogicalName="LightRemoteTray.stopped.png" />
+    <Content Include="Assets\light-remote.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+    <Content Include="THIRD_PARTY_NOTICES.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\CanonicalEndpoints.cs" Link="CanonicalEndpoints.cs" />
+    <Compile Include="..\Shared\WallListenerOwnership.cs" Link="WallListenerOwnership.cs" />
+    <Compile Include="..\Shared\LocalWallChallengeProof.cs" Link="LocalWallChallengeProof.cs" />
+    <EmbeddedResource Include="..\..\..\config\endpoints.json" LogicalName="LightRemote.Canonical.Endpoints.json" />
+  </ItemGroup>
+</Project>

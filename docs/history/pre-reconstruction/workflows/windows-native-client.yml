@@ -1,0 +1,1517 @@
+name: Windows Tray Client
+
+on:
+  push:
+    branches:
+      - main
+      - 'codex/**'
+      - 'build/windows-ui-golden-rc26'
+      - 'feature/real-remote-v2-golden'
+      - 'feature/real-remote-v2-m6-persistent-duplex'
+      - 'feature/windows-rm-ux-rc48'
+      - 'feature/light-remote-gold-rebuild-20261018' # staging CI artifacts only
+      - 'feature/gold-m6-integrated-20261023' # isolated Gold UAT Windows build only
+      - 'fix/gold-pulse-stale-lock-20261025' # crash-safe state and public signed pulse UAT
+      - 'feature/gold-memory-reader-codex-win-20261025' # Memory Library + native Windows Codex discovery
+      - 'feature/gold-navigation-codex-managed-memory-delete-20261025' # optional Codex runtime and scoped memory Wall routes
+      - 'feature/gold-memory-completion-20261026' # Memory scope UI and Codex task edit/delete
+      - 'feature/gold-windows-ci-once-20261028' # one isolated GitHub-hosted Windows x64 UAT build
+      - 'feature/gold-windows-relink-ci-20261028' # dedicated Windows Tray relink regression build
+      - 'fix/gold-windows-relink-rm-stability-20261028' # RM and enrollment recovery stability UAT build
+      - 'fix/gold-owner-filesystem-roots-20261023' # isolated Gold filesystem UAT build
+      - 'feat/gold-connection-gc-reconciler-20261029' # isolated signed-epoch Windows x64 UAT build; artifact only
+      - 'feat/desktop-v4-api-integration-20261103' # one complete desktop + Agent/Wall/RM installer LAB
+    tags:
+      - 'v0.9.*'
+    paths:
+      - 'VERSION'
+      - 'client/**'
+      - 'client/windows-native/GptOperator.RealRemoteV2/**'
+      - 'docs/real-remote-v2/**'
+      - 'device-agent/**'
+      - 'lib/device-proof.mjs'
+      - 'lib/native-desktop.mjs'
+      - 'lib/rmv2-visual-lease-recovery.mjs'
+      - 'lib/native-fs.mjs'
+      - 'lib/native-process.mjs'
+      - 'lib/native-terminal.mjs'
+      - 'lib/device-duplex-client.mjs'
+      - 'lib/native-search.mjs'
+      - 'lib/light-scp-file.mjs'
+      - 'lib/light-scp-registry.mjs'
+      - 'lib/update-contract.mjs'
+      - 'lib/public-endpoint.mjs'
+      - 'lib/runtime-version.mjs'
+      - 'lib/version-compat.mjs'
+      - 'lib/brand.mjs'
+      - 'lib/update-helper-reconcile.mjs'
+      - 'deploy/scripts/stage-client-core.mjs'
+      - 'deploy/scripts/stage-terminal-runtime.mjs'
+      - 'deploy/scripts/terminal-runtime-smoke.mjs'
+      - 'deploy/scripts/selftest-g2-windows-job-object-natural-exit.mjs'
+      - 'deploy/scripts/selftest-g2-windows-cross-process-filelock.mjs'
+      - 'deploy/scripts/selftest-g2-pty-missing-exit.mjs'
+      - 'deploy/scripts/selftest-g2-transport-drop-job-survival.mjs'
+      - 'deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs'
+      - 'deploy/scripts/selftest-g3-command-liveness-pulse.mjs'
+      - 'deploy/scripts/selftest-g3-agent-state-lock-recovery.mjs'
+      - 'deploy/scripts/selftest-gold-wall-close-session-*.mjs'
+      - 'deploy/scripts/selftest-gold-memory-reader-export.mjs'
+      - 'deploy/scripts/selftest-gold-codex-binary-discovery.mjs'
+      - 'deploy/scripts/selftest-gold-no-native-browser-dialogs.mjs'
+      - 'deploy/scripts/selftest-gold-wall-navigation.mjs'
+      - 'deploy/scripts/selftest-gold-managed-codex-runtime.mjs'
+      - 'deploy/scripts/selftest-gold-memory-delete-settings.mjs'
+      - 'deploy/scripts/selftest-gold-memory-scope-management.mjs'
+      - 'deploy/scripts/selftest-gold-codex-task-management.mjs'
+      - 'deploy/scripts/selftest-gold-client-core-imports.mjs'
+      - 'deploy/scripts/selftest-gold-p0-win11-boot-telemetry.mjs' # additive schema boot regression test
+      - 'client/core-files.json'
+      - 'plugin-server/device-public.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
+      - 'deploy/scripts/selftest-g3-executor-hang-readiness.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs'
+      - 'deploy/scripts/selftest-g3-executor-readiness-probe.mjs'
+      - 'deploy/scripts/selftest-g3-executor-probe-deadline.mjs'
+      - 'deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs'
+      - 'deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'client/core-files.json'
+      - 'assets/**'
+      - 'operator-host/executor.mjs'
+      - 'deploy/scripts/selftest-v12-macos-physical-type-routing.mjs'
+      - 'deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs'
+      - 'deploy/scripts/selftest-rmv2-visual-lease-recovery.mjs'
+      - 'deploy/scripts/selftest-windows-moryqa-tray-v3.mjs'
+      - 'deploy/scripts/selftest-v09-windows-package.mjs'
+      - 'deploy/scripts/selftest-v10-desktop-productization.mjs'
+      - 'deploy/scripts/selftest-gold-windows-tray-relink.mjs'
+      - 'deploy/scripts/selftest-goldabv2-native-tray-menu.mjs'
+      - 'deploy/scripts/selftest-goldabv2-unified-one-app.mjs'
+      - 'deploy/scripts/selftest-goldabv2-v2only-no-static-fleet-allowlist.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs'
+      - 'deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs'
+      - 'deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs'
+      - 'config/endpoints.json'
+      - 'lib/canonical-endpoints.mjs'
+      - 'deploy/scripts/generate-endpoint-package-marker.mjs'
+      - 'deploy/scripts/selftest-canonical-endpoints-t11.mjs'
+      - 'deploy/scripts/selftest-canonical-endpoints-native-t11.mjs'
+      - 'client/windows-native/Shared/WallListenerOwnership.cs'
+      - 'deploy/scripts/selftest-goldabv2-wall-listener-ownership-t11.mjs'
+      - 'device-agent/local-wall-instance-proof.mjs'
+      - 'client/windows-native/Shared/LocalWallChallengeProof.cs'
+      - 'client/desktop-v4/src-tauri/src/wall_instance_proof.rs'
+      - 'deploy/scripts/selftest-goldabv2-local-instance-proof-t11.mjs'
+      - 'deploy/scripts/selftest-goldabv2-local-instance-native-t11.mjs'
+      - 'deploy/scripts/selftest-gold-wall-module-state-t11.mjs'
+      - 'deploy/scripts/selftest-gold-wall-history-reader-t11.mjs'
+      - 'deploy/scripts/selftest-desktop-native-deadlines-t11.mjs'
+      - 'client/desktop-v4/src/lib/scoped-read-poller.ts'
+      - 'client/desktop-v4/src/lib/scoped-read-poller.test.ts'
+      - 'deploy/scripts/selftest-t11-desktop-poll-backpressure.mjs'
+      - 'deploy/scripts/selftest-t11-owner-verify-wait.mjs'
+      - 'operator-host/usage-registry.mjs'
+      - 'deploy/scripts/selftest-t11-usage-read-checkpoint.mjs'
+      - 'deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs'
+      - 'operator-host/session-manager.mjs'
+      - 'operator-host/device-registry.mjs'
+      - 'operator-host/device-access-grant-registry.mjs'
+      - 'operator-host/desktop-v4-owner-snapshot.mjs'
+      - 'operator-host/desktop-v4-owner-inventory-page.mjs'
+      - 'operator-host/desktop-v4-owner-inventory-page.test.mjs'
+      - 'operator-host/desktop-v4-owner-activity-page.mjs'
+      - 'operator-host/desktop-v4-owner-activity-page.test.mjs'
+      - 'lib/gold-job-ledger.mjs'
+      - 'lib/gold-job-ledger-owner-page.test.mjs'
+      - 'lib/gold-session-redis.mjs'
+      - 'lib/gold-session-retention.test.mjs'
+      - 'deploy/scripts/selftest-t11-owner-session-retention-source.mjs'
+      - 'deploy/scripts/f16-owner-uat-artifact-preflight.mjs'
+      - 'deploy/scripts/f16-owner-uat-artifact-preflight.test.mjs'
+      - 'deploy/scripts/selftest-t11-f16-owner-uat-source.mjs'
+      - 'deploy/scripts/selftest-t11-owner-durable-activity-source.mjs'
+      - 'deploy/scripts/selftest-t11-owner-pg-history-pg.mjs'
+      - 'deploy/scripts/ci-gold-epoch-pg.mjs'
+      - 'deploy/scripts/selftest-t11-owner-activity-native-source.mjs'
+      - 'deploy/scripts/selftest-t11-owner-inventory-native-source.mjs'
+      - 'operator-host/executor-routes-account.mjs'
+      - 'operator-host/executor.mjs'
+      - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
+      - 'device-agent/filesystem-volume-inventory.mjs'
+      - '.github/workflows/windows-native-client.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build-install-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+      - name: Rust for embedded Desktop V4 on the full Windows installer branch
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache unified V4 native Rust build
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: client/desktop-v4/src-tauri -> target
+      - name: Verify Windows Tray UI contract (native V4, legacy V3 elsewhere)
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            node deploy/scripts/selftest-goldabv2-native-tray-menu.mjs
+            if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 native Windows menu contract failed' }
+          } else {
+            node deploy/scripts/selftest-windows-moryqa-tray-v3.mjs
+            if ($LASTEXITCODE -ne 0) { throw 'Legacy Moryqa Tray UI contract failed' }
+          }
+      - name: Verify cross-platform physical typing route
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-v12-macos-physical-type-routing.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'physical type routing contract failed' }
+          node deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'cursor effect parity regression failed' }
+          node deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Wall blocking inventory regression failed' }
+      - name: Gold Long Memory G3 native Windows crypto smoke
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-g3-command-liveness-pulse.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Signed pulse public gateway contract failed' }
+          node deploy/scripts/selftest-g3-agent-state-lock-recovery.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Crash-safe Agent state lock regression failed' }
+          node deploy/scripts/selftest-gold-wall-close-session-cache.mjs $PWD
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Wall session-close cache regression failed' }
+          node deploy/scripts/selftest-gold-wall-close-session-http.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Wall session-close HTTP regression failed' }
+          node deploy/scripts/selftest-gold-codex-binary-discovery.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold native Windows Codex binary discovery failed' }
+          node deploy/scripts/selftest-gold-memory-reader-export.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Memory Library read and export regression failed' }
+          node deploy/scripts/selftest-gold-wall-navigation.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold dedicated module route navigation regression failed' }
+          node deploy/scripts/selftest-gold-no-native-browser-dialogs.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold native browser dialog regression failed' }
+          node deploy/scripts/selftest-gold-managed-codex-runtime.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold device-managed optional Codex runtime regression failed' }
+          node deploy/scripts/selftest-gold-memory-delete-settings.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold owner-approved Memory deletion regression failed' }
+          node deploy/scripts/selftest-gold-client-core-imports.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled Gold Client Core missing static imports' }
+          node deploy/scripts/selftest-gold-memory-scope-management.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Scoped Memory lifecycle and full-context verification failed' }
+          node deploy/scripts/selftest-gold-codex-task-management.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Codex task edit/delete owner-audit regression failed' }
+          node deploy/scripts/selftest-gold-codex-plus.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Codex NTFS private home regression failed' }
+          node --no-warnings deploy/scripts/selftest-gold-memory-replica-evidence.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Replica to Home evidence regression failed' }
+          node deploy/scripts/selftest-gold-memory-sync-v3.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold G3 Windows E2EE / signed ACK / key ACL failed' }
+          node deploy/scripts/selftest-gold-memory-peer-v3.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold G3 Windows signed NetBird peer pull/replay/ACK failed' }
+          node deploy/scripts/selftest-gold-memory-scope-v2.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Windows Long Memory V1/V2 scope and HMAC failed' }
+          Write-Host 'gold-windows-g3-cryptographic-scope-smoke=PASS'
+
+      - name: Server authoritative GoldABV2 V1 lock regression
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        shell: pwsh
+        run: |
+          # The Lab V1 regression imports plugin-server/tools.mjs (zod).
+          # This early CI step runs before the later global dependency stage.
+          npm ci --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 source regression dependency install failed' }
+          node deploy/scripts/selftest-goldabv2-desktop-target.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Desktop package target isolation regression' }
+          node deploy/scripts/selftest-goldabv2-native-tray-menu.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 native Windows menu and signed Short ID / Main regression' }
+          node --test operator-host/gold-ab-v2-server-v1-lock.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Operator legacy pairing lock regression' }
+          node deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Wall V2-only regression' }
+          node deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 signed Wall preview mode regression' }
+          node deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 rendered B click CSRF + Wall layout contract regression' }
+          node deploy/scripts/selftest-canonical-endpoints-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 canonical endpoint schema/profile/packaging regression' }
+          node deploy/scripts/selftest-canonical-endpoints-native-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Node/Rust/NET canonical endpoint consumer regression' }
+          node deploy/scripts/selftest-goldabv2-wall-listener-ownership-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 wrong-listener PID and install product gate regression' }
+          node deploy/scripts/selftest-goldabv2-local-instance-native-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 local HMAC proof consumers regression' }
+          node deploy/scripts/selftest-goldabv2-local-instance-proof-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 local HMAC proof HTTP fixture regression' }
+          node deploy/scripts/selftest-gold-wall-module-state-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 Long Memory module CAS/revision UI regression' }
+          node deploy/scripts/selftest-gold-wall-history-reader-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Wall scope reader/history monotonicity regression' }
+          node deploy/scripts/selftest-desktop-native-deadlines-t11.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'V4 Windows native pipe/child deadline regression' }
+          node deploy/scripts/selftest-t11-desktop-poll-backpressure.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'V4 Owner-scoped read polling backpressure regression' }
+          node deploy/scripts/selftest-t11-owner-verify-wait.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'V4 native Owner verify overlap/revocation fence regression' }
+          node deploy/scripts/selftest-t11-usage-read-checkpoint.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 P01 usage read checkpoint/accounting regression' }
+          node deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 P03 Owner-scoped fleet/grant aggregation regression' }
+          node --test operator-host/desktop-v4-owner-inventory-page.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F14 Owner-scoped cursor inventory regression' }
+          node --test operator-host/desktop-v4-owner-activity-page.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F15 Owner-scoped activity/usage paging regression' }
+          node --test lib/gold-job-ledger-owner-page.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F15-H2 PostgreSQL Owner history keyset regression' }
+          node --test lib/gold-session-retention.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F15-H3 Redis retention/restart/Owner read regression' }
+          node deploy/scripts/selftest-t11-owner-session-retention-source.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F15-H3 retention source authorization boundary' }
+          node deploy/scripts/selftest-t11-owner-durable-activity-source.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F15-H2 native PG/Redis Owner source authority boundary' }
+          node deploy/scripts/selftest-t11-owner-activity-native-source.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F15 native Owner activity/usage IPC authority boundary' }
+          node deploy/scripts/selftest-t11-owner-inventory-native-source.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'T11 F14 native Owner inventory IPC/manifest routing contract' }
+          node deploy/scripts/selftest-goldabv2-v2only-no-static-fleet-allowlist.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GoldABV2 V2-only / Owner-scoped no-static-allowlist gate failed' }
+      - name: Gold Windows owner filesystem scope regression
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-gold-owner-filesystem-roots.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold owner filesystem scopes or drive inventory regression' }
+          Write-Host 'gold-windows-owner-filesystem-scopes=PASS'
+
+      - name: Gold Windows tray Relink regression
+        shell: pwsh
+        run: node deploy/scripts/selftest-gold-windows-tray-relink.mjs
+
+      - name: GoldABV2 unified one-app lifecycle + link/Wall source regression
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        shell: pwsh
+        run: node deploy/scripts/selftest-goldabv2-unified-one-app.mjs
+
+      - name: Publish native tray client
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $updaterStage = Join-Path $PWD 'dist\windows\updater'
+          $watchdogStage = Join-Path $PWD 'dist\windows\install-watchdog'
+          New-Item -ItemType Directory -Force -Path $stage,$updaterStage,$watchdogStage | Out-Null
+          $trayDefines=@()
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            # GoldABV2 default only for fresh unified V4 installs. Saved Gold
+            # enrollments remain scoped to their old endpoint until Owner relinks.
+            $trayDefines+='-p:DefineConstants=LIGHT_REMOTE_GOLDABV2_V4'
+          }
+          dotnet publish client/windows-native/GptOperator.Client/GptOperator.Client.csproj `
+            -c Release -r win-x64 --self-contained true -o $stage @trayDefines
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet publish client failed' }
+          dotnet publish client/windows-native/LightRemote.Updater/LightRemote.Updater.csproj `
+            -c Release -r win-x64 --self-contained true -o $updaterStage @trayDefines
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet publish updater failed' }
+          dotnet publish client/windows-native/LightRemote.InstallWatchdog/LightRemote.InstallWatchdog.csproj `
+            -c Release -r win-x64 -o $watchdogStage @trayDefines
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet publish native install watchdog failed' }
+          $watchdogExe = Join-Path $watchdogStage 'LightRemote.InstallWatchdog.exe'
+          if (-not (Test-Path $watchdogExe)) { throw 'native install watchdog publish missing' }
+          $stream=[IO.File]::OpenRead($watchdogExe)
+          try {
+            $reader=[IO.BinaryReader]::new($stream)
+            $stream.Position=0x3c
+            $pe=$reader.ReadInt32()
+            $stream.Position=$pe+24+68
+            $subsystem=$reader.ReadUInt16()
+          } finally { if($reader){$reader.Dispose()}else{$stream.Dispose()} }
+          if ($subsystem -ne 2) { throw "native install watchdog must be Windows GUI/no-console subsystem, got=$subsystem" }
+          Write-Host "windows-install-watchdog-no-console=PASS subsystem=$subsystem bytes=$((Get-Item $watchdogExe).Length)"
+          "WINDOWS_INSTALL_WATCHDOG=$watchdogExe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $qaUpdaterRoot = Join-Path $env:LOCALAPPDATA 'Light Remote\Updater'
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            $qaUpdaterRoot = Join-Path $qaUpdaterRoot 'GoldABV2'
+          }
+          "WINDOWS_TEST_UPDATER_ROOT=$qaUpdaterRoot" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $updaterConfig = Join-Path $updaterStage 'config'
+          New-Item -ItemType Directory -Force -Path $updaterConfig | Out-Null
+          Copy-Item client/update-public.pem (Join-Path $updaterConfig 'client-update-public.pem')
+          Copy-Item VERSION (Join-Path $updaterStage 'VERSION')
+          $helperCandidate = Join-Path $stage 'helper-candidate'
+          New-Item -ItemType Directory -Force -Path $helperCandidate | Out-Null
+          Copy-Item (Join-Path $updaterStage '*') $helperCandidate -Recurse -Force
+          $runtime = Join-Path $stage 'runtime'
+          $agentRoot = Join-Path $stage 'agent'
+          $agentDir = Join-Path $agentRoot 'device-agent'
+          $configDir = Join-Path $stage 'config'
+          $licenseDir = Join-Path $stage 'licenses'
+          $nodeLicenseDir = Join-Path $licenseDir 'node'
+          $dotnetLicenseDir = Join-Path $licenseDir 'dotnet'
+          New-Item -ItemType Directory -Force -Path $runtime,$agentDir,$configDir,$nodeLicenseDir,$dotnetLicenseDir | Out-Null
+          $nodeExe = (Get-Command node.exe).Source
+          $nodeBytes = (Get-Item $nodeExe).Length
+          $nodeRoot = Split-Path $nodeExe -Parent
+          $dotnetExe = (Get-Command dotnet.exe).Source
+          $dotnetRoot = Split-Path $dotnetExe -Parent
+          Copy-Item $nodeExe (Join-Path $runtime 'node.exe')
+          # Codex Bridge is optional, but its owner-approved installer must work
+          # even on consumer Windows PCs with no global Node/npm installation.
+          # Bundle the official npm CLI and all its runtime dependencies from
+          # the CI-pinned Node distribution, without downloading Codex itself.
+          $npmSource = Join-Path $nodeRoot 'node_modules\npm'
+          $npmCliSource = Join-Path $npmSource 'bin\npm-cli.js'
+          if (-not (Test-Path $npmCliSource)) { throw 'CI Node distribution is missing npm-cli.js' }
+          $npmDestParent = Join-Path $runtime 'node_modules'
+          New-Item -ItemType Directory -Force -Path $npmDestParent | Out-Null
+          Copy-Item $npmSource (Join-Path $npmDestParent 'npm') -Recurse -Force
+          $bundledNpmCli = Join-Path $runtime 'node_modules\npm\bin\npm-cli.js'
+          & (Join-Path $runtime 'node.exe') $bundledNpmCli --version
+          if ($LASTEXITCODE -ne 0) { throw 'isolated managed Codex npm provisioner failed' }
+          Write-Host 'gold-optional-codex-offline-npm-bootstrap-packaged=PASS'
+          Copy-Item (Join-Path $nodeRoot 'LICENSE') (Join-Path $nodeLicenseDir 'LICENSE')
+          Copy-Item (Join-Path $dotnetRoot 'LICENSE.txt') (Join-Path $dotnetLicenseDir 'LICENSE.txt')
+          Copy-Item (Join-Path $dotnetRoot 'ThirdPartyNotices.txt') (Join-Path $dotnetLicenseDir 'ThirdPartyNotices.txt')
+          npm ci --ignore-scripts
+          node deploy/scripts/stage-client-core.mjs $agentRoot
+          node deploy/scripts/stage-terminal-runtime.mjs $agentRoot win32 x64
+          if ($LASTEXITCODE -ne 0) { throw 'canonical client core staging failed' }
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            # This signed-target QA package must not silently access Gold production.
+            # The bundled Node Agent enforces this marker even if invoked directly.
+            $profile = Join-Path $agentRoot 'device-agent\goldabv2-package-profile.json'
+            node deploy/scripts/generate-endpoint-package-marker.mjs $profile
+            if ($LASTEXITCODE -ne 0) { throw 'Canonical package marker generator failed' }
+            Copy-Item config/endpoints.json (Join-Path $configDir 'endpoints.json')
+          }
+          Copy-Item device-agent/install-windows-task.ps1 $agentDir
+          Copy-Item client/update-public.pem (Join-Path $configDir 'client-update-public.pem')
+          Copy-Item LICENSE (Join-Path $stage 'LICENSE')
+          Copy-Item NOTICE (Join-Path $stage 'NOTICE')
+          Copy-Item THIRD_PARTY_DISTRIBUTION_NOTICES.md (Join-Path $stage 'THIRD_PARTY_DISTRIBUTION_NOTICES.md')
+          Copy-Item VERSION (Join-Path $stage 'VERSION')
+          $trayBytes=(Get-Item (Join-Path $stage 'GptOperator.Client.exe')).Length
+          $helperBytes=(Get-Item (Join-Path $updaterStage 'LightRemote.Updater.exe')).Length
+          $stageBytes=(Get-ChildItem $stage -File -Recurse | Measure-Object Length -Sum).Sum
+          $helperStageBytes=(Get-ChildItem $updaterStage -File -Recurse | Measure-Object Length -Sum).Sum
+          Write-Host "windows-size-tray-bytes=$trayBytes helper-bytes=$helperBytes node-bytes=$nodeBytes stage-bytes=$stageBytes helper-stage-bytes=$helperStageBytes"
+      # Windows Git checkout can use CRLF; the SQL migration hash test canonicalizes LF.
+      - name: GoldABV2 native wrong-listener PID/profile fixture
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $exe=Join-Path $PWD 'dist\windows\stage\GptOperator.Client.exe'
+          $output=Join-Path $env:RUNNER_TEMP 'goldabv2-wall-foreign-listener.json'
+          $p=Start-Process -FilePath $exe -ArgumentList @('--wall-listener-self-test-output',$output) -PassThru
+          if (-not $p.WaitForExit(20000)) {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            throw 'GoldABV2 wrong listener OS fixture timed out'
+          }
+          if ($p.ExitCode -ne 0 -or -not(Test-Path $output)) { throw 'GoldABV2 wrong listener native fixture failed' }
+          $r=Get-Content $output -Raw | ConvertFrom-Json
+          if (-not $r.ok -or -not $r.wrongProductRejected -or -not $r.correctProductAccepted -or
+              -not $r.exactNodePath -or -not $r.wrongNodePathRejected -or
+              -not $r.sawUnrelatedPort -or -not $r.wrongListenerRejected -or
+              -not $r.cryptoVectorOk -or -not $r.nonceTamperRejected -or
+              -not $r.pidTamperRejected -or -not $r.productTamperRejected) {
+            throw 'GoldABV2 accepted unowned port or wrong product/profile'
+          }
+          Write-Host 'goldabv2-native-wrong-listener-pid-profile-PASS'
+
+      - name: Native Win10/Win11 OS boot evidence source smoke
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-gold-p0-win11-boot-telemetry.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'boot source transport/validation regression failed' }
+          $exe = Join-Path $PWD 'dist\windows\stage\GptOperator.Client.exe'
+          $result = Join-Path $env:RUNNER_TEMP 'win32-native-boot-evidence.json'
+          $probe = Start-Process -FilePath $exe -ArgumentList @('--boot-evidence-self-test',$result) -PassThru -Wait
+          if ($probe.ExitCode -ne 0 -or -not (Test-Path $result)) { throw 'OS boot WMI native selftest failed' }
+          $details = Get-Content $result -Raw | ConvertFrom-Json
+          if ($details.ok -ne $true -or $details.wmi -ne 'pass' -or $details.source -ne 'win32_wmi_lastbootuptime') {
+            throw 'Invalid boot telemetry source or WMI unavailable'
+          }
+          if ([long]$details.bootAtMs -le 0 -or [long]$details.observedAtMs -le [long]$details.bootAtMs) {
+            throw 'OS boot source timestamp invalid'
+          }
+          Write-Host 'WIN_NATIVE_OS_BOOT_WMI_NO_SHELL_PASS'
+
+      - name: Native client bundled runtime smoke
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $result = Join-Path $env:RUNNER_TEMP 'gpt-native-selftest.json'
+          $exe = Join-Path $stage 'GptOperator.Client.exe'
+          $node = Join-Path $stage 'runtime\node.exe'
+          $codexInstallerNpm = Join-Path $stage 'runtime\node_modules\npm\bin\npm-cli.js'
+          if (-not (Test-Path $codexInstallerNpm)) { throw 'Codex managed installer npm CLI absent from Windows stage' }
+          & $node $codexInstallerNpm --version
+          if ($LASTEXITCODE -ne 0) { throw 'Codex managed installer npm CLI cannot execute on bundled Node' }
+          Write-Host 'gold-codex-managed-offline-bootstrap-smoke=PASS'
+          $agent = Join-Path $stage 'agent\device-agent\operator-agent.mjs'
+          $agentRoot = Join-Path $stage 'agent'
+          $updaterStage = Join-Path $PWD 'dist\windows\updater'
+          $updater = Join-Path $updaterStage 'LightRemote.Updater.exe'
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            $profileProbe=Join-Path $env:RUNNER_TEMP 'goldabv2-updater-product-profile-fixture.json'
+            $p=Start-Process -FilePath $updater -ArgumentList @('--endpoint-profile-self-test-output',$profileProbe) -PassThru
+            if (-not $p.WaitForExit(25000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'GoldABV2 canonical updater profile fixture timeout' }
+            if ($p.ExitCode -ne 0 -or -not(Test-Path $profileProbe)) { throw 'GoldABV2 canonical updater profile fixture failed' }
+            $binding=Get-Content $profileProbe -Raw | ConvertFrom-Json
+            if (-not $binding.ok -or -not $binding.manifestOnHold -or -not $binding.wrongProductRejected -or
+                $binding.productId -ne 'goldabv2-desktop-v4' -or $binding.selectedProfile -ne 'goldabv2-lab') {
+              throw 'GoldABV2 product/profile/update feed not safely bound'
+            }
+            Write-Host 'goldabv2-native-updater-wrong-product-reject-hold-PASS'
+          }
+          $cacheProbe = Join-Path $env:RUNNER_TEMP 'gold-updater-cache-fixture.json'
+          $cacheSelf = Start-Process -FilePath $updater -ArgumentList @('--cache-self-test-output',$cacheProbe) -PassThru
+          if (-not $cacheSelf.WaitForExit(30000)) { Stop-Process -Id $cacheSelf.Id -Force -ErrorAction SilentlyContinue; throw 'Independent updater cache self-test hung' }
+          if ($cacheSelf.ExitCode -ne 0 -or -not (Test-Path $cacheProbe)) { throw "Independent updater cache self-test failed exit=$($cacheSelf.ExitCode)" }
+          $cacheOutcome = Get-Content $cacheProbe -Raw | ConvertFrom-Json
+          if (-not $cacheOutcome.ok -or -not $cacheOutcome.validCacheAccepted -or -not $cacheOutcome.tamperRejected -or -not $cacheOutcome.lengthRejected) {
+            throw 'Independent updater trusted cache accepted corruption or invalid length'
+          }
+          Write-Host 'gold-windows-update-verified-prefetch-cache=PASS'
+          node deploy/scripts/stage-client-core.mjs --verify $agentRoot
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            $profile = Join-Path $agentRoot 'device-agent\goldabv2-package-profile.json'
+            if (-not (Test-Path $profile)) { throw 'GoldABV2 package target marker absent' }
+            $profileJson = Get-Content -LiteralPath $profile -Raw | ConvertFrom-Json
+            $endpoints=Get-Content (Join-Path $agentRoot 'config\endpoints.json') -Raw | ConvertFrom-Json
+            $configHash=(Get-FileHash (Join-Path $agentRoot 'config\endpoints.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($profileJson.profile -ne $endpoints.profiles.'goldabv2-lab'.productId -or
+                $profileJson.configProfile -ne $endpoints.selectedProfile -or
+                $profileJson.configRevision -ne $endpoints.configRevision -or
+                $profileJson.endpoint -ne $endpoints.profiles.'goldabv2-lab'.cloudOrigins.deviceChannel -or
+                $profileJson.configSha256 -ne $configHash) {
+              throw 'GoldABV2 canonical package target marker mismatch'
+            }
+            $targetProbeOut=Join-Path $env:RUNNER_TEMP 'abv2-production-deny-out.txt'
+            $targetProbeErr=Join-Path $env:RUNNER_TEMP 'abv2-production-deny-err.txt'
+            $oldBase=$env:OPERATOR_AGENT_BASE_URL
+            $env:OPERATOR_AGENT_BASE_URL='https://gold.light-remote.thaiduy.digital'
+            try {
+              $probe=Start-Process -FilePath $node -ArgumentList @($agent,'status') -PassThru -Wait -RedirectStandardOutput $targetProbeOut -RedirectStandardError $targetProbeErr
+            } finally {
+              $env:OPERATOR_AGENT_BASE_URL=$oldBase
+            }
+            if ($probe.ExitCode -eq 0 -or -not((Get-Content -LiteralPath $targetProbeErr -Raw) -match 'goldabv2_build_wrong_server_endpoint')) {
+              throw 'Bundled GoldABV2 Agent did not reject production endpoint'
+            }
+            Write-Host 'windows-goldabv2-bundled-agent-production-origin-rejected=PASS'
+          }
+          foreach ($memoryModule in @('gold-memory-ledger.mjs','gold-memory-scope.mjs','gold-memory-scope-admin.mjs','gold-memory-auto.mjs','gold-memory-sync.mjs','gold-memory-evidence.mjs','gold-memory-manual-evidence.mjs','gold-memory-key-permissions.mjs')) {
+            if (-not (Test-Path (Join-Path $agentRoot ('device-agent\'+$memoryModule)))) { throw "Gold Windows Memory module missing: $memoryModule" }
+          }
+          Write-Host 'gold-windows-memory-g3-package-modules=PASS'
+          $volumesModule = Join-Path $agentRoot 'device-agent\filesystem-volume-inventory.mjs'
+          if (-not (Test-Path $volumesModule)) { throw 'Gold filesystem volume inventory absent from packaged Windows Agent' }
+          Write-Host 'gold-windows-volume-inventory-packaged=PASS'
+          if ($LASTEXITCODE -ne 0) { throw 'canonical client core verification failed' }
+          & $node deploy/scripts/selftest-packaged-local-wall.mjs $agentRoot
+          if ($LASTEXITCODE -ne 0) { throw 'packaged Local Wall icon asset and HTTP page regression failed' }
+          if (-not (Test-Path (Join-Path $agentRoot 'client-core.json'))) { throw 'client core metadata missing' }
+          if (-not (Test-Path $updater)) { throw 'independent updater publish missing' }
+          foreach ($fleetFile in @('agent\device-agent\fleet-component-manager.mjs','agent\device-agent\fleet-component-supervisor.mjs')) { if (-not (Test-Path (Join-Path $stage $fleetFile))) { throw "fleet base module missing: $fleetFile" } }
+          if (-not (Test-Path (Join-Path $stage 'agent\device-agent\result-delivery.mjs'))) { throw 'oversized-result recovery module missing from Windows package' }
+          foreach ($lib in @('agent\lib\device-proof.mjs','agent\lib\native-fs.mjs','agent\lib\native-process.mjs','agent\lib\native-terminal.mjs','agent\lib\native-search.mjs','agent\lib\light-scp-file.mjs','agent\lib\light-scp-registry.mjs','agent\lib\update-contract.mjs','agent\lib\runtime-version.mjs')) { if (-not (Test-Path (Join-Path $stage $lib))) { throw "agent runtime lib missing: $lib" } }
+          foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
+            $noticePath = Join-Path $stage $notice
+            if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "bundled notice missing/empty: $notice" }
+          }
+          Write-Host 'windows-bundled-runtime-notices=PASS'
+          if (-not (Test-Path (Join-Path $agentRoot 'licenses\terminal-runtime\node-pty-LICENSE'))) { throw 'terminal runtime license missing' }
+          $terminalSmokeOk = $false
+          for ($attempt = 1; $attempt -le 2; $attempt++) {
+            Write-Host "windows-terminal-runtime-smoke-attempt=$attempt"
+            & $node deploy/scripts/terminal-runtime-smoke.mjs $agentRoot
+            $terminalExit = $LASTEXITCODE
+            if ($terminalExit -eq 0) {
+              $terminalSmokeOk = $true
+              break
+            }
+            Write-Warning "windows terminal runtime smoke attempt $attempt failed exit=$terminalExit"
+            if ($attempt -lt 2) { Start-Sleep -Seconds 2 }
+          }
+          if (-not $terminalSmokeOk) { throw 'windows terminal runtime smoke failed after retry' }
+          $env:LIGHT_REMOTE_MANAGED_PROCESS_HELPER = $exe
+          & $node deploy/scripts/selftest-g2-windows-job-object-natural-exit.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Windows per-job natural-parent-exit containment failed' }
+          & $node deploy/scripts/selftest-g2-windows-cross-process-filelock.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub issue #3 Windows exclusive cross-process file-lock acceptance failed' }
+          & $node deploy/scripts/selftest-g2-runtime-shutdown-cleanup.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G2 Windows bundled native process shutdown cleanup failed' }
+          & $node deploy/scripts/selftest-g2-windows-process-tree.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G2 Windows managed process-tree stop/timeout/shutdown regression failed' }
+          & $node deploy/scripts/selftest-gold-windows-graceful-stop-contract.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'P0 Windows graceful tree stop bounded escalation contract failed' }
+          & $node deploy/scripts/selftest-g2-pty-missing-exit.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G2 missing PTY onExit PID reconciliation failed on Windows' }
+          & $node deploy/scripts/selftest-g2-transport-drop-job-survival.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G2 TCP lost-response managed process recovery failed on Windows' }
+          & $node deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G2 PTY missing PID and exit evidence fail-closed regression failed on Windows' }
+          & $node deploy/scripts/selftest-g3-command-liveness-pulse.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 signed pulse must not drain or steal work during active command' }
+          & $node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 duplex half-open receive watchdog regression failed on Windows' }
+          & $node deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 duplex buffered HTTP ready timeout diagnostic failed on Windows' }
+          & $node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 duplex executor rejection recovery regression failed on Windows' }
+          & $node deploy/scripts/selftest-g3-executor-hang-readiness.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 executor hang readiness regression failed on Windows' }
+          & $node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 reconnect in-flight readiness regression failed on Windows' }
+          & $node deploy/scripts/selftest-g3-executor-readiness-probe.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 native executor canary regression failed on Windows' }
+          & $node deploy/scripts/selftest-g3-executor-probe-deadline.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 executor canary deadline/staleness regression failed on Windows' }
+          & $node deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 signed enrolled duplex regression failed on Windows' }
+          & $node deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'G3 Local Wall executor readiness regression failed on Windows' }
+          & $node deploy/scripts/selftest-g2-wall-headers-sent-crash.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Windows Local Wall double-response crash regression failed' }
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            # QA V4 intentionally isolates enrollment under its dedicated state
+            # root. The old temp-path fixture must not bypass this boundary.
+            $env:OPERATOR_AGENT_STATE = Join-Path $env:USERPROFILE '.config\gpt-operator-agent-goldabv2\device.json'
+            $oldState=$env:OPERATOR_AGENT_STATE
+            $badState=Join-Path $env:RUNNER_TEMP 'native-production-state.json'
+            $env:OPERATOR_AGENT_STATE=$badState
+            $stateProbeOut=Join-Path $env:RUNNER_TEMP 'abv2-state-deny-out.txt'
+            $stateProbeErr=Join-Path $env:RUNNER_TEMP 'abv2-state-deny-err.txt'
+            try {
+              $stateProbe=Start-Process -FilePath $node -ArgumentList @($agent,'status') -PassThru -Wait -RedirectStandardOutput $stateProbeOut -RedirectStandardError $stateProbeErr
+            } finally { $env:OPERATOR_AGENT_STATE=$oldState }
+            if ($stateProbe.ExitCode -eq 0 -or -not ((Get-Content -LiteralPath $stateProbeErr -Raw) -match 'goldabv2_build_state_profile_mismatch')) {
+              throw 'GoldABV2 packaged Agent failed to reject foreign device state path'
+            }
+            Write-Host 'windows-goldabv2-bundled-agent-production-state-rejected=PASS'
+          } else {
+            $env:OPERATOR_AGENT_STATE = Join-Path $env:RUNNER_TEMP 'native-empty-device.json'
+          }
+          Write-Host '--- bundled agent direct status ---'
+          & $node $agent status
+          if ($LASTEXITCODE -ne 0) { throw 'bundled agent direct status failed' }
+          Write-Host '--- native client self-test ---'
+          $self = Start-Process -FilePath $exe -ArgumentList @('--self-test-output',$result) -PassThru
+          if (-not $self.WaitForExit(30000)) { Stop-Process -Id $self.Id -Force -ErrorAction SilentlyContinue; throw 'native client bundled self-test timed out after 30s' }
+          $selfExit = $self.ExitCode
+          if (Test-Path $result) { Get-Content $result -Raw | Write-Host }
+          if ($selfExit -ne 0) { throw "native client self-test failed exit=$selfExit" }
+          $json = Get-Content $result -Raw | ConvertFrom-Json
+          if (-not $json.ok) { throw "self-test not ok: $(Get-Content $result -Raw)" }
+          if ($json.platformAdapter -ne 'win32') { throw "expected win32 adapter, got $($json.platformAdapter)" }
+          if ($json.nativeAbv2Launch -ne 'pass') { throw 'Windows GoldABV2 native Owner A/B launcher contract failed' }
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103' -and $json.targetProfile -ne 'pass') {
+            throw "GoldABV2 V4 must use separate device profile and GoldABV2-only endpoint; result=$($json.targetProfile)"
+          }
+          $expectedVersion = (Get-Content VERSION -Raw).Trim()
+          $coreMeta = Get-Content (Join-Path $agentRoot 'client-core.json') -Raw | ConvertFrom-Json
+          if ($coreMeta.version -ne $expectedVersion) { throw "canonical client core version mismatch: $($coreMeta.version) expected=$expectedVersion" }
+          if ($json.clientVersion -ne $expectedVersion) { throw "client version mismatch: $($json.clientVersion) expected=$expectedVersion" }
+          if ($json.agentVersion -ne $expectedVersion) { throw "bundled agent version mismatch: $($json.agentVersion) expected=$expectedVersion" }
+          Write-Host "windows-tray-selftest=PASS agent=$($json.agentVersion) adapter=$($json.platformAdapter)"
+          $updaterSelfResult = Join-Path $env:RUNNER_TEMP 'updater-selftest.json'
+          $updaterSelf = Start-Process -FilePath $updater -ArgumentList @('--self-test-output',$updaterSelfResult,$stage) -PassThru
+          if (-not $updaterSelf.WaitForExit(30000)) { Stop-Process -Id $updaterSelf.Id -Force -ErrorAction SilentlyContinue; throw 'independent updater self-test timed out after 30s' }
+          if (Test-Path $updaterSelfResult) { Get-Content $updaterSelfResult -Raw | Write-Host }
+          if ($updaterSelf.ExitCode -ne 0) { throw "independent updater self-test failed exit=$($updaterSelf.ExitCode)" }
+          $updaterSelfJson = Get-Content $updaterSelfResult -Raw | ConvertFrom-Json
+          if (-not $updaterSelfJson.ok -or -not $updaterSelfJson.updaterOutsideApp -or $updaterSelfJson.runtime -ne 'independent-updater') { throw "independent updater self-test invalid: $(Get-Content $updaterSelfResult -Raw)" }
+          Write-Host 'windows-independent-updater-selftest=PASS'
+
+          $manifestFixture = (Resolve-Path 'deploy/fixtures/client-update-test.json').Path
+          $manifestHash = (Get-FileHash $manifestFixture -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($manifestHash -ne '48790b1532b863cb471bfcf68ff5f4a87fa0497e270bec5abbde254acf5d18e7') { throw "signed fixture byte hash changed: $manifestHash" }
+          Write-Host "windows-signed-fixture-bytes=PASS sha256=$manifestHash"
+          $sigResult = Join-Path $env:RUNNER_TEMP 'gpt-update-signature.json'
+          $sig = Start-Process -FilePath $updater -ArgumentList @('--verify-update-fixture',$manifestFixture,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$sigResult) -PassThru
+          if (-not $sig.WaitForExit(30000)) { Stop-Process -Id $sig.Id -Force -ErrorAction SilentlyContinue; throw 'signed update fixture verification timed out after 30s' }
+          if (Test-Path $sigResult) { Get-Content $sigResult -Raw | Write-Host }
+          if ($sig.ExitCode -ne 0) { throw "signed update fixture verification failed exit=$($sig.ExitCode)" }
+          $sigJson = Get-Content $sigResult -Raw | ConvertFrom-Json
+          if (-not $sigJson.ok) { throw "update signature fixture invalid: $(Get-Content $sigResult -Raw)" }
+          $tampered = Join-Path $env:RUNNER_TEMP 'client-update-tampered.json'
+          (Get-Content deploy/fixtures/client-update-test.json -Raw).Replace('99.0.0','99.0.1') | Set-Content -LiteralPath $tampered -NoNewline -Encoding utf8
+          $tamperedResult = Join-Path $env:RUNNER_TEMP 'tampered-result.json'
+          $bad = Start-Process -FilePath $updater -ArgumentList @('--verify-update-fixture',$tampered,(Resolve-Path 'deploy/fixtures/client-update-test.json.sig').Path,$tamperedResult) -PassThru
+          if (-not $bad.WaitForExit(30000)) { Stop-Process -Id $bad.Id -Force -ErrorAction SilentlyContinue; throw 'tampered update fixture probe timed out after 30s' }
+          if ($bad.ExitCode -eq 0) { throw 'tampered update manifest was accepted' }
+          Write-Host 'windows-independent-update-signature=PASS tamper-rejected=PASS'
+
+      - name: Real Remote V2 Golden isolation
+        if: github.ref_name == 'feature/real-remote-v2-golden' || github.ref_name == 'feature/real-remote-v2-m6-persistent-duplex'
+        shell: pwsh
+        run: |
+          $base = 'd748d4bdcf501c072daf554b23011ecd96a4f1e9'
+          git fetch --no-tags --depth=1 origin $base
+          if ($LASTEXITCODE -ne 0) { throw 'could not fetch Golden base for isolation check' }
+          $changed = @(git diff --name-only "$base" HEAD)
+          if ($LASTEXITCODE -ne 0) { throw 'Golden isolation diff failed' }
+          $allowedPrefixes = @(
+            'client/windows-native/GptOperator.RealRemoteV2/',
+            'docs/real-remote-v2/'
+          )
+          $allowedExact = @(
+            '.github/workflows/windows-native-client.yml',
+            'VERSION',
+            'lib/native-desktop.mjs',
+            'lib/real-remote-input.cjs',
+            'deploy/scripts/selftest-v10-desktop-productization.mjs',
+            'client/windows-native/GptOperator.Client/AgentHost.cs',
+            'device-agent/local-wall.mjs',
+            'device-agent/operator-agent.mjs',
+            'client/windows-native/LightRemote.Updater/Program.cs',
+            'client/windows-native/LightRemote.Updater/UpdateApplier.cs'
+          )
+          $forbidden = @($changed | Where-Object {
+            $path = $_
+            -not (($allowedExact -contains $path) -or ($allowedPrefixes | Where-Object { $path.StartsWith($_) }))
+          })
+          if ($forbidden.Count -gt 0) {
+            $forbidden | ForEach-Object { Write-Host "forbidden-core-change=$_" }
+            throw 'Real Remote V2 changed files outside the explicit M5 broker surface'
+          }
+          Write-Host 'rmv2-golden-core-isolation=PASS m5-broker-whitelist=PASS'
+      - name: Golden Local Wall UI and pairing regression
+        shell: pwsh
+        run: |
+          $wall = Get-Content 'device-agent/local-wall.mjs' -Raw
+          $required = @(
+            "materialIcon('settings')",
+            'toastHost',
+            'function notify',
+            'confirmOverlay',
+            'sessionActions',
+            '/api/session-close',
+            '#refreshA.spinning',
+            'Agent instructions - execute immediately:',
+            'Use the connected official Light Remote plugin directly.',
+            'light_remote_connection_helper immediately with this A code.',
+            'same Local Wall /approve',
+            'Keep continuation, session capabilities, and internal identifiers private.'
+          )
+          foreach ($needle in $required) {
+            if (-not $wall.Contains($needle)) { throw "Golden Local Wall regression: missing $needle" }
+          }
+          if ($wall.Contains("settingsLink=document.createElement('a')")) { throw 'Golden Local Wall regression: degraded Settings fallback returned' }
+          Write-Host 'golden-local-wall-ui=PASS pairing-fast-path=PASS'
+
+      - name: RM V2 push live lane contract
+        shell: pwsh
+        run: |
+          $native = Get-Content 'lib/native-desktop.mjs' -Raw
+          $agent = Get-Content 'device-agent/operator-agent.mjs' -Raw
+          $nativeRequired = @('onEvent(listener)','closeIfIdle(){','retain(){','_emitEvent(message)',"eventName:'robot.closed'")
+          $agentRequired = @("if(op==='live-open')","if(op==='live-close')","'desktop-live-push'","name!=='semantic.changed'&&name!=='browser.semantic.changed'","name==='robot.closed'",'eventDriven:true','NATIVE_DESKTOP.retain()','NATIVE_DESKTOP.closeIfIdle()')
+          foreach ($needle in $nativeRequired) { if (-not $native.Contains($needle)) { throw "RM V2 live push regression: native missing $needle" } }
+          foreach ($needle in $agentRequired) { if (-not $agent.Contains($needle)) { throw "RM V2 live push regression: agent missing $needle" } }
+          if ($agent.Contains('REAL_REMOTE_LIVE_POLL_MS')) { throw 'RM V2 live push regression: polling loop returned' }
+          Write-Host 'rmv2-live-push-contract=PASS polling=ABSENT'
+          node deploy/scripts/selftest-v10-desktop-productization.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'RM V2 guarded input contract failed' }
+          node deploy/scripts/selftest-rmv2-visual-lease-recovery.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'RM V2 native visual session recovery regression failed' }
+          node deploy/scripts/selftest-gold-client-core-imports.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Gold Client Core recovery module import missing' }
+
+      - name: Publish isolated Real Remote V2 companion
+        shell: pwsh
+        run: |
+          $out = Join-Path $PWD 'dist\realremote-v2'
+          dotnet publish client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj -c Release -r win-x64 --self-contained true -o $out
+          if ($LASTEXITCODE -ne 0) { throw 'Real Remote V2 publish failed' }
+          $exe = Join-Path $out 'LightRemote.RM.exe'
+          if (-not (Test-Path $exe)) { throw 'Real Remote V2 executable missing' }
+          "RMV2_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Real Remote V2 self test
+        shell: pwsh
+        run: |
+          $result = Join-Path $env:RUNNER_TEMP 'rmv2-selftest.json'
+          Remove-Item $result -Force -ErrorAction SilentlyContinue
+          $self = Start-Process -FilePath $env:RMV2_EXE -ArgumentList @('--self-test-output',$result) -PassThru
+          if (-not $self.WaitForExit(10000)) {
+            Stop-Process -Id $self.Id -Force -ErrorAction SilentlyContinue
+            throw 'Real Remote V2 self test timed out'
+          }
+          if (Test-Path $result) { Get-Content $result -Raw | Write-Host }
+          if ($self.ExitCode -ne 0) { throw "Real Remote V2 self test failed exit=$($self.ExitCode)" }
+          if (-not (Test-Path $result)) { throw 'Real Remote V2 self test result missing' }
+          $json = Get-Content $result -Raw | ConvertFrom-Json
+          if (-not $json.ok -or $json.runtime -ne 'real-remote-v2-companion') { throw "invalid self test: $(Get-Content $result -Raw)" }
+
+      - name: Real Remote V2 full duplex lifecycle
+        shell: pwsh
+        run: |
+          $pipeName = "lightremote-rmv2-ci-$PID"
+          $p = Start-Process -FilePath $env:RMV2_EXE -ArgumentList @('--pipe',$pipeName) -PassThru
+          try {
+            $pipe = [System.IO.Pipes.NamedPipeClientStream]::new('.', $pipeName, [System.IO.Pipes.PipeDirection]::InOut)
+            $pipe.Connect(8000)
+            $reader = [IO.StreamReader]::new($pipe)
+            $writer = [IO.StreamWriter]::new($pipe)
+            $writer.AutoFlush = $true
+            function Read-Response([string]$id) {
+              for ($i = 0; $i -lt 50; $i++) {
+                $row = $reader.ReadLine() | ConvertFrom-Json
+                if ($row.type -eq 'response' -and $row.id -eq $id) { return $row }
+              }
+              throw "response not found: $id"
+            }
+            $ready = $reader.ReadLine() | ConvertFrom-Json
+            if ($ready.type -ne 'event' -or $ready.eventName -ne 'robot.ready') { throw 'robot.ready missing' }
+            $writer.WriteLine('{"id":"ci-ping","op":"ping"}')
+            $ping = Read-Response "ci-ping"
+            if (-not $ping.ok -or -not $ping.data.pong) { throw 'pipe ping failed' }
+            $writer.WriteLine('{"id":"ci-status","op":"status"}')
+            $status = Read-Response "ci-status"
+            if (-not $status.ok -or $status.data.runtime -ne 'real-remote-v2') { throw 'pipe status failed' }
+            $writer.WriteLine('{"id":"ci-close","op":"session.close"}')
+            $close = Read-Response "ci-close"
+            if (-not $close.ok -or -not $close.data.closing) { throw 'session close failed' }
+            $writer.Dispose(); $reader.Dispose(); $pipe.Dispose()
+            if (-not $p.WaitForExit(8000)) { throw 'companion did not exit after session close' }
+            Write-Host 'rmv2-full-duplex-lifecycle=PASS'
+          }
+          finally {
+            if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
+          }
+
+      - name: Stage Real Remote V2 lazy companion
+        shell: pwsh
+        run: |
+          $stage = Join-Path $PWD 'dist\windows\stage'
+          $dest = Join-Path $stage 'realremote-v2'
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Copy-Item (Join-Path (Split-Path $env:RMV2_EXE -Parent) '*') $dest -Recurse -Force
+          $stageExe = Join-Path $dest 'LightRemote.RM.exe'
+          if (-not (Test-Path $stageExe)) { throw 'staged RM V2 companion missing' }
+          "RMV2_STAGE_EXE=$stageExe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "rmv2-lazy-stage=PASS bytes=$((Get-Item $stageExe).Length)"
+
+      - name: Real Remote V2 lazy broker smoke
+        shell: pwsh
+        run: |
+          $env:LIGHT_REMOTE_REAL_REMOTE = '1'
+          $env:LIGHT_REMOTE_CLIENT_EXE = $env:RMV2_STAGE_EXE
+          $env:LIGHT_REMOTE_RMV2_IDLE_MS = '1200'
+          if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'RM V2 process exists before first broker request' }
+          $probe = Join-Path $PWD '.rmv2-broker-smoke.mjs'
+          @'
+          import {NativeDesktopBridge,realRemoteAvailable} from './lib/native-desktop.mjs';
+          if(!realRemoteAvailable()) throw new Error('rmv2_not_available');
+          const bridge=new NativeDesktopBridge({idleMs:1200,timeoutMs:8000});
+          if(bridge.running) throw new Error('rmv2_spawned_before_request');
+          await new Promise(r=>setTimeout(r,150));
+          if(bridge.running) throw new Error('rmv2_spawned_while_idle');
+          const status=await bridge.request('status',{},{timeoutMs:8000});
+          if(status?.runtime!=='real-remote-v2') throw new Error('rmv2_status_invalid');
+          if(!bridge.running) throw new Error('rmv2_not_running_after_request');
+          await new Promise(r=>setTimeout(r,2800));
+          if(bridge.running) throw new Error('rmv2_idle_shutdown_failed');
+          '@ | Set-Content -LiteralPath $probe -Encoding utf8
+          try { node $probe } finally { Remove-Item $probe -Force -ErrorAction SilentlyContinue }
+          Start-Sleep -Milliseconds 500
+          if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'RM V2 process survived broker idle shutdown' }
+          Write-Host 'rmv2-lazy-broker=PASS idle-zero=PASS on-demand-spawn=PASS idle-shutdown=PASS'
+
+      - name: Real Remote V2 push bridge smoke
+        shell: pwsh
+        run: |
+          $env:LIGHT_REMOTE_REAL_REMOTE = '1'
+          $env:LIGHT_REMOTE_CLIENT_EXE = $env:RMV2_STAGE_EXE
+          $env:LIGHT_REMOTE_RMV2_IDLE_MS = '1200'
+          if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'RM V2 process exists before push bridge smoke' }
+          $probe = Join-Path $PWD '.rmv2-push-bridge-smoke.mjs'
+          @'
+          import {NativeDesktopBridge} from './lib/native-desktop.mjs';
+          const bridge=new NativeDesktopBridge({idleMs:1200,timeoutMs:8000});
+          const seen=[];const off=bridge.onEvent(e=>seen.push(String(e?.eventName||'')));
+          try{
+            const status=await bridge.request('status',{},{timeoutMs:8000});
+            if(status?.runtime!=='real-remote-v2') throw new Error('rmv2_push_status_invalid');
+            if(!seen.includes('robot.ready')) throw new Error('rmv2_event_forward_failed');
+            const release=bridge.retain();
+            await new Promise(r=>setTimeout(r,2500));
+            if(!bridge.running) throw new Error('rmv2_retain_failed');
+            release();
+            if(!bridge.closeIfIdle()) throw new Error('rmv2_close_if_idle_rejected');
+            if(bridge.running) throw new Error('rmv2_close_if_idle_failed');
+          }finally{off();bridge.close();}
+          '@ | Set-Content -LiteralPath $probe -Encoding utf8
+          try { node $probe } finally { Remove-Item $probe -Force -ErrorAction SilentlyContinue }
+          Start-Sleep -Milliseconds 500
+          if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'RM V2 process survived push bridge smoke' }
+          Write-Host 'rmv2-push-bridge=PASS event-forward=PASS retain=PASS close-if-idle=PASS'
+      - name: Upload Real Remote V2 companion
+        if: github.ref_name == 'feature/real-remote-v2-golden' || github.ref_name == 'feature/real-remote-v2-m6-persistent-duplex'
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-remote-v2-golden-${{ github.sha }}
+          path: dist/realremote-v2/
+          retention-days: 14
+
+      # Portable UAT: self-contained RM companion without installer,
+      # Local Wall registration, Scheduled Tasks or production overwrite.
+      - name: Upload isolated Windows RM V2 UAT executable
+        if: github.ref_name == 'codex/rc48-candidate' || github.ref_name == 'codex/rc48-windows-cursor-lease' || github.ref_name == 'codex/rc48-windows-visual-typing-paint' || github.ref_name == 'codex/rc48-windows-passive-preview' || github.ref_name == 'codex/rc48-windows-centered-tricolor-glow' || github.ref_name == 'codex/rc48-restore-approved-arrow' || github.ref_name == 'codex/rc48-black-arrow-correct' || github.ref_name == 'codex/rc48-pointer-silhouette-glow' || github.ref_name == 'codex/rc48-arrow-halo-parity' || github.ref_name == 'codex/rc48-arrow-current-previous-glow'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rmv2-windows-uat-${{ github.sha }}
+          path: dist/realremote-v2/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Build and stage Desktop V4 in the SAME full Agent/Wall/RM installation
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        timeout-minutes: 35
+        shell: pwsh
+        env:
+          VITE_LR_V4_UI_TEST: '0'
+          VITE_LR_V4_OWNER_LOGIN: '1'
+          VITE_LR_V4_NATIVE_WINDOWS: '1'
+          VITE_LR_V4_ABV2_NATIVE: '1'
+          VITE_LR_V4_OWNER_SNAPSHOT: '1'
+          VITE_LR_V4_WALL_SSO_CANDIDATE: '0'
+        run: |
+          Push-Location client/desktop-v4
+          try {
+            npm ci --no-audit --no-fund
+            if ($LASTEXITCODE -ne 0) { throw 'V4 frontend npm ci failed' }
+            npm run build
+            if ($LASTEXITCODE -ne 0) { throw 'V4 production frontend failed' }
+            npm test
+            if ($LASTEXITCODE -ne 0) { throw 'V4 Owner UI+API contract tests failed' }
+            node e2e/tauri-production-packaging-contract.mjs
+            if ($LASTEXITCODE -ne 0) { throw 'V4 native packaging contract failed' }
+            npm exec -- tauri build --no-bundle --features desktop-owner-login --ci
+            if ($LASTEXITCODE -ne 0) { throw 'V4 Tauri Owner + A/B + Local Wall native build failed' }
+          } finally { Pop-Location }
+          node --test device-agent/desktop-abv2-native-ipc-v4.test.mjs device-agent/desktop-wall-sso-native-ipc-v4.test.mjs plugin-server/desktop-owner-token-v4.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Complete bundle same-host Agent A/B / Owner source tests failed' }
+          $source=Join-Path $PWD 'client/desktop-v4/src-tauri/target/release/light-remote-desktop-v4-pilot.exe'
+          if (-not (Test-Path -LiteralPath $source)) { throw "V4 native executable missing: $source" }
+          $dest=Join-Path $PWD 'dist/windows/stage/desktop-v4'
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          $target=Join-Path $dest 'LightRemote.Desktop.exe'
+          Copy-Item -LiteralPath $source -Destination $target -Force
+          $bytes=(Get-Item -LiteralPath $target).Length
+          if ($bytes -lt 1000000) { throw "V4 Desktop executable suspiciously small: $bytes" }
+          $agent=Join-Path $PWD 'dist/windows/stage/agent/device-agent/desktop-abv2-native-ipc-v4.mjs'
+          $rm=Join-Path $PWD 'dist/windows/stage/realremote-v2/LightRemote.RM.exe'
+          foreach($required in @($agent,$rm)) { if (-not(Test-Path $required)) { throw "Same-installer A/B or RM missing: $required" } }
+          Write-Host "windows-unified-stage=PASS v4=$bytes Agent_ABV2=PASS Local_Wall=in_agent RM=PASS"
+          "WINDOWS_V4_DESKTOP=$target" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup install failed' }
+          }
+          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Build per-user installer
+        shell: pwsh
+        run: |
+          $stage = (Resolve-Path 'dist\windows\stage').Path
+          $out = Join-Path $PWD 'dist\windows\installer'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $version = (Get-Content VERSION -Raw).Trim()
+          $defines=@("/DStageDir=$stage","/DOutputDir=$out","/DAppVersion=$version","/DWatchdogExe=$env:WINDOWS_INSTALL_WATCHDOG")
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            if (-not (Test-Path 'dist/windows/stage/desktop-v4/LightRemote.Desktop.exe')) {
+              throw 'Complete installer cannot be built without staged Desktop V4'
+            }
+            $defines+= '/DUnifiedDesktopV4=1'
+          }
+          & $env:ISCC @defines client/windows-native/installer/GptOperator.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
+          $installer = Join-Path $out 'Light-Remote-MCP-Setup-x64.exe'
+          if (-not (Test-Path $installer)) { throw 'installer missing' }
+          $installerBytes=(Get-Item $installer).Length
+          Write-Host "windows-size-installer-bytes=$installerBytes"
+          "WINDOWS_INSTALLER=$installer" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build compact web installer
+        if: github.ref_name != 'feat/desktop-v4-api-integration-20261103'
+        shell: pwsh
+        run: |
+          $stage = (Resolve-Path 'dist\windows\stage').Path
+          $out = Join-Path $PWD 'dist\windows\installer'
+          $version = (Get-Content VERSION -Raw).Trim()
+          $compact = & client/windows-native/installer/build-compact.ps1 -StageDir $stage -OutputDir $out -AppVersion $version -Iscc $env:ISCC -WatchdogExe $env:WINDOWS_INSTALL_WATCHDOG | Select-Object -Last 1
+          if (-not (Test-Path $compact)) { throw "compact installer missing: $compact" }
+          $compactBytes=(Get-Item $compact).Length
+          $fullBytes=(Get-Item $env:WINDOWS_INSTALLER).Length
+          if ($compactBytes -ge $fullBytes) { throw "compact installer is not smaller: compact=$compactBytes full=$fullBytes" }
+          Write-Host "windows-compact-vs-full-bytes=$compactBytes/$fullBytes"
+          "WINDOWS_COMPACT_INSTALLER=$compact" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Native WinForms Tray popup visual snapshots and bounds (DPI-safe)
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'dist\windows\stage\GptOperator.Client.exe'
+          $base = Join-Path $env:RUNNER_TEMP 'light-remote-v3-preview'
+          $p = Start-Process -FilePath $exe -ArgumentList @('--tray-ui-preview',$base) -PassThru
+          if (-not $p.WaitForExit(30000)) {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            throw 'Native Tray visual preview timeout'
+          }
+          if ($p.ExitCode -ne 0) { throw "Native Tray bounds/visual preview failed: exit=$($p.ExitCode)" }
+          New-Item -ItemType Directory -Force -Path 'dist\windows\ui-previews' | Out-Null
+          foreach ($mode in @('overview','advanced')) {
+            $file = "$base-$mode.png"
+            if (-not (Test-Path $file) -or (Get-Item $file).Length -lt 200) {
+              throw "Native Tray WinForms screenshot missing/invalid: $mode"
+            }
+            $bitmap = [System.Drawing.Bitmap]::new($file)
+            try {
+              if ($bitmap.Width -ne 500 -or $bitmap.Height -ne 740) {
+                throw "Native Tray screenshot has wrong dimensions ($($bitmap.Width)x$($bitmap.Height)): $mode"
+              }
+              $colors = [System.Collections.Generic.HashSet[int]]::new()
+              for ($y = 10; $y -lt $bitmap.Height; $y += 11) {
+                for ($x = 10; $x -lt $bitmap.Width; $x += 11) {
+                  [void]$colors.Add($bitmap.GetPixel($x,$y).ToArgb())
+                }
+              }
+              Write-Host "tray-real-winforms-preview=$mode bytes=$((Get-Item $file).Length) unique-sampled-colors=$($colors.Count) dimensions=$($bitmap.Width)x$($bitmap.Height)"
+              if ($colors.Count -lt 8) {
+                throw "Tray DrawToBitmap was blank/underdrawn: $mode unique=$($colors.Count)"
+              }
+            } finally { $bitmap.Dispose() }
+            Copy-Item $file 'dist\windows\ui-previews'
+          }
+          Write-Host 'windows-tray-native-preview-dimensions-pixel-diversity-bounds=PASS'
+      - name: Upload native UI preview images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-windows-ui-preview-${{ github.sha }}
+          path: dist/windows/ui-previews/*.png
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Install tray, background agent and updater tasks
+        timeout-minutes: 4
+        shell: pwsh
+        run: |
+          $legacyName = 'GPTOperatorDeviceAgent'
+          $legacyRoot = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent'
+          $legacyRuntime = Join-Path $legacyRoot 'runtime'
+          $legacyNode = Join-Path $legacyRuntime 'node.exe'
+          New-Item -ItemType Directory -Force -Path $legacyRuntime | Out-Null
+          Copy-Item (Get-Command node).Source $legacyNode -Force
+          $legacyAction = New-ScheduledTaskAction -Execute $legacyNode -Argument '-e "setInterval(()=>{},1000)"' -WorkingDirectory $legacyRoot
+          $legacyTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddHours(1)
+          $legacyPrincipal = New-ScheduledTaskPrincipal -UserId ([System.Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
+          Register-ScheduledTask -TaskName $legacyName -Action $legacyAction -Trigger $legacyTrigger -Principal $legacyPrincipal -Force | Out-Null
+          Start-ScheduledTask -TaskName $legacyName
+          $legacyNodeFull = [IO.Path]::GetFullPath($legacyNode)
+          $legacyBefore = @()
+          for ($i = 0; $i -lt 40 -and -not $legacyBefore; $i++) {
+            Start-Sleep -Milliseconds 250
+            $legacyBefore = @(Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { try { [IO.Path]::GetFullPath($_.Path) -eq $legacyNodeFull } catch { $false } })
+          }
+          if (-not $legacyBefore) {
+            $task = Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue
+            $info = Get-ScheduledTaskInfo -TaskName $legacyName -ErrorAction SilentlyContinue
+            Write-Host "legacy-fixture-task-state=$($task.State) last-result=$($info.LastTaskResult) last-run=$($info.LastRunTime)"
+            throw 'legacy Node fixture failed to start within 10s'
+          }
+          Write-Host "legacy-node-fixture-start=PASS pid=$($legacyBefore[0].Id)"
+
+          $installDir = Join-Path $env:RUNNER_TEMP 'GPT Operator Installed'
+          $setupLog = Join-Path $env:RUNNER_TEMP 'light-remote-full-install.log'
+          $dirArg = '/DIR="' + $installDir + '"'
+          $logArg = '/LOG="' + $setupLog + '"'
+          $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg,$logArg)
+          Write-Host "windows-native-install-start dir=$installDir log=$setupLog"
+          $p = Start-Process -FilePath $env:WINDOWS_INSTALLER -ArgumentList $args -PassThru
+          if (-not $p.WaitForExit(120000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'installer timed out after 120s' }
+          if ($p.ExitCode -ne 0) {
+            Write-Host '=== installer failure diagnostics ==='
+            if (Test-Path $setupLog) { Get-Content $setupLog -Tail 220 | ForEach-Object { Write-Host $_ } }
+            $txnRoot = Join-Path $env:WINDOWS_TEST_UPDATER_ROOT 'state\installer-txn'
+            if (Test-Path $txnRoot) {
+              Get-ChildItem $txnRoot -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -in @('watchdog.log','watchdog-task.xml') } | ForEach-Object {
+                Write-Host ("--- " + $_.FullName + " ---")
+                Get-Content $_.FullName -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+              }
+            }
+            throw "installer exit=$($p.ExitCode)"
+          }
+          if (Get-ScheduledTask -TaskName $legacyName -ErrorAction SilentlyContinue) { throw 'legacy scheduled task survived native install' }
+          $legacyAfter = @(Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { try { [IO.Path]::GetFullPath($_.Path) -eq $legacyNodeFull } catch { $false } })
+          if ($legacyAfter) { throw 'legacy Node runtime survived native install' }
+          Remove-Item $legacyRoot -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host 'windows-legacy-agent-cleanup=PASS'
+          $installedNpmCli = Join-Path $installDir 'runtime\node_modules\npm\bin\npm-cli.js'
+          $installedNode = Join-Path $installDir 'runtime\node.exe'
+          if (-not (Test-Path $installedNpmCli)) { throw 'Optional Codex npm runtime missing from installed Windows client' }
+          & $installedNode $installedNpmCli --version
+          if ($LASTEXITCODE -ne 0) { throw 'Installed optional Codex npm bootstrap cannot execute' }
+          Write-Host 'gold-codex-managed-npm-installed-roundtrip=PASS'
+          $exe = Join-Path $installDir 'GptOperator.Client.exe'
+          if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
+          $rmv2Installed = Join-Path $installDir 'realremote-v2\LightRemote.RM.exe'
+          if (-not (Test-Path $rmv2Installed)) { throw "installed RM V2 companion missing: $rmv2Installed" }
+          if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'installed RM V2 companion spawned while Core was idle' }
+          Write-Host 'windows-rmv2-installed-idle-zero=PASS'
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            $desktop = Join-Path $installDir 'desktop-v4\LightRemote.Desktop.exe'
+            $agentAbv2 = Join-Path $installDir 'agent\device-agent\desktop-abv2-native-ipc-v4.mjs'
+            $wallSource = Join-Path $installDir 'agent\device-agent\local-wall.mjs'
+            foreach ($component in @($desktop,$agentAbv2,$wallSource,$rmv2Installed,$installedNode,$exe)) {
+              if (-not (Test-Path -LiteralPath $component)) { throw "Complete V4 installer missing: $component" }
+            }
+            $size=(Get-Item $desktop).Length
+            if ($size -lt 1000000) { throw "Installed V4 executable unexpectedly small: $size" }
+            $launched = Start-Process -FilePath $desktop -PassThru
+            try {
+              Start-Sleep -Seconds 3
+              $launched.Refresh()
+              if ($launched.HasExited) { throw "Unified Desktop V4 exited on launch: $($launched.ExitCode)" }
+              $wallResponse=Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:5491/' -TimeoutSec 7
+              if ($wallResponse.StatusCode -ne 200) { throw 'Installed Agent Local Wall failed HTTP 200' }
+              Write-Host "windows-unified-complete-install-and-launch=PASS v4=$size agent=PASS wall=HTTP200 rm=PASS owner-native=COMPILED"
+            } finally {
+              Stop-Process -Id $launched.Id -Force -ErrorAction SilentlyContinue
+            }
+          }
+          & (Join-Path $installDir 'runtime\node.exe') deploy/scripts/selftest-packaged-local-wall.mjs (Join-Path $installDir 'agent')
+          if ($LASTEXITCODE -ne 0) { throw 'installed full Windows Local Wall package missing icons or failed HTTP page checks' }
+          Write-Host 'windows-full-installed-wall-assets=PASS'
+          foreach ($notice in @('LICENSE','NOTICE','THIRD_PARTY_DISTRIBUTION_NOTICES.md','licenses\node\LICENSE','licenses\dotnet\LICENSE.txt','licenses\dotnet\ThirdPartyNotices.txt','THIRD_PARTY_NOTICES.txt')) {
+            $noticePath = Join-Path $installDir $notice
+            if (-not (Test-Path $noticePath) -or (Get-Item $noticePath).Length -lt 100) { throw "installed notice missing/empty: $notice" }
+          }
+          Write-Host 'windows-installed-runtime-notices=PASS'
+          $version = (Get-Content VERSION -Raw).Trim()
+          $updaterRoot = $env:WINDOWS_TEST_UPDATER_ROOT
+          $updaterExe = Join-Path $updaterRoot 'LightRemote.Updater.exe'
+          if (-not (Test-Path $updaterExe)) { throw "independent updater missing: $updaterExe" }
+          $rollback = Join-Path $updaterRoot ("rollback\Light-Remote-MCP-Setup-$version-x64.exe")
+          if (-not (Test-Path $rollback)) {
+            Write-Host '=== rollback cache diagnostics ==='
+            $installDiag = Join-Path $env:LOCALAPPDATA 'LightRemoteMCP\install-windows-task.log'
+            if (Test-Path $installDiag) { Write-Host '--- install-windows-task.log ---'; Get-Content $installDiag | ForEach-Object { Write-Host $_ } } else { Write-Host "install task diag missing: $installDiag" }
+            if (Test-Path $setupLog) { Write-Host '--- setup log tail ---'; Get-Content $setupLog -Tail 180 | ForEach-Object { Write-Host $_ } }
+            $txnRoot = Join-Path $updaterRoot 'state\installer-txn'
+            if (Test-Path $txnRoot) { Get-ChildItem $txnRoot -Recurse -Filter 'watchdog.log' -File | ForEach-Object { Write-Host ("--- watchdog " + $_.FullName + " ---"); Get-Content $_.FullName | ForEach-Object { Write-Host $_ } } }
+            if (Test-Path $setupLog) {
+              Select-String -Path $setupLog -Pattern 'rollback-cache|install-transaction|watchdog|RunAgentInstallTransaction' -CaseSensitive:$false | ForEach-Object { Write-Host $_.Line }
+            } else { Write-Host "setup log missing: $setupLog" }
+            if (Test-Path $updaterRoot) { Get-ChildItem $updaterRoot -Recurse -Force | ForEach-Object { Write-Host ("UPDATER_TREE " + $_.FullName) } } else { Write-Host "updater root missing: $updaterRoot" }
+            throw "rollback installer cache missing: $rollback"
+          }
+          "WINDOWS_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "WINDOWS_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "WINDOWS_ROLLBACK=$rollback" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "WINDOWS_UPDATER=$updaterExe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $agentTask = Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction Stop
+          $updateTask = Get-ScheduledTask -TaskName 'LightRemoteUpdater' -ErrorAction Stop
+          Start-Sleep -Milliseconds 800
+          $agentInfo = Get-ScheduledTaskInfo -TaskName 'LightRemoteDeviceAgent'
+          if ($agentTask.State -ne 'Running') { throw "LightRemoteDeviceAgent not running: $($agentTask.State) result=$($agentInfo.LastTaskResult)" }
+          if ($updateTask.TaskName -ne 'LightRemoteUpdater') { throw 'LightRemoteUpdater missing' }
+          $updateAction = @($updateTask.Actions)[0]
+          if ([IO.Path]::GetFullPath($updateAction.Execute) -ne [IO.Path]::GetFullPath($updaterExe)) { throw "updater task is not independent: $($updateAction.Execute)" }
+          if ($updateAction.Arguments -notmatch '--scheduled-update' -or $updateAction.Arguments -notmatch '--install-dir') { throw "updater task arguments invalid: $($updateAction.Arguments)" }
+          if ([IO.Path]::GetFullPath($updaterExe).StartsWith([IO.Path]::GetFullPath($installDir), [StringComparison]::OrdinalIgnoreCase)) { throw 'updater executable lives inside replaceable app tree' }
+          $agentAction = @($agentTask.Actions)[0]
+          if ([IO.Path]::GetFileName($agentAction.Execute) -ne 'GptOperator.Client.exe') { throw "agent task must use hidden native host, got $($agentAction.Execute)" }
+          if ($agentAction.Arguments -notmatch '--agent-host') { throw "agent task missing --agent-host: $($agentAction.Arguments)" }
+          if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'Local Wall 5491 not listening after install' }
+          $runtimeNode = Join-Path $installDir 'runtime\node.exe'
+          $agentNodes = @(Get-Process node -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $runtimeNode })
+          if (-not $agentNodes) { throw 'hidden agent node process missing' }
+          if ($agentNodes | Where-Object { $_.MainWindowHandle -ne 0 }) { throw 'agent node unexpectedly owns a visible console window' }
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            $desktop = Join-Path $installDir 'desktop-v4\LightRemote.Desktop.exe'
+            $original = Start-Process -FilePath $desktop -PassThru
+            Start-Sleep -Seconds 2
+            $duplicate = Start-Process -FilePath $desktop -PassThru
+            if (-not $duplicate.WaitForExit(15000)) {
+              Stop-Process -Id $duplicate.Id -Force -ErrorAction SilentlyContinue
+              throw 'second Desktop V4 instance did not exit after focusing existing window'
+            }
+            $original.Refresh()
+            if ($original.HasExited) { throw 'existing unified Desktop died during second launch' }
+            Write-Host 'windows-unified-desktop-single-instance=PASS'
+            Stop-Process -Id $original.Id -Force
+            Start-Sleep -Milliseconds 600
+            if ((Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent').State -ne 'Running') { throw 'exiting unified app stopped Agent background task' }
+            if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'exiting unified app stopped Wall' }
+            $relaunched = Start-Process -FilePath $desktop -PassThru
+            Start-Sleep -Milliseconds 1200
+            $relaunched.Refresh()
+            if ($relaunched.HasExited) { throw 'Windows shortcut target cannot relaunch unified app' }
+            Stop-Process -Id $relaunched.Id -Force
+            Write-Host 'windows-unified-tray-owner-and-shortcut-relaunch=PASS'
+          } else {
+            $trayProbe = Start-Process -FilePath $exe -PassThru
+            Start-Sleep -Milliseconds 900
+            Stop-Process -Id $trayProbe.Id -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 500
+            if ((Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent').State -ne 'Running') { throw 'closing tray stopped background agent task' }
+            if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'closing tray stopped Local Wall 5491' }
+            $relaunchedTray = Start-Process -FilePath $exe -ArgumentList @('--launch') -PassThru
+            Start-Sleep -Milliseconds 1200
+            if ($relaunchedTray.HasExited) { throw 'desktop launcher did not restore the tray process' }
+          }
+          if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'launcher disturbed Local Wall 5491' }
+          Write-Host 'windows-agent-hidden-console=PASS'
+          Write-Host 'windows-tray-exit-agent-survival=PASS'
+          Write-Host 'windows-tray-relaunch=PASS'
+          Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
+          $taskStopDeadline = (Get-Date).AddSeconds(10)
+          do {
+            $agentTaskState = (Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction Stop).State
+            if ($agentTaskState -ne 'Running') { break }
+            Start-Sleep -Milliseconds 250
+          } while ((Get-Date) -lt $taskStopDeadline)
+          if ($agentTaskState -eq 'Running') { throw 'agent scheduled task did not stop for updater independence probe' }
+          Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+          $agentExitDeadline = (Get-Date).AddSeconds(10)
+          do {
+            $runtimeStillRunning = @(Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } })
+            if (-not $runtimeStillRunning) { break }
+            Start-Sleep -Milliseconds 250
+          } while ((Get-Date) -lt $agentExitDeadline)
+          if ($runtimeStillRunning) { throw 'app runtime did not quiesce for updater independence probe' }
+          $heldExe = "$exe.app-held"
+          Move-Item $exe $heldExe -Force
+          try {
+            $recoveryResult = Join-Path $env:RUNNER_TEMP 'updater-app-missing-selftest.json'
+            $recovery = Start-Process -FilePath $updaterExe -ArgumentList @('--self-test-output',$recoveryResult,$installDir) -PassThru -Wait
+            if ($recovery.ExitCode -ne 0) { throw "updater failed while app executable missing exit=$($recovery.ExitCode)" }
+            $recoveryJson = Get-Content $recoveryResult -Raw | ConvertFrom-Json
+            if (-not $recoveryJson.ok -or -not $recoveryJson.updaterOutsideApp) { throw "updater recovery self-test invalid: $(Get-Content $recoveryResult -Raw)" }
+            Write-Host 'windows-updater-survives-app-missing=PASS'
+          } finally { Move-Item $heldExe $exe -Force }
+          Start-ScheduledTask -TaskName 'LightRemoteDeviceAgent'
+          Start-Sleep -Milliseconds 700
+          if ((Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent').State -ne 'Running') { throw 'agent did not restart after updater independence probe' }
+          Write-Host 'windows-background-agent-task=PASS'
+          Write-Host 'windows-independent-updater-task=PASS'
+          Write-Host 'windows-native-legacy-task-migration=PASS'
+
+      - name: Installed tray client self-test
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          $result = Join-Path $env:RUNNER_TEMP 'installed-selftest.json'
+          Write-Host 'windows-native-installed-selftest=start'
+          $p = Start-Process -FilePath $env:WINDOWS_INSTALLED_EXE -ArgumentList @('--self-test-output',$result) -PassThru
+          if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'installed client self-test timed out after 30s' }
+          if ($p.ExitCode -ne 0) { throw "installed client self-test failed exit=$($p.ExitCode)" }
+          $json = Get-Content $result -Raw | ConvertFrom-Json
+          if (-not $json.ok -or $json.platformAdapter -ne 'win32') { throw "installed client invalid: $(Get-Content $result -Raw)" }
+          if ($json.nativeAbv2Launch -ne 'pass') { throw 'Installed Windows native Owner A/B launch contract failed' }
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            if ($json.targetProfile -ne 'pass') { throw 'Installed Desktop V4 is not an isolated GoldABV2 profile' }
+            $installedProfile=Join-Path $env:WINDOWS_INSTALL_DIR 'agent\device-agent\goldabv2-package-profile.json'
+            if (-not (Test-Path $installedProfile)) { throw 'Installed GoldABV2 Agent package marker missing' }
+            $installedJson=Get-Content $installedProfile -Raw | ConvertFrom-Json
+            if ($installedJson.endpoint -ne 'https://goldabv2.light-remote.thaiduy.digital') {
+              throw 'Installed GoldABV2 Agent points to another backend'
+            }
+            Write-Host 'WINDOWS_INSTALLED_GOLDABV2_PROFILE_AND_ENDPOINT_PASS'
+          }
+          $expectedVersion = (Get-Content VERSION -Raw).Trim()
+          if ($json.agentVersion -ne $expectedVersion) { throw "installed agent version mismatch: $($json.agentVersion) expected=$expectedVersion" }
+          # Verify the actual *installed* Agent, not just the source checkout.
+          # rc.49 alone is insufficient: older installed rc.49 builds predate G3.
+          $agentRoot = Join-Path $env:WINDOWS_INSTALL_DIR 'agent'
+          $agentEntry = Join-Path $agentRoot 'device-agent\operator-agent.mjs'
+          $probeModule = Join-Path $agentRoot 'lib\executor-readiness-probe.mjs'
+          if (-not (Test-Path -LiteralPath $agentEntry -PathType Leaf)) { throw 'installed Agent entrypoint missing' }
+          if (-not (Test-Path -LiteralPath $probeModule -PathType Leaf)) { throw 'installed Agent missing G3 independent Executor probe' }
+          if (-not (Select-String -LiteralPath $agentEntry -SimpleMatch 'ExecutorReadinessProbe' -Quiet)) { throw 'installed Agent does not import G3 Executor probe' }
+          $nodeExe = Join-Path $env:WINDOWS_INSTALL_DIR 'runtime\node.exe'
+          if (-not (Test-Path -LiteralPath $nodeExe -PathType Leaf)) { throw 'installed bundled Node runtime missing' }
+          & $nodeExe --check $agentEntry
+          if ($LASTEXITCODE -ne 0) { throw 'installed G3 Agent syntax verification failed' }
+          & $nodeExe --check $probeModule
+          if ($LASTEXITCODE -ne 0) { throw 'installed G3 process canary module syntax verification failed' }
+          Write-Host 'windows-installed-g3-executor-probe=PASS'
+          Write-Host 'windows-native-installed-selftest=PASS'
+
+      - name: Independent updater staged helper promotion smoke
+        shell: pwsh
+        run: |
+          $source = Get-Content 'client/windows-native/LightRemote.Updater/UpdateApplier.cs' -Raw
+          if ($source.Contains('FinalizeHelperCandidateAsync')) { throw 'legacy in-process helper finalizer returned' }
+          foreach ($needle in @('LaunchHelperPromotionAsync','PromoteHelperStageAsync','helper_promotion_pending')) { if (-not $source.Contains($needle)) { throw "staged helper promoter missing: $needle" } }
+          $installDir = $env:WINDOWS_INSTALL_DIR
+          $candidate = Join-Path $installDir 'helper-candidate'
+          $stage = Join-Path $env:RUNNER_TEMP 'helper-promotion-stage'
+          Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item (Join-Path $candidate '*') $stage -Recurse -Force
+          $stageExe = Join-Path $stage 'LightRemote.Updater.exe'
+          $version = (Get-Content VERSION -Raw).Trim()
+          $parent = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile','-Command','Start-Sleep -Seconds 2') -PassThru
+          $psi = [Diagnostics.ProcessStartInfo]::new($stageExe); $psi.UseShellExecute=$false; $psi.CreateNoWindow=$true
+          foreach ($arg in @('--promote-helper-stage',$stage,$installDir,$parent.Id.ToString(),$version,$version)) { [void]$psi.ArgumentList.Add($arg) }
+          $sw=[Diagnostics.Stopwatch]::StartNew(); $p=[Diagnostics.Process]::Start($psi)
+          if (-not $p.WaitForExit(30000)) { try{$p.Kill()}catch{}; throw 'helper promoter timed out' }
+          $sw.Stop(); if ($p.ExitCode -ne 0) { throw "helper promoter exit=$($p.ExitCode)" }
+          if ($sw.ElapsedMilliseconds -lt 1000) { throw 'helper promoter did not wait for parent exit' }
+          $root = $env:WINDOWS_TEST_UPDATER_ROOT
+          $rootExe = Join-Path $root 'LightRemote.Updater.exe'
+          $health = Join-Path $env:RUNNER_TEMP 'helper-promotion-root-health.json'; Remove-Item $health -Force -ErrorAction SilentlyContinue
+          $hpsi=[Diagnostics.ProcessStartInfo]::new($rootExe);$hpsi.UseShellExecute=$false;$hpsi.CreateNoWindow=$true;foreach($arg in @('--self-test-output',$health,$installDir)){[void]$hpsi.ArgumentList.Add($arg)}
+          $hp=[Diagnostics.Process]::Start($hpsi);if(-not $hp.WaitForExit(15000)){try{$hp.Kill()}catch{};throw 'promoted helper self-test timeout'}
+          $hj=Get-Content $health -Raw|ConvertFrom-Json;if($hp.ExitCode -ne 0 -or -not $hj.ok -or -not $hj.updaterOutsideApp){throw 'promoted helper self-test failed'}
+          $status=Get-Content (Join-Path $root 'state\status.json') -Raw|ConvertFrom-Json;if($status.state -ne 'success'){throw "helper promoter status=$($status.state)"}
+          $log=Get-Content (Join-Path $root 'logs\update.log') -Raw;if($log -notmatch 'helper_promotion_success'){throw 'helper promotion success log missing'}
+          Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host "windows-updater-staged-helper-promotion=PASS wait-ms=$($sw.ElapsedMilliseconds)"
+      - name: Broken update rollback smoke
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          $badInstaller = Join-Path $env:RUNNER_TEMP 'broken-update.exe'
+          Copy-Item (Join-Path $env:SystemRoot 'System32\where.exe') $badInstaller -Force
+          $helper = Join-Path $env:RUNNER_TEMP 'light-remote-update-helper.exe'
+          Copy-Item $env:WINDOWS_UPDATER $helper -Force
+          $updateLog = Join-Path $env:WINDOWS_TEST_UPDATER_ROOT 'logs\update.log'
+          Remove-Item $updateLog -Force -ErrorAction SilentlyContinue
+          Write-Host 'windows-independent-update-rollback=start'
+          $psi = [System.Diagnostics.ProcessStartInfo]::new($helper)
+          $psi.UseShellExecute = $false
+          $psi.CreateNoWindow = $true
+          $psi.ArgumentList.Add('--apply-update')
+          $psi.ArgumentList.Add($badInstaller)
+          $psi.ArgumentList.Add($env:WINDOWS_INSTALL_DIR)
+          $currentVersion = (Get-Content VERSION -Raw).Trim()
+          $psi.ArgumentList.Add($currentVersion)
+          $psi.ArgumentList.Add('0')
+          $psi.ArgumentList.Add('99.0.0')
+          $psi.ArgumentList.Add('ut_cirollback_1234567890')
+          $p = [System.Diagnostics.Process]::Start($psi)
+          if (-not $p.WaitForExit(180000)) {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            if (Test-Path $updateLog) { Get-Content $updateLog -Raw | Write-Host }
+            throw 'rollback helper timed out after 180s'
+          }
+          if (Test-Path $updateLog) { Get-Content $updateLog -Raw | Write-Host }
+          if ($p.ExitCode -ne 0) { throw "rollback helper failed exit=$($p.ExitCode)" }
+          $updateText = Get-Content $updateLog -Raw
+          $expected = 'apply_start current=' + [regex]::Escape($currentVersion)
+          if ($updateText -notmatch $expected) { throw 'rollback helper argv were not preserved' }
+          if ($updateText -notmatch 'rollback_success') { throw 'rollback success marker missing' }
+          if (-not (Test-Path $env:WINDOWS_INSTALLED_EXE)) { throw 'installed client missing after rollback' }
+          Write-Host 'windows-independent-update-rollback=PASS'
+
+      - name: Uninstall native Windows client
+        if: always()
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
+          if ($env:WINDOWS_INSTALL_DIR) {
+            $fullExe = Join-Path $env:WINDOWS_INSTALL_DIR 'GptOperator.Client.exe'
+            $fullNode = Join-Path $env:WINDOWS_INSTALL_DIR 'runtime\node.exe'
+            Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $fullExe -or $_.Path -eq $fullNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+          }
+          Get-Process -Name 'LightRemote.Updater','light-remote-update-helper' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'GPTOperatorDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue
+          if ($env:WINDOWS_INSTALL_DIR) {
+            $unins = Join-Path $env:WINDOWS_INSTALL_DIR 'unins000.exe'
+            if (Test-Path $unins) {
+              $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
+              if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'uninstaller timed out after 60s' }
+              if ($p.ExitCode -ne 0) { throw "uninstaller exit=$($p.ExitCode)" }
+            }
+            $updaterRoot = $env:WINDOWS_TEST_UPDATER_ROOT
+            if (Test-Path $updaterRoot) { throw "updater recovery root survived uninstall: $updaterRoot" }
+            Write-Host 'windows-native-installer-roundtrip=PASS'
+          } else {
+            Write-Host 'windows-native-installer-roundtrip=SKIP install-not-reached'
+          }
+      - name: Install compact web client and verify runtime cache
+        if: github.ref_name != 'feat/desktop-v4-api-integration-20261103'
+        timeout-minutes: 10
+        shell: pwsh
+        run: |
+          $installDir = Join-Path $env:RUNNER_TEMP 'Light Remote Compact Installed'
+          $log1 = Join-Path $env:RUNNER_TEMP 'compact-install-download.log'
+          $dirArg = '/DIR="' + $installDir + '"'
+          $logArg = '/LOG="' + $log1 + '"'
+          $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg,$logArg)
+          $p = Start-Process -FilePath $env:WINDOWS_COMPACT_INSTALLER -ArgumentList $args -PassThru
+          if (-not $p.WaitForExit(240000)) {
+            Write-Host 'compact-install-timeout=diagnostics'
+            if (Test-Path $log1) { Get-Content -LiteralPath $log1 -Tail 150 | Write-Host }
+            $updaterRoot = $env:WINDOWS_TEST_UPDATER_ROOT
+            if (Test-Path $updaterRoot) {
+              Get-ChildItem $updaterRoot -Filter '*.log' -File -Recurse -ErrorAction SilentlyContinue |
+                Select-Object -First 4 | ForEach-Object { Write-Host "diagnostic-log=$($_.FullName)"; Get-Content $_.FullName -Tail 35 | Write-Host }
+            }
+            Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^(Light-Remote|GptOperator|node|powershell)'} |
+              Select-Object Name,ProcessId,ParentProcessId | Format-Table | Out-String | Write-Host
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            throw 'compact installer timed out after 240s (installer and updater diagnostics above)'
+          }
+          if ($p.ExitCode -ne 0) { if(Test-Path $log1){Get-Content $log1 -Raw|Write-Host}; throw "compact installer exit=$($p.ExitCode)" }
+          $node = Join-Path $installDir 'runtime\node.exe'
+          if (-not(Test-Path $node)) { throw 'compact installer did not provision Node runtime' }
+          $nodeVersion = (& $node --version).Trim()
+          if ($nodeVersion -ne 'v22.23.2') { throw "compact Node version mismatch: $nodeVersion" }
+          & $node deploy/scripts/selftest-packaged-local-wall.mjs (Join-Path $installDir 'agent')
+          if ($LASTEXITCODE -ne 0) { throw 'installed compact Windows Local Wall missing icons or failed HTTP page checks' }
+          Write-Host 'windows-compact-installed-wall-assets=PASS'
+          $cache = Join-Path $env:WINDOWS_TEST_UPDATER_ROOT 'runtime-cache\node-v22.23.2-win-x64.zip'
+          if (-not(Test-Path $cache)) { throw "compact Node cache missing: $cache" }
+          $cacheHash=(Get-FileHash $cache -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($cacheHash -ne '1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97') { throw "compact Node cache hash mismatch: $cacheHash" }
+          if ((Get-Content $log1 -Raw) -notmatch 'compact-node-source=download') { throw 'compact first install did not use verified download path' }
+          $log2 = Join-Path $env:RUNNER_TEMP 'compact-install-cache.log'
+          $logArg2 = '/LOG="' + $log2 + '"'
+          $args2 = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg,$logArg2)
+          $p2 = Start-Process -FilePath $env:WINDOWS_COMPACT_INSTALLER -ArgumentList $args2 -PassThru
+          if (-not $p2.WaitForExit(240000)) {
+            Write-Host 'compact-cache-reinstall-timeout=diagnostics'
+            if (Test-Path $log2) { Get-Content -LiteralPath $log2 -Tail 150 | Write-Host }
+            Stop-Process -Id $p2.Id -Force -ErrorAction SilentlyContinue
+            throw 'compact cache reinstall timed out after 240s'
+          }
+          if ($p2.ExitCode -ne 0) { if(Test-Path $log2){Get-Content $log2 -Raw|Write-Host}; throw "compact cache reinstall exit=$($p2.ExitCode)" }
+          if ((Get-Content $log2 -Raw) -notmatch 'compact-node-source=cache') { throw 'compact reinstall did not reuse verified Node cache' }
+          $exe = Join-Path $installDir 'GptOperator.Client.exe'
+          $result = Join-Path $env:RUNNER_TEMP 'compact-installed-selftest.json'
+          $self = Start-Process -FilePath $exe -ArgumentList @('--self-test-output',$result) -PassThru -Wait
+          if ($self.ExitCode -ne 0) { throw "compact installed self-test failed exit=$($self.ExitCode)" }
+          $json=Get-Content $result -Raw|ConvertFrom-Json
+          $expected=(Get-Content VERSION -Raw).Trim()
+          if (-not $json.ok -or $json.agentVersion -ne $expected -or $json.platformAdapter -ne 'win32') { throw "compact installed self-test invalid: $(Get-Content $result -Raw)" }
+          Start-Sleep -Milliseconds 700
+          $compactTask = Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction Stop
+          if ($compactTask.State -ne 'Running') {
+            $compactInfo = Get-ScheduledTaskInfo -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
+            $agentLog = Join-Path $env:LOCALAPPDATA 'GPTOperatorAgent\logs\agent.log'
+            if (Test-Path $agentLog) { Get-Content $agentLog -Tail 80 | Write-Host }
+            throw "compact background agent is not running: state=$($compactTask.State) result=$($compactInfo.LastTaskResult)"
+          }
+          if (-not(Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'compact Local Wall 5491 not listening' }
+          Write-Host 'windows-compact-node-download-verify=PASS'
+          Write-Host 'windows-compact-node-cache-reuse=PASS'
+          Write-Host 'windows-compact-installed-selftest=PASS'
+          "WINDOWS_COMPACT_INSTALL_DIR=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Uninstall compact Windows client
+        if: always() && github.ref_name != 'feat/desktop-v4-api-integration-20261103'
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
+          $compactDir = $env:WINDOWS_COMPACT_INSTALL_DIR
+          if ([string]::IsNullOrWhiteSpace($compactDir)) { $compactDir = Join-Path $env:RUNNER_TEMP 'Light Remote Compact Installed' }
+          $compactExe = Join-Path $compactDir 'GptOperator.Client.exe'
+          $compactNode = Join-Path $compactDir 'runtime\node.exe'
+          Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $compactExe -or $_.Path -eq $compactNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-Process -Name 'LightRemote.Updater' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
+          Unregister-ScheduledTask -TaskName 'LightRemoteUpdater' -Confirm:$false -ErrorAction SilentlyContinue
+          $unins = Join-Path $compactDir 'unins000.exe'
+          if (Test-Path $unins) {
+            $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
+            if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'compact uninstaller timed out after 60s' }
+            if ($p.ExitCode -ne 0) { throw "compact uninstaller exit=$($p.ExitCode)" }
+          }
+          $updaterRoot = $env:WINDOWS_TEST_UPDATER_ROOT
+          if (Test-Path $updaterRoot) { throw "compact updater recovery root survived uninstall: $updaterRoot" }
+          Write-Host 'windows-compact-installer-roundtrip=PASS'
+
+      - name: Hash Windows installers
+        shell: pwsh
+        run: |
+          $fullHash = (Get-FileHash $env:WINDOWS_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sum = Join-Path (Split-Path $env:WINDOWS_INSTALLER -Parent) 'SHA256SUMS.txt'
+          if ($env:GITHUB_REF_NAME -eq 'feat/desktop-v4-api-integration-20261103') {
+            @("$fullHash  Light-Remote-MCP-Setup-x64.exe") | Set-Content -LiteralPath $sum -Encoding ascii
+            Write-Host "windows-complete-desktop-agent-wall-rm-installer-sha256=$fullHash"
+          } else {
+            $compactHash = (Get-FileHash $env:WINDOWS_COMPACT_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
+            @("$fullHash  Light-Remote-MCP-Setup-x64.exe","$compactHash  Light-Remote-MCP-Compact-Setup-x64.exe") | Set-Content -LiteralPath $sum -Encoding ascii
+            Write-Host "windows-native-installer-sha256=$fullHash"
+            Write-Host "windows-compact-installer-sha256=$compactHash"
+          }
+
+      # F16 is an intake/read-only artifact check, NOT Owner/B/physical acceptance.
+      # It runs after installer install/update/rollback/uninstall CI tests and
+      # records the *inner* Setup.exe hash; GitHub artifact ZIP has another hash.
+      - name: F16 verify complete Setup.exe artifact intake (no install)
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        shell: pwsh
+        run: |
+          node --test deploy/scripts/f16-owner-uat-artifact-preflight.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'F16 offline intake negative regression failed' }
+          node deploy/scripts/selftest-t11-f16-owner-uat-source.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'F16 no-install Owner/B scope boundary failed' }
+          $dir = Split-Path $env:WINDOWS_INSTALLER -Parent
+          $sidecar = Join-Path $dir 'SHA256SUMS.txt'
+          $receiptPath = Join-Path $dir 'F16_OWNER_UAT_INTAKE.json'
+          $json = node deploy/scripts/f16-owner-uat-artifact-preflight.mjs --installer $env:WINDOWS_INSTALLER --checksums $sidecar --source-sha $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'F16 installer PE/hash intake rejected' }
+          $receipt = $json | ConvertFrom-Json
+          if ($receipt.sourceShaDeclared -ne $env:GITHUB_SHA -or
+              $receipt.disposition -ne 'artifact_integrity_only_not_physical_acceptance' -or
+              $receipt.physicalWindowsAccepted -ne $false -or
+              $receipt.ownerBApproved -ne $false -or
+              $receipt.authenticodeSignatureVerified -ne $false) {
+            throw 'F16 artifact receipt falsely claims physical, signature or B authority'
+          }
+          [System.IO.File]::WriteAllText($receiptPath, $json, [System.Text.UTF8Encoding]::new($false))
+          Write-Host "F16_OFFLINE_INSTALLER_INTAKE=PASS source=$($receipt.sourceShaDeclared) inner_exe_sha256=$($receipt.installerSha256)"
+          Write-Host 'F16_PHYSICAL_OWNER_B=NOT_TESTED; SIGNED_FEED=HOLD'
+
+      - name: Upload legacy Windows installers (non-V4 branches only)
+        if: github.ref_name != 'feat/desktop-v4-api-integration-20261103'
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-windows-x64-${{ github.sha }}
+          path: |
+            dist/windows/installer/Light-Remote-MCP-Setup-x64.exe
+            dist/windows/installer/Light-Remote-MCP-Compact-Setup-x64.exe
+            dist/windows/installer/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload ONE complete Windows Desktop V4 + Agent + Wall + RM installer
+        if: github.ref_name == 'feat/desktop-v4-api-integration-20261103'
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-desktop-v4-COMPLETE-windows-x64-${{ github.sha }}
+          path: |
+            dist/windows/installer/Light-Remote-MCP-Setup-x64.exe
+            dist/windows/installer/SHA256SUMS.txt
+            dist/windows/installer/F16_OWNER_UAT_INTAKE.json
+          if-no-files-found: error
+          retention-days: 14

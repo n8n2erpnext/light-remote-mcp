@@ -1,0 +1,267 @@
+name: macOS Client Packages
+
+on:
+  push:
+    branches: [main, 'codex/**', 'feature/macos-rm-v2-scp', 'feature/light-remote-gold-rebuild-20261018']
+    tags: ['v0.9.*']
+    paths:
+      - 'VERSION'
+      - 'client/macos/**'
+      - 'client/update-public.pem'
+      - 'device-agent/**'
+      - 'lib/device-proof.mjs'
+      - 'lib/native-fs.mjs'
+      - 'lib/native-desktop.mjs'
+      - 'deploy/scripts/selftest-macos-gui-optin.mjs'
+      - 'deploy/scripts/selftest-macos-robot-settings.mjs'
+      - 'deploy/scripts/selftest-v12-macos-rmv2-bridge.mjs'
+      - 'deploy/scripts/selftest-v12-macos-physical-type-routing.mjs'
+      - 'operator-host/executor.mjs'
+      - 'deploy/scripts/selftest-v12-macos-codex-cursor.mjs'
+      - 'deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs'
+      - 'deploy/scripts/macos-operator-native-*-e2e.mjs'
+      - 'lib/native-process.mjs'
+      - 'lib/native-terminal.mjs'
+      - 'lib/device-duplex-client.mjs'
+      - 'lib/native-search.mjs'
+      - 'lib/light-scp-file.mjs'
+      - 'lib/light-scp-registry.mjs'
+      - 'lib/update-contract.mjs'
+      - 'lib/public-endpoint.mjs'
+      - 'lib/runtime-version.mjs'
+      - 'lib/version-compat.mjs'
+      - 'lib/brand.mjs'
+      - 'lib/update-helper-reconcile.mjs'
+      - 'deploy/scripts/stage-client-core.mjs'
+      - 'deploy/scripts/stage-terminal-runtime.mjs'
+      - 'deploy/scripts/terminal-runtime-smoke.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
+      - 'deploy/scripts/selftest-g3-executor-hang-readiness.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs'
+      - 'deploy/scripts/selftest-g3-executor-readiness-probe.mjs'
+      - 'deploy/scripts/selftest-g3-executor-probe-deadline.mjs'
+      - 'deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs'
+      - 'deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs'
+      - 'deploy/scripts/selftest-g3-agent-daemon-lifecycle.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'client/core-files.json'
+      - 'assets/**'
+      - '.github/workflows/macos-client-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            runner: macos-15-intel
+            node_arch: x64
+            swift_target: x86_64-apple-macos11.0
+            pkg_arch: x86_64
+          - arch: arm64
+            runner: macos-15
+            node_arch: arm64
+            swift_target: arm64-apple-macos11.0
+            pkg_arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build macOS 11+ client package
+        shell: bash
+        env:
+          NODE_VERSION: 22.23.2
+          TARGET_ARCH: ${{ matrix.arch }}
+          NODE_ARCH: ${{ matrix.node_arch }}
+          SWIFT_TARGET: ${{ matrix.swift_target }}
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          OUT="$PWD/dist/macos/$TARGET_ARCH"
+          PKG="$OUT/package"
+          mkdir -p "$PKG/runtime" "$PKG/client/macos" "$PKG/licenses/node" "$PKG/tray" "$PKG/real-remote"
+          NODE_TAR="node-v${NODE_VERSION}-darwin-${NODE_ARCH}.tar.gz"
+          curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt"
+          curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TAR}"
+          grep "  ${NODE_TAR}$" SHASUMS256.txt | shasum -a 256 -c -
+          tar -xzf "$NODE_TAR"
+          install -m 0755 "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/bin/node" "$PKG/runtime/node"
+          cp "node-v${NODE_VERSION}-darwin-${NODE_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"
+          npm ci --ignore-scripts
+          node deploy/scripts/selftest-v12-macos-rmv2-bridge.mjs
+          node deploy/scripts/selftest-v12-macos-physical-type-routing.mjs
+          node deploy/scripts/selftest-v12-macos-codex-cursor.mjs
+          node deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs
+          node deploy/scripts/selftest-macos-gui-optin.mjs
+          node deploy/scripts/selftest-macos-robot-settings.mjs
+          node deploy/scripts/selftest-v10-version-plane-parity.mjs
+          plutil -lint client/macos/real-remote/robot-app/Info.plist
+          bash -n client/macos/real-remote/robot-app/build-robot-app.sh
+          node deploy/scripts/stage-client-core.mjs "$PKG"
+          node deploy/scripts/stage-terminal-runtime.mjs "$PKG" darwin "$TARGET_ARCH"
+          cp client/macos/updater.mjs client/macos/update-lifeboat.mjs "$PKG/client/macos/"
+          cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"
+          xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/tray/main.swift -o "$PKG/tray/LightRemoteTray"
+          xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/launcher/main.swift -o "$PKG/tray/LightRemoteLauncher"
+          xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/real-remote/main.swift client/macos/real-remote/SemanticEngine.swift client/macos/real-remote/RobotCursorMotion.swift client/macos/real-remote/RobotCursorOverlay.swift client/macos/real-remote/DevPermissions.swift -o "$PKG/real-remote/LightRemoteRealRemote"
+          if [[ "$GITHUB_REF" == "refs/heads/feature/macos-rm-v2-scp" ]]; then
+            xcrun swiftc -O -target "$SWIFT_TARGET" client/macos/real-remote/canary/DragCanary.swift -o "$PKG/real-remote/LightRemoteDragCanary"
+          fi
+          chmod 0755 "$PKG/tray/LightRemoteTray" "$PKG/tray/LightRemoteLauncher" "$PKG/real-remote/LightRemoteRealRemote"
+          # Native RM active-indicator identity for bare-helper deployments.
+          # The separate Dev .app embeds its own .icns; production helpers
+          # load the identical RM logo from this adjacent package resource.
+          install -m 0644 client/macos/real-remote/Resources/LightRemoteRM-256.png "$PKG/real-remote/LightRemoteRM-256.png"
+          test -s "$PKG/real-remote/LightRemoteRM-256.png"
+          CORE_DIGEST="$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).digest)" "$PKG/client-core.json")"
+          cat > "$PKG/manifest.json" <<JSON
+          {
+            "product": "Light Remote macOS ${TARGET_ARCH}",
+            "version": "$VERSION",
+            "gitSha": "${GITHUB_SHA}",
+            "node": "v${NODE_VERSION}",
+            "platform": "macos-${TARGET_ARCH}",
+            "coreDigest": "${CORE_DIGEST}",
+            "minimumMacOS": "11.0",
+            "builtAtUtc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          JSON
+          tar -czf "$OUT/Light-Remote-Client-macOS-${TARGET_ARCH}-${VERSION}.tar.gz" -C "$OUT" package
+          (cd "$OUT" && shasum -a 256 "Light-Remote-Client-macOS-${TARGET_ARCH}-${VERSION}.tar.gz") > "$OUT/SHA256SUMS.txt"
+      - name: Experimental macOS Real Remote app signing canary
+        if: github.ref == 'refs/heads/feature/macos-rm-v2-scp'
+        shell: bash
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          PKG="$PWD/dist/macos/$TARGET_ARCH/package"
+          APP="$RUNNER_TEMP/LightRemoteRmv2Canary.app"
+          bash client/macos/real-remote/canary/build-canary.sh "$PKG/real-remote/LightRemoteRealRemote" "$APP"
+          "$APP/Contents/MacOS/LightRemoteRealRemote" --self-test | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] and d["runtime"]=="real-remote-v2-macos"'
+          OUT="$PWD/dist/macos/$TARGET_ARCH"
+          cp "$PKG/real-remote/LightRemoteDragCanary" "$RUNNER_TEMP/LightRemoteDragCanary"
+          tar -czf "$OUT/LightRemoteRmv2Canary-$TARGET_ARCH.tar.gz" -C "$RUNNER_TEMP" LightRemoteRmv2Canary.app LightRemoteDragCanary
+          shasum -a 256 "$OUT/LightRemoteRmv2Canary-$TARGET_ARCH.tar.gz"
+          # Unsigned development GUI is a separate artifact, not a release installer.
+          DEV_APP="$RUNNER_TEMP/LightRemoteRobotDev.app"
+          bash client/macos/real-remote/canary/build-dev-app.sh "$PKG/real-remote/LightRemoteRealRemote" "$DEV_APP"
+          test -s "$DEV_APP/Contents/Resources/LightRemoteRM.icns"
+          test -s "$DEV_APP/Contents/Resources/LightRemoteRM.svg"
+          grep -Fq 'LightRemoteRM' "$DEV_APP/Contents/Info.plist"
+          "$DEV_APP/Contents/MacOS/LightRemoteRealRemote" --self-test | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"] and d["runtime"]=="real-remote-v2-macos"'
+          tar -czf "$OUT/LightRemoteRobotDev-$TARGET_ARCH.tar.gz" -C "$RUNNER_TEMP" LightRemoteRobotDev.app
+          shasum -a 256 "$OUT/LightRemoteRobotDev-$TARGET_ARCH.tar.gz"
+
+
+      - name: Package contract and Big Sur target smoke
+        shell: bash
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          OUT="$PWD/dist/macos/$TARGET_ARCH"; PKG="$OUT/package"
+          node deploy/scripts/stage-client-core.mjs --verify "$PKG"
+          node deploy/scripts/selftest-packaged-local-wall.mjs "$PKG"
+          test -f "$PKG/client-core.json"
+          test -x "$PKG/runtime/node"
+          test -x "$PKG/tray/LightRemoteTray"
+          test -x "$PKG/tray/LightRemoteLauncher"
+          test -x "$PKG/real-remote/LightRemoteRealRemote"
+          "$PKG/real-remote/LightRemoteRealRemote" --self-test | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] and d["runtime"]=="real-remote-v2-macos",d; print("macos-real-remote-native-helper-smoke=PASS")'
+          node deploy/scripts/macos-native-rmv2-smoke.mjs "$PKG/real-remote/LightRemoteRealRemote"
+          test -f "$PKG/assets/branding/light-remote-mark-256.png"
+          test -f assets/branding/light-remote-mark-512.png
+          test -f "$PKG/device-agent/platform-adapters/macos.mjs"
+          test -f "$PKG/lib/native-terminal.mjs"
+          test -s "$PKG/licenses/terminal-runtime/node-pty-LICENSE"
+          node deploy/scripts/terminal-runtime-smoke.mjs "$PKG"
+          node deploy/scripts/selftest-g2-runtime-shutdown-cleanup.mjs
+          node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
+          node deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs
+          node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
+          node deploy/scripts/selftest-g3-executor-hang-readiness.mjs
+          node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
+          node deploy/scripts/selftest-g3-executor-readiness-probe.mjs
+          node deploy/scripts/selftest-g3-executor-probe-deadline.mjs
+          node deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs
+          node deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs
+          node deploy/scripts/selftest-g3-agent-daemon-lifecycle.mjs
+          test -f "$PKG/device-agent/fleet-component-manager.mjs"
+          test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
+          for lib in device-proof.mjs native-fs.mjs native-process.mjs native-search.mjs light-scp-file.mjs light-scp-registry.mjs update-contract.mjs runtime-version.mjs; do test -f "$PKG/lib/$lib"; done
+          test -f "$PKG/client/macos/updater.mjs"
+          test -f "$PKG/client/macos/update-lifeboat.mjs"
+          node --check client/macos/updater.mjs
+          node --check client/macos/update-lifeboat.mjs
+          bash -n client/macos/build-pkg.sh
+          bash -n client/macos/uninstall.sh
+          plutil -lint client/macos/launchd/*.plist
+          file "$PKG/runtime/node" "$PKG/tray/LightRemoteTray" "$PKG/tray/LightRemoteLauncher"
+          otool -l "$PKG/tray/LightRemoteTray" | grep -A5 LC_BUILD_VERSION | grep -q 'minos 11.0'
+          otool -l "$PKG/tray/LightRemoteLauncher" | grep -A5 LC_BUILD_VERSION | grep -q 'minos 11.0'
+          (cd "$OUT" && shasum -a 256 -c SHA256SUMS.txt)
+          if [[ "$TARGET_ARCH" == x64 ]]; then
+            export OPERATOR_AGENT_STATE="$RUNNER_TEMP/light-remote-empty-device.json"
+            STATUS="$($PKG/runtime/node $PKG/device-agent/operator-agent.mjs status)"
+            python3 - "$STATUS" <<'PY'
+          import json,sys
+          j=json.loads(sys.argv[1]); assert j['platformAdapter']=='darwin',j; assert not j['enrolled'],j
+          print('macos-x64-agent-smoke=PASS')
+          PY
+          else
+            file "$PKG/runtime/node" | grep -q arm64
+            echo 'macos-arm64-runtime-architecture=PASS'
+          fi
+      - name: Build installer pkg
+        shell: bash
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          BUNDLE="$PWD/dist/macos/$TARGET_ARCH/Light-Remote-Client-macOS-${TARGET_ARCH}-${VERSION}.tar.gz"
+          client/macos/build-pkg.sh "$BUNDLE" "$PWD/dist/macos/$TARGET_ARCH/pkg"
+          PKGFILE="$PWD/dist/macos/$TARGET_ARCH/pkg/Light-Remote-${VERSION}-${{ matrix.pkg_arch }}.pkg"
+          test -s "$PKGFILE"
+          pkgutil --check-signature "$PKGFILE" || true
+          PAYLOAD="$(pkgutil --payload-files "$PKGFILE")"
+          grep -Fq 'Library/Application Support/Light Remote/releases' <<<"$PAYLOAD"
+          grep -Fq 'Applications/Light Remote.app/Contents/Info.plist' <<<"$PAYLOAD"
+          grep -Fq 'Applications/Light Remote.app/Contents/MacOS/LightRemoteLauncher' <<<"$PAYLOAD"
+          grep -Fq 'Applications/Light Remote.app/Contents/Resources/LightRemote.icns' <<<"$PAYLOAD"
+          grep -Fq 'Applications/Light Remote.app/Contents/Helpers/Light Remote Robot.app/Contents/Info.plist' <<<"$PAYLOAD"
+          grep -Fq 'Applications/Light Remote.app/Contents/Helpers/Light Remote Robot.app/Contents/MacOS/LightRemoteRealRemote' <<<"$PAYLOAD"
+          grep -Fq 'Applications/Light Remote.app/Contents/Helpers/Light Remote Robot.app/Contents/Resources/LightRemoteRM.icns' <<<"$PAYLOAD"
+          grep -Fq 'Applications/Light Remote.app/Contents/Resources/uninstall.sh' <<<"$PAYLOAD"
+          EXPANDED="$RUNNER_TEMP/light-remote-pkg-$TARGET_ARCH"; rm -rf "$EXPANDED"
+          pkgutil --expand "$PKGFILE" "$EXPANDED"
+          grep -Fq "com.lightremote.client.macos-$TARGET_ARCH" "$EXPANDED/PackageInfo"
+          grep -Fq 'http://127.0.0.1:5491/' "$EXPANDED/Scripts/postinstall"
+          grep -Fq 'launchctl print' "$EXPANDED/Scripts/postinstall"
+          grep -Fq 'WALL_OK' "$EXPANDED/Scripts/postinstall"
+          echo "macos-system-package-receipt=PASS id=com.lightremote.client.macos-$TARGET_ARCH"
+          echo "macos-local-wall-postinstall-gate=PASS"
+          [[ "$(plutil -extract KeepAlive raw client/macos/launchd/com.lightremote.tray.plist)" == false ]]
+          shasum -a 256 "$PKGFILE" >> "$PWD/dist/macos/$TARGET_ARCH/SHA256SUMS.txt"
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-macos-${{ matrix.arch }}-${{ github.sha }}
+          path: |
+            dist/macos/${{ matrix.arch }}/Light-Remote-Client-macOS-${{ matrix.arch }}-*.tar.gz
+            dist/macos/${{ matrix.arch }}/pkg/*.pkg
+            dist/macos/${{ matrix.arch }}/SHA256SUMS.txt
+            dist/macos/${{ matrix.arch }}/LightRemoteRmv2Canary-*.tar.gz
+            dist/macos/${{ matrix.arch }}/LightRemoteRobotDev-*.tar.gz
+          if-no-files-found: error
+          retention-days: 14

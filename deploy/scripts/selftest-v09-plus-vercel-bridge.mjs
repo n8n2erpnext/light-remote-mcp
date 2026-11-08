@@ -1,0 +1,88 @@
+import fs from 'node:fs';
+import { createPlusAuth } from '../../gateway/plus-auth.mjs';
+const root=new URL('../../',import.meta.url);
+const text=file=>fs.readFileSync(new URL(file,root),'utf8');
+function expect(value,message){if(!value)throw new Error(message);}
+function response(){return {statusCode:200,body:null,status(n){this.statusCode=n;return this;},json(v){this.body=v;return this;},type(){return this;},send(v){this.body=v;return this;},set(){return this;}};}
+
+const api=text('api/operator.js');
+const wall=text('device-agent/local-wall.mjs');
+const server=text('gateway/server.mjs');
+const security=text('gateway/security.mjs');
+const opReq=text('lib/operator-request.js');
+const plusHelper=text('lib/plus-tool-helper.js');
+const plusTransfer=text('gateway/plus-transfer.mjs');
+const plusBatch=text('lib/plus-batch-policy.cjs');
+expect(opReq.includes('const MAX_GET_PAYLOAD_CHARS = 12000;'),'plus_get_payload_cap_must_be_12k');
+expect(api.includes("inspectPlusExecPayload(payload,{transport:'direct'})"),'plus_direct_exec_batch_guard_missing');
+expect(plusTransfer.includes("inspectPlusExecPayload(payload,{transport:'transfer'})"),'plus_transfer_exec_batch_guard_missing');
+expect(plusBatch.includes('directPayloadBytes:6000')&&plusBatch.includes('maxExecScriptBytes:32*1024')&&plusBatch.includes('recommendedMaxSteps:8')&&plusBatch.includes('recommendedTransferChunkBytes:3072'),'plus_batch_budget_contract_missing');
+expect(plusHelper.includes('batching:{directPayloadBytes:')&&plusHelper.includes('Duration alone is not a reason to split'),'plus_tool_helper_batching_guidance_missing');
+expect(api.includes("const plus=wantsPlus && req.method==='GET'"),'plus_bridge_must_be_get_only');
+expect(api.includes("action==='connection-helper'")&&api.includes('connectionHelperView')&&api.includes('toolHelperHint')&&api.includes("nextAction:'load_tool_helper'"),'plus_connection_helper_missing');
+expect(api.includes('requestOrigin(req)')&&api.includes('nextUrl')&&api.includes("Buffer.from(JSON.stringify(nextPayload)).toString('base64url')"),'plus_connection_helper_next_url_missing');
+expect(api.includes('encodeURIComponent(client)')&&api.includes('replay helper.nextUrl exactly')&&api.includes("nextAction:'load_tool_helper'"),'plus_ready_exact_tool_helper_url_missing');
+expect(wall.includes('Use the connected official Light Remote plugin directly')&&wall.includes('light_remote_connection_helper immediately with this A code')&&wall.includes('same Local Wall /approve')&&wall.includes('with no A code and no continuation')&&wall.includes('Never reuse the A code')&&!wall.includes('exact continuation returned by the first call')&&!wall.includes('web_fetch_vercel_url directly'),'local_wall_pairing_capsule_tool_selection_missing');
+expect(api.includes('pairingRecovery')&&api.includes("'/plus/connect/recover'")&&server.includes("app.post('/plus/connect/recover'"),'plus_pairing_recovery_missing');
+expect(api.includes("if(error.status===401&&recovery)return callOperator('/plus/connect/recover'"),'plus_pairing_recovery_must_not_depend_on_error_payload_string');
+expect(server.includes("plusRateLimit=createRateLimit('plus'")&&server.includes('plusRateIdentity')&&!server.includes("app.post('/plus/connect/begin', softRateLimit"),'plus_scoped_rate_limit_missing');
+expect(api.includes("action==='connect'")&&api.includes("action==='connect-poll'")&&api.includes("action==='list-devices'"),'plus_golden_pairing_surface_missing');
+expect(api.includes("action==='devices-bootstrap'")&&api.includes("action==='authorize-begin'")&&api.includes("action==='authorize-poll'"),'plus_compatibility_surface_missing');
+expect(api.includes("plus_session_required")&&api.includes("plusSession"),'plus_session_gate_missing');
+expect(api.includes("sealOperatorPayload(normalizeExecPayload"),'plus_bridge_exec_encryption_missing');
+expect(api.includes("action==='session-open'")&&api.includes("action==='output'"),'plus_bridge_durable_surface_missing');
+expect(api.includes("action.startsWith('process-')")&&api.includes("'process-start'")&&api.includes("'process-output'"),'plus_native_process_surface_missing');
+expect(api.includes("action.startsWith('terminal-')")&&api.includes("action:'terminal'")&&api.includes('invalid_terminal_action'),'plus_terminal_surface_missing');
+expect(api.includes("action==='tool-helper'")&&api.includes('toolHelperView'),'plus_tool_helper_surface_missing');
+expect(api.includes("action==='scp'")&&api.includes("action:'scp'")&&api.includes('invalid_scp_payload'),'plus_light_scp_surface_missing');
+expect(server.includes("app.post('/plus/client/context'")&&server.includes("ensureClientContext"),'plus_working_context_surface_missing');
+expect(server.includes("app.post('/plus/connect/begin'")&&server.includes("app.post('/plus/connect/poll'"),'plus_gateway_ab_pairing_missing');
+expect(server.includes("app.get('/plus/client/devices'")&&server.includes("app.post('/plus/client/execute'"),'plus_gateway_client_set_missing');
+expect(server.includes("app.post('/plus/auth/begin'")&&server.includes('plusAuth.requireSession'),'plus_gateway_compatibility_gate_missing');
+expect(server.includes('plusAuth.requireAgent')&&server.includes('plusAuth.requireGrantedNode'),'plus_device_grant_tool_gate_missing');
+expect(server.includes("app.get('/plus/bootstrap/devices'")&&server.includes('/v1/device-access/execute'),'plus_device_grant_route_missing');
+expect(server.includes("app.post('/device-channel/activity'")&&server.includes("'/v1/device-channel/activity'"),'device_wall_activity_gateway_route_missing');
+expect(server.includes("app.post('/device-channel/session-close'")&&server.includes("'/v1/device-channel/session-close'"),'device_wall_session_close_gateway_route_missing');
+expect(api.includes('aCode')&&api.includes('invalid_pairing_code'),'plus_a_code_direct_connect_missing');
+expect(api.includes('pairing_code_required')&&api.includes("status:'need_a_code'")&&api.includes("req.query?.p"),'plus_missing_a_must_prompt_for_code');
+expect(text('api/guide.js').includes('ask only for the A code')&&text('api/guide.js').includes('ask_user_for_target_local_wall_a_code'),'plus_guide_missing_a_contract_missing');
+expect(['terminal-start','terminal-input','terminal-output','terminal-resize','terminal-signal','terminal-list','terminal-stop'].every(action=>text('api/guide.js').includes(`'${action}'`))&&text('api/guide.js').includes("terminal:'GET action=terminal-{start|input|output|resize|signal|list|stop}"),'plus_guide_terminal_contract_missing');
+expect(api.includes('compactPlusResponse')&&api.includes('compactClientActions'),'plus_compact_golden_response_missing');
+expect(server.includes("s.deviceId===req.plusIdentity.deviceId"),'plus_sessions_must_be_device_filtered');
+expect(!server.includes("wallApp.post('/api/plus-authorizations/:id/approve'")&&!server.includes("wallApp.post('/api/plus-authorizations/:id/deny'"),'hosted_wall_must_not_approve_device_access');
+expect(text('gateway/plus-auth.mjs').includes("approvalPath:'/approve'")&&!text('gateway/plus-auth.mjs').includes('Approve for 1 hour')&&!text('gateway/plus-auth.mjs').includes("localWallUrl:'http://127.0.0.1:5491/'"),'local_wall_approval_semantics_missing');
+expect(server.includes("plusBridge:'owner-approved-device-access-grant-over-vercel'"),'health_device_grant_semantics_missing');
+expect(!text('gateway/plus-auth.mjs').includes('SESSION_TTL_MS = 60 * 60 * 1000'),'plus_human_approval_must_not_be_fixed_one_hour');
+expect(server.includes('authenticateVercelPlusBridge')&&server.includes('authenticateVercel(req)'),'plus_oidc_environment_fallback_missing');
+expect(security.includes('VERCEL_PLUS_BRIDGE_ENVIRONMENTS')&&security.includes('production,preview'),'plus_oidc_environment_set_missing');
+
+const fakeWall={
+  signOAuthToken(kind,payload){return `o1.${kind}.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.sig`;},
+  verifyOAuthToken(kind,token){if(kind!=='plus'||!String(token).startsWith('o1.plus.'))return null;const parts=String(token).split('.');try{return JSON.parse(Buffer.from(parts[2],'base64url').toString());}catch{return null;}}
+};
+const grant={grantId:'dag_bridge_selftest_0001',deviceId:'dev_bridge_selftest',connectionId:'dc_bridge_selftest_0001',expiresAt:Date.now()+3600000};
+const plus=createPlusAuth(fakeWall,{
+  requestAccess:async()=>({access:{state:'approved',grant}}),
+  assertGrant:async id=>({grant:{...grant,grantId:id},device:{nodeId:'arm'}})
+});
+let r=response(); await plus.begin({body:{agentId:'agent-v09-plus-selftest-0001',deviceId:grant.deviceId,label:'selftest'}},r);
+expect(r.statusCode===200&&r.body?.session?.grantId===grant.grantId,'plus_existing_device_grant_not_reused');
+const token=r.body.session.token;let next=false;
+r=response(); await plus.requireSession({get:()=>token},r,()=>{next=true;});expect(next,'plus_session_verify_failed');
+next=false;r=response();plus.requireAgent({body:{agentId:'agent-v09-plus-selftest-0002'},query:{}},r,()=>{next=true;});expect(next,'plus_multi_agent_same_grant_failed');
+next=false;r=response();plus.requireGrantedNode({plusIdentity:{nodeId:'arm'},body:{agentId:'agent-v09-plus-selftest-0002',nodeId:'amd'},query:{}},r,()=>{next=true;});expect(!next&&r.statusCode===403&&r.body?.error==='plus_device_grant_target_mismatch','plus_cross_device_target_not_rejected');
+
+const recoveryAgent='agent-v09-plus-recovery-0001',recoveryRequest='pa_recovery_selftest_0000000001',recoveryPoll='R'.repeat(32);
+const recoveryPlus=createPlusAuth(fakeWall,{
+  pollAccess:async body=>{expect(body.requestId===recoveryRequest&&body.pollToken===recoveryPoll,'plus_pairing_recovery_poll_mismatch');return {access:{state:'approved',grant}};},
+  getAccessRequest:async id=>({authorization:{requestId:id,agentId:recoveryAgent}}),
+  attachClient:async body=>({client:{clientSessionId:'acs_recovery_selftest_0001',agentId:body.agentId,expiresAt:Date.now()+3600000},device:{deviceId:grant.deviceId,displayName:'RECOVERY'}}),
+  ensureClientContext:async body=>({ok:true,context:{clientSessionId:body.clientSessionId,agentId:body.agentId,deviceId:body.deviceId,sessionId:'session-recovery-selftest',nodeId:'arm',workspace:'',gracePreset:'60m'}})
+});
+r=response();await recoveryPlus.connectRecover({body:{requestId:recoveryRequest,pollToken:recoveryPoll}},r);
+expect(r.statusCode===200&&r.body?.status==='ready'&&r.body?.recovered===true&&String(r.body?.client||'').startsWith('o1.client.'),'plus_pairing_recovery_attach_failed');
+
+console.log('v09-plus-vercel-ab-golden-path=PASS');
+console.log('v09-plus-vercel-pairing=PASS');
+console.log('v09-plus-vercel-oidc=PASS');
+console.log('v09-plus-vercel-durable-exec=PASS');

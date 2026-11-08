@@ -1,0 +1,30 @@
+{
+  "reviewedAt": "2026-11-08T09:49:52.703393+00:00",
+  "resolverRun": 42468219416,
+  "resolverSourceCommit": "93e0288b5958bee2b533071c477dd54f3dad7d61",
+  "artifactId": 13611704289,
+  "artifactSha256": "686de5a90f93d139a57b212d3483cf1bf0b800b7cc100176ac28649224913fc7",
+  "lockSha256": "29f6cff2b0591f3655d6d32483df4f31f9b0f7cef8b78c959f2d0c62fe6057fd",
+  "packagesBefore": 407,
+  "packagesAfter": 465,
+  "existingPackageChecksumChanges": 0,
+  "rootDependencyGraph": {
+    "name": "light-remote-desktop-v4-pilot",
+    "version": "0.10.0-dev.1",
+    "dependencies": [
+      "base64 0.22.1",
+      "keyring",
+      "rand 0.8.8",
+      "reqwest 0.12.28",
+      "serde",
+      "serde_json",
+      "sha2",
+      "tauri",
+      "tauri-build",
+      "tokio",
+      "url"
+    ]
+  },
+  "toolchain": "cargo/rustc 1.99.1",
+  "decision": "Accept generated Owner dependency graph after diff/checksum review; require locked builds thereafter."
+}

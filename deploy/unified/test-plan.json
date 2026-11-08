@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "unitDirectories": [
+    "lib",
+    "device-agent",
+    "operator-host",
+    "plugin-server"
+  ],
+  "sourceRegressions": [
+    "deploy/scripts/selftest-canonical-endpoints-native-t11.mjs",
+    "deploy/scripts/selftest-canonical-endpoints-t11.mjs",
+    "deploy/scripts/selftest-desktop-native-deadlines-t11.mjs",
+    "deploy/scripts/selftest-g2-pty-missing-exit.mjs",
+    "deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs",
+    "deploy/scripts/selftest-g2-runtime-shutdown-cleanup.mjs",
+    "deploy/scripts/selftest-g2-transport-drop-job-survival.mjs",
+    "deploy/scripts/selftest-g2-wall-headers-sent-crash.mjs",
+    "deploy/scripts/selftest-g2-windows-cross-process-filelock.mjs",
+    "deploy/scripts/selftest-g2-windows-job-object-natural-exit.mjs",
+    "deploy/scripts/selftest-g2-windows-process-tree.mjs",
+    "deploy/scripts/selftest-g3-agent-state-lock-recovery.mjs",
+    "deploy/scripts/selftest-g3-command-liveness-pulse.mjs",
+    "deploy/scripts/selftest-g3-duplex-executor-rejection.mjs",
+    "deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs",
+    "deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs",
+    "deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs",
+    "deploy/scripts/selftest-g3-executor-hang-readiness.mjs",
+    "deploy/scripts/selftest-g3-executor-probe-deadline.mjs",
+    "deploy/scripts/selftest-g3-executor-readiness-probe.mjs",
+    "deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs",
+    "deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs",
+    "deploy/scripts/selftest-gold-ab-v2-lab-v1-lock.mjs",
+    "deploy/scripts/selftest-gold-ab-v2-wall-preview.mjs",
+    "deploy/scripts/selftest-gold-client-core-imports.mjs",
+    "deploy/scripts/selftest-gold-codex-binary-discovery.mjs",
+    "deploy/scripts/selftest-gold-codex-plus.mjs",
+    "deploy/scripts/selftest-gold-codex-task-management.mjs",
+    "deploy/scripts/selftest-gold-managed-codex-runtime.mjs",
+    "deploy/scripts/selftest-gold-memory-delete-settings.mjs",
+    "deploy/scripts/selftest-gold-memory-peer-v3.mjs",
+    "deploy/scripts/selftest-gold-memory-reader-export.mjs",
+    "deploy/scripts/selftest-gold-memory-scope-management.mjs",
+    "deploy/scripts/selftest-gold-memory-scope-v2.mjs",
+    "deploy/scripts/selftest-gold-memory-sync-v3.mjs",
+    "deploy/scripts/selftest-gold-no-native-browser-dialogs.mjs",
+    "deploy/scripts/selftest-gold-owner-filesystem-roots.mjs",
+    "deploy/scripts/selftest-gold-p0-win11-boot-telemetry.mjs",
+    "deploy/scripts/selftest-gold-wall-close-session-cache.mjs",
+    "deploy/scripts/selftest-gold-wall-close-session-http.mjs",
+    "deploy/scripts/selftest-gold-wall-history-reader-t11.mjs",
+    "deploy/scripts/selftest-gold-wall-module-state-t11.mjs",
+    "deploy/scripts/selftest-gold-wall-navigation.mjs",
+    "deploy/scripts/selftest-gold-windows-graceful-stop-contract.mjs",
+    "deploy/scripts/selftest-gold-windows-tray-relink.mjs",
+    "deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs",
+    "deploy/scripts/selftest-goldabv2-desktop-target.mjs",
+    "deploy/scripts/selftest-goldabv2-local-instance-native-t11.mjs",
+    "deploy/scripts/selftest-goldabv2-local-instance-proof-t11.mjs",
+    "deploy/scripts/selftest-goldabv2-native-tray-menu.mjs",
+    "deploy/scripts/selftest-goldabv2-unified-one-app.mjs",
+    "deploy/scripts/selftest-goldabv2-v2only-no-static-fleet-allowlist.mjs",
+    "deploy/scripts/selftest-goldabv2-wall-csrf-layout-t11.mjs",
+    "deploy/scripts/selftest-goldabv2-wall-listener-ownership-t11.mjs",
+    "deploy/scripts/selftest-rmv2-visual-lease-recovery.mjs",
+    "deploy/scripts/selftest-t11-desktop-poll-backpressure.mjs",
+    "deploy/scripts/selftest-t11-f16-owner-uat-source.mjs",
+    "deploy/scripts/selftest-t11-owner-activity-native-source.mjs",
+    "deploy/scripts/selftest-t11-owner-durable-activity-source.mjs",
+    "deploy/scripts/selftest-t11-owner-fleet-aggregation.mjs",
+    "deploy/scripts/selftest-t11-owner-inventory-native-source.mjs",
+    "deploy/scripts/selftest-t11-owner-session-retention-source.mjs",
+    "deploy/scripts/selftest-t11-owner-verify-wait.mjs",
+    "deploy/scripts/selftest-t11-usage-read-checkpoint.mjs",
+    "deploy/scripts/selftest-v09-windows-package.mjs",
+    "deploy/scripts/selftest-v10-desktop-productization.mjs",
+    "deploy/scripts/selftest-v10-version-plane-parity.mjs",
+    "deploy/scripts/selftest-v12-macos-physical-type-routing.mjs",
+    "deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs"
+  ],
+  "notInPortableSuite": [
+    {
+      "path": "deploy/scripts/selftest-windows-moryqa-tray-v3.mjs",
+      "reason": "Legacy WinForms visual UI is not the selected V4 GUI. V4 native menu/single-instance and actual installer smoke remain required. Legacy source and original test remain archived/retained."
+    }
+  ],
+  "liveHostScripts": "Not run automatically; all integration targets must be newly created isolated resources.",
+  "sourceArguments": {
+    "deploy/scripts/selftest-gold-wall-close-session-cache.mjs": [
+      "."
+    ]
+  },
+  "artifactRegressions": [
+    {
+      "path": "deploy/scripts/selftest-packaged-local-wall.mjs",
+      "executedBy": "windows-native-client.yml after staging real client core",
+      "scope": "Actual package layout, not a raw source directory."
+    }
+  ],
+  "extraUnitFiles": [
+    "deploy/scripts/f16-owner-uat-artifact-preflight.test.mjs"
+  ]
+}

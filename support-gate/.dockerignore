@@ -1,0 +1,8 @@
+node_modules
+.git
+.env
+.gate.env
+*.key
+*.pem
+*.log
+coverage

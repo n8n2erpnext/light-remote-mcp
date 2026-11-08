@@ -1,0 +1,108 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+const read=x=>fs.readFileSync(path.join(root,x),'utf8');
+const ui=read('client/windows-native/GptOperator.Client/UiTheme.cs');
+const tray=read('client/windows-native/GptOperator.Client/TrayApplicationContext.cs');
+const popover=read('client/windows-native/GptOperator.Client/TrayPopoverForm.cs');
+const icons=read('client/windows-native/GptOperator.Client/TrayIconFactory.cs');
+const project=read('client/windows-native/GptOperator.Client/GptOperator.Client.csproj');
+const installer=read('client/windows-native/installer/GptOperator.iss');
+assert.equal((project.match(/<EmbeddedResource /g)||[]).length,6,'all Figma art resource elements must be individual XML elements');
+assert.equal(project.includes('\\\\n    <EmbeddedResource'),false,'do not encode literal newline escapes into MSBuild XML');
+const assertValidPng=(src,size)=>{
+ const file=fs.readFileSync(path.join(root,src));
+ assert.ok(file.length>100,src);
+ assert.equal(file.subarray(0,8).toString('hex'),'89504e470d0a1a0a',src);
+ assert.equal(file.readUInt32BE(16),size,src+' width');
+ assert.equal(file.readUInt32BE(20),size,src+' height');
+};
+for(const state of ['connected','disconnected','dormant','unlinked','stopped']){
+ const dir='client/windows-native/GptOperator.Client/Assets/TrayStates/';
+ const svg=read(dir+state+'.svg');
+ assert.match(svg,/<svg/);assert.match(svg,/<path/);
+ for(const size of [16,32,128])assertValidPng(dir+state+'-'+size+'.png',size);
+ assert.ok(project.includes('LogicalName="LightRemoteTray.'+state+'.png"'),state+' embedded resource missing');
+}
+assert.match(icons,/LightRemoteTray\./);
+assert.match(icons,/GetManifestResourceStream\(name\)/);
+assert.match(icons,/new Bitmap\(stream\)/);
+assert.match(ui,/AppsUseLightTheme/);
+assert.match(ui,/Registry\.GetValue/);
+assert.match(ui,/public static Color Background => IsDark/);
+assert.match(ui,/public static Color SurfaceAlt => IsDark/);
+assert.match(ui,/public static Color Success => IsDark/);
+assert.match(ui,/public static Color Danger => IsDark/);
+assert.match(ui,/var enabled = IsDark \? 1 : 0/);
+assert.match(ui,/Color\.FromArgb\(247,249,252\)/);
+assert.match(ui,/Color\.FromArgb\(13,17,23\)/);
+assert.match(tray,/menu\.Opening \+= \(_, _\) => UiTheme\.StyleMenu\(menu\)/);
+assert.match(tray,/_relink\.Visible = !connected/);
+assert.match(tray,/_sessions\.DropDownItems\.Add\(_viewSessions\)/);
+assert.match(tray,/_viewSessions\.Click \+= async/);
+assert.match(tray,/new TrayPopoverForm\(async action =>/);
+assert.match(tray,/_popover\.Toggle\(Cursor\.Position\)/);
+assert.match(tray,/ContextMenuStrip = null/);
+assert.match(tray,/e\.Button == MouseButtons\.Left \|\| e\.Button == MouseButtons\.Right/);
+assert.doesNotMatch(tray,/_advancedMenu\.Show\(Cursor\.Position\)/);
+assert.match(popover,/private void RenderAdvanced\(Control root\)/);
+assert.match(popover,/if \(code == "more" \|\| code == "overview"\)/);
+assert.match(popover,/Action\(root, "Check for updates", "updates"/);
+assert.match(popover,/Action\(root, "Exit Tray UI", "quit"/);
+assert.match(tray,/case "approval": OpenUrl\(WallUrl \+ "approve"/);
+assert.match(popover,/ClientSize = new Size\(500, 740\)/);
+assert.match(popover,/AutoScaleMode = AutoScaleMode.None/);
+assert.match(popover,/GraphicsUnit.Pixel/);
+assert.match(popover,/PopoverFont\(size, bold\)/);
+assert.match(popover,/PopoverFont\(9\.5f, true\)/);
+assert.doesNotMatch(popover,/AutoScaleMode = AutoScaleMode.Dpi/);
+
+assert.match(popover,/"Authorized sessions"/);
+assert.match(popover,/"Device Short ID"/);
+assert.match(popover,/"A\/B authorization"/);
+assert.match(popover,/"Approve Agent \/ Manage"/);
+assert.match(popover,/"Local Wall"/);
+assert.match(popover,/"Fleet"/);
+assert.match(popover,/StatusColor\(TrayVisualState state\)/);
+assert.match(popover,/UseVisualStyleBackColor = false/);
+assert.match(popover,/UiTheme\.Surface/);
+assert.match(popover,/manage active AI agents|Manage active AI agents/);
+assert.doesNotMatch(tray,/\bActiveSessionCount\b/); // no fabricated count before a signed session feed
+assert.match(installer,/PrivilegesRequired=lowest/);
+assert.match(installer,/Name: "desktopicon"; Description: "Create a desktop shortcut"/);
+assert.doesNotMatch(installer,/Name: "desktopicon"[^\n]*Flags: unchecked/);
+assert.match(installer,/function LightRemoteDarkWindowsTheme/);
+assert.match(installer,/DisableWelcomePage=yes/);
+assert.match(installer,/DisableDirPage=yes/);
+assert.match(installer,/DisableReadyPage=yes/);
+assert.match(installer,/CreateCustomPage\(wpWelcome/);
+assert.match(installer,/procedure CurPageChanged\(CurPageID: Integer\)/);
+assert.doesNotMatch(installer,/IsFinished \? /,'Inno Pascal Script has no C-style ternary');
+
+assert.match(installer,/BrandedInstallingPanel\.Visible := CurPageID = wpInstalling/);
+assert.match(installer,/BrandedFinishedPanel\.Visible := CurPageID = wpFinished/);
+assert.match(installer,/WizardForm\.ProgressGauge\.Parent := BrandedInstallingPanel/);
+assert.match(installer,/WizardForm\.RunList\.Parent := BrandedFinishedPanel/);
+// Inno dialog's content area is ~460 logical px at Windows 150% DPI.
+// Finish checklist bottom must stay inside it rather than clipping as before.
+assert.match(installer,/WizardForm\.RunList\.SetBounds\(ScaleX\(221\), ScaleY\(414\)/);
+assert.match(installer,/BrandedFinishedPanel\.Width - ScaleX\(240\), ScaleY\(38\)/);
+
+assert.match(installer,/BuildInstallPhasePanel\(BrandedInstallingPanel, False\)/);
+assert.match(installer,/BuildInstallPhasePanel\(BrandedFinishedPanel, True\)/);
+
+assert.match(installer,/TNewStaticText\.Create/);
+assert.match(installer,/TNewCheckBox\.Create/);
+assert.match(installer,/WizardSelectTasks\('desktopicon'\)/);
+assert.match(installer,/WizardSelectTasks\('!desktopicon'\)/);
+assert.match(installer,/procedure InitializeWizard/);
+assert.ok(installer.indexOf('procedure InitializeBrandedInstallPhases();')
+  < installer.indexOf('procedure InitializeWizard();'),
+  'Inno Pascal Script must declare installer-stage builder before InitializeWizard');
+
+assert.match(installer,/Your desktop, available to your AI\./);
+assert.match(installer,/UninstallDisplayName=Light Remote/);
+assert.match(installer,/AppId=\{\{/);
+console.log('MORYQA_WINDOWS_TRAY_INSTALLER_PASS native_svg_5_states,15_vector_png,embedded_resources,automatic_light_dark,connected_no_relink,actual_session_wall,installer_default_shortcut,per_user_identity_retained');

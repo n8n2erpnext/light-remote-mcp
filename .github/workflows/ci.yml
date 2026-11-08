@@ -1,0 +1,143 @@
+name: Light Remote MCP unified baseline
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: light-remote-baseline-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        shell: python
+        run: |
+          import os, subprocess
+          base = os.environ.get('PR_BASE') or os.environ.get('BEFORE') or ''
+          full = os.environ['EVENT'] == 'workflow_dispatch' or not base or set(base) == {'0'}
+          paths = [] if full else subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines()
+          def doc(p):
+              return p.endswith('.md') or p.startswith('docs/') or p in ['MASTER_CHECKPOINT.json','MIGRATION_PROVENANCE.json','feature-status.json']
+          code = full or any(not doc(p) for p in paths)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('code=' + str(code).lower() + '\n')
+  truth:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm run check:truth
+  dependency-lock:
+    name: Committed native dependency resolution
+    needs: [changes, truth]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify Owner-feature lock before expensive native builds
+        shell: bash
+        run: |
+          set +e
+          cargo metadata --manifest-path client/desktop-v4/src-tauri/Cargo.toml --features desktop-owner-login --format-version 1 --locked > "$RUNNER_TEMP/lr-cargo-metadata.json"
+          result=$?
+          set -e
+          if [ "$result" -ne 0 ]; then
+            cargo metadata --manifest-path client/desktop-v4/src-tauri/Cargo.toml --features desktop-owner-login --format-version 1 > "$RUNNER_TEMP/lr-cargo-metadata.json"
+            mkdir -p build-output/lock-resolution
+            cp client/desktop-v4/src-tauri/Cargo.lock build-output/lock-resolution/Cargo.lock
+            git diff -- client/desktop-v4/src-tauri/Cargo.lock > build-output/lock-resolution/changes.patch
+            cargo --version > build-output/lock-resolution/toolchain.txt
+            rustc --version >> build-output/lock-resolution/toolchain.txt
+            sha256sum client/desktop-v4/src-tauri/Cargo.lock > build-output/lock-resolution/SHA256SUMS
+            echo 'Generated lock is an unaccepted review candidate. Commit the reviewed lock before native builds.'
+            exit 1
+          fi
+          git diff --exit-code -- client/desktop-v4/src-tauri/Cargo.lock
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: light-remote-cargo-lock-candidate-${{ github.sha }}
+          path: build-output/lock-resolution/
+          if-no-files-found: warn
+  core-contract-integration:
+    name: Core, contracts, PostgreSQL/Redis integration
+    needs: [changes, truth]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            plugin-server/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: plugin-server
+      - name: Core unit and selected source regression tests
+        run: npm test
+      - name: Isolated actual backend and schema integration
+        run: python3 deploy/unified/dev.py test
+      - name: Record exact source manifest
+        run: node deploy/unified/build-manifest.mjs --platform linux-core --out build-output/BUILD_MANIFEST.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: light-remote-mcp-core-${{ github.sha }}
+          path: build-output/
+          if-no-files-found: error
+  desktop:
+    needs: [changes, truth, dependency-lock]
+    if: needs.changes.outputs.code == 'true'
+    uses: ./.github/workflows/desktop-v4-native-ci.yml
+    permissions:
+      contents: read
+  windows:
+    needs: [changes, truth, dependency-lock]
+    if: needs.changes.outputs.code == 'true'
+    uses: ./.github/workflows/windows-native-client.yml
+    permissions:
+      contents: read
+
+  baseline-required:
+    name: baseline-required
+    needs: [changes, truth, dependency-lock, core-contract-integration, desktop, windows]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Enforce the complete selected scope
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        shell: python
+        run: |
+          import json, os
+          jobs = json.loads(os.environ['RESULTS'])
+          code = jobs['changes']['outputs'].get('code') == 'true'
+          required = ['changes','truth'] + (['dependency-lock','core-contract-integration','desktop','windows'] if code else [])
+          failed = {name: jobs[name]['result'] for name in required if jobs[name]['result'] != 'success'}
+          if failed:
+              raise SystemExit('Required baseline scope failed: ' + json.dumps(failed))
+          print('BASELINE_REQUIRED=PASS; scope=' + ('full' if code else 'documentation'))

@@ -1,0 +1,68 @@
+{
+  "refsCompared": 277,
+  "distinctHeadTagRevisions": 145,
+  "uniquePaths": 2237,
+  "executableConfigPathsAbsentFromDesktop": 412,
+  "componentVariants": [
+    {
+      "component": "api",
+      "variants": 13
+    },
+    {
+      "component": "client/desktop-v4",
+      "variants": 4
+    },
+    {
+      "component": "client/windows-native",
+      "variants": 55
+    },
+    {
+      "component": "client/macos",
+      "variants": 12
+    },
+    {
+      "component": "client/linux",
+      "variants": 10
+    },
+    {
+      "component": "device-agent",
+      "variants": 50
+    },
+    {
+      "component": "lib",
+      "variants": 46
+    },
+    {
+      "component": "operator-host",
+      "variants": 45
+    },
+    {
+      "component": "plugin-server",
+      "variants": 49
+    },
+    {
+      "component": "platform-v2",
+      "variants": 8
+    },
+    {
+      "component": "gateway",
+      "variants": 40
+    },
+    {
+      "component": "extensions",
+      "variants": 2
+    },
+    {
+      "component": "deploy",
+      "variants": 105
+    },
+    {
+      "component": ".github/workflows",
+      "variants": 74
+    },
+    {
+      "component": "config",
+      "variants": 1
+    }
+  ]
+}

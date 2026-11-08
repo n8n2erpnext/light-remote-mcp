@@ -1,0 +1,19 @@
+{
+  "name": "light-remote-direct-plugin-server",
+  "version": "0.10.0-dev.1",
+  "private": true,
+  "type": "module",
+  "description": "Direct MCP/OAuth facade for Light Remote RC.32+.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node selftest.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@paddle/paddle-node-sdk": "3.10.0",
+    "express": "^5.2.1",
+    "jose": "^6.2.12",
+    "nodemailer": "10.0.16",
+    "zod": "^4.5.4"
+  }
+}

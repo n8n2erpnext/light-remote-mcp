@@ -1,0 +1,131 @@
+name: Desktop V4 source QA (one full Windows installer in Windows Tray Client)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/desktop-v4-shared-ui-20261101
+      - feat/desktop-v4-wall-activity-20261102
+      - feat/desktop-v4-login-entry-20261103
+      - feat/desktop-v4-api-integration-20261103
+    paths:
+      - client/desktop-v4/**
+      - .github/workflows/desktop-v4-native-ci.yml
+  pull_request:
+    paths:
+      - client/desktop-v4/**
+      - .github/workflows/desktop-v4-native-ci.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-v4-pilot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-test-visual:
+    name: Web build, tests, isolated browser screenshots
+    env:
+      VITE_LR_V4_UI_TEST: '1' # Signed-off UI-only test artifact; production omits this
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: client/desktop-v4
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Node 22 with scoped npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: client/desktop-v4/package-lock.json
+      - name: Reproducible dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck and production Vite build
+        run: npm run build
+      - name: Unit, rendered UI and native-shell security tests
+        run: npm test
+      - name: Same-device Local Wall topology regression
+        run: node e2e/desktop-local-wall-route-contract.mjs
+      - name: Desktop Owner PKCE callback security contract tests (default OFF)
+        run: node --test ../../plugin-server/desktop-auth-v4-contract.test.mjs ../../plugin-server/desktop-auth-v4-server.test.mjs ../../plugin-server/desktop-owner-token-v4.test.mjs
+      - name: Install Chromium on GitHub runner (never VPS-ARM)
+        run: npx playwright install --with-deps chromium
+      - name: Pixel/browser QA for exact Figma sizes and intermediate widths
+        run: npm run test:visual
+        env:
+          LR_V4_VISUAL_OUT: ${{ runner.temp }}/light-remote-v4-ui-evidence
+      - name: Upload screenshots and geometry evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-v4-chromium-ui-${{ github.run_id }}
+          path: ${{ runner.temp }}/light-remote-v4-ui-evidence/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Verify feature-gated Owner Login React bundle (no native release)
+        run: npm run build
+        env:
+          VITE_LR_V4_UI_TEST: '0'
+          VITE_LR_V4_OWNER_LOGIN: '1'
+      - name: Reject dev-server-only Owner candidate packaging
+        run: node e2e/tauri-production-packaging-contract.mjs
+
+  unified-desktop:
+    # One feature-enabled Desktop shell per OS. No UI-only vs Owner pair.
+    # One Windows NSIS installer, not two separately downloadable binaries.
+    name: Unified Light Remote Desktop V4 / ${{ matrix.os }}
+    needs: web-test-visual
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-24.04]
+    env:
+      VITE_LR_V4_UI_TEST: '0'
+      VITE_LR_V4_OWNER_LOGIN: '1'
+      VITE_LR_V4_ABV2_NATIVE: '1'
+      VITE_LR_V4_OWNER_SNAPSHOT: '1'
+      VITE_LR_V4_WALL_SSO_CANDIDATE: '0' # T04 not accepted yet.
+    defaults:
+      run:
+        working-directory: client/desktop-v4
+    steps:
+      - name: Checkout exact unified source
+        uses: actions/checkout@v4
+      - name: Node 22, shared native sources
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client/desktop-v4/package-lock.json
+      - name: Linux GTK and WebKit dependencies on hosted runner only
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config libdbus-1-dev libwebkit2gtk-4.1-dev \
+            libgtk-3-dev libssl-dev libxdo-dev librsvg2-dev \
+            libayatana-appindicator3-dev patchelf
+      - name: Rust stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache feature-enabled Rust compilation
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: client/desktop-v4/src-tauri -> target
+          cache-on-failure: false
+      - name: Install reproducible frontend dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify production frontend, Owner flow and IPC tests
+        run: |
+          npm run build
+          npm test
+          node e2e/tauri-production-packaging-contract.mjs
+      - name: Native source parity only (user installers come from full packaging pipelines)
+        run: npm exec -- tauri build --no-bundle --features desktop-owner-login --ci
+      - name: Native Owner / secure vault contract tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --features desktop-owner-login --bin light-remote-desktop-v4-pilot

@@ -1,0 +1,8 @@
+Package: light-remote
+Version: 1.0.0
+Section: net
+Priority: optional
+Architecture: amd64
+Depends: python3, python3-gi, gir1.2-gtk-3.0, gir1.2-ayatanaappindicator3-0.1, policykit-1, xdg-utils, ca-certificates, util-linux
+Maintainer: Light Remote
+Description: Light Remote background service, Local Wall, tray helper and signed updater.

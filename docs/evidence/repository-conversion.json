@@ -1,0 +1,18 @@
+{
+  "authorizedByOwner": true,
+  "startedAt": "2026-11-08T11:21:06.988942+00:00",
+  "strategy": "rename-preserve-old-and-create-new",
+  "deleteUnavailableReason": "Existing OAuth session lacks delete_repo scope.",
+  "oldRepositoryId": 1361698660,
+  "oldArchiveFullName": "n8n2erpnext/light-remote-mcp-archive-20261108",
+  "oldArchiveUrl": "https://github.com/n8n2erpnext/light-remote-mcp-archive-20261108",
+  "oldRenamed": true,
+  "oldArchivedReadOnly": false,
+  "newCreated": true,
+  "forcePushUsed": false,
+  "oldArmSourceOrRuntimeModified": false,
+  "newRepositoryId": 1450214328,
+  "newRepositoryUrl": "https://github.com/n8n2erpnext/light-remote-mcp",
+  "newCreatedAt": "2026-11-08T11:21:09Z",
+  "newDefaultBranch": "main"
+}

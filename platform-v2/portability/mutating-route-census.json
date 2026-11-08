@@ -1,0 +1,2163 @@
+{
+  "schema_version": 1,
+  "classification": "SOURCE_HEURISTIC_REQUIRES_MANUAL_ROUTE_REVIEW",
+  "disclaimer": "Line-based first-pass only. Multiline/indirect handlers, POST multiplexers, side-effecting GET, timers, websockets and external workers may escape detection. No runtime claim.",
+  "sources": {
+    "operator-host/executor-routes-account.mjs": {
+      "sha256": "7969eff7c7f353834c03174c2cf8effff15bb8b17aa07b6a7deb43a1859fbcbf",
+      "lines": 566
+    },
+    "operator-host/executor-routes-device-channel.mjs": {
+      "sha256": "14a4555ad850380e56cb83f76dc540553854b2ff0e5b7079361c9b15d8c94114",
+      "lines": 383
+    },
+    "operator-host/executor-routes-plugin.mjs": {
+      "sha256": "af8e5d7dda35cdd1b3bcb8ba34f156ca86d4c7ffe34ea40eba02418bbdee1c7f",
+      "lines": 40
+    },
+    "operator-host/executor-routes-runtime.mjs": {
+      "sha256": "0109e312b5830622f8f4f015dd6457dfad742ab0ac35b79616db8fa153c01248",
+      "lines": 242
+    },
+    "operator-host/executor.mjs": {
+      "sha256": "1ebf34c5c42a7ffc51b5a995bf16c9095f15ffc101e25ecc096a1916adcac58f",
+      "lines": 1139
+    },
+    "plugin-server/account-portal.mjs": {
+      "sha256": "82bc58362502917515d08d1527410c40b5f8d8bc610e1430ea9ef2ffe5d2da60",
+      "lines": 461
+    },
+    "plugin-server/admin-portal.mjs": {
+      "sha256": "d2e710e4f170fd222b65d98f64550f8215e754d1c7509f90e287eafd0d3db06c",
+      "lines": 123
+    },
+    "plugin-server/ai-guide-page.mjs": {
+      "sha256": "a7e30902769d749d79020253de98678f54482229d5a5c41725092483107b3a6b",
+      "lines": 70
+    },
+    "plugin-server/commerce-backoffice.mjs": {
+      "sha256": "d02b3490dcbe595e7ef584b2eb45b9817019b6043a41c4f122d446057d6798e8",
+      "lines": 52
+    },
+    "plugin-server/config.mjs": {
+      "sha256": "ec808f7d9ef4adc897e0180c67cc5b8df8db3538a8caaee0bf1fe3bbb436a748",
+      "lines": 27
+    },
+    "plugin-server/device-public.mjs": {
+      "sha256": "e962793afa6cf10acc662b082c4643e583b78f09114da8ba4a9d939d7064e4bb",
+      "lines": 67
+    },
+    "plugin-server/distribution-portal.mjs": {
+      "sha256": "7c1bb1dd77e0d3ca3a18fa911c163014a14fe43805df5e43a3cd912480946cee",
+      "lines": 75
+    },
+    "plugin-server/google-auth.mjs": {
+      "sha256": "c7409cfd09b3ff10f9ba2d155a82d1f43261f3a1e7e33562b745ff03165b05c9",
+      "lines": 48
+    },
+    "plugin-server/legacy-tool-call-compat.mjs": {
+      "sha256": "d7a5f0af664145bfb292988f778f15c0884d94acdd4455c97bdfa3c0f22810b9",
+      "lines": 20
+    },
+    "plugin-server/legal-pages.mjs": {
+      "sha256": "5c2ac3be2bf41140a6f2f9e5157f057b3bd8b64053ccf42a9c2744e555990e05",
+      "lines": 302
+    },
+    "plugin-server/mailer.mjs": {
+      "sha256": "bbd3196f3428b15c8722da7196406f9d69622775d5ed1dee4a009fe392f5b375",
+      "lines": 77
+    },
+    "plugin-server/oauth.mjs": {
+      "sha256": "90d176ffbce5791d6382b09f3e72b07307a21c7d24e3f4d6069222c175e72852",
+      "lines": 184
+    },
+    "plugin-server/openai-security-compat.mjs": {
+      "sha256": "7534be6fb6c5d2f75d915f4db6a105b1dd3ff0d3094a6fa2159f12f7df469586",
+      "lines": 23
+    },
+    "plugin-server/operator-adapter.mjs": {
+      "sha256": "523c3b3df7cd6292757729facbcfbf5ed6d00f4b2831d3d1fa3d789738e9c323",
+      "lines": 202
+    },
+    "plugin-server/operator-client.mjs": {
+      "sha256": "16913e3ba2a914682d746a35ee4f8c3b8005f2642638687a30a37c4ee1d783ca",
+      "lines": 81
+    },
+    "plugin-server/paddle-billing.mjs": {
+      "sha256": "b0383a6aec63e3c319bfaf77521092a6af0482c100cdc313109312d5e2f6f027",
+      "lines": 1402
+    },
+    "plugin-server/paddle-emergency-refund.mjs": {
+      "sha256": "613762ec55b49b46a81d2a06a5aabf4b3b25ec88c97724242d1c443a120cf31a",
+      "lines": 32
+    },
+    "plugin-server/paddle-sandbox-offers.mjs": {
+      "sha256": "90047ae5582f221399e0b34f57b8e9734e54029a956c2a138408f48978194b2d",
+      "lines": 99
+    },
+    "plugin-server/paddle-sandbox-team-coordinator.mjs": {
+      "sha256": "a81cdffbc2f5c129d4d8087e03c08fbe80775e31b88c893c33646e015d238193",
+      "lines": 73
+    },
+    "plugin-server/response-sanitizer.mjs": {
+      "sha256": "461bcb56218bcdea2bb074254596369bf3ef35a768d2e3f507c13323d0fd092b",
+      "lines": 33
+    },
+    "plugin-server/server.mjs": {
+      "sha256": "5132a5644b55bb5c21e4fc138839bab75a96f7ddd0ff4c9dc76a8d08f8a4571d",
+      "lines": 134
+    },
+    "plugin-server/site-announcements.mjs": {
+      "sha256": "0a9701c2b4229b8a817b4cfa26b16de4cf26021a3e0a5df5ee66195a0478af29",
+      "lines": 121
+    },
+    "plugin-server/support-backoffice.mjs": {
+      "sha256": "9c9d26df6f9cc068b53ea0a3d35106cbea765c274b60fdb4dc57073d17fffa5e",
+      "lines": 356
+    },
+    "plugin-server/support-page.mjs": {
+      "sha256": "5f8513eabd1cfa4f8eb370aff55f633380bb2db976d60e53adc623fe01b6d6b9",
+      "lines": 322
+    },
+    "plugin-server/tool-helper.mjs": {
+      "sha256": "4bf7173e37d4865e4563698bf46764e8b5e96760b3aac5d6f70bc607e8823b3c",
+      "lines": 115
+    },
+    "plugin-server/tools.mjs": {
+      "sha256": "e9b399d264c44de2e83585aa74248e1cdbeedb362e3b435094b6c9d772753bbd",
+      "lines": 604
+    },
+    "plugin-server/web-assets.mjs": {
+      "sha256": "d93cc2bc5eae3e17d0c5e0a18f72af86020f1991c2997b7f1f95cb0495c60c30",
+      "lines": 55
+    }
+  },
+  "candidate_mutating_route_sites": [
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 18,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 25,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/admin/groups"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 29,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 32,
+      "verbs": [
+        "DELETE"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 42,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 47,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/admin/licenses/issue"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 52,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 56,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/admin/dormancy/scan"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 67,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 69,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 77,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 82,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 86,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 93,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 106,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 113,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/owner-proof"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 119,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/accounts/register"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 123,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/accounts/registration/status"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 126,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/accounts/registration/resend"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 129,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/accounts/registration/verify"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 132,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/auth/google-signup/inspect"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 135,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/auth/verify"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 139,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/accounts/password-reset/request"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 143,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/accounts/magic/request"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 147,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/accounts/password-reset/consume"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 152,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/accounts/magic/consume"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 155,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/auth/google"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 171,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 185,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 202,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/register"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 209,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/login"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 213,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/password-verify"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 221,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/reactivate"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 225,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/logout"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 228,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/password"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 235,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/password/setup"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 250,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/notifications/read"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 256,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/admin/notifications/publish"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 268,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 282,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/team/inbox/read"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 287,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/team/inbox/accept"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 295,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 301,
+      "verbs": [
+        "DELETE"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 313,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/team"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 318,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/team/invite"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 332,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/team/access/request"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 339,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/team/access/request"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 350,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/team/access/poll"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 378,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/team/dispatch/preflight"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 416,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/team/sessions/uat/open"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 434,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 451,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/team/accept"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 457,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/team/member/remove"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 463,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/team/device/share"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 472,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/team/device/unshare"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 482,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/main-device"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 495,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/main-device/clear"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 507,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/upgrade-request"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 511,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/redeem-license"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 517,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/enrollments/approve"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 524,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 535,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 545,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "line": 555,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/accounts/devices/revoke-all"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 47,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/enrollments/begin"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 51,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/enrollments/poll"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 58,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/enrollments/cancel"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 62,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/enrollments/approve"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 69,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-pair/begin"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 78,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-access/request"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 88,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-access/poll"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 92,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-access/recover"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 97,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-access/recover-consume"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 109,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 133,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/agent-client/attach"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 155,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/agent-client/resolve"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 164,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/agent-client/context"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 185,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/connect"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 191,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/renew"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 199,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/disconnect"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 209,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/grace"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 213,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/desktop-live-push"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 217,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/account-auth"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 223,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/fleet-intent"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 236,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/fleet-authority"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 242,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/fleet-status"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 248,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/fleet-devices"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 253,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/fleet-sessions"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 258,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/fleet-activity"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 263,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/fleet-device-policy"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 270,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/fleet-device-update"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 274,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/pairing-code"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 281,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/account-owner-proof"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 287,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/access-approve"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 293,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/access-deny"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 298,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/status"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 304,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/session-close"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 313,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/update-report"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 321,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/activity"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 327,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/stream"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 366,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/poll"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "line": 378,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-channel/result"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-plugin.mjs",
+      "line": 17,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/sessions/open"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-plugin.mjs",
+      "line": 30,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-plugin.mjs",
+      "line": 35,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-plugin.mjs",
+      "line": 36,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-plugin.mjs",
+      "line": 37,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-plugin.mjs",
+      "line": 38,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 10,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 21,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 27,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 37,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 47,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 61,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 65,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 69,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 77,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 80,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 84,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/sessions/open"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 97,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 100,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 101,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 102,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 103,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 105,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/plugin/desktop-live/read"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 113,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-access/desktop-live/read"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 123,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/device-access/execute"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 138,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/desktop"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 147,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/scp"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 156,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/process"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 165,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/terminal"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 174,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/search"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 183,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/fs"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 192,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/execute"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/account-portal.mjs",
+      "line": 104,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/account-portal.mjs",
+      "line": 448,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/account/recover"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 34,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 50,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 56,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 57,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 58,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 73,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 93,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 94,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 95,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 101,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/admin/accounts/"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 102,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/admin/accounts/"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 103,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/admin/groups"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 104,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/admin/groups/"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 105,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/admin/groups/"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 106,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/admin/pending-registrations/"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 107,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 113,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/v1/admin/licenses/"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "line": 114,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/device-public.mjs",
+      "line": 22,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/api/operator"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/device-public.mjs",
+      "line": 56,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/device-channel/stream"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/device-public.mjs",
+      "line": 60,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/device-channel/:action"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/oauth.mjs",
+      "line": 87,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/oauth/register"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/oauth.mjs",
+      "line": 116,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/oauth/authorize"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/oauth.mjs",
+      "line": 147,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/oauth/token"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/paddle-billing.mjs",
+      "line": 1378,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/billing/paddle/webhook"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/server.mjs",
+      "line": 90,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/mcp"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    },
+    {
+      "source": "plugin-server/support-backoffice.mjs",
+      "line": 340,
+      "verbs": [
+        "POST"
+      ],
+      "literal_paths": [
+        "/support/api"
+      ],
+      "resolution": "source_candidate_manual_verify",
+      "requires_fence_review": true
+    }
+  ],
+  "candidate_async_dispatch_sites": [
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "line": 237,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 219,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 221,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 255,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 261,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 426,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 510,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 527,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 531,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 556,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 574,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 603,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 638,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 713,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 730,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 747,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 958,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "operator-host/executor.mjs",
+      "line": 1136,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "plugin-server/account-portal.mjs",
+      "line": 431,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "plugin-server/account-portal.mjs",
+      "line": 432,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "plugin-server/operator-adapter.mjs",
+      "line": 10,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "plugin-server/server.mjs",
+      "line": 55,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "plugin-server/server.mjs",
+      "line": 126,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "plugin-server/support-backoffice.mjs",
+      "line": 313,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "plugin-server/support-backoffice.mjs",
+      "line": 314,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "plugin-server/support-backoffice.mjs",
+      "line": 350,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "plugin-server/support-page.mjs",
+      "line": 248,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    },
+    {
+      "source": "plugin-server/support-page.mjs",
+      "line": 272,
+      "category": "timer_or_async_dispatch_candidate",
+      "resolution": "source_candidate_manual_verify"
+    }
+  ],
+  "stats": {
+    "source_files": 32,
+    "candidate_mutation_sites": 163,
+    "candidate_background_sites": 28,
+    "critical_source_files": 7
+  },
+  "global_epoch_wired": false,
+  "production_cutover_authorized": false
+}

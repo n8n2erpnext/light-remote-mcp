@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "mode": "SOURCE_ONLY_NOT_WIRED",
+  "notes": "Representative mutating/dispatch boundaries requiring a cross-process generation gate. Not exhaustive route inventory. Source-only path markers; no runtime auth/control changes.",
+  "required_boundaries": [
+    {
+      "id": "account_grants_entitlements",
+      "file": "operator-host/executor-routes-account.mjs",
+      "markers": [
+        "/v1/accounts/enrollments/approve",
+        "/v1/accounts/devices/revoke-all",
+        "/v1/accounts/team/device/share"
+      ],
+      "gate": "owner_authorized_mutation_in_durable_transaction",
+      "risk": "revoked_or_unshared_device_resurrected"
+    },
+    {
+      "id": "device_pair_and_channel",
+      "file": "operator-host/executor-routes-device-channel.mjs",
+      "markers": [
+        "/v1/device-access/recover-consume",
+        "/v1/device-channel/poll",
+        "/v1/device-channel/result"
+      ],
+      "gate": "owner_agent_binding_plus_durable_grant_generation",
+      "risk": "stale_session_recovery_or_result_accepted"
+    },
+    {
+      "id": "plugin_session_lifecycle",
+      "file": "operator-host/executor-routes-plugin.mjs",
+      "markers": [
+        "/v1/plugin/sessions/open",
+        "deps.sessions.resume(",
+        "deps.sessions.close("
+      ],
+      "gate": "fence_session_mutations_before_migration",
+      "risk": "reopened_session_under_stale_authority"
+    },
+    {
+      "id": "direct_http_execution",
+      "file": "operator-host/executor-routes-runtime.mjs",
+      "markers": [
+        "/v1/execute",
+        "/v1/terminal",
+        "/v1/desktop"
+      ],
+      "gate": "enforce_at_ingress_and_dispatch",
+      "risk": "side_effect_after_fence"
+    },
+    {
+      "id": "operator_job_creation",
+      "file": "operator-host/executor.mjs",
+      "markers": [
+        "function startJob(payload, requestId)",
+        "function queueSignedUpdate(deviceId)",
+        "async function startTerminalOperation("
+      ],
+      "gate": "persist_generation_with_request_and_queue",
+      "risk": "job_waiting_in_memory_untracked"
+    },
+    {
+      "id": "fleet_command_poll",
+      "file": "operator-host/fleet-router.mjs",
+      "markers": [
+        "this.commands.set(commandId,command)",
+        "poll(input={})",
+        "command.dispatchedAt=now"
+      ],
+      "gate": "generation_check_per_command_at_agent_before_exec",
+      "risk": "queued_or_in_flight_command_replayed_after_move"
+    },
+    {
+      "id": "oauth_replay_consume",
+      "file": "plugin-server/oauth.mjs",
+      "markers": [
+        "usedCodes=new Map()",
+        "usedRefresh=new Map()",
+        "usedResume=new Map()"
+      ],
+      "gate": "durable_consumed_hash_transactional_once",
+      "risk": "authorization_code_or_refresh_reuse_across_hosts"
+    },
+    {
+      "id": "billing_webhook",
+      "file": "plugin-server/paddle-billing.mjs",
+      "markers": [
+        "/billing/paddle/webhook",
+        "processedAt: this.now()"
+      ],
+      "gate": "verify_provider_signature_then_durable_idempotent_queue",
+      "risk": "duplicate_or_missing_order/refund"
+    },
+    {
+      "id": "support_delivery",
+      "file": "plugin-server/support-backoffice.mjs",
+      "markers": [
+        "async pump({limit=8}={})",
+        "await this._deliver(row,config)",
+        "this._persist();"
+      ],
+      "gate": "pause_and_journal_delivery_receipt_before_fence",
+      "risk": "ticket_double_send_or_outbox_regression"
+    },
+    {
+      "id": "pty_native_side_effect",
+      "file": "operator-host/executor.mjs",
+      "markers": [
+        "async function executeLocalTerminalRequest(job,request)",
+        "NATIVE_TERMINALS.input(",
+        "NATIVE_TERMINALS.start("
+      ],
+      "gate": "node_and_terminal_epoch_validated_on_device",
+      "risk": "old_writer_can_drive_still_running_terminal"
+    }
+  ],
+  "required_guarantees": [
+    "all_mutators_covered",
+    "inflight_side_effect_drain_or_revoke",
+    "agent_generation_fence",
+    "webhook_idempotency",
+    "oauth_consumption_durable",
+    "do_not_auto_reissue_old_envelopes",
+    "one_authoritative_writer"
+  ],
+  "status": "GAPS_IDENTIFIED_NOT_READY"
+}

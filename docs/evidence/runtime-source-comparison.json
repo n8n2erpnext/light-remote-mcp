@@ -1,0 +1,92 @@
+[
+  {
+    "container": "light-remote-abv2-lab-20261101",
+    "runtimeRoot": "/opt/light-remote-abv2-lab/source-fa0699ee",
+    "path": "platform-v2/sql/migrations.lock.json",
+    "runtimeSha256": "9fc28935ab474d8c299b2434fcb36c7b337b377284670fa203d9c5521087f609",
+    "selectedEqual": true,
+    "upstreamDiffLines": 10,
+    "provenance": "UNKNOWN runtime source retained; selected code justified separately"
+  },
+  {
+    "container": "light-remote-abv2-lab-20261101",
+    "runtimeRoot": "/opt/light-remote-abv2-lab/t08-617-plugin-0f3c2ee1-STAGED",
+    "path": "platform-v2/sql/migrations.lock.json",
+    "runtimeSha256": "9fc28935ab474d8c299b2434fcb36c7b337b377284670fa203d9c5521087f609",
+    "selectedEqual": true,
+    "upstreamDiffLines": 10,
+    "provenance": "UNKNOWN runtime source retained; selected code justified separately"
+  },
+  {
+    "container": "light-remote-abv2-lab-20261101",
+    "runtimeRoot": "/opt/light-remote-abv2-lab/t08-617-wall-r5-0f3c2ee1-STAGED",
+    "path": "device-agent/local-wall.mjs",
+    "runtimeSha256": "0ab2c84524d59d1cb2f4a5edcad4ff85d6d314cdf0b955caced6ae5dfe338f59",
+    "selectedEqual": false,
+    "upstreamDiffLines": 689,
+    "provenance": "UNKNOWN runtime source retained; selected code justified separately"
+  },
+  {
+    "container": "light-remote-abv2-lab-20261101",
+    "runtimeRoot": "/opt/light-remote-abv2-lab/t08-617-wall-r5-0f3c2ee1-STAGED",
+    "path": "platform-v2/sql/migrations.lock.json",
+    "runtimeSha256": "9fc28935ab474d8c299b2434fcb36c7b337b377284670fa203d9c5521087f609",
+    "selectedEqual": true,
+    "upstreamDiffLines": 10,
+    "provenance": "UNKNOWN runtime source retained; selected code justified separately"
+  },
+  {
+    "container": "light-remote-abv2-lab-20261101",
+    "runtimeRoot": "/opt/light-remote-abv2-lab/t11-f16p02-owner-consent-preview-20261108",
+    "path": "operator-host/gold-ab-v2-signed-preview.mjs",
+    "runtimeSha256": "e161df5f74bd4c06048bf5e2830ab984ae2238f178673b2207179446e74189ce",
+    "selectedEqual": false,
+    "upstreamDiffLines": 8,
+    "provenance": "UNKNOWN runtime source retained; selected code justified separately"
+  },
+  {
+    "container": "light-remote-abv2-lab-20261101",
+    "runtimeRoot": "/opt/light-remote-abv2-lab/t11-f16p02-owner-consent-preview-20261108",
+    "path": "operator-host/executor.mjs",
+    "runtimeSha256": "846434eb4490c0a0d1d940ee4aaf93962c8c5bc716ab2151b8b29a2b06c5d76c",
+    "selectedEqual": false,
+    "upstreamDiffLines": 68,
+    "provenance": "UNKNOWN runtime source retained; selected code justified separately"
+  },
+  {
+    "container": "light-remote-abv2-lab-20261101",
+    "runtimeRoot": "/opt/light-remote-abv2-lab/t11-f16p02-owner-consent-preview-20261108",
+    "path": "operator-host/executor-routes-device-channel.mjs",
+    "runtimeSha256": "39c10879c728fe974355237c8bc8dbcd1033f06ee699076ac65474925bd754cf",
+    "selectedEqual": false,
+    "upstreamDiffLines": 50,
+    "provenance": "UNKNOWN runtime source retained; selected code justified separately"
+  },
+  {
+    "container": "light-remote-abv2-lab-20261101",
+    "runtimeRoot": "/opt/light-remote-abv2-lab/t11-f16p02-owner-consent-preview-20261108",
+    "path": "platform-v2/sql/migrations.lock.json",
+    "runtimeSha256": "9fc28935ab474d8c299b2434fcb36c7b337b377284670fa203d9c5521087f609",
+    "selectedEqual": true,
+    "upstreamDiffLines": 10,
+    "provenance": "UNKNOWN runtime source retained; selected code justified separately"
+  },
+  {
+    "container": "light-remote-direct",
+    "runtimeRoot": "/opt/light-remote-direct/releases/ux-v5-device-os-20261009-r4",
+    "path": "manifest.json",
+    "runtimeSha256": "7be886131abc46bc25a63f2d36b7542d5e51d555f9ea9432367556713c6d740c",
+    "selectedEqual": false,
+    "upstreamDiffLines": 0,
+    "provenance": "UNKNOWN runtime source retained; selected code justified separately"
+  },
+  {
+    "container": "light-remote-direct",
+    "runtimeRoot": "/opt/light-remote-direct/releases/ux-v5-device-os-20261009-r4",
+    "path": "operator-host/executor.mjs",
+    "runtimeSha256": "9c0eea764e477a391b1c135598ba61d36d8212fa6cdbdc688f2c71134e428fa9",
+    "selectedEqual": false,
+    "upstreamDiffLines": 1194,
+    "provenance": "UNKNOWN runtime source retained; selected code justified separately"
+  }
+]

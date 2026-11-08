@@ -1,0 +1,2078 @@
+#!/usr/bin/env node
+import {loadCanonicalEndpoints} from '../lib/canonical-endpoints.mjs';
+import {assertLegacyOwnerCommandNotGuest} from '../lib/gold-pro-share-device-guest-fence.mjs';
+import {executeGoldGuestDeviceProcess} from './guest-device-process.mjs';
+import fs from 'node:fs';
+import http from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { StringDecoder } from 'node:string_decoder';
+import { spawn, execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { deviceChannelMessage, deviceHeartbeatMessage, devicePolicyMessage, normalizeDeviceCapabilities } from '../lib/device-proof.mjs';
+import { createPlatformAdapter } from './platform-adapters/index.mjs';
+import { invalidateCommandExistenceCache } from './platform-adapters/shared.mjs';
+import { startLocalWall } from './local-wall.mjs';
+import {createLocalWallInstanceProof} from './local-wall-instance-proof.mjs';
+import { startDesktopAbv2NativeAgentIpcV4 } from './desktop-abv2-native-ipc-v4.mjs';
+import {assertNotificationOwnerEmail} from './wall-account-notifications.mjs';
+import {createGoldWallModules} from './gold-wall-modules.mjs';
+import { filesystemVolumeInventory } from './filesystem-volume-inventory.mjs';
+import { loadLocalWallAuth, writeLocalWallAuthConfig, writeAccountOnlyWallAuthConfig } from './local-wall-auth.mjs';
+import { FleetComponentManager } from './fleet-component-manager.mjs';
+import { FleetComponentSupervisor } from './fleet-component-supervisor.mjs';
+import { executeNativeFs, filesystemPolicy, normalizeFilesystemRoots } from '../lib/native-fs.mjs';
+import { NativeProcessRegistry } from '../lib/native-process.mjs';
+import { NativeTerminalReceiptSpool } from '../lib/native-terminal-receipt-spool.mjs';
+import { AgentExecutionEpochJournal } from './execution-epoch-journal.mjs';
+import { DeviceResourceSampler } from '../lib/device-resource-telemetry.mjs';
+import { sampleWindowsBootEvidence } from '../lib/device-boot-telemetry.mjs';
+import { ProcessSupervisorClient } from './process-supervisor-client.mjs';
+import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
+import { NativeSearchRegistry } from '../lib/native-search.mjs';
+import { NativeDesktopBridge, realRemoteAvailable } from '../lib/native-desktop.mjs';
+import {recoverableVisualFrameError,reacquireNativeVisual} from '../lib/rmv2-visual-lease-recovery.mjs';
+import { withRealRemoteCapabilities, defaultRealRemoteDenied, realRemotePolicyAfterSave, REAL_REMOTE_INPUT_CAPABILITY } from '../lib/real-remote-policy.mjs';
+import realRemoteInputPolicy from '../lib/real-remote-input.cjs';
+import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
+import { normalizeUpdateReport, normalizeUpdateStatus } from '../lib/update-contract.mjs';
+import { runtimeVersion } from '../lib/runtime-version.mjs';
+import { migrateLegacyEndpoint } from '../lib/public-endpoint.mjs';
+import { compactResultAfter413, fitResultForDelivery, isCompacted413Result } from './result-delivery.mjs';
+import { CommandExecutionCoordinator, DeviceDuplexClient, DEVICE_DUPLEX_PROTOCOL } from '../lib/device-duplex-client.mjs';
+import { ExecutorReadinessProbe } from '../lib/executor-readiness-probe.mjs';
+
+const VERSION=runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_AGENT_VERSION']});
+const CORE_ROOT=fileURLToPath(new URL('../',import.meta.url));
+const UPDATE_MODE=String(process.env.LIGHT_REMOTE_UPDATE_MODE||'independent-helper').trim()||'independent-helper';
+const PLATFORM_ADAPTER=createPlatformAdapter();
+const DEVICE_RESOURCE_SAMPLER=new DeviceResourceSampler();
+const NATIVE_PROCESSES=new NativeProcessRegistry({emit:event=>{
+ if(event?.type==='process_finished')NATIVE_TERMINAL_SPOOL.record(event);
+}});
+const PROCESS_SUPERVISOR_SOCKET=String(process.env.LIGHT_REMOTE_PROCESS_SUPERVISOR_SOCKET||'').trim();
+const PROCESS_SUPERVISOR_TOKEN_FILE=String(process.env.LIGHT_REMOTE_PROCESS_SUPERVISOR_TOKEN_FILE||'').trim();
+if(PROCESS_SUPERVISOR_SOCKET&&(process.platform==='win32'||!PROCESS_SUPERVISOR_TOKEN_FILE))
+  throw Error('process_supervisor_platform_or_token_missing');
+const SUPERVISED_PROCESSES=PROCESS_SUPERVISOR_SOCKET?new ProcessSupervisorClient({
+  socketPath:PROCESS_SUPERVISOR_SOCKET,tokenFile:PROCESS_SUPERVISOR_TOKEN_FILE}):null;
+const EXECUTOR_PROBE=new ExecutorReadinessProbe({
+  intervalMs:Number(process.env.OPERATOR_AGENT_EXECUTOR_PROBE_INTERVAL_MS)||30000,
+  timeoutMs:Number(process.env.OPERATOR_AGENT_EXECUTOR_PROBE_TIMEOUT_MS)||5000,
+  onTransition:state=>console.log(JSON.stringify({event:'device_executor_probe_readiness_changed',state:state.state,consecutiveFailures:state.consecutiveFailures}))
+});
+const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>console.log(JSON.stringify(event))});
+const NATIVE_SEARCHES=new NativeSearchRegistry();
+const REAL_REMOTE_AVAILABLE=realRemoteAvailable();
+const NATIVE_DESKTOP=new NativeDesktopBridge();
+const {normalizeDesktopInput}=realRemoteInputPolicy;
+const LIGHT_SCP=new LightScpRegistry({policy:()=>effectiveFilesystemPolicy(readState())});
+// Only the isolated GoldABV2 V4 installer carries this profile marker.
+ // An Agent launched directly (without the Windows Tray) must still NEVER
+ // select a production or legacy server once bundled for GoldABV2.
+const GOLDABV2_PACKAGE_MARKER=path.join(path.dirname(fileURLToPath(import.meta.url)),'goldabv2-package-profile.json');
+const GOLDABV2_PACKAGE=fs.existsSync(GOLDABV2_PACKAGE_MARKER)
+  ?JSON.parse(fs.readFileSync(GOLDABV2_PACKAGE_MARKER,'utf8')):null;
+// Only generated marker + the canonical packaged JSON determine this product.
+ // The signed full installer additionally pins the staged client-core digest;
+ // a runtime override cannot silently redirect Owner/Operator/MCP authority.
+const GOLDABV2_CONFIG_PATH=path.join(CORE_ROOT,'config','endpoints.json');
+const GOLDABV2_ENDPOINTS=GOLDABV2_PACKAGE?loadCanonicalEndpoints(GOLDABV2_CONFIG_PATH):null;
+if(GOLDABV2_PACKAGE){
+ const canonicalSha=crypto.createHash('sha256').update(fs.readFileSync(GOLDABV2_CONFIG_PATH)).digest('hex');
+ if(GOLDABV2_PACKAGE.profile!==GOLDABV2_ENDPOINTS.productId||
+    GOLDABV2_PACKAGE.productId!==GOLDABV2_ENDPOINTS.productId||
+    GOLDABV2_PACKAGE.configProfile!==GOLDABV2_ENDPOINTS.selectedProfile||
+    GOLDABV2_PACKAGE.configRevision!==GOLDABV2_ENDPOINTS.configRevision||
+    GOLDABV2_PACKAGE.configSha256!==canonicalSha||
+    GOLDABV2_PACKAGE.endpoint!==GOLDABV2_ENDPOINTS.cloudOrigins.deviceChannel)
+   throw new Error('invalid_goldabv2_package_profile');
+}
+const GOLDABV2_PACKAGE_ORIGIN=GOLDABV2_ENDPOINTS?.cloudOrigins.deviceChannel;
+function effectiveEndpoint(value,{kind='base'}={}){
+  if(!GOLDABV2_PACKAGE)return migrateLegacyEndpoint(value,{kind});
+  const supplied=String(value||'').trim().replace(/\/+$/,'');
+  if(supplied&&supplied!==GOLDABV2_PACKAGE_ORIGIN)
+    throw new Error('goldabv2_build_wrong_server_endpoint');
+  return GOLDABV2_PACKAGE_ORIGIN;
+}
+const DEFAULT_BASE=effectiveEndpoint(process.env.OPERATOR_AGENT_BASE_URL,{kind:'base'});
+const DEFAULT_HUB=effectiveEndpoint(process.env.OPERATOR_AGENT_HUB_URL,{kind:'hub'});
+const GOLDABV2_STATE_FILE=path.join(os.homedir(),'.config','gpt-operator-agent-goldabv2','device.json');
+if(GOLDABV2_PACKAGE&&process.env.OPERATOR_AGENT_STATE&&
+   path.resolve(process.env.OPERATOR_AGENT_STATE).toLowerCase()!==path.resolve(GOLDABV2_STATE_FILE).toLowerCase())
+  throw new Error('goldabv2_build_state_profile_mismatch');
+const STATE_FILE=GOLDABV2_PACKAGE?GOLDABV2_STATE_FILE:
+  process.env.OPERATOR_AGENT_STATE || path.join(os.homedir(),'.config','gpt-operator-agent','device.json');
+// GoldABV2-only current-user instance key, never an Owner/B bearer.
+function goldAbV2LocalWallInstanceProof(){
+ return GOLDABV2_ENDPOINTS?createLocalWallInstanceProof({
+  keyFile:path.join(path.dirname(STATE_FILE),'wall-instance.key'),
+  routePath:GOLDABV2_ENDPOINTS.routeCatalog.wallInstanceProof.path,
+  productId:GOLDABV2_ENDPOINTS.productId,
+  profile:GOLDABV2_ENDPOINTS.selectedProfile,
+  revision:GOLDABV2_ENDPOINTS.configRevision
+ }):null;
+}
+// Only terminal OS evidence; a missing terminal after Agent restart is UNKNOWN.
+const NATIVE_TERMINAL_SPOOL=new NativeTerminalReceiptSpool({directory:path.join(path.dirname(STATE_FILE),'terminal-journal')});
+const EXTERNAL_IDENTITY_FILE=String(process.env.OPERATOR_AGENT_IDENTITY_FILE||'').trim();
+const COMMAND_DIR=process.env.OPERATOR_AGENT_COMMAND_DIR || path.join(path.dirname(STATE_FILE),'commands');
+const EXECUTION_EPOCH_REQUIRED=process.env.OPERATOR_AGENT_EXECUTION_EPOCH_REQUIRED==='1';
+const EXECUTION_INSTANCE_ID='ei_'+crypto.randomBytes(20).toString('hex');
+const EXECUTION_JOURNAL=EXECUTION_EPOCH_REQUIRED?new AgentExecutionEpochJournal({directory:path.join(path.dirname(STATE_FILE),'execution-epoch-journal')}):null;
+let ACTIVE_EPOCH_READY=null,EXECUTION_EPOCH_PROMISE=null;
+if(GOLDABV2_ENDPOINTS){
+ const wall=GOLDABV2_ENDPOINTS.localServices.wall;
+ const fleet=GOLDABV2_ENDPOINTS.localServices.fleet;
+ for(const [hostName,portName,service] of [
+  ['OPERATOR_AGENT_WALL_HOST','OPERATOR_AGENT_WALL_PORT',wall],
+  ['OPERATOR_FLEET_WALL_HOST','OPERATOR_FLEET_WALL_PORT',fleet]
+ ]){
+  if(process.env[hostName]&&process.env[hostName]!==service.host)
+   throw Error('goldabv2_local_service_profile_mismatch');
+  if(process.env[portName]&&Number(process.env[portName])!==service.port)
+   throw Error('goldabv2_local_service_profile_mismatch');
+ }
+}
+const LOCAL_WALL_HOST=GOLDABV2_ENDPOINTS?.localServices.wall.host||
+ process.env.OPERATOR_AGENT_WALL_HOST||'127.0.0.1';
+const LOCAL_WALL_PORT=GOLDABV2_ENDPOINTS?.localServices.wall.port||
+ Math.max(1024,Math.min(Number(process.env.OPERATOR_AGENT_WALL_PORT)||5491,65535));
+const LOCAL_WALL_AUTH_FILE=process.env.OPERATOR_AGENT_WALL_AUTH_FILE || path.join(path.dirname(STATE_FILE),'wall-auth.json');
+const FLEET_WALL_HOST=GOLDABV2_ENDPOINTS?.localServices.fleet.host||
+ process.env.OPERATOR_FLEET_WALL_HOST||LOCAL_WALL_HOST;
+const FLEET_WALL_PORT=GOLDABV2_ENDPOINTS?.localServices.fleet.port||
+ Math.max(1024,Math.min(Number(process.env.OPERATOR_FLEET_WALL_PORT)||5492,65535));
+const FLEET_WALL_PUBLIC_URL=String(process.env.OPERATOR_FLEET_WALL_PUBLIC_URL||'').trim();
+const LOCAL_WALL_BRAND=fileURLToPath(new URL('../assets/branding/light-remote-mark.svg',import.meta.url));
+const UPDATE_RUNTIME_DIR=process.env.LIGHT_REMOTE_UPDATE_STATE_DIR||
+ (process.platform==='win32'
+  ?path.join(process.env.LOCALAPPDATA||os.homedir(),'Light Remote','Updater',
+    ...(GOLDABV2_PACKAGE?['GoldABV2']:[]),'state')
+  :path.join(path.dirname(STATE_FILE),'update-runtime'));
+const UPDATE_REQUEST_FILE=path.join(UPDATE_RUNTIME_DIR,'request.json'),UPDATE_CHECK_REQUEST_FILE=path.join(UPDATE_RUNTIME_DIR,'check-request.json'),UPDATE_TRANSACTION_FILE=path.join(UPDATE_RUNTIME_DIR,'transaction.json'),UPDATE_ACK_FILE=path.join(UPDATE_RUNTIME_DIR,'core-health-ack.json'),UPDATE_REPORT_FILE=path.join(UPDATE_RUNTIME_DIR,'pending-report.json'),UPDATE_STATUS_FILE=path.join(UPDATE_RUNTIME_DIR,'status.json');
+const MAX_OUTPUT=4*1024*1024;
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function sha256(value){return crypto.createHash('sha256').update(value).digest('hex');}
+function parseArgs(argv){const out={_:[]};for(let i=0;i<argv.length;i++){const v=argv[i];if(!v.startsWith('--'))out._.push(v);else{const k=v.slice(2);if(['no-wait','reenroll','relink'].includes(k))out[k]=true;else{const raw=argv[++i];out[k]=k==='base'?effectiveEndpoint(raw,{kind:'base'}):k==='hub'?effectiveEndpoint(raw,{kind:'hub'}):raw;}}}return out;}
+const GOLD_WALL_MODULES=createGoldWallModules({
+  file:path.join(path.dirname(STATE_FILE),'gold-wall-modules.sqlite'),
+  scopeIdentity:()=>{const e=readState()?.enrollment;return e?.accountId&&e?.deviceId?{accountId:e.accountId,deviceId:e.deviceId}:null;}
+});
+function readState(){try{return JSON.parse(fs.readFileSync(STATE_FILE,'utf8'));}catch{return null;}}
+function effectiveFilesystemPolicy(state){
+  return filesystemPolicy(process.env,state?.policy?.filesystemRoots??null);
+}
+function sleepSync(ms){const sab=new SharedArrayBuffer(4);Atomics.wait(new Int32Array(sab),0,0,Math.max(1,ms));}
+// A crash can leave a durable lock after the Agent's process has gone away.
+// Reclaim only locks with trusted owner metadata, a dead PID, and a safe age.
+// A legacy/empty lock has unknown ownership and always remains fail-closed.
+function reclaimDeadJsonLock(lock){
+  let snapshot,owner;
+  try{snapshot=fs.readFileSync(lock,'utf8');owner=JSON.parse(snapshot);}catch{return false;}
+  const age=Date.now()-Number(owner?.acquiredAt);
+  if(owner?.version!==1||!Number.isSafeInteger(owner.pid)||owner.pid<=0||
+     !Number.isSafeInteger(owner.acquiredAt)||age<30_000||age>365*24*3600_000)return false;
+  try{process.kill(owner.pid,0);return false;}catch(error){if(error?.code!=='ESRCH')return false;}
+  // Serialize competing reclaimers. Never remove an active or changed lock.
+  const guard=lock+'.reclaim';let fd=null;
+  try{fd=fs.openSync(guard,'wx',0o600);}catch{return false;}
+  try{
+    if(fs.readFileSync(lock,'utf8')!==snapshot)return false;
+    if(Date.now()-fs.statSync(lock).mtimeMs<30_000)return false;
+    fs.rmSync(lock);
+    return true;
+  }catch{return false;}
+  finally{try{fs.closeSync(fd);}catch{}try{fs.rmSync(guard,{force:true});}catch{}}
+}
+function writeJson0600(file,value){
+  const dir=path.dirname(file);fs.mkdirSync(dir,{recursive:true,mode:0o700});
+  const lock=file+'.lock',deadline=Date.now()+2500;let lockFd=null;
+  while(lockFd===null){
+    try{
+      lockFd=fs.openSync(lock,'wx',0o600);
+      fs.writeSync(lockFd,JSON.stringify({version:1,pid:process.pid,acquiredAt:Date.now()}));
+      fs.fsyncSync(lockFd);
+    }catch(error){
+      if(lockFd!==null){try{fs.closeSync(lockFd);}catch{}lockFd=null;try{fs.rmSync(lock,{force:true});}catch{}throw error;}
+      if(error?.code!=='EEXIST'||Date.now()>=deadline)throw error;
+      if(reclaimDeadJsonLock(lock))continue;
+      sleepSync(20);
+    }
+  }
+  const tmp=file+'.'+process.pid+'.'+Date.now()+'.'+crypto.randomBytes(4).toString('hex')+'.tmp';
+  try{
+    fs.writeFileSync(tmp,JSON.stringify(value,null,2)+'\n',{mode:0o600});fs.chmodSync(tmp,0o600);
+    for(let attempt=0;;attempt++){
+      try{fs.renameSync(tmp,file);break;}
+      catch(error){
+        if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)&&attempt<6){sleepSync(25*(attempt+1));continue;}
+        if(process.platform==='win32'&&['EPERM','EACCES','EEXIST'].includes(error?.code)){fs.copyFileSync(tmp,file);fs.rmSync(tmp,{force:true});break;}
+        throw error;
+      }
+    }
+  }finally{
+    try{if(fs.existsSync(tmp))fs.rmSync(tmp,{force:true});}catch{}
+    try{fs.closeSync(lockFd);}catch{}
+    try{fs.rmSync(lock,{force:true});}catch{}
+  }
+}
+function writeState(state){writeJson0600(STATE_FILE,state);}
+function readJsonFile(file){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return null;}}
+function updateStatusView(){const report=readJsonFile(UPDATE_REPORT_FILE);if(UPDATE_MODE==='server-managed')return {state:'managed',currentVersion:VERSION,targetVersion:null,helperVersion:'server-managed',code:null,updatedAt:null,mode:UPDATE_MODE,pendingReport:null};const status=normalizeUpdateStatus(readJsonFile(UPDATE_STATUS_FILE)||{});return {...status,currentVersion:status.currentVersion||VERSION,mode:UPDATE_MODE,pendingReport:report?{outcome:String(report.outcome||''),code:String(report.code||'')||null,targetVersion:String(report.targetVersion||'')||null,at:Number(report.at)||null}:null};}
+function acknowledgeCoreUpdateHealth(){const tx=readJsonFile(UPDATE_TRANSACTION_FILE);if(!tx||String(tx.targetVersion||'')!==VERSION||!/^ut_[A-Za-z0-9_-]{12,80}$/.test(String(tx.txId||'')))return false;writeJson0600(UPDATE_ACK_FILE,{schemaVersion:1,txId:tx.txId,version:VERSION,healthy:true,pid:process.pid,at:Date.now()});return true;}
+async function requestLocalUpdate(source='local-wall',mode='apply'){if(UPDATE_MODE==='server-managed')throw new Error('update_managed_by_server_deployment');const action=mode==='check'?'check':'apply';if(process.platform==='win32'){const updater=path.join(process.env.LOCALAPPDATA||os.homedir(),'Light Remote','Updater','LightRemote.Updater.exe'),installRoot=fileURLToPath(new URL('../../',import.meta.url));if(!fs.existsSync(updater))throw new Error('independent_updater_missing');const args=[action==='check'?'--check-update':'--apply-update-now','--install-dir',installRoot],child=spawn(updater,args,{windowsHide:true,detached:true,stdio:'ignore'});child.unref();return {accepted:true,source,mode:action,transport:'independent-updater',requestedAt:Date.now()};}const target=action==='check'?UPDATE_CHECK_REQUEST_FILE:UPDATE_REQUEST_FILE;writeJson0600(target,{schemaVersion:1,requestId:`uq_${crypto.randomBytes(12).toString('base64url')}`,source:String(source||'local-wall').slice(0,40),mode:action,currentVersion:VERSION,requestedAt:Date.now()});return {accepted:true,source,mode:action,transport:'helper-trigger',requestedAt:Date.now()};}
+async function flushPendingUpdateReport(state,hub){const raw=readJsonFile(UPDATE_REPORT_FILE);if(!raw)return null;const report=normalizeUpdateReport(raw);const response=await channelRequest(state,hub,'update-report',{...report,nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION});try{fs.rmSync(UPDATE_REPORT_FILE,{force:true});}catch{}return response;}
+let externalIdentityCache=null;
+function externalIdentity(){if(!EXTERNAL_IDENTITY_FILE)return null;if(externalIdentityCache)return externalIdentityCache;const row=JSON.parse(fs.readFileSync(EXTERNAL_IDENTITY_FILE,'utf8')),privateKey=crypto.createPrivateKey({key:Buffer.from(row.privateKey,'base64'),format:'der',type:'pkcs8'}),publicKey=crypto.createPublicKey({key:Buffer.from(row.publicKey||row.publicIdentityKey,'base64'),format:'der',type:'spki'});if(privateKey.asymmetricKeyType!=='ed25519'||publicKey.asymmetricKeyType!=='ed25519')throw new Error('invalid_external_device_identity');const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');externalIdentityCache={privateKey,publicIdentityKey,publicKeySha256:sha256(Buffer.from(publicIdentityKey,'base64')),createdAt:Number(row.createdAt)||Date.now()};return externalIdentityCache;}
+function ensureIdentity(state={}){if(state.identity?.publicIdentityKey&&(state.identity?.privateKey||EXTERNAL_IDENTITY_FILE))return state;const external=externalIdentity();if(external)return {...state,identity:{algorithm:'Ed25519',publicIdentityKey:external.publicIdentityKey,publicKeySha256:external.publicKeySha256,createdAt:external.createdAt}};const {publicKey,privateKey}=crypto.generateKeyPairSync('ed25519');const publicIdentityKey=publicKey.export({format:'der',type:'spki'}).toString('base64');return {...state,identity:{algorithm:'Ed25519',privateKey:privateKey.export({format:'der',type:'pkcs8'}).toString('base64'),publicIdentityKey,publicKeySha256:sha256(Buffer.from(publicIdentityKey,'base64')),createdAt:Date.now()}};}
+function assertLinuxRelinkLocalHelper(){
+ if(process.platform!=='linux')throw new Error('relink_linux_server_only');
+ // The console helper is privileged, and starts the Agent as its configured
+ // unprivileged user through root-owned runuser. A remote Wall/MCP shell as
+ // the Agent user may set env vars, but cannot forge this parent boundary.
+ if(process.env.LR_LINUX_RELINK_CONSOLE!=='1')throw new Error('relink_local_console_required');
+ let parentStatus='',parentCmd='';
+ try{
+  parentStatus=fs.readFileSync('/proc/'+process.ppid+'/status','utf8');
+  parentCmd=fs.readFileSync('/proc/'+process.ppid+'/cmdline','utf8').split(String.fromCharCode(0)).join(" ");
+ }catch{throw new Error('relink_privileged_parent_required');}
+ const parentUidLine=parentStatus.split('\n').find(line=>line.startsWith('Uid:'))||'';
+ const parentUid=parentUidLine.trim().split(/\s+/)[1];
+ const parentArgs=parentCmd.split(' ').filter(Boolean);
+ const executable=parentArgs[0]||'';
+ if(parentUid!=='0'||executable.split('/').at(-1)!=='runuser'||
+    !parentArgs.includes('-u'))
+   throw new Error('relink_privileged_parent_required');
+}
+function discoverCapabilities(){return withRealRemoteCapabilities(PLATFORM_ADAPTER.discoverCapabilities(),{available:REAL_REMOTE_AVAILABLE});}
+function effectiveCapabilities(approved,denied){const deny=new Set(denied||[]);return (approved||[]).filter(x=>!deny.has(x)).sort();}
+function isTrustedHostState(state){return String(state?.enrollment?.enrollmentId||'')==='trusted-host';}
+function policyBaseCapabilities(state){return normalizeDeviceCapabilities(isTrustedHostState(state)?(state?.enrollment?.grantableCapabilities||[]):(state?.enrollment?.approvedCapabilities||[]));}
+function effectiveCapabilitiesForState(state){return effectiveCapabilities(policyBaseCapabilities(state),state?.policy?.deniedCapabilities);}
+function responseRetryAfterMs(response,json){const header=String(response.headers?.get?.('retry-after')||'').trim(),bodySeconds=Number(json?.retryAfterSeconds);let value=Number.isFinite(bodySeconds)&&bodySeconds>0?bodySeconds*1000:0;if(/^\d+$/.test(header))value=Math.max(value,Number(header)*1000);else if(header){const at=Date.parse(header);if(Number.isFinite(at))value=Math.max(value,at-Date.now());}return Math.max(0,Math.min(value,5*60*1000));}
+async function parseResponse(response){const text=await response.text();let json;try{json=JSON.parse(text)}catch{json={raw:text}}if(!response.ok||!json.ok){const e=new Error(json.error||json.upstream?.error||`http_${response.status}`);e.status=response.status;e.payload=json;e.retryAfterMs=responseRetryAfterMs(response,json);throw e;}return json;}
+async function operator(base,action,payload){const response=await fetch(`${base.replace(/\/$/,'')}/api/operator`,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({action,payload}),signal:AbortSignal.timeout(15000)});const parsed=await parseResponse(response);return parsed.upstream??parsed;}
+function privateKey(state){if(state.identity?.privateKey)return crypto.createPrivateKey({key:Buffer.from(state.identity.privateKey,'base64'),format:'der',type:'pkcs8'});const external=externalIdentity();if(!external||external.publicIdentityKey!==state.identity?.publicIdentityKey)throw new Error('device_private_key_unavailable');return external.privateKey;}
+function verifyEnrollment(state,enrollment){const cert=enrollment.certificate;if(!cert||cert.publicKeySha256!==state.identity.publicKeySha256||cert.deviceId!==enrollment.deviceId)throw new Error('device_certificate_identity_mismatch');const signer=crypto.createPublicKey({key:Buffer.from(enrollment.signer.publicKey,'base64'),format:'der',type:'spki'});if(!crypto.verify(null,Buffer.from(JSON.stringify(cert)),signer,Buffer.from(enrollment.certificateSignature,'base64url')))throw new Error('device_certificate_signature_invalid');return true;}
+function applyPolicyEnvelope(state,envelope){
+  if(!envelope)return false;
+  const policy=envelope.policy,signature=String(envelope.signature||''),trustedSigner=String(state.enrollment?.signer?.publicKey||'');
+  if(!policy||!trustedSigner||String(envelope.signer?.publicKey||'')!==trustedSigner)throw new Error('device_policy_signer_mismatch');
+  if(policy.deviceId!==state.enrollment.deviceId||policy.accountId!==state.enrollment.accountId)throw new Error('device_policy_identity_mismatch');
+  const revision=Number(policy.policyRevision);if(!Number.isSafeInteger(revision)||revision<1)throw new Error('invalid_device_policy_revision');
+  const grantable=normalizeDeviceCapabilities(policy.grantableCapabilities),approved=normalizeDeviceCapabilities(policy.approvedCapabilities);
+  if(!approved.length||approved.some(cap=>!grantable.includes(cap)))throw new Error('invalid_device_policy_capabilities');
+  const message=devicePolicyMessage({deviceId:policy.deviceId,accountId:policy.accountId,revision,approvedCapabilities:approved,grantableCapabilities:grantable,policyProfile:policy.policyProfile,updatedAt:policy.policyUpdatedAt});
+  const signer=crypto.createPublicKey({key:Buffer.from(trustedSigner,'base64'),format:'der',type:'spki'});
+  if(!crypto.verify(null,Buffer.from(message),signer,Buffer.from(signature,'base64url')))throw new Error('device_policy_signature_invalid');
+  const current=Math.max(0,Number(state.policy?.serverPolicyRevision)||0);if(revision<current)return false;
+  state.enrollment.grantableCapabilities=grantable;state.enrollment.approvedCapabilities=approved;state.enrollment.policyProfile=String(policy.policyProfile||'default');
+  state.policy={...(state.policy||{}),serverPolicyRevision:revision,serverPolicyUpdatedAt:Number(policy.policyUpdatedAt)||Date.now(),localFinalDenyBoundary:true};
+  state.effectiveCapabilities=effectiveCapabilities(approved,state.policy?.deniedCapabilities);writeState(state);return revision>current;
+}
+async function ownerApproveServerPermissions({email,password,approvedCapabilities,profile}={},hub=DEFAULT_HUB){
+  let state=readState();if(!state?.enrollment?.deviceId)throw Error('device_not_enrolled');
+  if(isTrustedHostState(state))throw Error('trusted_host_uses_local_capability_authority');
+  const desired=normalizeDeviceCapabilities(approvedCapabilities||[]);
+  if(!desired.length)throw Error('owner_permissions_empty');
+  if(desired.some(c=>!normalizeDeviceCapabilities(state.enrollment.grantableCapabilities||[]).includes(c))){
+    await rescanHostCapabilities(hub);state=readState();
+  }
+  if(desired.some(c=>!normalizeDeviceCapabilities(state.enrollment.grantableCapabilities||[]).includes(c)))
+    throw Error('owner_permissions_not_device_supported');
+  if(!email||!password)throw Error('owner_credentials_required');
+  const response=await channelRequest(state,hub,'capabilities-owner-approve',{
+    email:String(email).trim(),password:String(password),approvedCapabilities:desired,policyProfile:String(profile||'custom')});
+  if(!response?.policy?.policy)throw Error('owner_approval_signed_policy_missing');
+  applyPolicyEnvelope(state,response.policy);
+  state.effectiveCapabilities=effectiveCapabilitiesForState(state);writeState(state);
+  return {policyRevision:state.policy.serverPolicyRevision,approvedCapabilities:state.enrollment.approvedCapabilities,
+    effectiveCapabilities:state.effectiveCapabilities};
+}
+async function heartbeat(state,base,{persist=true}={}){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const capabilities=effectiveCapabilitiesForState(state);const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const message=deviceHeartbeatMessage({deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities});const signature=crypto.sign(null,Buffer.from(message),privateKey(state)).toString('base64url');const upstream=await operator(base,'device-heartbeat',{deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities,signature,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0)});applyPolicyEnvelope(state,upstream.policy);state.lastHeartbeatAt=Date.now();state.effectiveCapabilities=effectiveCapabilitiesForState(state);if(persist)writeState(state);return upstream.device;}
+let observerChannelTail=Promise.resolve(),observerChannelNextAt=0,rmLiveChannelTail=Promise.resolve(),rmLiveChannelNextAt=0;
+function clientChannelLane(action){
+  if(action==='desktop-live-push')return 'rm-live';
+  return ['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity','fleet-jobs'].includes(action)?'observer':'direct';
+}
+function signedChannelEnvelope(state,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');return {deviceId,timestamp,nonce,signature,payload};}
+function channelRequestLocalOperator(state,action,payload){
+  if(!['capabilities-refresh','capabilities-owner-approve'].includes(action))throw new Error('local_operator_action_denied');
+  return new Promise((resolve,reject)=>{
+    const body=JSON.stringify(signedChannelEnvelope(state,action,payload));
+    const req=http.request({socketPath:process.env.LIGHT_REMOTE_LOCAL_OPERATOR_SOCKET,path:'/v1/device-channel/'+action,method:'POST',headers:{'content-type':'application/json'}},res=>{
+      const chunks=[];res.on('data',chunk=>chunks.push(chunk));res.on('end',()=>void parseResponse(new Response(Buffer.concat(chunks),{status:res.statusCode||502})).then(resolve,reject));
+    });
+    req.setTimeout(15000,()=>req.destroy(new Error('operator_timeout')));req.on('error',reject);req.end(body);
+  });
+}
+async function channelRequestDirect(state,hubBase,action,payload){
+  if(['capabilities-refresh','capabilities-owner-approve'].includes(action)&&process.env.LIGHT_REMOTE_LOCAL_OPERATOR_SOCKET)return channelRequestLocalOperator(state,action,payload);const response=await fetch(hubBase.replace(/\/$/,'')+'/device-channel/'+action,{method:'POST',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify(signedChannelEnvelope(state,action,payload)),signal:AbortSignal.timeout(action==='poll'?25000:15000)});return parseResponse(response);}
+async function channelRequest(state,hubBase,action,payload){
+  const lane=clientChannelLane(action);
+  if(lane==='direct')return channelRequestDirect(state,hubBase,action,payload);
+  const rm=lane==='rm-live',nextAt=rm?rmLiveChannelNextAt:observerChannelNextAt,minGap=rm?40:350;
+  const run=async()=>{const delay=Math.max(0,nextAt-Date.now());if(delay)await new Promise(resolve=>setTimeout(resolve,delay));if(rm)rmLiveChannelNextAt=Date.now()+minGap;else observerChannelNextAt=Date.now()+minGap;return channelRequestDirect(state,hubBase,action,payload);};
+  const tail=rm?rmLiveChannelTail:observerChannelTail,next=tail.then(run,run);
+  if(rm)rmLiveChannelTail=next.catch(()=>{});else observerChannelTail=next.catch(()=>{});
+  return next;
+}
+async function memoryAccountDevices(hub=DEFAULT_HUB){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('memory_device_not_enrolled');
+  // Keys originate in the local enabled Memory module, are bound by the
+  // enrollment-signed device channel, and are never supplied by the browser.
+  let identity=null;
+  try{identity={...GOLD_WALL_MODULES.syncIdentity(),syncModeProtocol:1};}
+  catch(error){if(String(error.message)!=='gold_module_disabled')throw error;}
+  const result=await channelRequest(state,hub,'memory-peers',{identity});
+  if(!Array.isArray(result?.devices)||result.devices.length>100||
+    result.currentDeviceId!==state.enrollment.deviceId)
+    throw new Error('memory_account_device_directory_invalid');
+  return {currentDeviceId:result.currentDeviceId,devices:result.devices};
+}
+async function memoryAccountInvites(hub=DEFAULT_HUB,input={action:'list'}){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('memory_device_not_enrolled');
+  const result=await channelRequest(state,hub,'memory-invites',input);
+  if(!result?.ok)throw new Error('memory_account_invites_unavailable');
+  return result;
+}
+async function memoryAccountDeleteChannel(hub=DEFAULT_HUB,input={action:'poll'}){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('memory_device_not_enrolled');
+  if(input?.action==='begin')await memoryAccountDevices(hub); // fresh enrolled Home key assertion
+  const result=await channelRequest(state,hub,'memory-account-delete',input);
+  if(!result?.ok)throw new Error('memory_account_delete_channel_unavailable');
+  return result;
+}
+async function memoryAccountSyncPolicy(hub=DEFAULT_HUB,input={action:'get'}){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('memory_device_not_enrolled');
+  const result=await channelRequest(state,hub,'memory-sync-policy',input);
+  if(!result?.ok)throw new Error('memory_account_sync_policy_unavailable');
+  return result;
+}
+async function rescanHostCapabilities(hub=DEFAULT_HUB){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  if(isTrustedHostState(state))throw new Error('trusted_host_capabilities_refresh_on_operator_restart');
+  invalidateCommandExistenceCache();
+  PLATFORM_ADAPTER.invalidateInstalledCapabilities?.();
+  const discovered=discoverCapabilities();
+  const response=await channelRequest(state,hub,'capabilities-refresh',{capabilities:discovered,agentVersion:VERSION});
+  if(!response?.policy?.policy)throw new Error('capability_rescan_unsigned_policy_missing');
+  const newlyGrantable=normalizeDeviceCapabilities(response.change?.addedCapabilities||[]);
+  // An explicit local owner selection is remembered before server approval.
+  // Otherwise newly discovered rights stay locally denied; never auto-grant.
+  const ownerIntent=new Set(normalizeDeviceCapabilities(state.policy?.localRequestedCapabilities||[]));
+  const newDeny=newlyGrantable.filter(cap=>!ownerIntent.has(cap));
+  state.policy={...(state.policy||{}),deniedCapabilities:normalizeDeviceCapabilities([...(state.policy?.deniedCapabilities||[]),...newDeny]),localProfile:newlyGrantable.length?'custom':state.policy?.localProfile||'custom'};
+  applyPolicyEnvelope(state,response.policy);
+  state.effectiveCapabilities=effectiveCapabilitiesForState(state);
+  writeState(state);
+  return {supportedCapabilities:discovered,installedCapabilities:PLATFORM_ADAPTER.installedCapabilities?.()||[],addedCapabilities:newlyGrantable,removedCapabilities:response.change?.removedCapabilities||[],approvalRequired:newlyGrantable,policyRevision:state.policy.serverPolicyRevision,effectiveCapabilities:state.effectiveCapabilities};
+}
+const REAL_REMOTE_LIVE=new Map();
+const REAL_REMOTE_VISUAL=new Map();
+function visualPublicView(row,value={}){
+  const source=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+  const {leaseToken,visualSessionId,...rest}=source;
+  return {desktopSessionId:row.desktopSessionId,...rest};
+}
+function visualOwner(p){return {sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};}
+function requireRealRemoteVisual(p,desktopSessionId){
+  const id=String(desktopSessionId||''),row=REAL_REMOTE_VISUAL.get(id);
+  if(!row)throw new Error('desktop_session_missing');
+  const owner=visualOwner(p);
+  if(row.sessionId!==owner.sessionId||row.agentId!==owner.agentId)throw new Error('desktop_session_owner_mismatch');
+  if(Date.now()>=row.expiresAt){void stopRealRemoteVisual(row).catch(error=>console.error(JSON.stringify({event:'desktop_visual_cleanup_failed',desktopSessionId:id,error:String(error?.message||error)})));throw new Error('desktop_session_expired');}
+  return row;
+}
+function armRealRemoteVisual(row){
+  if(row.timer){clearTimeout(row.timer);row.timer=null;}
+  row.expiresAt=Date.now()+row.idleTimeoutMs;
+  row.timer=setTimeout(()=>{row.timer=null;void stopRealRemoteVisual(row).catch(error=>console.error(JSON.stringify({event:'desktop_visual_cleanup_failed',desktopSessionId:row.desktopSessionId,error:String(error?.message||error)})));},row.idleTimeoutMs);
+  row.timer.unref?.();
+}
+async function stopRealRemoteVisual(row,{detach=true}={}){
+  if(!row||row.stopping)return row?.stopping||null;
+  row.stopping=(async()=>{
+    REAL_REMOTE_VISUAL.delete(row.desktopSessionId);
+    if(row.timer){clearTimeout(row.timer);row.timer=null;}
+    let detached=null,detachError=null;
+    if(detach){
+      try{detached=await NATIVE_DESKTOP.request('visual-detach',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000});}
+      catch(error){
+        if(!/visual_(session_missing|lease_expired)|real_remote_helper_(closed|exited|timeout)/.test(String(error?.message||error)))detachError=error;
+      }
+    }
+    try{row.release?.();}catch{}
+    try{NATIVE_DESKTOP.closeIfIdle();}catch{}
+    if(detachError)throw detachError;
+    return detached;
+  })().finally(()=>{row.stopping=null;});
+  return row.stopping;
+}
+async function attachRealRemoteVisual(p,request){
+  const owner=visualOwner(p),idleTimeoutMs=Math.max(1000,Math.min(Number(request.idleTimeoutMs)||120000,900000));
+  const native=await NATIVE_DESKTOP.request('visual-attach',{
+    screen:request.screen==null||Number(request.screen)<0?0:Math.max(0,Math.min(Number(request.screen)||0,31)),
+    maxWidth:Math.max(160,Math.min(Number(request.maxWidth)||960,1280)),
+    maxHeight:Math.max(90,Math.min(Number(request.maxHeight)||540,720)),
+    quality:Math.max(25,Math.min(Number(request.quality)||50,70)),
+    leaseMs:idleTimeoutMs,
+    owner:(owner.sessionId+':'+owner.agentId).slice(0,80)
+  },{timeoutMs:10000});
+  const desktopSessionId='desk_'+crypto.randomBytes(12).toString('base64url');
+  const row={desktopSessionId,visualSessionId:String(native.visualSessionId||''),leaseToken:String(native.leaseToken||''),...owner,
+    idleTimeoutMs,minIntervalMs:Math.max(0,Math.min(Number(request.minIntervalMs)||250,5000)),omitUnchanged:request.omitUnchanged!==false,
+    screen:native.screen,maxWidth:native.maxWidth,maxHeight:native.maxHeight,quality:native.quality,
+    displayTopologyId:String(native.displayTopologyId||''),nativeEpoch:String(native.epoch||''),nativeStale:false,recovering:null,
+    lastFrameSha:null,lastObservedAt:0,expiresAt:0,timer:null,release:NATIVE_DESKTOP.retain(),stopping:null};
+  if(!row.visualSessionId||!row.leaseToken){try{row.release();}catch{};throw new Error('desktop_visual_attach_invalid');}
+  REAL_REMOTE_VISUAL.set(desktopSessionId,row);armRealRemoteVisual(row);
+  return visualPublicView(row,native);
+}
+async function resumeRealRemoteVisual(p,request){
+  const row=requireRealRemoteVisual(p,request.desktopSessionId);
+  const reacquire=()=>reacquireNativeVisual(row,{requestNative:(...args)=>NATIVE_DESKTOP.request(...args),
+    isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r,
+    onRecovered:r=>{try{r.release?.();}catch{}r.release=NATIVE_DESKTOP.retain();}});
+  if(row.nativeStale){
+    await reacquire();armRealRemoteVisual(row);
+    return visualPublicView(row,{resumed:true,epochChanged:true,expiresAt:row.expiresAt});
+  }
+  try{
+    const native=await NATIVE_DESKTOP.request('visual-resume',{
+      visualSessionId:row.visualSessionId,leaseToken:row.leaseToken,leaseMs:row.idleTimeoutMs
+    });
+    armRealRemoteVisual(row);return visualPublicView(row,native);
+  }catch(error){
+    if(!recoverableVisualFrameError(error)||row.stopping)throw error;
+    await reacquire();armRealRemoteVisual(row);
+    return visualPublicView(row,{resumed:true,epochChanged:true,expiresAt:row.expiresAt});
+  }
+}
+async function detachRealRemoteVisual(p,request){
+  const row=requireRealRemoteVisual(p,request.desktopSessionId),native=await stopRealRemoteVisual(row,{detach:true});
+  return visualPublicView(row,native||{detached:true});
+}
+async function frameRealRemoteVisual(p,request,{observe=false}={}){
+  const id=String(request.desktopSessionId||'');
+  if(!id){
+    return NATIVE_DESKTOP.request('frame',{
+      screen:request.screen==null||Number(request.screen)<0?0:Math.max(0,Math.min(Number(request.screen)||0,31)),
+      maxWidth:Math.max(160,Math.min(Number(request.maxWidth)||960,1280)),
+      maxHeight:Math.max(90,Math.min(Number(request.maxHeight)||540,720)),
+      quality:Math.max(25,Math.min(Number(request.quality)||50,70))
+    },{timeoutMs:10000});
+  }
+  const row=requireRealRemoteVisual(p,id),now=Date.now(),remaining=Math.max(0,row.minIntervalMs-(now-row.lastObservedAt));
+  if(observe&&remaining>0){armRealRemoteVisual(row);return {desktopSessionId:id,unchanged:true,throttled:true,retryAfterMs:remaining,frameSeq:null,expiresAt:row.expiresAt};}
+  let native,recovered=false;
+  const reacquire=()=>reacquireNativeVisual(row,{requestNative:(...args)=>NATIVE_DESKTOP.request(...args),
+    isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r,
+    onRecovered:r=>{try{r.release?.();}catch{}r.release=NATIVE_DESKTOP.retain();}});
+  try{
+    // Only read-only visual session state is recoverable. Never replay input.
+    if(row.nativeStale){await reacquire();recovered=true;}
+    const nativeIdBeforeFrame=row.visualSessionId;
+    try{
+      native=await NATIVE_DESKTOP.request('visual-frame',{
+        visualSessionId:row.visualSessionId,leaseToken:row.leaseToken
+      },{timeoutMs:10000});
+    }catch(error){
+      if(!recoverableVisualFrameError(error)||row.stopping)throw error;
+      // Two concurrent reads can observe the same dead helper; reattach once.
+      if(row.visualSessionId===nativeIdBeforeFrame)await reacquire();
+      recovered=true;
+      native=await NATIVE_DESKTOP.request('visual-frame',{
+        visualSessionId:row.visualSessionId,leaseToken:row.leaseToken
+      },{timeoutMs:10000});
+    }
+  }catch(error){
+    await stopRealRemoteVisual(row,{detach:false}).catch(()=>{});
+    throw error;
+  }
+  row.lastObservedAt=Date.now();armRealRemoteVisual(row);
+  if(recovered)console.log(JSON.stringify({
+    event:'desktop_visual_native_lease_recovered',desktopSessionId:id,epochChanged:true
+  }));
+  const capture=native?.frame&&typeof native.frame==='object'?native.frame:null,hash=String(capture?.frameSha256||'');
+  const unchanged=Boolean(observe&&row.omitUnchanged&&hash&&row.lastFrameSha===hash);
+  if(hash)row.lastFrameSha=hash;
+  if(!unchanged)return visualPublicView(row,{...native,...(recovered?{epochChanged:true,resyncRecommended:true}:{})});
+  const safeCapture={...capture};delete safeCapture.data;
+  return visualPublicView(row,{...native,frame:safeCapture,unchanged:true,...(recovered?{epochChanged:true,resyncRecommended:true}:{})});
+}
+const COMMAND_EXECUTIONS=new CommandExecutionCoordinator();
+// Only bounded terminal worker receipts, no scripts/paths/output or secrets.
+let PROCESS_TERMINAL_RECEIPTS=[],PROCESS_TERMINAL_CURSOR=0;
+// Terminal receipts are retained by the device process supervisor journal.
+// Rotate on each signed transmission, not on a timer: a fixed last-32
+// window could starve older terminal leases indefinitely after restart.
+function nextProcessTerminalReceipts(){
+ const all=PROCESS_TERMINAL_RECEIPTS,cap=Math.min(32,all.length);
+ if(!cap)return [];
+ const start=PROCESS_TERMINAL_CURSOR%all.length;
+ PROCESS_TERMINAL_CURSOR=(start+cap)%all.length;
+ return Array.from({length:cap},(_,i)=>all[(start+i)%all.length]);
+}
+async function refreshProcessTerminalReceipts(current){
+ if(!current?.enrollment?.deviceId||!current.enrollment?.accountId)return;
+ try{
+  const list=SUPERVISED_PROCESSES?
+   await SUPERVISED_PROCESSES.listUnackedTerminals(current.enrollment.accountId,current.enrollment.deviceId):
+   NATIVE_TERMINAL_SPOOL.list(current.enrollment.accountId,current.enrollment.deviceId);
+  PROCESS_TERMINAL_RECEIPTS=list.filter(v=>
+    /^lp_[A-Za-z0-9_-]{20,80}$/.test(String(v.processId||''))&&
+    ['finished','stopped','timeout','error'].includes(v.state)&&
+    Number.isSafeInteger(Number(v.finishedAt))&&Number(v.finishedAt)>0)
+   .slice(-64).map(v=>({processId:v.processId,state:v.state,finishedAt:v.finishedAt,
+      exitCode:v.exitCode??null}));
+ }catch(error){PROCESS_TERMINAL_RECEIPTS=[];console.error(JSON.stringify({event:'terminal_receipt_refresh_failed',code:String(error?.code||error?.message||'JOURNAL_UNAVAILABLE').slice(0,80)}));}
+}
+
+async function confirmTerminalReceiptsAck(current,acks){
+ if(!Array.isArray(acks)||!acks.length||
+    !current?.enrollment?.accountId||!current?.enrollment?.deviceId)return;
+ const valid=acks.slice(0,32).filter(x=>
+  /^lp_[A-Za-z0-9_-]{20,80}$/.test(String(x?.processId||''))&&
+  ['finished','stopped','timeout','error'].includes(String(x?.state||''))&&
+  Number.isSafeInteger(Number(x?.finishedAt))&&Number(x.finishedAt)>0);
+ if(!valid.length)return;
+ // Fail closed: Supervisor must fsync its private terminal ACK journal first.
+ // The next poll/heartbeat will replay if the local write was interrupted.
+ if(SUPERVISED_PROCESSES)
+  await SUPERVISED_PROCESSES.ackTerminals(current.enrollment.accountId,current.enrollment.deviceId,valid);
+ else NATIVE_TERMINAL_SPOOL.acknowledge(current.enrollment.accountId,current.enrollment.deviceId,valid);
+ await refreshProcessTerminalReceipts(current);
+}
+
+// The server's enrolled signing key is pinned by the original device certificate.
+function executionSignerKey(state){
+  const bytes=Buffer.from(String(state.enrollment?.signer?.publicKey||''),'base64');
+  if(!bytes.length)throw Error('execution_epoch_signer_missing');
+  return crypto.createPublicKey({key:bytes,format:'der',type:'spki'});
+}
+async function ensureExecutionEpoch(state,hub){
+  if(!EXECUTION_EPOCH_REQUIRED)return;
+  const e=state.enrollment,connectionId=state.cloud?.connectionId;
+  if(!e?.deviceId||!e.accountId||!connectionId)throw Error('execution_epoch_device_connection_required');
+  if(ACTIVE_EPOCH_READY===connectionId&&EXECUTION_JOURNAL.grant?.instanceId===EXECUTION_INSTANCE_ID)return;
+  if(EXECUTION_EPOCH_PROMISE)return EXECUTION_EPOCH_PROMISE;
+  EXECUTION_EPOCH_PROMISE=(async()=>{
+    const received=await channelRequest(state,hub,'execution-epoch',{instanceId:EXECUTION_INSTANCE_ID});
+    EXECUTION_JOURNAL.acceptGrant(received,{accountId:e.accountId,deviceId:e.deviceId,
+      instanceId:EXECUTION_INSTANCE_ID,publicKey:executionSignerKey(state)});
+    // Native/Supervisor process observations are positive evidence only;
+    // a missing PID, incomplete journal, or truncated listing stays UNKNOWN.
+    const observed=SUPERVISED_PROCESSES?
+      await SUPERVISED_PROCESSES.listDevice(e.accountId,e.deviceId):
+      NATIVE_PROCESSES.list().filter(p=>p.accountId===e.accountId&&p.deviceId===e.deviceId);
+    EXECUTION_JOURNAL.observeProcesses(observed,{accountId:e.accountId,deviceId:e.deviceId});
+    const pages=EXECUTION_JOURNAL.inventoryPages({accountId:e.accountId,deviceId:e.deviceId,privateKey:privateKey(state)});
+    for(let i=0;i<pages.length;i++){
+      const result=await channelRequest(state,hub,'execution-inventory',{statement:pages[i]});
+      if(result?.inventory?.verified!==true||Boolean(result.inventory.ready)!==(i===pages.length-1))
+        throw Error('execution_inventory_not_acknowledged');
+    }
+    ACTIVE_EPOCH_READY=connectionId;
+  })();
+  try{await EXECUTION_EPOCH_PROMISE;}finally{EXECUTION_EPOCH_PROMISE=null;}
+}
+let DEVICE_DUPLEX=null,DEVICE_DUPLEX_IDLE_DEADLINE=0,DEVICE_DUPLEX_IDLE_TIMER=null;
+const DEVICE_DUPLEX_IDLE_CLOSE_MS=Math.max(500,Math.min(Number(process.env.LIGHT_REMOTE_DEVICE_DUPLEX_IDLE_CLOSE_MS)||1500,10000));
+function deviceDuplexStatus(){return DEVICE_DUPLEX?.status?.()||{active:false,ready:false};}
+function executorReadiness(){
+  if(deviceDuplexStatus().executorDegraded)return false;
+  return EXECUTOR_PROBE.status().ready;
+}
+function cancelDeviceDuplexIdleClose(){DEVICE_DUPLEX_IDLE_DEADLINE=0;if(DEVICE_DUPLEX_IDLE_TIMER){clearTimeout(DEVICE_DUPLEX_IDLE_TIMER);DEVICE_DUPLEX_IDLE_TIMER=null;}}
+function scheduleDeviceDuplexIdleClose(){
+  if(!DEVICE_DUPLEX)return;
+  cancelDeviceDuplexIdleClose();
+  DEVICE_DUPLEX_IDLE_DEADLINE=Date.now()+DEVICE_DUPLEX_IDLE_CLOSE_MS;
+  DEVICE_DUPLEX_IDLE_TIMER=setTimeout(async()=>{DEVICE_DUPLEX_IDLE_TIMER=null;if(REAL_REMOTE_LIVE.size||!DEVICE_DUPLEX||Date.now()<DEVICE_DUPLEX_IDLE_DEADLINE)return;if(deviceDuplexStatus().activeCommands>0){scheduleDeviceDuplexIdleClose();return;}const current=DEVICE_DUPLEX;DEVICE_DUPLEX=null;DEVICE_DUPLEX_IDLE_DEADLINE=0;try{await current.close('real_remote_idle');}catch{}console.log(JSON.stringify({event:'device_duplex_idle_closed'}));},DEVICE_DUPLEX_IDLE_CLOSE_MS);
+  DEVICE_DUPLEX_IDLE_TIMER.unref?.();
+}
+function duplexHelloPayload(state,meta={}){
+  return {protocol:DEVICE_DUPLEX_PROTOCOL,transportEpoch:meta.transportEpoch,resumeClientSeq:Math.max(0,Number(meta.resumeClientSeq)||0),clientSeq:Math.max(0,Number(meta.clientSeq)||0),nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),...(EXECUTION_EPOCH_REQUIRED?{executionInstanceId:EXECUTION_INSTANCE_ID}:{})};
+}
+function duplexHeartbeatPayload(){
+  const state=readState();if(!state?.enrollment?.deviceId||!cloudDesired(state))return null;
+  return {nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts(),resourceSample:DEVICE_RESOURCE_SAMPLER.sample(),bootEvidence:sampleWindowsBootEvidence()};
+}
+async function duplexExecuteCommand(command,hub){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const deviceReceivedAt=Date.now(),claim=await COMMAND_EXECUTIONS.run(command.commandId,'duplex',()=>executeCommand(state,command,{hub}));
+  if(!claim.owner)console.log(JSON.stringify({event:'device_command_duplicate_replayed',commandId:command.commandId,ownerTransport:claim.transport,duplicateTransport:'duplex'}));
+  const source=claim.result;if(!source||typeof source!=='object'||Array.isArray(source))return source;
+  const result={...source,telemetry:{...(source.telemetry||{})}},completedAt=Date.now(),reportedFirst=Number(result.telemetry?.firstOutputAt);
+  result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt,deviceTransport:'duplex-v1',duplicateTransport:claim.owner?null:'duplex'};
+  return fitResultForDelivery(result);
+}
+async function resyncLiveAfterDuplexEpochChange(){
+  for(const row of REAL_REMOTE_LIVE.values()){
+    if(row.stopped)continue;
+    try{const snapshot=await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId:row.semanticSessionId},{timeoutMs:15000});row.lastSnapshotAt=Date.now();row.afterSeq=Math.max(row.afterSeq,Number(snapshot?.stateSeq)||0);row.inputSeq=Math.max(row.inputSeq||0,Number(snapshot?.inputSeq)||0);row.rootEpoch=Math.max(row.rootEpoch||0,Number(snapshot?.rootEpoch)||0);await pushRealRemoteLive(row,{stateSeq:row.afterSeq,inputSeq:row.inputSeq,rootEpoch:row.rootEpoch,snapshot,displayTopologyId:snapshot?.displayTopologyId||row.displayTopologyId,resyncRecommended:false});}catch(error){console.error(JSON.stringify({event:'device_duplex_resync_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error)}));}
+  }
+}
+async function ensureDeviceDuplex(state,hub){
+  if(EXECUTION_EPOCH_REQUIRED)await ensureExecutionEpoch(state,hub);
+  cancelDeviceDuplexIdleClose();
+  if(DEVICE_DUPLEX&&DEVICE_DUPLEX.hub!==String(hub||'').replace(/\/$/,'')){const prior=DEVICE_DUPLEX;DEVICE_DUPLEX=null;try{await prior.close('hub_changed');}catch{}}
+  if(!DEVICE_DUPLEX){
+    DEVICE_DUPLEX=new DeviceDuplexClient({
+      hub,
+      hello:meta=>{const current=readState()||state;return signedChannelEnvelope(current,'stream',duplexHelloPayload(current,meta));},
+      onCommand:command=>duplexExecuteCommand(command,hub),
+      onHelloAck:async(frame,info)=>{const current=readState();if(current){applyPolicyEnvelope(current,frame.policy);current.cloud={...(current.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};writeState(current);}if(info?.serverEpochChanged)queueMicrotask(()=>void resyncLiveAfterDuplexEpochChange());},
+      onHeartbeatAck:async frame=>{const current=readState();if(current&&frame.policy)applyPolicyEnvelope(current,frame.policy);if(current)await confirmTerminalReceiptsAck(current,frame.terminalReceiptsAck);applyDeviceStopRequests(frame.stopRequests);},
+      heartbeatPayload:duplexHeartbeatPayload,
+      heartbeatMs:5000,
+      maxPending:128,
+      log:event=>console.log(JSON.stringify(event))
+    });
+    DEVICE_DUPLEX.start();
+  }
+  const ready=await DEVICE_DUPLEX.waitReady(1800);
+  return Boolean(ready&&deviceDuplexStatus().ready);
+}
+
+const REAL_REMOTE_LIVE_HEARTBEAT_MS=Math.max(1000,Math.min(Number(process.env.LIGHT_REMOTE_RMV2_LIVE_HEARTBEAT_MS)||60000,240000));
+const REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS=1000;
+function realRemoteLiveId(value={}){return String(value?.semanticSessionId||value?.browserSessionId||'');}
+function touchRealRemoteLive(id){const row=REAL_REMOTE_LIVE.get(String(id||''));if(!row||row.stopped)return;row.expiresAt=Date.now()+row.idleTimeoutMs;scheduleRealRemoteLive(row);}
+async function pushRealRemoteLive(row,value={}){
+  const current=readState()||row.state,snapshot=value.snapshot||null;
+  const payload={sessionId:row.sessionId,agentId:row.agentId,semanticSessionId:row.semanticSessionId,stateSeq:Math.max(0,Number(value.stateSeq)||row.afterSeq||0),inputSeq:Math.max(0,Number(value.inputSeq??snapshot?.inputSeq??row.inputSeq)||0),rootEpoch:Math.max(0,Number(value.rootEpoch??snapshot?.rootEpoch??row.rootEpoch)||0),events:Array.isArray(value.events)?value.events:[],snapshot,displayTopologyId:value.displayTopologyId||row.displayTopologyId||null,cursor:value.cursor||null,foreground:value.foreground||null,resyncRecommended:Boolean(value.resyncRecommended),heartbeat:Boolean(value.heartbeat),closed:Boolean(value.closed)};
+  row.inputSeq=Math.max(row.inputSeq||0,payload.inputSeq);row.rootEpoch=Math.max(row.rootEpoch||0,payload.rootEpoch);
+  if(deviceDuplexStatus().ready){
+    try{if(await DEVICE_DUPLEX.sendLive(payload))return {ok:true,accepted:true,transport:'device-duplex-v1'};}
+    catch(error){console.error(JSON.stringify({event:'device_duplex_live_fallback',semanticSessionId:row.semanticSessionId,error:String(error?.message||error)}));}
+  }
+  return channelRequest(current,row.hub,'desktop-live-push',payload);
+}
+function scheduleRealRemoteLive(row){
+  if(row.timer){clearTimeout(row.timer);row.timer=null;}if(row.stopped)return;
+  const delay=Math.max(250,Math.min(Math.max(0,row.expiresAt-Date.now()),REAL_REMOTE_LIVE_HEARTBEAT_MS));
+  row.timer=setTimeout(async()=>{row.timer=null;if(row.stopped)return;if(Date.now()>=row.expiresAt){await stopRealRemoteLive(row);return;}try{await pushRealRemoteLive(row,{heartbeat:true});row.failures=0;}catch(error){row.failures++;console.error(JSON.stringify({event:'real_remote_live_heartbeat_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error),failures:row.failures}));if(row.failures>=5){await stopRealRemoteLive(row,{notify:false});return;}}scheduleRealRemoteLive(row);},delay);
+  row.timer.unref?.();
+}
+async function stopRealRemoteLive(row,{detach=true,notify=true}={}){
+  if(!row)return null;if(row.stopping)return row.stopping;
+  row.stopping=(async()=>{row.stopped=true;REAL_REMOTE_LIVE.delete(row.semanticSessionId);if(row.timer){clearTimeout(row.timer);row.timer=null;}let detached=null;
+    if(detach){try{detached=await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId:row.semanticSessionId},{timeoutMs:10000});}catch(error){if(!/session_(missing|not_found)/.test(String(error?.message||error)))console.error(JSON.stringify({event:'real_remote_live_detach_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error)}));}}
+    if(notify){try{await pushRealRemoteLive(row,{closed:true});}catch{}}
+    try{row.release?.();}catch{}
+    if(REAL_REMOTE_LIVE.size===0){NATIVE_DESKTOP.closeIfIdle();scheduleDeviceDuplexIdleClose();}
+    return detached;})();
+  return row.stopping;
+}
+async function drainRealRemoteLive(row){
+  if(!row||row.stopped)return;if(row.draining){row.dirty=true;return row.draining;}let again=false;
+  row.draining=(async()=>{
+    for(let pass=0;pass<8&&!row.stopped;pass++){
+      row.dirty=false;
+      const observed=await NATIVE_DESKTOP.request('semantic-events',{semanticSessionId:row.semanticSessionId,afterSeq:row.afterSeq,limit:200},{timeoutMs:10000});
+      const events=Array.isArray(observed?.events)?observed.events:[],now=Date.now();let snapshot=null;
+      if(observed?.resyncRecommended&&now-row.lastSnapshotAt>=REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS){try{snapshot=await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId:row.semanticSessionId},{timeoutMs:15000});row.lastSnapshotAt=Date.now();}catch{}}
+      const nextSeq=Math.max(row.afterSeq,Number(observed?.stateSeq)||0,Number(snapshot?.stateSeq)||0);
+      if(events.length||snapshot){await pushRealRemoteLive(row,{stateSeq:nextSeq,events,snapshot,displayTopologyId:snapshot?.displayTopologyId||observed?.displayTopologyId,foreground:observed?.foreground||null,resyncRecommended:Boolean(observed?.resyncRecommended&&!snapshot)});row.failures=0;row.lastPushAt=Date.now();}
+      row.afterSeq=nextSeq;if(observed?.hasMore)row.dirty=true;if(!row.dirty)break;
+    }
+    again=row.dirty&&!row.stopped;
+  })().catch(async error=>{row.failures++;console.error(JSON.stringify({event:'real_remote_live_drain_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error),failures:row.failures}));await stopRealRemoteLive(row,{notify:true});}).finally(()=>{row.draining=null;if(again&&!row.stopped)queueMicrotask(()=>void drainRealRemoteLive(row));});
+  return row.draining;
+}
+async function pushDirectRealRemoteDelta(row,data){
+  if(!row||row.stopped)return;
+  const events=Array.isArray(data?.events)?data.events:[];
+  let snapshot=null;
+  const now=Date.now();
+  if(data?.resyncRecommended&&now-row.lastSnapshotAt>=REAL_REMOTE_LIVE_SNAPSHOT_DEBOUNCE_MS){
+    try{snapshot=await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId:row.semanticSessionId},{timeoutMs:15000});row.lastSnapshotAt=Date.now();}catch{}
+  }
+  const nextSeq=Math.max(row.afterSeq,Number(data?.stateSeq)||0,Number(snapshot?.stateSeq)||0);
+  await pushRealRemoteLive(row,{
+    stateSeq:nextSeq,events,snapshot,
+    foreground:data?.foreground||null,focused:data?.focused||null,inputSeq:Number(data?.inputSeq)||0,
+    scope:data?.scope||null,rootHwnd:data?.rootHwnd||null,rootTitle:data?.rootTitle||null,rootEpoch:Number(data?.rootEpoch)||0,
+    resyncRecommended:Boolean(data?.resyncRecommended&&!snapshot)
+  });
+  row.afterSeq=nextSeq;row.failures=0;row.lastPushAt=Date.now();
+}
+function onRealRemoteLiveEvent(message){
+  const name=String(message?.eventName||'');
+  if(name==='robot.closed'){for(const row of [...REAL_REMOTE_LIVE.values()])void stopRealRemoteLive(row,{detach:false,notify:true});for(const row of [...REAL_REMOTE_VISUAL.values()]){row.nativeStale=true;row.lastFrameSha=null;}return;}
+  if(name!=='semantic.changed'&&name!=='browser.semantic.changed')return;
+  const data=message?.data||{},id=realRemoteLiveId(data),row=REAL_REMOTE_LIVE.get(id);if(!row||row.stopped)return;
+  if(name==='semantic.changed'&&Array.isArray(data.events)){
+    row.directQueue=(row.directQueue||Promise.resolve()).then(()=>pushDirectRealRemoteDelta(row,data)).catch(async error=>{
+      row.failures++;console.error(JSON.stringify({event:'real_remote_live_direct_push_failed',semanticSessionId:row.semanticSessionId,error:String(error?.message||error),failures:row.failures}));
+      if(row.failures>=5)await stopRealRemoteLive(row,{notify:true});
+    });
+    return;
+  }
+  row.dirty=true;void drainRealRemoteLive(row);
+}
+NATIVE_DESKTOP.onEvent(onRealRemoteLiveEvent);
+async function finishEnrollment(state,base,{wait=false}={}){
+ const pending=state.pendingEnrollment;
+ if(!pending?.enrollmentId||!pending?.pollToken)throw new Error('no_pending_enrollment');
+ const relinkIdentity=pending.relinkIdentity||null;
+ if(relinkIdentity)assertLinuxRelinkLocalHelper();
+ if(relinkIdentity&&!relinkIdentity.privateKey)throw new Error('relink_identity_invalid');
+ do{const upstream=await operator(base,'enrollment-poll',{enrollmentId:pending.enrollmentId,pollToken:pending.pollToken});const e=upstream.enrollment;if(e.state==='approved'){
+ if(relinkIdentity&&e.signer?.publicKey!==state.enrollment?.signer?.publicKey)
+   throw new Error('relink_server_signer_mismatch');
+ verifyEnrollment(relinkIdentity?{...state,identity:relinkIdentity}:state,e);if(relinkIdentity){state.identity=relinkIdentity;delete state.routing;}state.enrollment={enrollmentId:e.enrollmentId,deviceId:e.deviceId,nodeId:e.deviceId,accountId:e.accountId,grantableCapabilities:[...(pending.requestedCapabilities||e.approvedCapabilities||[])],approvedCapabilities:e.approvedCapabilities,policyProfile:e.policyProfile,certificate:e.certificate,certificateSignature:e.certificateSignature,signer:e.signer,enrolledAt:Date.now()};state.policy={...(state.policy||{}),serverPolicyRevision:1,localFinalDenyBoundary:true};state.effectiveCapabilities=effectiveCapabilities(e.approvedCapabilities,state.policy?.deniedCapabilities);state.cloud={...(state.cloud||{}),desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:null,lastDisconnectedAt:Date.now()};delete state.pendingEnrollment;writeState(state);const device=await heartbeat(state,base);return {state:'approved',device,effectiveCapabilities:[...(state.effectiveCapabilities||[])]};}if(e.state==='expired'||e.state==='replaced'||e.state==='cancelled'){delete state.pendingEnrollment;writeState(state);return {state:e.state};}if(!wait)return {state:e.state,expiresAt:e.expiresAt};if(Date.now()>=pending.expiresAt){delete state.pendingEnrollment;writeState(state);return {state:'expired'};}await sleep(3000);}while(true);}
+async function beginWallEnrollment(base=DEFAULT_BASE){let state=readState()||{};
+ // Account-to-account relinking on Linux is NEVER a Wall action. The Wall
+ // can be exposed on LAN/NetBird, which does not prove physical presence.
+ // Keep the original Wall Link flow for NEW and explicitly REVOKED devices.
+ // A device still bound to an account requires OS-admin terminal Relink.
+ const linkableAfterRelease=['device_revoked','device_removed'].includes(
+   String(state.cloud?.lastError||''));
+ if(state.enrollment?.deviceId&&!linkableAfterRelease)
+   throw Object.assign(new Error('device_relink_requires_local_app_or_terminal'),{status:403});
+ if(state.identityResetRequired)throw new Error('external_identity_rotation_required');state=ensureIdentity(state);const discovered=discoverCapabilities();if(!discovered.length)throw new Error('device_capabilities_required');const denied=defaultRealRemoteDenied({discovered,denied:normalizeDeviceCapabilities(state.policy?.deniedCapabilities||[]),inputDecision:state.policy?.realRemoteInputDecision});const hostname=os.hostname(),hadEnrollment=Boolean(state.enrollment?.deviceId),revoked=String(state.cloud?.lastError||'')==='device_revoked';const policyProfile=String(state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||'default');const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:state.identity.publicIdentityKey,displayName:hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:discovered,policyProfile});const e=upstream.enrollment;state.policy={...(state.policy||{}),deniedCapabilities:denied,localFinalDenyBoundary:true};state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,deviceCode:e.deviceCode,expiresAt:e.expiresAt,requestedCapabilities:e.requestedCapabilities||discovered,requestedPolicy:e.requestedPolicy||policyProfile};writeState(state);return {state:'pending',mode:hadEnrollment||revoked?'reenroll':'link',deviceCode:e.deviceCode,activationUrl:e.activationUrl,expiresAt:e.expiresAt,expiresInSeconds:e.expiresInSeconds,deniedCapabilities:[...denied]};}
+// Visible exclusively to the local OS user through a short-lived CLI helper.
+// Never add plaintext enrollment code to remote status/Wall/event/Operator APIs.
+// The normal approved/expired/cancelled transition erases pendingEnrollment.
+function localPendingLinkPreview(){
+ const p=readState()?.pendingEnrollment;
+ if(!p?.enrollmentId||!Number.isFinite(Number(p.expiresAt)))throw Error('no_pending_enrollment');
+ const expiresAt=Number(p.expiresAt);
+ if(Date.now()>=expiresAt) return {ok:true,state:'expired',expiresAt};
+ return {ok:true,state:'pending',pendingEnrollmentId:p.enrollmentId,expiresAt,
+  deviceCode:/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(String(p.deviceCode||''))?p.deviceCode:null,
+  activationUrl:typeof p.activationUrl==='string'?p.activationUrl:null};
+}
+async function pollWallEnrollment(base=DEFAULT_BASE){
+ const state=readState();
+ // Wall may finish only Wall-created link/revoked re-enrollment; a Linux
+ // admin-terminal relink carries an alternate private identity and must be
+ // finalized by the same privileged local OS flow.
+ if(process.platform==='linux'&&state?.pendingEnrollment?.relinkIdentity)
+   throw Object.assign(new Error('linux_relink_requires_admin_terminal'),{status:403});if(!state?.pendingEnrollment?.enrollmentId)throw new Error('no_pending_enrollment');return finishEnrollment(state,base,{wait:false});}
+async function login(args){
+ const base=args.base||DEFAULT_BASE;
+ let state=ensureIdentity(readState()||{});
+ if(args.relink&&args.reenroll)throw new Error('relink_and_reenroll_conflict');
+ if(process.platform==='linux'&&
+    (args.reenroll||state.cloud?.lastError==='device_removed'||state.identityResetRequired))
+   assertLinuxRelinkLocalHelper();
+ if(args.relink){
+   if(process.platform!=='linux')throw new Error('relink_linux_server_only');
+   if(!state.enrollment?.deviceId)throw new Error('relink_existing_enrollment_required');
+   if(isTrustedHostState(state))throw new Error('relink_trusted_host_not_supported');
+   if(EXTERNAL_IDENTITY_FILE||!state.identity?.privateKey)
+     throw new Error('relink_external_identity_requires_offline_reprovision');
+   assertLinuxRelinkLocalHelper();
+ }
+ if(state.enrollment?.deviceId&&!args.reenroll&&!args.relink){const device=await heartbeat(state,base);console.log(JSON.stringify({ok:true,alreadyEnrolled:true,deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId||state.enrollment.deviceId,state:device.state,effectiveCapabilities:state.effectiveCapabilities},null,2));return;}const discovered=discoverCapabilities();if(!discovered.length)throw new Error('device_capabilities_required');const requestedDenied=args.deny==null&&(args.reenroll||args.relink)?normalizeDeviceCapabilities(state.policy?.deniedCapabilities||[]):normalizeDeviceCapabilities(String(args.deny||'').split(',').map(x=>x.trim()).filter(Boolean));const denied=defaultRealRemoteDenied({discovered,denied:requestedDenied,inputDecision:state.policy?.realRemoteInputDecision});state.policy={...(state.policy||{}),deniedCapabilities:denied,localFinalDenyBoundary:true};const hostname=os.hostname(),policyProfile=String(args.policy||state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||'default');const nextIdentity=args.relink
+   ?(state.pendingEnrollment?.relinkIdentity||ensureIdentity({}).identity):null;
+ // Relinking cannot request more authority than the previous *approved*
+ // capability ceiling, regardless of new-account permissions. The local
+ // deny list, filesystem scope and policy always survive the handoff.
+ const requestedCapabilities=args.relink
+   ?discovered.filter(c=>normalizeDeviceCapabilities(
+     state.enrollment?.approvedCapabilities||[]).includes(c))
+   :discovered;
+ if(!requestedCapabilities.length)throw new Error('relink_no_previously_approved_capabilities');
+ const upstream=await operator(base,'enrollment-begin',{publicIdentityKey:(nextIdentity||state.identity).publicIdentityKey,displayName:args.name||hostname,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`${hostname} / ${os.platform()} ${os.arch()} / key ${state.identity.publicKeySha256.slice(0,12)}`,capabilities:requestedCapabilities,policyProfile});const e=upstream.enrollment;state.pendingEnrollment={enrollmentId:e.enrollmentId,pollToken:e.pollToken,activationUrl:e.activationUrl,deviceCode:e.deviceCode,expiresAt:e.expiresAt,requestedCapabilities,requestedPolicy:e.requestedPolicy||policyProfile,...(nextIdentity?{relinkIdentity:nextIdentity}:{})};writeState(state);console.log(`Activation URL: ${e.activationUrl}`);console.log(`Device code: ${e.deviceCode}`);console.log(`Expires in: ${e.expiresInSeconds}s`);if(args['no-wait'])return;console.log('Waiting for approval…');const result=await finishEnrollment(state,base,{wait:true});console.log(JSON.stringify({ok:result.state==='approved',enrollment:result.state,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,state:result.device?.state||null,effectiveCapabilities:state.effectiveCapabilities||[]},null,2));}
+function commandFile(commandId){if(!/^cmd_[A-Za-z0-9-]{20,}$/.test(String(commandId||'')))throw new Error('invalid_command_id');return path.join(COMMAND_DIR,`${commandId}.json`);}
+function readCommand(commandId){try{return JSON.parse(fs.readFileSync(commandFile(commandId),'utf8'));}catch{return null;}}
+function writeCommand(commandId,value){fs.mkdirSync(COMMAND_DIR,{recursive:true,mode:0o700});writeJson0600(commandFile(commandId),value);}
+function pruneCommandSpool(){fs.mkdirSync(COMMAND_DIR,{recursive:true,mode:0o700});const rows=fs.readdirSync(COMMAND_DIR).filter(name=>/^cmd_[A-Za-z0-9-]{20,}\.json$/.test(name)).map(name=>({name,stat:fs.statSync(path.join(COMMAND_DIR,name))})).sort((a,b)=>b.stat.mtimeMs-a.stat.mtimeMs);const cutoff=Date.now()-24*60*60*1000;for(let i=0;i<rows.length;i++)if(i>=100||rows[i].stat.mtimeMs<cutoff)fs.rmSync(path.join(COMMAND_DIR,rows[i].name),{force:true});}
+function likelyBinaryBytes(value){const buf=Buffer.isBuffer(value)?value:Buffer.from(value);if(!buf.length)return false;if(buf.length>=4){if(buf[0]===0x1f&&buf[1]===0x8b)return true;if(buf[0]===0x50&&buf[1]===0x4b&&[0x03,0x05,0x07].includes(buf[2]))return true;if(buf[0]===0x7f&&buf[1]===0x45&&buf[2]===0x4c&&buf[3]===0x46)return true;if(buf[0]===0x00&&buf[1]===0x01&&buf[2]===0x00&&buf[3]===0x00)return true;const magic=buf.subarray(0,4).toString('ascii');if(magic==='wOFF'||magic==='wOF2')return true;}const sample=buf.subarray(0,Math.min(buf.length,8192));let controls=0;for(const byte of sample){if(byte===0)return true;if(byte<32&&byte!==9&&byte!==10&&byte!==13)controls++;}return controls>=8&&controls/sample.length>0.01;}
+function boundedCollector(limit=MAX_OUTPUT){let size=0,chunks=[],truncated=false,finished=false,binary=false,binaryBytes=0;const decoder=new StringDecoder('utf8');const addText=text=>{if(!text)return;const buf=Buffer.from(text,'utf8');if(size>=limit){truncated=true;return;}const take=buf.subarray(0,Math.max(0,limit-size));chunks.push(take);size+=take.length;if(take.length<buf.length)truncated=true;};return{add(data){const buf=Buffer.isBuffer(data)?data:Buffer.from(data);if(binary||likelyBinaryBytes(buf)){binary=true;binaryBytes+=buf.length;return;}addText(decoder.write(buf));},finish(){if(finished)return;finished=true;if(binary)addText('[binary output suppressed · '+binaryBytes+' bytes]\n');else addText(decoder.end());},text(){this.finish();return Buffer.concat(chunks).toString('utf8');},truncated(){return truncated;},binaryBytes(){return binaryBytes;}};}
+async function executeProcessCommand(state,p){
+  const request=p.process&&typeof p.process==='object'&&!Array.isArray(p.process)?p.process:{};
+  const op=String(request.op||'');
+  const owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
+  const effective=effectiveCapabilitiesForState(state);
+  if(op==='start'){
+    const script=String(request.script||'');if(!script.trim())throw new Error('process_script_required');
+    const required=[...new Set([...(Array.isArray(request.requiredCapabilities)?request.requiredCapabilities:[]),...PLATFORM_ADAPTER.inferRequiredCapabilities(script,{shell:request.shell})])].sort();
+    const policyDeny=PLATFORM_ADAPTER.hardDeny?.(script)||null;if(policyDeny)throw new Error(`local platform policy denied: ${policyDeny}`);
+    const missing=required.filter(cap=>!effective.includes(cap));if(missing.length)throw new Error(`local capability denied: ${missing.join(',')}`);
+    const cwd=String(request.cwd||os.homedir());let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
+    const process=SUPERVISED_PROCESSES?
+      await SUPERVISED_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,shell:request.shell,operationId:p.operationId,executionMode:request.executionMode}):
+      NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>PLATFORM_ADAPTER.commandFor(value,{shell:request.shell}),env:{GPT_OPERATOR_ACCOUNT:owner.accountId,GPT_OPERATOR_DEVICE:owner.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||owner.deviceId,GPT_OPERATOR_SESSION:owner.sessionId}});
+    return {ok:true,operation:'start',process};
+  }
+  if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
+  if(op==='input')return {ok:true,operation:'input',process:await (SUPERVISED_PROCESSES||NATIVE_PROCESSES).input(request.processId,owner,{data:request.data,eof:Boolean(request.eof)})};
+  if(op==='output')return {ok:true,operation:'output',...await (SUPERVISED_PROCESSES||NATIVE_PROCESSES).output(request.processId,owner,{stream:request.stream,offset:request.offset,limit:request.limit})};
+  if(op==='stop')return {ok:true,operation:'stop',process:await (SUPERVISED_PROCESSES||NATIVE_PROCESSES).stop(request.processId,owner,{force:Boolean(request.force)})};
+  if(op==='list')return {ok:true,operation:'list',processes:await (SUPERVISED_PROCESSES||NATIVE_PROCESSES).list(owner)};
+  throw new Error('process_operation_unsupported');
+}
+
+async function executeTerminalCommand(state,p){
+  const request=p.terminal&&typeof p.terminal==='object'&&!Array.isArray(p.terminal)?p.terminal:{};
+  const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
+  const effective=effectiveCapabilitiesForState(state);
+  if(!effective.includes('terminal'))throw new Error('local capability denied: terminal');
+  if(op==='start'){
+    const cwd=String(request.cwd||os.homedir());let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
+    const shellSpec=PLATFORM_ADAPTER.terminalFor({shell:request.shell});
+    return {ok:true,operation:'start',terminal:NATIVE_TERMINALS.start({...owner,shellSpec,cwd,cols:request.cols,rows:request.rows,term:request.term,env:{GPT_OPERATOR_ACCOUNT:owner.accountId,GPT_OPERATOR_DEVICE:owner.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||owner.deviceId,GPT_OPERATOR_SESSION:owner.sessionId}})};
+  }
+  if(op==='input')return {ok:true,operation:'input',terminal:NATIVE_TERMINALS.input(request.terminalId,owner,{data:request.data})};
+  if(op==='output')return {ok:true,operation:'output',...NATIVE_TERMINALS.output(request.terminalId,owner,{offset:request.offset,limit:request.limit})};
+  if(op==='resize')return {ok:true,operation:'resize',terminal:NATIVE_TERMINALS.resize(request.terminalId,owner,{cols:request.cols,rows:request.rows})};
+  if(op==='signal')return {ok:true,operation:'signal',terminal:NATIVE_TERMINALS.signal(request.terminalId,owner,{signal:request.signal})};
+  if(op==='stop')return {ok:true,operation:'stop',terminal:NATIVE_TERMINALS.stop(request.terminalId,owner,{force:Boolean(request.force)})};
+  if(op==='list')return {ok:true,operation:'list',terminals:NATIVE_TERMINALS.list(owner)};
+  throw new Error('terminal_operation_unsupported');
+}
+
+async function executeSearchCommand(state,p){
+  const request=p.search&&typeof p.search==='object'&&!Array.isArray(p.search)?p.search:{};
+  const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
+  const effective=effectiveCapabilitiesForState(state);if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
+  if(op==='start'){const policy=effectiveFilesystemPolicy(state);return {ok:true,operation:'start',search:await NATIVE_SEARCHES.start({...owner,path:request.path,searchType:request.searchType,pattern:request.pattern,literalSearch:Boolean(request.literalSearch),ignoreCase:request.ignoreCase!==false,filePattern:request.filePattern,contextLines:request.contextLines,maxResults:request.maxResults,readRoots:policy.readRoots})};}
+  if(op==='results')return {ok:true,operation:'results',...NATIVE_SEARCHES.results(request.searchId,owner,{offset:request.offset,limit:request.limit})};
+  if(op==='cancel')return {ok:true,operation:'cancel',search:NATIVE_SEARCHES.cancel(request.searchId,owner)};
+  throw new Error('search_operation_unsupported');
+}
+
+async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
+  const request=p.desktop&&typeof p.desktop==='object'&&!Array.isArray(p.desktop)?p.desktop:{};
+  const op=String(request.op||''),effective=effectiveCapabilitiesForState(state);
+  if(!effective.includes('desktop'))throw new Error('local capability denied: desktop');
+  if(!REAL_REMOTE_AVAILABLE)throw new Error('real_remote_unavailable');
+  if(op==='status')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('status',{})};
+  if(op==='live-open'){
+    const provider=String(request.provider||'windows-uia').trim().toLowerCase();
+    if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
+    const depth=Number(request.maxDepth),nodes=Number(request.maxNodes),idleTimeoutMs=Math.max(15000,Math.min(Number(request.idleTimeoutMs)||300000,900000));
+    const semantic={provider,maxDepth:Math.max(1,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),16)),maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500))};
+    if(provider==='windows-uia')semantic.scope=request.scope==='foreground'?'foreground':'desktop';
+    else{if(request.cdpEndpoint!=null)semantic.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)semantic.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)semantic.urlMatch=String(request.urlMatch).slice(0,512);}
+    for(const existing of [...REAL_REMOTE_LIVE.values()])if(existing.sessionId===String(p.sessionId||'')&&existing.agentId===String(p.agentId||''))await stopRealRemoteLive(existing);
+    const initial=await NATIVE_DESKTOP.request('semantic-attach',semantic,{timeoutMs:15000}),semanticSessionId=realRemoteLiveId(initial);
+    if(!semanticSessionId)throw new Error('semantic_session_not_found');
+    const row={semanticSessionId,provider,state,hub,sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),afterSeq:Math.max(0,Number(initial?.stateSeq)||0),inputSeq:Math.max(0,Number(initial?.inputSeq)||0),rootEpoch:Math.max(0,Number(initial?.rootEpoch)||0),displayTopologyId:String(initial?.displayTopologyId||''),idleTimeoutMs,expiresAt:Date.now()+idleTimeoutMs,lastPushAt:0,lastSnapshotAt:Date.now(),failures:0,dirty:false,draining:null,directQueue:Promise.resolve(),stopped:false,stopping:null,timer:null,release:NATIVE_DESKTOP.retain()};
+    REAL_REMOTE_LIVE.set(semanticSessionId,row);
+    let duplexReady=false;
+    try{duplexReady=await ensureDeviceDuplex(state,hub);}
+    catch(error){console.error(JSON.stringify({event:'device_duplex_open_failed',error:String(error?.message||error)}));}
+    try{await pushRealRemoteLive(row,{stateSeq:row.afterSeq,inputSeq:row.inputSeq,rootEpoch:row.rootEpoch,snapshot:{...initial,semanticSessionId},displayTopologyId:row.displayTopologyId});scheduleRealRemoteLive(row);}
+    catch(error){await stopRealRemoteLive(row,{notify:false});throw error;}
+    return {ok:true,operation:op,desktop:{...initial,semanticSessionId,live:{active:true,transport:duplexReady?'device-duplex-v1':'semantic-push-cache',eventDriven:true,heartbeatMs:REAL_REMOTE_LIVE_HEARTBEAT_MS,idleTimeoutMs,duplex:deviceDuplexStatus()}}};
+  }
+  if(op==='live-close'){
+    const semanticSessionId=String(request.semanticSessionId||'');if(!semanticSessionId)throw new Error('semantic_session_id_required');
+    const row=REAL_REMOTE_LIVE.get(semanticSessionId);let detached=null;
+    if(row)detached=await stopRealRemoteLive(row,{detach:true,notify:true});
+    else{
+      if(NATIVE_DESKTOP.running){try{detached=await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId},{timeoutMs:10000});}catch(error){if(!/session_(missing|not_found)/.test(String(error?.message||error)))throw error;}}
+      const closePayload={sessionId:String(p.sessionId||''),agentId:String(p.agentId||''),semanticSessionId,stateSeq:0,inputSeq:0,rootEpoch:0,events:[],snapshot:null,heartbeat:false,closed:true};
+      let sent=false;if(deviceDuplexStatus().ready){try{sent=await DEVICE_DUPLEX.sendLive(closePayload);}catch{}}
+      if(!sent){try{await channelRequest(readState()||state,hub,'desktop-live-push',closePayload);}catch{}}
+    }
+    if(REAL_REMOTE_LIVE.size===0){NATIVE_DESKTOP.closeIfIdle();scheduleDeviceDuplexIdleClose();}
+    return {ok:true,operation:op,desktop:{semanticSessionId,closed:true,detached}};
+  }
+  if(op==='attach')return {ok:true,operation:op,desktop:await attachRealRemoteVisual(p,request)};
+  if(op==='resume')return {ok:true,operation:op,desktop:await resumeRealRemoteVisual(p,request)};
+  if(op==='detach')return {ok:true,operation:op,desktop:await detachRealRemoteVisual(p,request)};
+  if(op==='windows')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('windows',{limit:Math.max(1,Math.min(Number(request.limit)||100,200))})};
+  if(op==='frame')return {ok:true,operation:op,desktop:await frameRealRemoteVisual(p,request,{observe:false})};
+  if(op==='observe'){
+    const semanticSessionId=String(request.semanticSessionId||'').trim();
+    const semanticRequested=Boolean(semanticSessionId||request.provider||request.cdpEndpoint||request.targetId||request.urlMatch);
+    if(semanticRequested){
+      if(semanticSessionId){
+        if(request.afterSeq!=null){
+          const afterSeq=Number(request.afterSeq),limit=Number(request.limit);
+          return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-events',{
+            semanticSessionId,
+            afterSeq:Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0,
+            limit:Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200))
+          },{timeoutMs:10000})};
+        }
+        return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId},{timeoutMs:15000})};
+      }
+      const provider=String(request.provider||'windows-uia').trim().toLowerCase();
+      if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
+      const depth=Number(request.maxDepth),nodes=Number(request.maxNodes),semantic={provider,maxDepth:Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12)),maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500))};
+      if(provider==='windows-uia')semantic.scope=request.scope==='desktop'?'desktop':'foreground';
+      else{if(request.cdpEndpoint!=null)semantic.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)semantic.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)semantic.urlMatch=String(request.urlMatch).slice(0,512);}
+      return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-attach',semantic,{timeoutMs:15000})};
+    }
+    return {ok:true,operation:op,desktop:await frameRealRemoteVisual(p,request,{observe:true})};
+  }
+  if(op==='run'){
+    if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
+    const wait=request.await&&typeof request.await==='object'&&!Array.isArray(request.await)?request.await:null;
+    let payload,semanticSessionId='';
+    if(String(request.nodeId||'').trim()&&String(request.action||'').trim()&&!Array.isArray(request.events)){
+      semanticSessionId=String(request.semanticSessionId||'');
+      if(!semanticSessionId)throw new Error('semantic_session_id_required');
+      payload={semanticSessionId,nodeId:String(request.nodeId),action:String(request.action),afterSeq:Math.max(0,Number(request.afterSeq)||0),settleMs:Math.max(0,Math.min(Number(request.settleMs)||90,250))};
+      if(request.value!=null)payload.value=String(request.value).slice(0,4096);
+      if(wait)payload.await=wait;
+    }else{
+      payload=normalizeDesktopInput(request);semanticSessionId=String(payload.semanticSessionId||'');
+      if(wait)payload.await=wait;
+    }
+    const desktop=await NATIVE_DESKTOP.request('run',payload,{timeoutMs:20000});
+    touchRealRemoteLive(semanticSessionId);
+    return {ok:true,operation:op,desktop};
+  }
+  if(op==='input'){
+    if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
+    const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000});
+    touchRealRemoteLive(input.semanticSessionId);
+    return {ok:true,operation:op,desktop};
+  }
+  if(op==='act'){
+    if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
+    if(Array.isArray(request.events)){
+      const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000});
+      touchRealRemoteLive(input.semanticSessionId);
+      return {ok:true,operation:op,desktop};
+    }
+    const semanticSessionId=String(request.semanticSessionId||'');
+    if(!semanticSessionId)throw new Error('semantic_session_id_required');
+    const action={semanticSessionId,nodeId:String(request.nodeId||''),action:String(request.action||''),afterSeq:Math.max(0,Number(request.afterSeq)||0),settleMs:Math.max(0,Math.min(Number(request.settleMs)||90,250))};
+    if(request.value!=null)action.value=String(request.value).slice(0,4096);
+    const desktop=await NATIVE_DESKTOP.request('semantic-act',action,{timeoutMs:10000});
+    touchRealRemoteLive(semanticSessionId);
+    return {ok:true,operation:op,desktop};
+  }
+  if(op==='semantic-attach'){
+    const provider=String(request.provider||'windows-uia').trim().toLowerCase();
+    if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
+    const depth=Number(request.maxDepth),nodes=Number(request.maxNodes);
+    const semantic={provider,maxDepth:Math.max(0,Math.min(Number.isFinite(depth)?depth:(provider==='browser-cdp'?8:6),12)),maxNodes:Math.max(1,Math.min(Number.isFinite(nodes)?nodes:(provider==='browser-cdp'?600:400),1500))};
+    if(provider==='windows-uia')semantic.scope=request.scope==='desktop'?'desktop':'foreground';
+    else{if(request.cdpEndpoint!=null)semantic.cdpEndpoint=String(request.cdpEndpoint).slice(0,256);if(request.targetId!=null)semantic.targetId=String(request.targetId).slice(0,256);if(request.urlMatch!=null)semantic.urlMatch=String(request.urlMatch).slice(0,512);}
+    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-attach',semantic,{timeoutMs:15000})};
+  }
+  if(op==='semantic-snapshot')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-snapshot',{semanticSessionId:String(request.semanticSessionId||'')},{timeoutMs:15000})};
+  if(op==='semantic-events'){
+    const afterSeq=Number(request.afterSeq),limit=Number(request.limit);
+    return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-events',{
+      semanticSessionId:String(request.semanticSessionId||''),
+      afterSeq:Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0,
+      limit:Math.max(1,Math.min(Number.isFinite(limit)?Math.floor(limit):100,200))
+    },{timeoutMs:10000})};
+  }
+  if(op==='semantic-detach')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId:String(request.semanticSessionId||'')},{timeoutMs:10000})};
+  throw new Error('desktop_operation_unsupported');
+}
+
+async function executeScpCommand(state,p){
+  const request=p.scp&&typeof p.scp==='object'&&!Array.isArray(p.scp)?p.scp:{};
+  const op=String(request.op||''),owner={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};
+  const effective=effectiveCapabilitiesForState(state);
+  if(!effective.includes('filesystem'))throw new Error('local capability denied: filesystem');
+  if(op==='upload-begin')return {ok:true,operation:op,transfer:await LIGHT_SCP.beginUpload(owner,request)};
+  if(op==='upload-chunk')return {ok:true,operation:op,transfer:await LIGHT_SCP.putUploadChunk(owner,request.transferId,request)};
+  if(op==='upload-commit')return {ok:true,operation:op,result:await LIGHT_SCP.commitUpload(owner,request.transferId)};
+  if(op==='download-begin')return {ok:true,operation:op,transfer:await LIGHT_SCP.beginDownload(owner,request)};
+  if(op==='download-chunk'){const chunk=await LIGHT_SCP.readDownloadChunk(owner,request.transferId,request);return {ok:true,operation:op,chunk,transfer:await LIGHT_SCP.status(owner,request.transferId)};}
+  if(op==='status')return {ok:true,operation:op,transfer:await LIGHT_SCP.status(owner,request.transferId)};
+  if(op==='cancel')return {ok:true,operation:op,result:await LIGHT_SCP.cancel(owner,request.transferId)};
+  throw new Error('scp_operation_unsupported');
+}
+
+// Only exact children started by this Agent can be stopped. Never accept a
+// PID/path from browser, plugin or Operator stop payload.
+const ACTIVE_EXEC_CHILDREN=new Map();
+function applyDeviceStopRequests(rows){
+  if(!Array.isArray(rows))return;
+  for(const row of rows.slice(0,16)){
+    const id=String(row?.commandId||'');
+    if(!/^cmd_[a-f0-9-]{36}$/.test(id))continue;
+    const running=ACTIVE_EXEC_CHILDREN.get(id);
+    if(!running||running.cancelRequested)continue;
+    const child=running.child,pid=child?.pid;
+    if(!Number.isSafeInteger(pid)||pid<=0||child.exitCode!==null)continue;
+    running.cancelRequested=true;
+    console.log(JSON.stringify({event:'owned_exec_stop_requested',commandId:id,pid}));
+    if(process.platform==='win32'){
+      // Windows /T /F is required to stop descendants, not only cmd.exe.
+      const killer=spawn('taskkill.exe',['/PID',String(pid),'/T','/F'],{
+        windowsHide:true,stdio:'ignore'
+      });
+      killer.on('error',()=>{try{child.kill();}catch{}});
+      killer.on('exit',code=>{if(code!==0&&child.exitCode===null){try{child.kill();}catch{}}});
+      killer.unref();
+    }else{
+      try{child.kill('SIGTERM');}catch{}
+    }
+  }
+}
+async function executeCommandCore(state,command,{hub=DEFAULT_HUB}={}){
+  if(command?.payload?.type==='guest-process-v1'){
+   return executeGoldGuestDeviceProcess({
+    command,state,
+    executionEpochReady:EXECUTION_EPOCH_REQUIRED&&Boolean(EXECUTION_JOURNAL)&&
+      ACTIVE_EPOCH_READY===state?.cloud?.connectionId,
+    readCommand,writeCommand,now:Date.now,
+    inferRequiredCapabilities:(script,opts)=>
+      PLATFORM_ADAPTER.inferRequiredCapabilities(script,opts),
+    hardDeny:script=>PLATFORM_ADAPTER.hardDeny?.(script)||null,
+    localDirectoryExists:cwd=>{
+      try{return fs.statSync(cwd).isDirectory()}catch{return false}
+    },
+    launchProcess:async verified=>executeProcessCommand(state,{
+      operationId:verified.operationId,agentId:verified.agentId,
+      sessionId:verified.sessionId,
+      process:{op:'start',script:verified.command.script,
+       cwd:verified.command.cwd,shell:verified.command.shell,
+       timeoutMs:verified.command.timeoutMs,
+       requiredCapabilities:verified.ticket.requiredCapabilities}
+    })
+   });
+  }
+  // No Guest request may fall through to the classic owner command switch.
+  // A future Guest protocol must verify B scope and local policy separately.
+  assertLegacyOwnerCommandNotGuest(command?.payload||{});
+  const existing=readCommand(command.commandId);
+  if(existing?.state==='finished'&&existing.result)return existing.result;
+  if(existing?.state==='running'){
+    const result={commandId:command.commandId,status:'error',exitCode:125,stdout:'',stderr:'agent recovered an incomplete command; execution was not repeated\n',durationMs:Math.max(0,Date.now()-(existing.startedAt||Date.now())),recoveredIncomplete:true};
+    writeCommand(command.commandId,{...existing,state:'finished',finishedAt:Date.now(),result});return result;
+  }
+  const p=command.payload||{};
+  if(p.type==='update'){
+    const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{const source=String(p.update?.source||'remote-owner').slice(0,40),data=await requestLocalUpdate(source);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+    catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error)}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+  }
+  if(p.type==='scp'){
+    const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{
+      const data=await executeScpCommand(state,p);
+      const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }catch(error){
+      const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }
+  }
+  if(p.type==='desktop'){
+    const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{const data=await executeDesktopCommand(state,p,{hub});const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+    catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+  }
+  if(p.type==='search'){
+    const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{const data=await executeSearchCommand(state,p);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+    catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+  }
+  if(p.type==='terminal'){
+    const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{const data=await executeTerminalCommand(state,p);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+    catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+  }
+  if(p.type==='process'){
+    const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{
+      const data=await executeProcessCommand(state,p);
+      const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }catch(error){
+      const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }
+  }
+  if(p.type==='fs'){
+    const effective=effectiveCapabilitiesForState(state);
+    const startedAt=Date.now();
+    if(!effective.includes('filesystem')){
+      const result={commandId:command.commandId,status:'error',exitCode:126,stdout:'',stderr:'local capability denied: filesystem\n',durationMs:0};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});return result;
+    }
+    writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    try{
+      const data=await executeNativeFs(p.fs||{}, {policy:effectiveFilesystemPolicy(state)});
+      const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }catch(error){
+      const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error),status:Number(error?.status)||500}};
+      writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+    }
+  }
+  if(p.type!=='exec')throw new Error('unsupported_leaf_command');
+  const script=String(p.script||'');
+  const effective=effectiveCapabilitiesForState(state);
+  const inferred=PLATFORM_ADAPTER.inferRequiredCapabilities(script,{shell:p.shell});
+  const required=[...new Set([...(Array.isArray(p.requiredCapabilities)?p.requiredCapabilities:[]),...inferred])].sort();
+  const policyDeny=PLATFORM_ADAPTER.hardDeny?.(script)||null;
+  if(policyDeny){
+    const result={commandId:command.commandId,status:'error',exitCode:126,stdout:'',stderr:`local platform policy denied: ${policyDeny}\n`,durationMs:0};
+    writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt:Date.now(),finishedAt:Date.now(),result});return result;
+  }
+  const missing=required.filter(cap=>!effective.includes(cap));
+  if(missing.length){
+    const result={commandId:command.commandId,status:'error',exitCode:126,stdout:'',stderr:`local capability denied: ${missing.join(',')}\n`,durationMs:0};
+    writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt:Date.now(),finishedAt:Date.now(),result});return result;
+  }
+  const cwd=String(p.cwd||os.homedir());let stat;try{stat=fs.statSync(cwd);}catch{}
+  if(!stat?.isDirectory()){
+    const result={commandId:command.commandId,status:'error',exitCode:72,stdout:'',stderr:'cwd_not_directory\n',durationMs:0};
+    writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt:Date.now(),finishedAt:Date.now(),result});return result;
+  }
+  let spec;try{spec=PLATFORM_ADAPTER.commandFor(script,{shell:p.shell});}catch(error){
+    const result={commandId:command.commandId,status:'error',exitCode:126,stdout:'',stderr:`platform adapter unavailable: ${error.message}\n`,durationMs:0};
+    writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt:Date.now(),finishedAt:Date.now(),result});return result;
+  }
+  const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+  const out=boundedCollector(),err=boundedCollector();let timedOut=false,firstOutputAt=null;
+  const execStopState={child:null,cancelRequested:false};
+  const markOutput=(collector,data)=>{if(firstOutputAt==null)firstOutputAt=Date.now();collector.add(data);};
+  const exitCode=await new Promise(resolve=>{
+    const child=spawn(spec.file,spec.args,{cwd,env:{...process.env,GPT_OPERATOR_ACCOUNT:state.enrollment.accountId,GPT_OPERATOR_DEVICE:state.enrollment.deviceId,GPT_OPERATOR_NODE:state.enrollment.nodeId||state.enrollment.deviceId,GPT_OPERATOR_SESSION:String(p.sessionId||'')},stdio:['ignore','pipe','pipe']});
+    execStopState.child=child;ACTIVE_EXEC_CHILDREN.set(command.commandId,execStopState);
+    child.stdout.on('data',d=>markOutput(out,d));child.stderr.on('data',d=>markOutput(err,d));child.on('error',e=>{err.add(`${e.message}\n`);resolve(127);});child.on('exit',code=>resolve(code??128));
+    const timer=setTimeout(()=>{timedOut=true;child.kill('SIGTERM');setTimeout(()=>child.kill('SIGKILL'),5000).unref();},Math.max(1000,Math.min(Number(p.timeoutMs)||600000,7200000)));timer.unref();child.on('close',()=>clearTimeout(timer));
+  });
+  ACTIVE_EXEC_CHILDREN.delete(command.commandId);
+  const cancelled=execStopState.cancelRequested;
+  const result={commandId:command.commandId,status:cancelled?'cancelled':timedOut?'timeout':exitCode===0?'ok':'error',exitCode:cancelled?130:timedOut?124:Math.max(0,Math.min(Number(exitCode)||0,255)),stdout:out.text(),stderr:err.text(),durationMs:Date.now()-startedAt,outputTruncated:out.truncated()||err.truncated(),telemetry:{firstOutputAt}};
+  writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
+}
+async function replicaAutoCaptureAllowed(state){
+  if(!GOLD_WALL_MODULES.flags().longMemory||!state?.enrollment?.deviceId)return false;
+  try{
+    const {policy}=await memoryAccountSyncPolicy(DEFAULT_HUB,{action:'get'});
+    const own=policy?.devices?.find(d=>d.deviceId===state.enrollment.deviceId);
+    // Account authority, not local UI hints. Manual is never auto-collected.
+    return policy?.enabled===true&&own?.selected===true&&
+      ['auto','follow_project','manual'].includes(own.mode);
+  }catch{return false;} // fail closed on offline/unknown account policy
+}
+function checkedGitHead(cwd){
+  try{
+    const sha=execFileSync('git',['rev-parse','--verify','HEAD'],{
+      cwd,timeout:1500,maxBuffer:256,encoding:'utf8',
+      env:{...process.env,GIT_OPTIONAL_LOCKS:'0'}
+    }).trim();
+    return /^[a-f0-9]{40,64}$/.test(sha)?sha:null;
+  }catch{return null;}
+}
+async function executeCommand(state,command,options={}){
+  // Poll and Duplex share this FINAL pre-effect check. A valid server ticket
+  // with a stale epoch cannot spawn, write, update or touch the desktop.
+  if(EXECUTION_EPOCH_REQUIRED){
+    if(ACTIVE_EPOCH_READY!==state.cloud?.connectionId||
+      EXECUTION_JOURNAL.grant?.instanceId!==EXECUTION_INSTANCE_ID)
+      throw Error('execution_epoch_not_current_for_agent');
+    const scope={accountId:state.enrollment.accountId,deviceId:state.enrollment.deviceId,
+      publicKey:executionSignerKey(state)};
+    const ticket=EXECUTION_JOURNAL.checkCommand(command,scope);
+    const previous=EXECUTION_JOURNAL.rows.get(command.commandId);
+    const previousCommand=readCommand(command.commandId);
+    if(previous){
+      if(previous.jobId!==ticket.jobId||previous.executionEpoch!==ticket.executionEpoch||!previousCommand)
+        throw Error('execution_unknown_prior_reservation');
+      // Duplicate delivery: replay the durable result (or explicit UNKNOWN),
+      // never ask PostgreSQL for a second effect-start permit.
+    }else{
+      if(previousCommand)throw Error('execution_legacy_command_without_epoch_reservation');
+      const start=await channelRequest(state,options.hub||DEFAULT_HUB,'execution-start',{
+        instanceId:EXECUTION_INSTANCE_ID,executionAuthorization:command.executionAuthorization});
+      if(start?.start?.authorized!==true||start.start.commandId!==command.commandId)
+        throw Error('execution_start_not_approved');
+      EXECUTION_JOURNAL.reserve(command,scope);
+    }
+  }
+  // The Agent alone knows whether an operation completed successfully.
+  // Never infer filesystem changes from a successful shell/PTY command.
+  const prior=readCommand(command.commandId);
+  const payload=command.payload||{};
+  let verifiedWorkspace=null,verifiedReplica=null,oldHead=null;
+  if(!prior && payload.type==='exec' && typeof payload.cwd==='string'){
+    try{
+      verifiedWorkspace=GOLD_WALL_MODULES.resolveAutoWorkspace({filePath:payload.cwd});
+      if(verifiedWorkspace.scopeId&&verifiedWorkspace.captureMode!=='manual')
+        oldHead=checkedGitHead(payload.cwd);
+    }catch{verifiedWorkspace=null;}
+    // A replica has an independently, explicitly bound local workspace.
+    // Never infer a Windows path from an ARM path or an AI-provided project name.
+    if(!verifiedWorkspace?.scopeId){
+      try{
+        verifiedReplica=GOLD_WALL_MODULES.resolveReplicaWorkspace({filePath:payload.cwd});
+        if(verifiedReplica?.scopeId)oldHead=checkedGitHead(payload.cwd);
+      }catch{verifiedReplica=null;}
+    }
+  }
+  const result=await executeCommandCore(state,command,options);
+  if(EXECUTION_EPOCH_REQUIRED&&!prior)EXECUTION_JOURNAL.finish(command,result);
+  if(!prior&&verifiedWorkspace?.scopeId&&oldHead&&result?.status==='ok'){
+    const newHead=checkedGitHead(payload.cwd);
+    if(newHead&&newHead!==oldHead){
+      try{
+        const event=GOLD_WALL_MODULES.ingestAutoEvent({
+          sourceType:verifiedWorkspace.sourceType,sourceId:verifiedWorkspace.sourceId,
+          workContextId:verifiedWorkspace.workContextId,eventType:'repository_head_changed',
+          eventRef:'git:'+newHead+':'+String(command.commandId||'')
+        });
+        if(event.accepted&&!event.duplicate)console.log(JSON.stringify({
+          event:'gold_auto_repository_head_queued',scopeId:event.scopeId,eventId:event.eventId}));
+      }catch(error){console.error(JSON.stringify({
+        event:'gold_auto_repository_capture_failed',code:String(error.message).slice(0,90)}));}
+    }
+  }
+  if(!prior&&verifiedReplica?.scopeId&&oldHead&&result?.status==='ok'){
+    const newHead=checkedGitHead(payload.cwd);
+    if(newHead&&newHead!==oldHead&&await replicaAutoCaptureAllowed(state)){
+      try{
+        const cmdId=String(command.commandId||'');
+        const receipt=crypto.createHash('sha256').update(cmdId).digest('hex').slice(0,32);
+        const queued=GOLD_WALL_MODULES.queueReplicaEvidence({
+          scopeId:verifiedReplica.scopeId,eventType:'operator_receipt',
+          title:'Verified repository HEAD change',
+          body:'Trusted Agent observed an actual Git HEAD change in an owner-bound Replica workspace. Git HEAD: '+newHead+'. No command body or output was collected.',
+          source:'gold-agent:repository-head',
+          evidence:['git-head:'+newHead,'command-receipt-sha256:'+receipt],
+          eventRef:'exec:git:'+cmdId
+        });
+        if(!queued.duplicate)console.log(JSON.stringify({event:'gold_replica_repository_evidence_queued',
+          scopeId:queued.scopeId,eventId:queued.eventId}));
+      }catch(error){console.error(JSON.stringify({event:'gold_replica_repository_evidence_failed',
+        code:String(error.message).slice(0,90)}));}
+    }
+  }
+  const fsOp=String(command.payload?.fs?.op||'');
+  if(!prior&&command.payload?.type==='fs'&&
+    ['write','edit','mkdir','delete'].includes(fsOp)&&result?.status==='ok'&&result.data?.ok===true){
+    try{
+      const event=GOLD_WALL_MODULES.ingestFsEffect({
+        operation:fsOp,filePath:result.data.path,eventRef:'command:'+String(command.commandId||'')
+      });
+      if(event.accepted&&!event.duplicate)console.log(JSON.stringify({
+        event:'gold_auto_memory_event_queued',scopeId:event.scopeId,eventId:event.eventId}));
+      if(!event.accepted&&event.reason==='unassigned'&&await replicaAutoCaptureAllowed(state)){
+        const bound=GOLD_WALL_MODULES.resolveReplicaWorkspace({filePath:result.data.path});
+        if(bound.scopeId){
+          const cmdId=String(command.commandId||'');
+          const receipt=crypto.createHash('sha256').update(cmdId).digest('hex').slice(0,32);
+          const queued=GOLD_WALL_MODULES.queueReplicaEvidence({
+            scopeId:bound.scopeId,eventType:'fs_change',
+            title:'Verified filesystem '+fsOp,
+            body:'Trusted Agent completed a native filesystem '+fsOp+
+              ' in an explicitly bound local Replica workspace. No file path, body, or output was collected.',
+            source:'gold-agent:native-fs',
+            evidence:['operation:'+fsOp,'command-receipt-sha256:'+receipt],
+            eventRef:'fs:'+fsOp+':'+cmdId
+          });
+          if(!queued.duplicate)console.log(JSON.stringify({
+            event:'gold_replica_fs_evidence_queued',scopeId:queued.scopeId,eventId:queued.eventId}));
+        }
+      }
+    }catch(error){
+      // Memory remains opt-in and must never roll back a valid Gold operation.
+      if(String(error.message)!=='gold_module_disabled')
+        console.error(JSON.stringify({event:'gold_auto_memory_event_failed',code:String(error.message).slice(0,90)}));
+    }
+  }
+  return result;
+}
+async function localFleetStatus(){try{const r=await fetch(`http://${FLEET_WALL_HOST}:${FLEET_WALL_PORT}/healthz`,{headers:{accept:'application/json'},signal:AbortSignal.timeout(800)}),j=await r.json();if(!r.ok||!j.ok||j.service!=='light-remote-fleet-wall')throw new Error('fleet_wall_unhealthy');return {healthy:true,port:FLEET_WALL_PORT,version:j.version||null,publicUrl:FLEET_WALL_PUBLIC_URL||null};}catch{return {healthy:false,port:FLEET_WALL_PORT,version:null,publicUrl:FLEET_WALL_PUBLIC_URL||null};}}
+function cloudDesired(state){return Boolean(state?.enrollment?.deviceId)&&state?.cloud?.desiredConnected!==false;}
+function expireLocalHardLease(state,{persist=true}={}){
+  const expiresAt=Number(state?.cloud?.hardExpiresAt);
+  if(!cloudDesired(state)||state?.cloud?.state!=='connected'||!Number.isFinite(expiresAt)||Date.now()<expiresAt)return false;
+  state.cloud={...(state.cloud||{}),desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:'device_connection_expired',lastDisconnectedAt:Date.now(),changedAt:Date.now()};
+  if(persist)writeState(state);
+  return true;
+}
+function cloudLeaseWindowMs(state){
+  const hard=Number(state?.cloud?.hardExpiresAt),started=Number(state?.cloud?.lastRenewedAt||state?.cloud?.connectedAt);
+  return Number.isFinite(hard)&&Number.isFinite(started)&&hard>started?hard-started:0;
+}
+function cloudLeaseRenewalDue(state,now=Date.now()){
+  if(!cloudDesired(state)||state?.cloud?.state!=='connected')return false;
+  const hard=Number(state?.cloud?.hardExpiresAt),windowMs=cloudLeaseWindowMs(state);
+  if(!Number.isFinite(hard)||windowMs<=0)return false;
+  const margin=Math.max(15*60*1000,Math.floor(windowMs/2));
+  return hard-now<=margin;
+}
+async function renewCloudLease(state,hub=DEFAULT_HUB){
+  if(!cloudLeaseRenewalDue(state))return null;
+  const response=await channelRequest(state,hub,'renew',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION}),connection=response.connection,now=Date.now();
+  markCloudState(state,{desiredConnected:true,state:'connected',connectionId:connection?.connectionId||state.cloud?.connectionId||null,connectedAt:state.cloud?.connectedAt||connection?.connectedAt||now,lastRenewedAt:now,hardExpiresAt:connection?.hardExpiresAt||state.cloud?.hardExpiresAt||null,reconnectGraceMs:connection?.reconnectGraceMs||state.cloud?.reconnectGraceMs||null,plan:connection?.plan||state.cloud?.plan||null,lastError:null});
+  return connection;
+}
+function markCloudState(state,value){state.cloud={...(state.cloud||{}),...value,changedAt:Date.now()};writeState(state);return state.cloud;}
+function markDeviceRemoved(state,reason='device_removed'){const prior=state.enrollment?.deviceId||null;delete state.enrollment;delete state.pendingEnrollment;delete state.routing;state.effectiveCapabilities=[];if(state.identity?.privateKey){delete state.identity;delete state.identityResetRequired;}else if(EXTERNAL_IDENTITY_FILE){state.identityResetRequired=true;}state.cloud={...(state.cloud||{}),desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:'device_removed',lastDisconnectedAt:Date.now(),changedAt:Date.now()};writeState(state);return prior;}
+async function connectCloud(args={}){
+  const hub=args.hub||DEFAULT_HUB,state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const hours=args['lease-hours']??args.leaseHours, rawGrace=args['grace-minutes']??args.graceMinutes;
+  const leaseHours=hours==null?null:Number(hours), graceMinutes=rawGrace==null?null:Number(rawGrace);
+  if(leaseHours!=null&&(!Number.isFinite(leaseHours)||leaseHours<=0))throw new Error('invalid_connection_hours');
+  if(graceMinutes!=null&&(!Number.isFinite(graceMinutes)||graceMinutes<15||graceMinutes>60))throw new Error('invalid_reconnect_grace_minutes');
+  const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION};
+  if(leaseHours!=null)payload.requestedLeaseMs=Math.round(leaseHours*60*60*1000);
+  if(graceMinutes!=null)payload.reconnectGraceMs=Math.round(graceMinutes*60*1000);
+  const response=await channelRequest(state,hub,'connect',payload),connection=response.connection;
+  markCloudState(state,{desiredConnected:true,state:'connected',connectionId:connection?.connectionId||null,connectedAt:connection?.connectedAt||Date.now(),lastRenewedAt:Date.now(),hardExpiresAt:connection?.hardExpiresAt||null,reconnectGraceMs:connection?.reconnectGraceMs||null,plan:connection?.plan||null,lastError:null});
+  if(!args.silent)console.log(JSON.stringify({ok:true,cloud:'connected',deviceId:state.enrollment.deviceId,connection},null,2));
+  return connection;
+}
+async function disconnectCloud(args={}){
+  const hub=args.hub||DEFAULT_HUB,state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  let connection=null,error=null;
+  try{const response=await channelRequest(state,hub,'disconnect',{reason:String(args.reason||'user_disconnect').slice(0,80)});connection=response.connection;}
+  catch(e){error=e;}
+  markCloudState(state,{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastDisconnectedAt:Date.now(),lastError:error?.message||null});
+  if(error)console.error(JSON.stringify({event:'device_disconnect_remote_ack_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null}));
+  if(!args.silent)console.log(JSON.stringify({ok:true,cloud:'dormant',deviceId:state.enrollment.deviceId,connection,remoteAck:!error},null,2));
+  if(error&&args.requireAck)throw error;
+  return connection;
+}
+async function setConnectionGrace(args={}){
+  const hub=args.hub||DEFAULT_HUB,state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const minutes=Number(args.minutes??args['grace-minutes']??args.graceMinutes);
+  if(!Number.isFinite(minutes)||minutes<15||minutes>60)throw new Error('invalid_reconnect_grace_minutes');
+  const response=await channelRequest(state,hub,'grace',{reconnectGraceMs:Math.round(minutes*60*1000)});
+  markCloudState(state,{reconnectGraceMs:response.connection?.reconnectGraceMs||Math.round(minutes*60*1000)});
+  if(!args.silent)console.log(JSON.stringify({ok:true,deviceId:state.enrollment.deviceId,connection:response.connection},null,2));
+  return response.connection;
+}
+async function remoteAccessLookup(hub=DEFAULT_HUB){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  return channelRequest(state,hub,'access-lookup',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION});
+}
+async function remoteDeviceStatus(hub=DEFAULT_HUB){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  return channelRequest(state,hub,'status',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION});
+}
+// Device-owned, signed notification preview. No reusable account session
+// or cookie is exposed to the device browser.
+async function remoteAccountNotifications(hub=DEFAULT_HUB,base=DEFAULT_BASE,{wallUsername}={}){
+  const state=readState();
+  if(!state?.enrollment?.deviceId||!state?.enrollment?.accountId)
+    throw new Error('account_notification_device_not_enrolled');
+  const result=await channelRequest(state,hub,'account-notifications',{});
+  if(result?.ok!==true||!Array.isArray(result.notifications))
+    throw new Error('account_notifications_unavailable');
+  // An old Wall login cookie must not access a newly enrolled account after
+  // ownership changes. The signed server result is the identity authority.
+  assertNotificationOwnerEmail(result.accountEmail,wallUsername);
+  const origin=new URL(base);
+  if(!['https:','http:'].includes(origin.protocol))
+    throw new Error('account_notification_origin_invalid');
+  return {ok:true,unreadCount:Math.max(0,Number(result.unreadCount)||0),
+    notifications:result.notifications.slice(0,5),accountInboxUrl:new URL('/account/inbox',origin).href};
+}
+// Signed device identity + real enrolled connection. Local Wall calls this
+// only AFTER local owner-account login, and the server email must match.
+// It never forwards OAuth tokens or the Wall's local login cookie.
+async function remoteAbV2PendingPreview(hub=DEFAULT_HUB,{wallUsername}={}){
+ const state=readState();
+ if(!state?.enrollment?.deviceId||!state?.enrollment?.accountId)
+  throw Object.assign(new Error('abv2_device_not_enrolled'),{status:403});
+ const result=await channelRequest(state,hub,'abv2-pending-preview',{});
+ if(result?.ok!==true||!Array.isArray(result.pending)||
+   result.deviceId!==state.enrollment.deviceId||
+   typeof result.ownerConsentRequired!=='boolean'||
+   typeof result.ownerApproveEnabled!=='boolean')
+  throw Object.assign(new Error('abv2_signed_preview_invalid'),{status:503});
+ assertNotificationOwnerEmail(result.accountEmail,wallUsername);
+ return {ok:true,shortId:/^[0-9A-HJKMNP-TV-Z]{6}$/.test(String(result.shortId||''))
+  ?result.shortId:null,ownerApproveEnabled:result.ownerApproveEnabled===true,
+  ownerConsentRequired:result.ownerConsentRequired,
+  pending:result.pending.slice(0,5).map(row=>({
+  requestId:row.requestId,state:row.state,attempt:row.attempt,
+  expiresAt:row.expiresAt,aCode:row.aCode,
+  ...(row.requester?{requester:row.requester}:{})
+ }))};
+}
+// Device-signed owner B mutation: Local Wall must authenticate owner and CSRF
+// before calling; Operator independently revalidates enrollment and policy.
+async function remoteAbV2OwnerApprove(hub=DEFAULT_HUB,{wallUsername,requestId,expectedAttempt,bCode,consentCode}={}){
+ const state=readState();
+ if(!state?.enrollment?.deviceId||!state.enrollment.accountId)
+  throw Error('abv2_device_not_enrolled');
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(wallUsername||''))||
+   !/^av2_[a-f0-9]{32}$/.test(String(requestId||''))||
+   !Number.isSafeInteger(expectedAttempt)||expectedAttempt<1||
+   !/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/.test(String(bCode||''))||
+   (consentCode!=null&&consentCode!==''&&
+    !/^[A-Za-z0-9_-]{32}$/.test(String(consentCode))))
+  throw Error('abv2_wall_approval_invalid');
+ // Never infer B-only from a Windows process environment. The signed
+ // Operator preview must show the exact current attempt and consent policy.
+ const authority=await remoteAbV2PendingPreview(hub,{wallUsername});
+ if(authority.ownerApproveEnabled!==true||
+    !authority.pending.some(row=>row.requestId===requestId&&
+      row.attempt===expectedAttempt&&Number(row.expiresAt)>Date.now())||
+    (authority.ownerConsentRequired&&
+     !/^[A-Za-z0-9_-]{32}$/.test(String(consentCode||''))))
+   throw Error('abv2_signed_attempt_or_consent_denied');
+ const result=await channelRequest(state,hub,'abv2-owner-approve',{
+  action:'approve',ownerLoggedIn:true,wallUsername,requestId,expectedAttempt,bCode,consentCode
+ });
+ if(result?.ok!==true||result.state!=='granted'||result.requestId!==requestId)
+  throw Error('abv2_wall_grant_not_durable');
+ return {ok:true,state:'granted',requestId,agentId:result.agentId,
+  expiresAt:result.expiresAt,absoluteExpiresAt:result.absoluteExpiresAt};
+}
+// Dedicated Wall-only feed: independent of the site and distribution streams.
+// Public broadcast metadata only: no account identifier or device secret.
+async function remoteClientAnnouncements(base=DEFAULT_BASE){
+  const url=new URL('/api/wall-announcements',base);
+  if(!['https:','http:'].includes(url.protocol)||
+     (url.protocol==='http:'&&!['127.0.0.1','::1','localhost'].includes(url.hostname)))
+    throw Error('client_announcement_origin_invalid');
+  url.searchParams.set('platform',process.platform==='win32'?'windows':process.platform==='darwin'?'macos':'linux');
+  const response=await fetch(url,{headers:{accept:'application/json'},signal:AbortSignal.timeout(7000)});
+  if(!response.ok)throw Error('client_announcement_feed_unavailable');
+  const data=await response.json();
+  if(data.schemaVersion!==1||data.channel!=='wall'||!Array.isArray(data.items))throw Error('client_announcement_feed_invalid');
+  // Sanitize before relaying to the authenticated local browser; no HTML.
+  const safeLink=value=>{
+    const v=String(value||'').trim();
+    if(v.startsWith('/')&&!v.startsWith('//')&&!v.includes('\\'))return new URL(v,url.origin).href;
+    try{const target=new URL(v);return target.protocol==='https:'?target.href:''}catch{return ''}
+  };
+  return {ok:true,revision:String(data.revision||'').slice(0,64),
+    items:data.items.slice(0,25).filter(x=>/^[a-f0-9-]{36}$/i.test(String(x?.id||'')))
+      .map(x=>({id:x.id,kind:['feature','update','maintenance','service'].includes(x.kind)?x.kind:'feature',
+        title:String(x.title||'').slice(0,110),message:String(x.message||'').slice(0,400),
+        linkLabel:String(x.linkLabel||'Learn more').slice(0,50),linkUrl:safeLink(x.linkUrl),
+        dismissible:x.dismissible!==false,priority:Number(x.priority)||0,updatedAt:String(x.updatedAt||'').slice(0,40)}))};
+}
+async function cancelWallJob(hub=DEFAULT_HUB,jobId=''){
+  const state=readState();
+  if(!state?.enrollment?.deviceId)throw new Error('job_cancel_device_not_enrolled');
+  if(!/^[a-f0-9-]{36}$/i.test(String(jobId)))throw new Error('invalid_job_id');
+  // Independent signed control request, never queued through the stalled Agent.
+  const answer=await channelRequest(state,hub,'job-cancel',{jobId});
+  if(answer.state==='stop_requested'&&answer.commandId)
+    applyDeviceStopRequests([{commandId:answer.commandId}]);
+  return answer;
+}
+async function remoteDeviceActivity(hub=DEFAULT_HUB,limit=500){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const bounded=Math.max(1,Math.min(Number(limit)||500,5000));
+  return channelRequest(state,hub,'activity',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,limit:bounded});
+}
+async function closeWallSession(hub=DEFAULT_HUB,data={}){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  return channelRequest(state,hub,'session-close',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionId:String(data.sessionId||''),agentId:String(data.agentId||''),reason:'owner_closed_from_wall'});
+}
+async function authenticateWallAccount(email,credential,base=DEFAULT_BASE){
+  const state=readState()||{},field='pass'+'word';
+  const response=await operator(base,'account-login',{email:String(email||'').trim(),[field]:String(credential||'')});
+  if(!response?.account?.accountId)throw new Error('invalid_account_credentials');
+  // A revoked/removed device is unowned: do NOT require the next Wall
+  // account to match its historical device enrollment. Active binding
+  // still requires the original account; account takeover via Wall cannot
+  // relink an actively owned device.
+  const released=['device_revoked','device_removed'].includes(
+    String(state.cloud?.lastError||''));
+  if(state.enrollment?.accountId&&!released&&
+     response.account.accountId!==state.enrollment.accountId){
+    const error=new Error('device_account_mismatch');error.status=403;throw error;
+  }
+  return {account:response.account,entitlements:response.entitlements};
+}
+async function rotatePairingCode(hub=DEFAULT_HUB,options={}){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const response=await channelRequest(state,hub,'pairing-code',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,rotate:options.rotate===true});
+  return response.pairing;
+}
+async function accountOwnerProofCode(hub=DEFAULT_HUB){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const response=await channelRequest(state,hub,'account-owner-proof',{nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION});
+  return response.proof;
+}
+async function approveDeviceAccess(requestId,hub=DEFAULT_HUB){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const id=String(requestId||'').trim();if(!/^pa_[A-Za-z0-9_-]{20,80}$/.test(id))throw new Error('invalid_plus_request_id');
+  const response=await channelRequest(state,hub,'access-approve',{requestId:id});
+  return response.grant||response.authorization||response;
+}
+async function denyDeviceAccess(requestId,hub=DEFAULT_HUB,reason='owner_denied'){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const id=String(requestId||'').trim();if(!/^pa_[A-Za-z0-9_-]{20,80}$/.test(id))throw new Error('invalid_plus_request_id');
+  const response=await channelRequest(state,hub,'access-deny',{requestId:id,reason:String(reason||'owner_denied').slice(0,80)});
+  return response.authorization||response;
+}
+function setLocalFilesystemRoots(input){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  // The owner changes locations through authenticated Local Wall + CSRF.
+  // This does not grant a capability denied by the signed server policy.
+  const roots=normalizeFilesystemRoots(input);
+  state.policy={...(state.policy||{}),filesystemRoots:roots,localFilesystemRootsUpdatedAt:Date.now()};
+  writeState(state);
+  // Stop searches started under an older read scope. SCP rechecks per chunk/commit.
+  for(const row of NATIVE_SEARCHES.rows.values())if(!row.finishedAt)row.cancelRequested=true;
+  NATIVE_SEARCHES.rows.clear(); // Drop results admitted by an earlier read scope.
+  return {source:'owner',...roots,updatedAt:state.policy.localFilesystemRootsUpdatedAt};
+}
+function setLocalPermissions(allowedCapabilities,profile='custom'){
+  const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  const grantable=normalizeDeviceCapabilities(state.enrollment.grantableCapabilities||state.enrollment.approvedCapabilities||[]);
+  const supported=normalizeDeviceCapabilities([...discoverCapabilities(),...grantable]);
+  const allowed=normalizeDeviceCapabilities(Array.isArray(allowedCapabilities)?allowedCapabilities:[]);
+  if(allowed.some(cap=>!supported.includes(cap)))throw new Error('local_permission_not_device_supported');
+  const localProfile=/^(safe|developer|support|infra|full|custom)$/.test(String(profile||''))?String(profile):'custom';
+  const denied=supported.filter(cap=>!allowed.includes(cap));
+  state.policy=realRemotePolicyAfterSave({...(state.policy||{}),deniedCapabilities:denied,localRequestedCapabilities:allowed,localProfile,localFinalDenyBoundary:true,localPolicyUpdatedAt:Date.now()},{grantable:supported,allowed});
+  state.effectiveCapabilities=effectiveCapabilitiesForState(state);
+  writeState(state);
+  return {profile:localProfile,policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',supportedCapabilities:supported,grantableCapabilities:grantable,serverApprovedCapabilities:[...(state.enrollment.approvedCapabilities||[])],localAllowedCapabilities:allowed,deniedCapabilities:denied,effectiveCapabilities:[...state.effectiveCapabilities],updatedAt:state.policy.localPolicyUpdatedAt};
+}
+function statusView(state=readState()){
+  if(state)expireLocalHardLease(state);
+  if(!state)return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:false,deviceId:null,deviceName:os.hostname(),accountId:null,cloudDesiredConnected:false,cloudState:'dormant',connectionId:null,hardExpiresAt:null,reconnectGraceMs:null,connectionPlan:null,stateFile:STATE_FILE,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,deviceDuplex:deviceDuplexStatus(),executorReady:executorReadiness(),executorProbe:EXECUTOR_PROBE.status(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
+  return {ok:true,version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,enrolled:Boolean(state.enrollment?.deviceId),deviceId:state.enrollment?.deviceId||null,deviceName:state.enrollment?.displayName||os.hostname(),nodeId:state.enrollment?.nodeId||state.enrollment?.deviceId||null,accountId:state.enrollment?.accountId||null,pendingEnrollmentId:state.pendingEnrollment?.enrollmentId||null,pendingEnrollmentExpiresAt:state.pendingEnrollment?.expiresAt||null,publicKeySha256:state.identity?.publicKeySha256||null,policyProfile:state.enrollment?.policyProfile||state.pendingEnrollment?.requestedPolicy||null,localPolicyProfile:state.policy?.localProfile||((state.policy?.deniedCapabilities||[]).length?'custom':'full'),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),policyAuthority:isTrustedHostState(state)?'local-main':'server-and-local',grantableCapabilities:state.enrollment?.grantableCapabilities||state.enrollment?.approvedCapabilities||[],supportedCapabilities:discoverCapabilities(),installedCapabilities:PLATFORM_ADAPTER.installedCapabilities?.()||[],approvedCapabilities:state.enrollment?.approvedCapabilities||[],localRequestedCapabilities:state.policy?.localRequestedCapabilities||[],deniedCapabilities:state.policy?.deniedCapabilities||[],filesystemRoots:effectiveFilesystemPolicy(state),effectiveCapabilities:state.effectiveCapabilities||[],draining:Boolean(state.routing?.draining),cloudDesiredConnected:cloudDesired(state),cloudState:state.cloud?.state||(cloudDesired(state)?'legacy-connected':'dormant'),connectionId:state.cloud?.connectionId||null,hardExpiresAt:state.cloud?.hardExpiresAt||null,reconnectGraceMs:state.cloud?.reconnectGraceMs||null,connectionPlan:state.cloud?.plan||null,lastCloudError:state.cloud?.lastError||null,lastHeartbeatAt:state.lastHeartbeatAt||null,stateFile:STATE_FILE,commandDir:COMMAND_DIR,localWallUrl:`http://${LOCAL_WALL_HOST}:${LOCAL_WALL_PORT}/`,privateKeyStoredLocally:Boolean(state.identity?.privateKey),deviceDuplex:deviceDuplexStatus(),executorReady:executorReadiness(),executorProbe:EXECUTOR_PROBE.status(),realRemoteLiveSessions:REAL_REMOTE_LIVE.size,update:updateStatusView()};
+}
+async function daemon(args){
+  const hub=args.hub||DEFAULT_HUB,base=args.base||DEFAULT_BASE;let state=readState()||{};
+  if(state.enrollment?.deviceId){
+    state.enrollment.nodeId=state.enrollment.nodeId||state.enrollment.deviceId;
+    state.effectiveCapabilities=effectiveCapabilitiesForState(state);
+  }
+  const sessionCeiling=Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100));
+  const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||8000,15000));
+  const dormantPollMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_DORMANT_CHECK_MS)||2000,30000));
+  const commandHeartbeatMs=Math.max(2000,Math.min(Number(process.env.OPERATOR_AGENT_COMMAND_HEARTBEAT_MS)||5000,15000));
+  let stopped=false,wake=null,failures=0,localWall=null,desktopAbv2Ipc=null,fleetTimer=null,fleetReconciling=false,codexSupervisorTimer=null;
+  const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
+  EXECUTOR_PROBE.start();
+  // Do not start a signed command channel with an unprobed new Agent.
+  await EXECUTOR_PROBE.check();
+  if(EXECUTOR_PROBE.status().ready===null)await EXECUTOR_PROBE.check();
+  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(typeof goldMemoryFlushTimer!=='undefined')clearInterval(goldMemoryFlushTimer);if(typeof goldPeerPollTimer!=='undefined')clearInterval(goldPeerPollTimer);if(wake)wake();if(codexSupervisorTimer)clearInterval(codexSupervisorTimer);if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{desktopAbv2Ipc?.close().catch(()=>{});}catch{}try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+  const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
+  if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
+  const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
+  localWall=startLocalWall({instanceProof:goldAbV2LocalWallInstanceProof(),modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getAccountNotifications:async owner=>remoteAccountNotifications(hub,base,owner),getClientAnnouncements:async()=>remoteClientAnnouncements(base),getAbV2Pending:async({wallUsername})=>remoteAbV2PendingPreview(hub,{wallUsername}),getAbV2Approve:async data=>remoteAbV2OwnerApprove(hub,data),getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getMemoryAccountInvites:async data=>memoryAccountInvites(hub,data),getMemoryAccountSyncPolicy:async data=>memoryAccountSyncPolicy(hub,data),getMemoryAccountDelete:async data=>memoryAccountDeleteChannel(hub,data),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>{const remote=await remoteDeviceStatus(hub);return remote;},getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),activityLogRoot:path.join(path.dirname(STATE_FILE),'wall-activity'),cancelRemoteJob:async jobId=>cancelWallJob(hub,jobId),getLocalProcesses:async()=>((SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list())).map(p=>({
+    processId:p.processId,sessionId:p.sessionId,pid:p.pid,state:p.state,
+    startedAt:p.startedAt,finishedAt:p.finishedAt,exitCode:p.exitCode,
+    stdoutBytes:p.stdoutBytes,stderrBytes:p.stderrBytes,stopRequested:p.stopRequested,
+    stopForce:p.stopForce,treeStopMethod:p.treeStopMethod
+  })),
+  stopLocalProcess:async({processId,force})=>{
+    const p=(SUPERVISED_PROCESSES?await SUPERVISED_PROCESSES.listDevice(state.enrollment.accountId,state.enrollment.deviceId):NATIVE_PROCESSES.list()).find(row=>row.processId===processId);
+    if(!p||p.deviceId!==state.enrollment?.deviceId||p.accountId!==state.enrollment?.accountId)
+      throw Object.assign(new Error('process_not_found'),{status:404});
+    return (SUPERVISED_PROCESSES||NATIVE_PROCESSES).stop(processId,{accountId:p.accountId,deviceId:p.deviceId,
+      sessionId:p.sessionId,agentId:p.agentId},{force:Boolean(force)});
+  },
+  getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),setFilesystemRoots:async data=>setLocalFilesystemRoots(data),getFilesystemVolumes:async()=>filesystemVolumeInventory(),ownerApprovePermissions:async data=>ownerApproveServerPermissions(data,hub),rescanCapabilities:async()=>rescanHostCapabilities(hub),beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
+
+  // Desktop V4 native Agent bridge: same-host PRIVATE IPC, not a Wall HTTP
+  // route and not a new cloud endpoint. No feature flag => no listener.
+  // The current Windows Gold client remains unchanged until a separate
+  // GoldABV2-enrolled Agent candidate is explicitly installed and tested.
+  const desktopAbv2NativeEnabled=
+    process.env.LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4==='1'&&
+    hub==='https://goldabv2.light-remote.thaiduy.digital'&&
+    base==='https://goldabv2.light-remote.thaiduy.digital'&&
+    LOCAL_WALL_HOST==='127.0.0.1'&&
+    wallAuth?.enabled===true&&
+    Boolean(readState()?.enrollment?.deviceId);
+  if(desktopAbv2NativeEnabled){
+    const nativeEnrollment=()=>readState()?.enrollment||null;
+    const nativeOwner=async access=>{
+      if(!/^[A-Za-z0-9_-]{43}$/.test(String(access||'')))throw Error('desktop_owner_invalid');
+      const response=await fetch('https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/session',{
+        method:'GET',headers:{authorization:'Bearer '+access,accept:'application/json'},
+        credentials:'omit',redirect:'error',cache:'no-store',
+        signal:AbortSignal.timeout(7000)
+      });
+      if(response.status!==200||response.redirected===true||
+         !String(response.headers.get('content-type')||'').includes('application/json')||
+         Number(response.headers.get('content-length')||0)>2048)
+        throw Error('desktop_owner_invalid');
+      const chunks=[];let size=0;
+      for await(const chunk of response.body){
+        size+=chunk.length;if(size>2048)throw Error('desktop_owner_invalid');
+        chunks.push(Buffer.from(chunk));
+      }
+      const view=JSON.parse(Buffer.concat(chunks,size).toString('utf8'));
+      if(view?.verified!==true||view?.scope!=='desktop:read'||
+         view?.resource!=='urn:light-remote:desktop-owner:v4'||
+         view?.accountId!==nativeEnrollment().accountId)
+        throw Error('desktop_owner_invalid');
+      return {verified:true,accountId:view.accountId};
+    };
+    const nativePending=async owner=>{
+      const now=readState();
+      if(!now?.enrollment?.deviceId||
+         now.enrollment.accountId!==owner.accountId)throw Error('desktop_abv2_binding_invalid');
+      const answer=await channelRequest(now,hub,'abv2-pending-preview',{});
+      if(answer?.ok!==true||answer.deviceId!==now.enrollment.deviceId||
+         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(answer.accountEmail||''))||
+         !Array.isArray(answer.pending)||answer.pending.length>5||
+         !answer.pending.every(row=>row.state==='pending'&&
+           Number(row.expiresAt)>Date.now()))
+        throw Error('desktop_abv2_preview_invalid');
+      return {
+        ok:true,deviceId:answer.deviceId,accountEmail:answer.accountEmail,
+        shortId:answer.shortId||null,
+        ownerApproveEnabled:answer.ownerApproveEnabled===true,
+        ownerConsentRequired:answer.ownerConsentRequired,
+        pending:answer.pending.map(row=>({
+          requestId:row.requestId,attempt:row.attempt,
+          expiresAt:row.expiresAt,aCode:row.aCode
+        }))
+      };
+    };
+    const nativeApprove=async(owner,request)=>{
+      const preview=await nativePending(owner);
+      if(!preview.pending.some(p=>p.requestId===request.requestId&&
+         p.attempt===request.expectedAttempt))throw Error('desktop_abv2_request_changed');
+      return remoteAbV2OwnerApprove(hub,{
+        wallUsername:preview.accountEmail,
+        requestId:request.requestId,
+        expectedAttempt:request.expectedAttempt,
+        bCode:request.bCode,consentCode:request.consentCode
+      });
+    };
+    // IPC failure never takes down the existing device-local Wall/Agent.
+    // The Desktop will report unavailable instead of claiming a grant.
+    try{
+      desktopAbv2Ipc=await startDesktopAbv2NativeAgentIpcV4({
+        enabled:true,readEnrollment:nativeEnrollment,verifyOwner:nativeOwner,
+        preview:nativePending,approve:nativeApprove
+      });
+      console.log(JSON.stringify({event:'desktop_abv2_native_ready',transport:'os-private'}));
+    }catch{
+      console.log(JSON.stringify({event:'desktop_abv2_native_unavailable'}));
+    }
+  }
+
+  console.log(JSON.stringify({event:'local_wall_started',url:localWall.url,deviceId:state.enrollment?.deviceId||null}));
+  console.log(JSON.stringify({event:'device_agent_started',mode:'always-alive-service',platformAdapter:PLATFORM_ADAPTER.id,deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null,sessionCeiling,waitMs,dormantPollMs,localWallUrl:localWall.url}));
+  acknowledgeCoreUpdateHealth();
+  // Device-supported rights and installed-tool inventory are independent.
+  // Refresh the signed grantable catalog after a daemon upgrade; never auto-approve
+  // or locally enable new rights without the owner's explicit saved selection.
+  if(state.enrollment?.deviceId&&!isTrustedHostState(state)){
+    void rescanHostCapabilities(hub)
+      .then(result=>console.log(JSON.stringify({event:'device_capability_catalog_synced',added:result.addedCapabilities?.length||0,removed:result.removedCapabilities?.length||0,policyRevision:result.policyRevision})))
+      .catch(error=>console.error(JSON.stringify({event:'device_capability_catalog_sync_failed',code:String(error?.message||'unknown').slice(0,96)})));
+  }
+  const fleetReconcileMs=Math.max(500,Math.min(Number(process.env.OPERATOR_FLEET_RECONCILE_MS)||15000,300000));
+  const reconcileFleet=async()=>{if(stopped||fleetReconciling)return;fleetReconciling=true;try{const current=readState();if(current)expireLocalHardLease(current);if(!current?.enrollment?.deviceId||!cloudDesired(current)||current.cloud?.state!=='connected'){await fleetSupervisor.stop('device_cloud_dormant');return;}await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}finally{fleetReconciling=false;}};
+  fleetTimer=setInterval(reconcileFleet,fleetReconcileMs);fleetTimer.unref?.();
+  const workerReceiptTimer=setInterval(()=>void refreshProcessTerminalReceipts(readState()||state),5000);
+  // Flush only pending, scoped Gold events. An OFF module has zero workload.
+  let goldPeerPollInFlight=false;
+  // Advertise only public Memory keys while the optional module is ON. This
+  // transient directory expires automatically if a device goes offline.
+  const goldPeerPresenceTimer=setInterval(()=>{
+    if(!GOLD_WALL_MODULES.flags().longMemory)return;
+    void memoryAccountDevices(hub).catch(error=>{
+      if(String(error.message)!=='gold_module_disabled')
+        console.error(JSON.stringify({event:'gold_memory_directory_refresh_failed',
+          code:String(error.message).slice(0,90)}));
+    });
+  },90000);
+  goldPeerPresenceTimer.unref?.();
+  void memoryAccountDevices(hub).catch(()=>{});
+  const goldPeerPollTimer=setInterval(async()=>{
+    if(goldPeerPollInFlight)return;
+    goldPeerPollInFlight=true;
+    try{
+      if(!GOLD_WALL_MODULES.flags().longMemory)return;
+      const current=readState();
+      if(!current?.enrollment?.deviceId)return;
+      const policy=(await memoryAccountSyncPolicy(hub,{action:'get'})).policy;
+      if(!policy?.enabled||!policy.devices.some(d=>d.deviceId===current.enrollment.deviceId&&d.selected))
+        return;
+      const results=await GOLD_WALL_MODULES.pollPeerRoutes();
+      for(const result of results)if(result.state!=='up_to_date')
+        console.log(JSON.stringify({event:'gold_sync_peer_tick',...result}));
+    }catch(e){
+      if(String(e.message)!=='gold_module_disabled'&&String(e.message)!=='gold_scope_trusted_identity_required')
+        console.error(JSON.stringify({event:'gold_sync_peer_tick_failed',code:String(e.message).slice(0,90)}));
+    }finally{goldPeerPollInFlight=false;}
+  },45000);
+  goldPeerPollTimer.unref?.();
+  // Zero-config encrypted fallback for account-enrolled devices. The Operator
+  // holds ciphertext/receipts in bounded process RAM only, never durable storage.
+  // The existing direct peer route, when healthy, takes priority on the Replica.
+  let goldRelayInFlight=false;
+  const goldOfferedAt=new Map();
+  const goldMemoryRelayTick=async()=>{
+    if(goldRelayInFlight)return;
+    goldRelayInFlight=true;
+    try{
+      if(!GOLD_WALL_MODULES.flags().longMemory)return;
+      const current=readState();
+      if(!current?.enrollment?.deviceId||!cloudDesired(current))return;
+      const deviceId=current.enrollment.deviceId;
+      // Process durable account deletion even if normal Memory Sync is OFF.
+      // An offline device remains Pending on the server until it returns.
+      try{
+        const deletion=await memoryAccountDeleteChannel(hub,{action:'poll'});
+        for(const envelope of deletion.commands||[]){
+          try{
+            GOLD_WALL_MODULES.applyScopeDeleteAcrossAccount(envelope);
+            await memoryAccountDeleteChannel(hub,{action:'ack',scopeId:envelope.record.scopeId});
+            console.log(JSON.stringify({event:'gold_account_memory_scope_deleted',
+              scopeId:envelope.record.scopeId,deviceId}));
+          }catch(error){console.error(JSON.stringify({event:'gold_account_memory_delete_pending',
+            scopeId:envelope.record?.scopeId,code:String(error.message).slice(0,110)}));}
+        }
+      }catch(error){console.error(JSON.stringify({event:'gold_account_memory_delete_poll_pending',
+        code:String(error.message).slice(0,110)}));}
+      const selection=(await memoryAccountSyncPolicy(hub,{action:'get'})).policy;
+      const own=selection?.devices?.find(d=>d.deviceId===deviceId);
+      if(!selection?.enabled||!own?.selected)return;
+      const directory=await memoryAccountDevices(hub);
+      // Recipient accepts Home's signed scope grant automatically ONLY after
+      // Home owner selected it. Operator verified the enrolled account of both
+      // devices and the local Memory module verifies the signed keys/epoch.
+      if(own.selected){
+        const offers=await memoryAccountInvites(hub,{action:'list'});
+        for(const message of (offers.invites||[]).slice(0,16)){
+          const invitation=message.package?.invite;
+          const home=directory.devices.find(d=>d.deviceId===message.homeDeviceId&&
+            d.memoryIdentity?.syncModeProtocol===1);
+          if(!home||!invitation||home.memoryIdentity.signPublicKey!==invitation.homeSignPublicKey||
+            home.memoryIdentity.encPublicKey!==invitation.homeEncPublicKey)continue;
+          try{
+            GOLD_WALL_MODULES.acceptSyncInvite({package:message.package,
+              expectedHomeFingerprint:home.memoryIdentity.fingerprint,ownerConfirmed:true});
+            await memoryAccountInvites(hub,{action:'ack',inviteId:message.inviteId});
+          }catch(error){console.error(JSON.stringify({event:'gold_memory_auto_invite_rejected',
+            code:String(error.message).slice(0,90)}));}
+        }
+      }
+      const scopes=GOLD_WALL_MODULES.listMemoryScopes();
+      if(selection.enabled){
+        for(const scope of scopes.filter(x=>x.homeDeviceId===deviceId).slice(0,20)){
+          const sourceGate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:scope.scopeId,
+            replicaDeviceId:deviceId,mode:own.mode,manualRequestSeq:own.manualRequestSeq||0});
+          if(!sourceGate.allowed)continue;
+          if(scope.syncPolicy==='local_only')
+            GOLD_WALL_MODULES.changeScopeSyncPolicy({
+              scopeId:scope.scopeId,syncPolicy:'selected_devices'});
+          // Unchecking a recipient revokes future scope access; global OFF
+          // simply pauses traffic without tearing down durable grants.
+          const oldPeers=GOLD_WALL_MODULES.syncStatus({scopeId:scope.scopeId}).peers;
+          for(const oldPeer of oldPeers.filter(p=>p.role==='replica'&&!p.revokedAt)){
+            const target=selection.devices.find(d=>d.deviceId===oldPeer.deviceId&&d.selected);
+            const gate=target?GOLD_WALL_MODULES.scopeSyncGate({
+              scopeId:scope.scopeId,replicaDeviceId:oldPeer.deviceId,
+              mode:target.mode,manualRequestSeq:target.manualRequestSeq||0
+            }):{allowed:false};
+            if(!gate.allowed)
+              GOLD_WALL_MODULES.revokeSyncReplica({scopeId:scope.scopeId,
+                replicaDeviceId:oldPeer.deviceId,ownerConfirmed:true});
+          }
+          for(const target of selection.devices.filter(d=>d.selected&&d.deviceId!==deviceId)){
+            const peerId=target.deviceId;
+            const gate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:scope.scopeId,
+              replicaDeviceId:peerId,mode:target.mode,manualRequestSeq:target.manualRequestSeq||0});
+            if(!gate.allowed)continue;
+            const device=directory.devices.find(d=>d.deviceId===peerId&&
+              d.memoryIdentity?.syncModeProtocol===1);
+            if(!device)continue; // Unsupported/offline peer: fail closed, retry after upgrade
+            const offerKey=scope.scopeId+'|'+peerId+'|'+device.memoryIdentity.fingerprint;
+            const peerState=GOLD_WALL_MODULES.syncStatus({scopeId:scope.scopeId}).peers
+              .find(p=>p.deviceId===peerId&&p.role==='replica');
+            if(peerState&&!peerState.revokedAt&&
+               Date.now()-(goldOfferedAt.get(offerKey)||0)<120000)continue;
+            try{
+              let grant;
+              try{grant=GOLD_WALL_MODULES.grantSyncReplica({scopeId:scope.scopeId,
+                peer:device.memoryIdentity,expectedFingerprint:device.memoryIdentity.fingerprint,
+                ownerConfirmed:true});}
+              catch(error){
+                if(String(error.message)!=='gold_sync_peer_key_rotation_requires_regrant')throw error;
+                // The Home owner already explicitly selected this exact
+                // account device. Fence stale key/grant before re-authorizing.
+                GOLD_WALL_MODULES.revokeSyncReplica({scopeId:scope.scopeId,
+                  replicaDeviceId:peerId,ownerConfirmed:true});
+                grant=GOLD_WALL_MODULES.grantSyncReplica({scopeId:scope.scopeId,
+                  peer:device.memoryIdentity,expectedFingerprint:device.memoryIdentity.fingerprint,
+                  ownerConfirmed:true});
+              }
+              await memoryAccountInvites(hub,{action:'offer',package:grant});
+              goldOfferedAt.set(offerKey,Date.now());
+            }catch(error){console.error(JSON.stringify({event:'gold_memory_auto_grant_pending',
+              code:String(error.message).slice(0,90)}));}
+          }
+        }
+      }
+      const routes=GOLD_WALL_MODULES.peerRoutes();
+      const accounts=scopes.slice(0,20);
+      // Process Home ACKs before preparing its next revision.
+      const pendingAcks=await channelRequest(current,hub,'memory-relay',{action:'pull_acks'});
+      for(const receipt of pendingAcks.result?.items||[]){
+        if(!accounts.some(scope=>scope.scopeId===receipt.scopeId&&scope.homeDeviceId===deviceId))
+          continue;
+        try{GOLD_WALL_MODULES.applySyncAck({receipt});}
+        catch(error){console.error(JSON.stringify({event:'gold_memory_relay_ack_rejected',
+          code:String(error.message).slice(0,80)}));}
+      }
+      let pushed=0;
+      for(const scope of accounts){
+        if(!selection.enabled||scope.homeDeviceId!==deviceId||scope.syncPolicy==='local_only')continue;
+        const sourceGate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:scope.scopeId,
+          replicaDeviceId:deviceId,mode:own.mode,manualRequestSeq:own.manualRequestSeq||0});
+        if(!sourceGate.allowed)continue;
+        const status=GOLD_WALL_MODULES.syncStatus({scopeId:scope.scopeId});
+        for(const peer of status.peers||[]){
+          if(peer.role!=='replica'||peer.revokedAt||pushed>=4)continue;
+          const target=selection.devices.find(d=>d.deviceId===peer.deviceId&&d.selected);
+          const compatible=directory.devices.some(d=>d.deviceId===peer.deviceId&&
+            d.memoryIdentity?.syncModeProtocol===1);
+          if(!target||!compatible)continue;
+          const gate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:scope.scopeId,
+            replicaDeviceId:peer.deviceId,mode:target.mode,
+            manualRequestSeq:target.manualRequestSeq||0});
+          if(!gate.allowed)continue;
+          const next=GOLD_WALL_MODULES.nextSyncFrame({
+            scopeId:scope.scopeId,replicaDeviceId:peer.deviceId
+          });
+          if(next.state==='pending'&&
+             (gate.uptoRevision==null||next.frame.meta.revision<=gate.uptoRevision)&&
+             (sourceGate.uptoRevision==null||next.frame.meta.revision<=sourceGate.uptoRevision)){
+            await channelRequest(current,hub,'memory-relay',{action:'push_frame',frame:next.frame});
+            pushed++;
+          }
+        }
+        if(pushed>=4)break;
+      }
+      // G3 typed device-origin evidence: durable Replica outbox → volatile
+      // ciphertext relay → Home verification and atomic signed checkpoint.
+      // Acknowledgment is Home-signed; no Replica ever writes the Home ledger.
+      const evidenceAcks=await channelRequest(current,hub,'memory-relay',
+        {action:'pull_evidence_acks'});
+      for(const receipt of evidenceAcks.result?.items||[]){
+        if(!accounts.some(scope=>scope.scopeId===receipt.scopeId&&
+          scope.homeDeviceId===receipt.homeDeviceId&&scope.homeDeviceId!==deviceId))continue;
+        try{GOLD_WALL_MODULES.applyReplicaEvidenceAck(receipt);}
+        catch(error){console.error(JSON.stringify({event:'gold_evidence_ack_rejected',
+          code:String(error.message).slice(0,80)}));}
+      }
+      const evidenceIncoming=await channelRequest(current,hub,'memory-relay',
+        {action:'pull_evidence'});
+      for(const frame of evidenceIncoming.result?.items||[]){
+        const meta=frame?.meta;
+        const record=accounts.find(scope=>scope.scopeId===meta?.scopeId&&
+          scope.homeDeviceId===deviceId&&meta.homeDeviceId===deviceId);
+        const sender=selection.devices.find(d=>d.deviceId===meta?.deviceId&&d.selected);
+        if(!record||!sender||!directory.devices.some(d=>d.deviceId===meta.deviceId&&
+          d.memoryIdentity?.syncModeProtocol===1))continue;
+        const homeGate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:record.scopeId,
+          replicaDeviceId:deviceId,mode:own.mode,manualRequestSeq:own.manualRequestSeq||0});
+        const senderGate=GOLD_WALL_MODULES.scopeSyncGate({scopeId:record.scopeId,
+          replicaDeviceId:sender.deviceId,mode:sender.mode,
+          manualRequestSeq:sender.manualRequestSeq||0});
+        if(!homeGate.allowed||(!senderGate.allowed&&sender.mode!=='manual'))continue;
+        try{
+          const accepted=GOLD_WALL_MODULES.acceptReplicaEvidence(frame,{
+            manualRequestSeq:sender.mode==='manual'?(sender.manualRequestSeq||0):0
+          });
+          await channelRequest(current,hub,'memory-relay',
+            {action:'push_evidence_ack',evidence_ack:accepted.ack});
+        }catch(error){console.error(JSON.stringify({event:'gold_evidence_home_rejected',
+          code:String(error.message).slice(0,90)}));}
+      }
+      {
+        const evidencePending=GOLD_WALL_MODULES.pendingReplicaEvidence({
+          limit:4,mode:own.mode,manualRequestSeq:own.manualRequestSeq||0});
+        for(const evidence of evidencePending){
+          const home=selection.devices.find(d=>d.deviceId===evidence.meta?.homeDeviceId&&d.selected);
+          const original=accounts.find(x=>x.scopeId===evidence.meta.scopeId);
+          if(!home||!original||original.homeDeviceId!==home.deviceId)continue;
+          if(!directory.devices.some(d=>d.deviceId===home.deviceId&&
+             d.memoryIdentity?.syncModeProtocol===1))continue;
+          await channelRequest(current,hub,'memory-relay',
+            {action:'push_evidence',evidence});
+        }
+      }
+      const inbox=await channelRequest(current,hub,'memory-relay',{action:'pull_frames'});
+      for(const frame of inbox.result?.items||[]){
+        const meta=frame?.meta;
+        if(!meta||!accounts.some(scope=>scope.scopeId===meta.scopeId&&
+          scope.homeDeviceId===meta.homeDeviceId&&meta.homeDeviceId!==deviceId))continue;
+        if(!selection.devices.some(d=>d.deviceId===meta.homeDeviceId&&d.selected)||
+          !directory.devices.some(d=>d.deviceId===meta.homeDeviceId&&
+            d.memoryIdentity?.syncModeProtocol===1))continue;
+        const direct=routes.find(route=>route.scopeId===meta.scopeId&&route.enabled&&
+          route.lastSuccessAt&&route.lastErrorCode===null);
+        if(direct)continue;
+        try{
+          const received=GOLD_WALL_MODULES.applySyncFrame({frame});
+          await channelRequest(current,hub,'memory-relay',{
+            action:'push_ack',ack:received.ack
+          });
+        }catch(error){
+          console.error(JSON.stringify({event:'gold_memory_relay_frame_rejected',
+            code:String(error.message).slice(0,80)}));
+        }
+      }
+    }catch(error){
+      if(!['gold_module_disabled','gold_scope_trusted_identity_required'].includes(String(error.message)))
+        console.error(JSON.stringify({event:'gold_memory_relay_tick_failed',
+          code:String(error.message).slice(0,90)}));
+    }finally{goldRelayInFlight=false;}
+  };
+  const goldMemoryRelayTimer=setInterval(()=>void goldMemoryRelayTick(),25000);
+  goldMemoryRelayTimer.unref?.();
+  void goldMemoryRelayTick();
+  const goldMemoryFlushTimer=setInterval(()=>{
+    try{
+      const saved=GOLD_WALL_MODULES.flushAuto();
+      for(const row of saved.checkpoints)console.log(JSON.stringify({
+        event:'gold_auto_memory_checkpoint_committed',scopeId:row.scopeId,
+        checkpointId:row.checkpointId,revision:row.revision,eventCount:row.events}));
+    }catch(error){
+      if(String(error.message)!=='gold_module_disabled')
+        console.error(JSON.stringify({event:'gold_auto_memory_flush_failed',code:String(error.message).slice(0,90)}));
+    }
+  },5000);
+  goldMemoryFlushTimer.unref?.();
+  // This loop is device-local, persists across browser closures and stops on
+  // Agent shutdown. Nothing is run unless the owner explicitly delegated it.
+  codexSupervisorTimer=setInterval(()=>{
+    void GOLD_WALL_MODULES.supervisorTick().then(result=>{
+      if(result.ran)console.log(JSON.stringify({event:'gold_codex_delegation_receipt',
+        taskId:result.taskId,receiptId:result.receiptId,decision:result.decision,
+        state:result.state,round:result.round}));
+    }).catch(e=>{
+      if(e.message!=='gold_module_disabled')console.error(JSON.stringify({
+        event:'gold_codex_supervisor_tick_failed',code:String(e.message).slice(0,96)}));
+    });
+  },15000);
+  codexSupervisorTimer.unref?.();
+  workerReceiptTimer.unref?.();
+  await refreshProcessTerminalReceipts(state);
+  while(!stopped){
+    const latest=readState();if(latest)state=latest;
+    if(state?.enrollment?.deviceId&&cloudLeaseRenewalDue(state)){
+      try{await renewCloudLease(state,hub);const renewed=readState();if(renewed)state=renewed;failures=0;}
+      catch(error){console.error(JSON.stringify({event:'device_connection_renew_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null}));}
+    }
+    expireLocalHardLease(state);
+    if(!state.enrollment?.deviceId||!cloudDesired(state)){await wait(dormantPollMs);continue;}
+    try{
+      if(EXECUTION_EPOCH_REQUIRED)await ensureExecutionEpoch(state,hub);
+      await flushPendingUpdateReport(state,hub).catch(error=>console.error(JSON.stringify({event:'update_report_delivery_failed',error:error.message,status:error.status||null})));
+      if(deviceDuplexStatus().ready){failures=0;await wait(500);continue;}
+      const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(state.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts(),resourceSample:DEVICE_RESOURCE_SAMPLER.sample(),bootEvidence:sampleWindowsBootEvidence(),waitMs,...(EXECUTION_EPOCH_REQUIRED?{executionInstanceId:EXECUTION_INSTANCE_ID}:{})};
+      const response=await channelRequest(state,hub,'poll',payload);
+      // A Local Wall connect/disconnect can update device.json while this long-poll is in flight.
+      // Re-read before persisting the poll result so the daemon never clobbers newer lease metadata.
+      const latestAfterPoll=readState();if(latestAfterPoll)state=latestAfterPoll;
+      applyPolicyEnvelope(state,response.policy);await confirmTerminalReceiptsAck(state,response.terminalReceiptsAck);applyDeviceStopRequests(response.stopRequests);failures=0;
+      state.cloud={...(state.cloud||{}),desiredConnected:true,state:'connected',lastServerActivityAt:Date.now(),lastError:null};
+      const command=response.channel?.command;
+      try{writeState(state);}
+      catch(error){
+        // The command was delivered but local state durability is unknown.
+        // Fail closed; report an explicit negative result instead of silent
+        // re-dispatch and a misleading remote_result_timeout.
+        if(command?.commandId){
+          try{
+            await channelRequest(state,hub,'result',{
+              commandId:command.commandId,status:'error',exitCode:125,stdout:'',
+              stderr:'agent_state_persistence_unavailable\n',durationMs:0,
+              data:{ok:false,error:'agent_state_persistence_unavailable'}
+            });
+            console.error(JSON.stringify({event:'device_command_rejected_state_persistence',
+              commandId:command.commandId}));
+          }catch(reportError){
+            console.error(JSON.stringify({event:'device_command_negative_result_delivery_failed',
+              commandId:command.commandId,error:String(reportError?.message||reportError).slice(0,120)}));
+          }
+        }
+        throw error;
+      }
+      void reconcileFleet();
+      if(command){
+        const deviceReceivedAt=Date.now();
+        let commandPulseTimer=null,commandPulseBusy=false;
+        const commandPulse=async()=>{if(stopped||commandPulseBusy)return;commandPulseBusy=true;try{const current=readState()||state;if(!current?.enrollment?.deviceId||!cloudDesired(current))return;if(cloudLeaseRenewalDue(current))await renewCloudLease(current,hub);const pulseAck=await channelRequest(current,hub,'pulse',{nodeId:current.enrollment.nodeId||current.enrollment.deviceId,agentVersion:VERSION,sessionCeiling,draining:Boolean(current.routing?.draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(current),policyRevision:Math.max(0,Number(current.policy?.serverPolicyRevision)||0),updateStatus:updateStatusView(),processTerminalReceipts:nextProcessTerminalReceipts(),resourceSample:DEVICE_RESOURCE_SAMPLER.sample(),bootEvidence:sampleWindowsBootEvidence()});await confirmTerminalReceiptsAck(current,pulseAck.terminalReceiptsAck);applyDeviceStopRequests(pulseAck.stopRequests);}catch(error){console.error(JSON.stringify({event:'device_command_liveness_failed',deviceId:state.enrollment?.deviceId||null,commandId:command.commandId,error:error.message,status:error.status||null}));}finally{commandPulseBusy=false;}};
+        await commandPulse();commandPulseTimer=setInterval(()=>void commandPulse(),commandHeartbeatMs);commandPulseTimer.unref?.();
+        let result,claim;
+        try{
+          claim=await COMMAND_EXECUTIONS.run(command.commandId,'poll',()=>executeCommand(state,command,{hub}));result=claim.result;
+          if(!claim.owner){console.log(JSON.stringify({event:'device_command_duplicate_suppressed',commandId:command.commandId,ownerTransport:claim.transport,duplicateTransport:'poll'}));continue;}
+          const completedAt=Date.now();
+          const reportedFirst=Number(result.telemetry?.firstOutputAt);
+          result.telemetry={...(result.telemetry||{}),deviceReceivedAt,firstOutputAt:Number.isSafeInteger(reportedFirst)&&reportedFirst>0?reportedFirst:completedAt,completedAt};
+          result=fitResultForDelivery(result);
+          let delivered=false,resultFailures=0;
+          while(!stopped&&!delivered){
+            try{const ack=await channelRequest(state,hub,'result',result);delivered=Boolean(ack.accepted);resultFailures=0;}
+            catch(error){
+              if(['device_binding_not_found','device_not_found'].includes(error.message)){markDeviceRemoved(state,error.message);break;}if(['device_connection_required','device_connection_expired','device_revoked'].includes(error.message)){markCloudState(state,{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:error.message,lastDisconnectedAt:Date.now()});break;}if(error.message==='command_not_found'){console.error(JSON.stringify({event:'device_result_orphaned',deviceId:state.enrollment.deviceId,commandId:command.commandId,reason:error.message,status:error.status||null}));delivered=true;break;}
+              if(Number(error.status)===413){
+                if(isCompacted413Result(result)){console.error(JSON.stringify({event:'device_result_delivery_abandoned_after_compaction',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:413}));break;}
+                const compacted=compactResultAfter413(result);console.error(JSON.stringify({event:'device_result_compacted_after_413',deviceId:state.enrollment.deviceId,commandId:command.commandId,originalBytes:compacted.deliveryOriginalBytes,status:413,preservedStatus:compacted.status,preservedExitCode:compacted.exitCode}));result=compacted;resultFailures=0;continue;
+              }
+              resultFailures++;const retryInMs=Math.min(Math.max(1000*(2**Math.min(resultFailures,5)),Number(error.retryAfterMs)||0),300000);console.error(JSON.stringify({event:'device_result_delivery_failed',deviceId:state.enrollment.deviceId,commandId:command.commandId,error:error.message,status:error.status||null,failures:resultFailures,retryInMs}));await wait(retryInMs);
+            }
+          }
+        }finally{if(commandPulseTimer)clearInterval(commandPulseTimer);}
+      }
+    }catch(error){
+      if(['device_binding_not_found','device_not_found'].includes(error.message)){const removedId=markDeviceRemoved(state,error.message);failures=0;try{await fleetSupervisor.stop('device_removed');}catch{}console.error(JSON.stringify({event:'device_removed_remote',deviceId:removedId,reason:error.message,status:error.status||null}));continue;}
+      if(['device_connection_required','device_connection_expired','device_revoked'].includes(error.message)){
+        failures=0;markCloudState(state,{desiredConnected:false,state:'dormant',connectionId:null,hardExpiresAt:null,lastError:error.message,lastDisconnectedAt:Date.now()});
+        console.error(JSON.stringify({event:'device_cloud_dormant',deviceId:state.enrollment.deviceId,reason:error.message,status:error.status||null}));
+        continue;
+      }
+      failures++;const retryInMs=Math.min(Math.max(1000*(2**Math.min(failures,5)),Number(error.retryAfterMs)||0),300000);console.error(JSON.stringify({event:'device_channel_failed',deviceId:state.enrollment.deviceId,error:error.message,status:error.status||null,failures,retryInMs}));if(!stopped)await wait(retryInMs);
+    }
+  }
+  clearInterval(workerReceiptTimer);PROCESS_TERMINAL_RECEIPTS=[];
+  cancelDeviceDuplexIdleClose();if(DEVICE_DUPLEX){const duplex=DEVICE_DUPLEX;DEVICE_DUPLEX=null;try{await duplex.close('daemon_stop');}catch{}}
+  try{await fleetSupervisor.close();}catch{}
+  try{await localWall?.close();}catch{}
+  if(Object.keys(state).length)writeState(state);console.log(JSON.stringify({event:'device_agent_stopped',deviceId:state.enrollment?.deviceId||null,nodeId:state.enrollment?.nodeId||null}));
+}
+async function wallOnly(args){
+  const hub=args.hub||DEFAULT_HUB,base=args.base||DEFAULT_BASE,state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');
+  if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
+  const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
+  const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
+  const localWall=startLocalWall({instanceProof:goldAbV2LocalWallInstanceProof(),modules:GOLD_WALL_MODULES,host:LOCAL_WALL_HOST,port:LOCAL_WALL_PORT,brandSvgPath:LOCAL_WALL_BRAND,auth:wallAuth,getAccountNotifications:async owner=>remoteAccountNotifications(hub,base,owner),getClientAnnouncements:async()=>remoteClientAnnouncements(base),getAbV2Pending:async({wallUsername})=>remoteAbV2PendingPreview(hub,{wallUsername}),getAbV2Approve:async data=>remoteAbV2OwnerApprove(hub,data),getMemoryAccountDevices:async()=>memoryAccountDevices(hub),getMemoryAccountInvites:async data=>memoryAccountInvites(hub,data),getMemoryAccountSyncPolicy:async data=>memoryAccountSyncPolicy(hub,data),getMemoryAccountDelete:async data=>memoryAccountDeleteChannel(hub,data),getLocalStatus:async()=>({...statusView(),fleetWall:await localFleetStatus()}),getLocalPolicyStatus:async()=>statusView(),getPendingAccess:async()=>remoteAccessLookup(hub),getRemoteStatus:async()=>remoteDeviceStatus(hub),getRemoteActivity:async limit=>remoteDeviceActivity(hub,limit),activityLogRoot:path.join(path.dirname(STATE_FILE),'wall-activity'),cancelRemoteJob:async jobId=>cancelWallJob(hub,jobId),getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),setFilesystemRoots:async data=>setLocalFilesystemRoots(data),getFilesystemVolumes:async()=>filesystemVolumeInventory(),ownerApprovePermissions:async data=>ownerApproveServerPermissions(data,hub),rescanCapabilities:async()=>rescanHostCapabilities(hub),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
+  console.log(JSON.stringify({event:'host_wall_companion_started',mode:'wall-only',url:localWall.url,deviceId:state.enrollment.deviceId,nodeId:state.enrollment.nodeId||state.enrollment.deviceId}));
+  let stopping=false,resolveStop;const stopped=new Promise(resolve=>resolveStop=resolve);const stop=()=>{if(stopping)return;stopping=true;resolveStop();};process.once('SIGTERM',stop);process.once('SIGINT',stop);
+  const reconcile=async()=>{if(stopping)return;try{await fleetSupervisor.reconcile();}catch(error){console.error(JSON.stringify({event:'fleet_component_reconcile_failed',error:error.message,status:error.status||null}));}};
+  await reconcile();const timer=setInterval(reconcile,Math.max(1000,Math.min(Number(process.env.OPERATOR_FLEET_RECONCILE_MS)||15000,300000)));timer.unref?.();
+  await stopped;clearInterval(timer);try{await fleetSupervisor.close();}catch{}try{await localWall.close();}catch{}console.log(JSON.stringify({event:'host_wall_companion_stopped',deviceId:state.enrollment.deviceId}));
+}
+
+async function setDrain(args,draining){const state=readState();if(!state?.enrollment?.deviceId)throw new Error('device_not_enrolled');state.routing={...(state.routing||{}),draining:Boolean(draining),changedAt:Date.now()};writeState(state);const payload={nodeId:state.enrollment.nodeId||state.enrollment.deviceId,agentVersion:VERSION,sessionCeiling:Math.max(1,Math.min(Number(process.env.OPERATOR_AGENT_MAX_SESSIONS)||2,100)),draining:Boolean(draining),executorReady:executorReadiness(),capabilities:effectiveCapabilitiesForState(state),policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0),waitMs:0};const response=await channelRequest(state,args.hub||DEFAULT_HUB,'poll',payload);applyPolicyEnvelope(state,response.policy);console.log(JSON.stringify({ok:true,deviceId:state.enrollment.deviceId,nodeId:payload.nodeId,draining:Boolean(draining),channelState:response.channel?.node?.state||null},null,2));}
+async function status(){
+ const snapshot={...statusView(),executorProbe:EXECUTOR_PROBE.status(),fleetWall:await localFleetStatus(),shortId:null,isMain:false};
+ if(snapshot.enrolled&&snapshot.cloudState==='connected'){
+   try{
+     // Exact device-scoped signed Operator status, not a local short-ID guess.
+     const signed=await remoteDeviceStatus();
+     if(signed?.ok===true){
+       const code=String(signed.shortId||'');
+       snapshot.shortId=/^[0-9A-HJKMNP-TV-Z]{6}$/.test(code)?code:null;
+       snapshot.isMain=signed.isMain===true;
+     }
+   }catch{/* No stale Main flag/Short ID on unauthenticated or disconnected state. */}
+ }
+ console.log(JSON.stringify(snapshot,null,2));
+}
+async function initWallAuth(args){const password=fs.readFileSync(0,'utf8').replace(/[\r\n]+$/,'');if(password.length<12)throw new Error('local_wall_password_too_short');const result=writeLocalWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:args.username||'operator',password});console.log(JSON.stringify({ok:true,wallAuth:'configured',file:result.file,username:result.username,passwordEchoed:false},null,2));}
+const args=parseArgs(process.argv.slice(2)),command=args._[0]||'status';
+try{if(command==='login')await login(args);else if(command==='poll'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await finishEnrollment(state,args.base||DEFAULT_BASE,{wait:false}),null,2));}else if(command==='heartbeat'){const state=readState();if(!state)throw new Error('no_device_state');console.log(JSON.stringify(await heartbeat(state,args.base||DEFAULT_BASE),null,2));}else if(command==='daemon')await daemon(args);else if(command==='wall-only')await wallOnly(args);else if(command==='connect')await connectCloud(args);else if(command==='disconnect')await disconnectCloud(args);else if(command==='set-grace')await setConnectionGrace(args);else if(command==='drain')await setDrain(args,true);else if(command==='undrain')await setDrain(args,false);else if(command==='status')await status();else if(command==='link-preview')console.log(JSON.stringify(localPendingLinkPreview(),null,2));else if(command==='wall-auth-init')await initWallAuth(args);else throw new Error(`unknown_command:${command}`);}catch(error){console.error(JSON.stringify({ok:false,error:error.message,status:error.status||null},null,2));process.exitCode=1;}

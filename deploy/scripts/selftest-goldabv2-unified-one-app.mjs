@@ -1,0 +1,72 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+const rust=read('client/desktop-v4/src-tauri/src/unified_tray.rs');
+const main=read('client/desktop-v4/src-tauri/src/main.rs');
+const cargo=read('client/desktop-v4/src-tauri/Cargo.toml');
+const program=read('client/windows-native/GptOperator.Client/Program.cs');
+const bridge=read('client/windows-native/GptOperator.Client/TrayApplicationContext.cs');
+const agentHost=read('client/windows-native/GptOperator.Client/AgentHost.cs');
+const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
+const installer=read('client/windows-native/installer/GptOperator.iss');
+const agent=read('device-agent/operator-agent.mjs');
+const wall=read('device-agent/local-wall.mjs');
+const preview=read('device-agent/wall-ab-v2-preview.mjs');
+const ui=read('client/desktop-v4/src/DeviceLinkDialog.tsx');
+const app=read('client/desktop-v4/src/App.tsx');
+const wf=read('.github/workflows/windows-native-client.yml');
+// One Windows native GUI/Tray, separate internal non-interactive Agent
+assert.match(main,/unified_tray::already_running\(\)/);
+assert.match(main,/unified_tray::attach\(app\)/);
+assert.match(main,/unified_tray::hide_on_close/);
+assert.match(cargo,/\[target\.'cfg\(target_os = "windows"\)'\.dependencies\]/);
+assert.match(rust,/CreateMutexW/);
+assert.match(rust,/SetForegroundWindow/);
+assert.match(rust,/TrayIconBuilder::new\(\)/);
+assert.match(rust,/on_menu_event/);
+assert.match(rust,/LINK_UI_REQUESTED/);
+assert.match(rust,/state="|Connected|Waiting for account approval/);
+assert.match(rust,/if is_main\{menu\.insert\(&fleet/);
+assert.match(program,/#if LIGHT_REMOTE_GOLDABV2_V4[\s\S]*?TrayApplicationContext\.OpenDesktopApp\(\);[\s\S]*?#else[\s\S]*?Application\.Run\(new TrayApplicationContext\(\)\)/);
+assert.match(program,/--agent-host/);
+assert.match(bridge,/DesktopBridgeAsync/);
+assert.match(bridge,/case "link":/);
+assert.match(bridge,/case "poll":/);
+assert.match(bridge,/case "preview":/);
+assert.match(bridge,/case "open-activation":/);
+// Integrated Windows V4 launches a SAME-HOST native Owner bridge only for the
+// compiled GoldABV2 profile and exact canonical endpoint, never legacy Gold.
+assert.match(agentHost,/internal static void ConfigureDesktopOwnerAbv2Environment\(ProcessStartInfo psi\)/);
+assert.match(agentHost,/psi\.Environment\.Remove\(flag\)/);
+assert.match(agentHost,/#if LIGHT_REMOTE_GOLDABV2_V4[\s\S]*?ConnectionConfig\.PackageTargetSelfTest\(\)/);
+assert.match(agentHost,/String\.Equals\(hub, ConnectionConfig\.StablePublicEndpoint, StringComparison\.Ordinal\)/);
+assert.match(agentHost,/SelfTestDesktopOwnerAbv2Environment/);
+assert.match(agentHost,/ConfigureDesktopOwnerAbv2Environment\(psi\);/);
+assert.match(supervisor,/AgentHost\.ConfigureDesktopOwnerAbv2Environment\(psi\)/);
+assert.match(bridge,/AgentHost\.ConfigureDesktopOwnerAbv2Environment\(p\)/);
+assert.match(program,/nativeAbv2LaunchOk = AgentHost\.SelfTestDesktopOwnerAbv2Environment\(\)/);
+
+assert.match(installer,/Root: HKCU; Subkey: "Software\\Microsoft\\Windows\\CurrentVersion\\Run"[\s\S]*ValueData: """\{app\}\\desktop-v4\\LightRemote\.Desktop\.exe"""/);
+assert.match(installer,/#ifdef UnifiedDesktopV4[\s\S]*?Filename: "\{app\}\\desktop-v4\\LightRemote\.Desktop\.exe"; Description: "Open Light Remote"/);
+assert.match(wf,/nativeAbv2Launch -ne 'pass'/);
+assert.match(wf,/windows-unified-desktop-single-instance=PASS/);
+assert.match(wf,/windows-unified-tray-owner-and-shortcut-relaunch=PASS/);
+// Recover one-time enrollment on local OS only, not remote signed status.
+assert.match(agent,/function localPendingLinkPreview\(\)/);
+assert.match(agent,/command==='link-preview'/);
+assert.match(agent,/deviceCode:e\.deviceCode/);
+assert.doesNotMatch(agent,/pendingDeviceCode:state\.pendingEnrollment/);
+assert.match(ui,/readOnly/);
+assert.match(ui,/navigator\.clipboard\.writeText/);
+assert.match(ui,/Expires in/);
+assert.match(ui,/pollNativeLinkIntent/);
+assert.match(app,/showDeviceLink&&nativeLinkAvailable/);
+// R5-approved Wall stays and signed-mode controls V1; unknown denies V1.
+assert.match(wall,/serverMode='unknown'/);
+assert.match(wall,/signed\.pairingMode/);
+assert.match(wall,/serverMode==='legacy_allowed'/);
+assert.match(wall,/base\.slice\(0,legacyStart\)\+/);
+assert.match(wall,/v2CsrfScript/);
+assert.match(wall,/serverMode==='legacy_allowed'\?base/);
+assert.match(preview,/Signed A\/B V2 requests unavailable/);
+console.log('GOLDABV2_UNIFIED_ONE_APP_LIFECYCLE_AND_SIGNED_WALL_PASS');

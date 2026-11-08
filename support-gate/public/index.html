@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<title>AI Support · Light Remote</title>
+<link rel="stylesheet" href="/ai-support/styles.css">
+<script src="/ai-support/app.js" defer></script>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" class="sprite" aria-hidden="true">
+ <symbol id="i-inbox" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M3 13h5l2 3h4l2-3h5"/></symbol>
+ <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5L12 2Z"/><path d="m19 2 .8 2.2L22 5l-2.2.8L19 8l-.8-2.2L16 5l2.2-.8L19 2Z"/></symbol>
+ <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></symbol>
+ <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .2 2-2.3 2.3-2-.2-1 2H10l-1-2-2 .2-2.3-2.3.2-2-2-1v-3.4l2-1-.2-2L7 5.3l2 .2 1-2h4l1 2 2-.2 2.3 2.3-.2 2 2 1V14z"/></symbol>
+ <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/></symbol>
+ <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
+ <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+ <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4"/></symbol>
+ <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5.5 3.5 9 8 11 4.5-2 8-5.5 8-11V5z"/><path d="m9 12 2 2 4-4"/></symbol>
+ <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+ <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></symbol>
+ <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m3 6 9 8 9-8"/></symbol>
+ <symbol id="i-file" viewBox="0 0 24 24"><path d="M7 2h7l5 5v15H5V2z"/><path d="M14 2v5h5M8 13h8M8 17h6"/></symbol>
+ <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+ <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
+</svg>
+<div class="app">
+ <nav class="rail" aria-label="Main navigation">
+  <a class="rail-brand" href="https://support.thaiduy.digital/inboxes/assigned" title="Libredesk Inbox">LR</a>
+  <a class="rail-icon" href="https://support.thaiduy.digital/inboxes/assigned" title="Libredesk Inbox" aria-label="Libredesk Inbox"><svg><use href="#i-inbox"/></svg></a>
+  <a class="rail-icon selected" href="/ai-support/" title="AI Support Gate" aria-current="page" aria-label="AI Support Gate"><svg><use href="#i-spark"/></svg></a>
+  <a class="rail-icon" href="https://support.thaiduy.digital/contacts" title="Contacts in Libredesk" aria-label="Contacts"><svg><use href="#i-user"/></svg></a>
+  <div class="rail-bottom">
+   <a class="rail-icon" href="https://support.thaiduy.digital/admin/inboxes" title="Libredesk Settings" aria-label="Settings"><svg><use href="#i-settings"/></svg></a>
+   <a class="rail-avatar" href="https://support.thaiduy.digital/" title="Libredesk account">S<span class="avatar-check"><svg><use href="#i-check"/></svg></span></a>
+  </div>
+ </nav>
+ <aside class="section-nav" aria-label="Support Gate navigation">
+  <div class="nav-heading"><h1>AI Support</h1><span class="nav-heading-action"><svg><use href="#i-spark"/></svg></span></div>
+  <button type="button" class="nav-create" id="newDraft"><svg><use href="#i-plus"/></svg> New draft</button>
+  <div class="nav-caption">WORKSPACE</div>
+  <div class="filters">
+   <button type="button" class="nav-item active" data-filter="tickets"><svg><use href="#i-inbox"/></svg><span>Support inbox</span><span class="nav-count" id="count-tickets">0</span></button>
+   <button type="button" class="nav-item" data-filter="attention"><svg><use href="#i-mail"/></svg><span>Needs reply</span><span class="nav-count" id="count-attention">0</span></button>
+   <button type="button" class="nav-item" data-filter="closed"><svg><use href="#i-check"/></svg><span>Closed</span><span class="nav-count" id="count-closed">0</span></button>
+   <div class="nav-caption nav-caption-secondary">RESPONSE DRAFTS</div>
+   <button type="button" class="nav-item" data-filter="draft"><svg><use href="#i-file"/></svg><span>Needs review</span><span class="nav-count" id="count-draft">0</span></button>
+   <button type="button" class="nav-item" data-filter="approved"><svg><use href="#i-check"/></svg><span>Approved</span><span class="nav-count" id="count-approved">0</span></button>
+   <button type="button" class="nav-item" data-filter="sent"><svg><use href="#i-send"/></svg><span>Sent</span><span class="nav-count" id="count-sent">0</span></button>
+  </div>
+  <div class="nav-caption nav-caption-secondary">CHANNELS</div>
+  <a class="nav-item nav-link" href="https://support.thaiduy.digital/inboxes/all"><svg><use href="#i-inbox"/></svg><span>Libredesk Inbox</span><svg class="nav-arrow"><use href="#i-arrow"/></svg></a>
+  <a class="nav-item nav-link" href="https://support.thaiduy.digital/admin/inboxes"><svg><use href="#i-settings"/></svg><span>Manage in Libredesk</span><svg class="nav-arrow"><use href="#i-arrow"/></svg></a>
+  <div class="nav-foot"><span class="net-dot"></span><span>Gold UAT · Human approval</span></div>
+ </aside>
+ <main class="main">
+  <section class="login-stage" id="login">
+   <div class="signin-card">
+    <div class="signin-logo"><svg><use href="#i-spark"/></svg></div>
+    <div class="eyebrow">OWNER REVIEW · SINGLE SIGN-ON</div>
+    <h2>Continue with Libredesk</h2>
+    <p>AI Support uses the same Admin session as Libredesk. Sign in there once, then come back here. No second password or admin account.</p>
+    <a class="primary-link" href="https://support.thaiduy.digital/" target="_self">Open Libredesk <svg><use href="#i-arrow"/></svg></a>
+    <button type="button" class="secondary-button" id="retryLogin">I've signed in — Continue</button>
+    <div class="signin-tip">Access is granted only to an authorized Libredesk Admin.</div>
+   </div>
+  </section>
+  <section id="workspace" class="workspace" hidden>
+   <aside class="queue" aria-label="Support tickets and draft list">
+    <div class="queue-head"><div class="queue-title"><h2 id="listTitle">Support inbox</h2><div class="queue-actions"><button type="button" id="ticketAlerts" class="btn secondary" title="Enable browser notifications for new tickets">Enable alerts</button><button type="button" id="refresh" class="icon-button" title="Sync now" aria-label="Sync now"><svg><use href="#i-refresh"/></svg></button></div></div>
+      <div class="search-field"><svg><use href="#i-search"/></svg><input type="search" id="search" placeholder="Search tickets or drafts" aria-label="Search tickets or drafts"></div>
+    </div>
+    <div class="queue-toolbar"><span id="queueCount">Syncing tickets…</span><span id="queueSync">Auto-sync</span></div>
+    <div id="drafts" class="drafts" role="list"></div>
+    <div id="emptyQueue" class="empty-queue" hidden><svg><use href="#i-inbox"/></svg><strong>No matching tickets</strong><span>New messages will appear automatically.</span></div>
+   </aside>
+   <section class="detail" aria-label="Support draft editor">
+    <div class="detail-head">
+     <div class="detail-crumb"><svg><use href="#i-spark"/></svg><span>AI Support Gate</span><span class="divider-slash">/</span><span id="crumbMode">Draft review</span></div>
+     <div class="head-meta"><span id="operator" class="operator-label">Admin</span><span class="presence"><span class="presence-dot"></span> Owner control</span></div>
+    </div>
+    <div class="detail-scroll">
+     <div class="content-width">
+      <div class="eyebrow">CUSTOMER SUPPORT · AI ASSISTED</div>
+      <div class="content-heading"><div><h2 id="editorTitle">New support draft</h2><p>Read your customer conversations and reply from this inbox.</p></div><span class="draft-status" id="draftStatus">New draft</span></div>
+      <div class="section-title">Ticket</div>
+      <form id="draftForm" autocomplete="off">
+       <section class="thread-panel" id="threadPanel" hidden><div class="thread-heading"><strong>Conversation</strong><span id="threadMeta">Live from Libredesk</span></div><div id="threadMessages" class="thread-messages"></div></section>
+       <div class="section-title reply-title"><svg><use href="#i-mail"/></svg> Reply</div>
+       <label class="textarea-label"><textarea id="message" rows="7" maxlength="10000" placeholder="Write your reply, or ask AI to prepare one…"></textarea></label>
+       <div class="compose-tools"><button type="button" class="btn secondary" id="aiDraft" disabled>AI Draft</button><span id="aiStatus">AI worker connection pending</span></div>
+      </form>
+      <p class="help-text" id="hint">Save a draft and approve it before sending.</p>
+      <div class="action-bar">
+       <button type="button" class="btn secondary" id="save">Save draft</button><button type="button" class="btn strong" id="sendManual" disabled>Send reply</button>
+       <button type="button" class="btn primary" id="approve">Approve draft</button>
+       <button type="button" class="btn strong" id="send" disabled><svg><use href="#i-send"/></svg> Send reply</button>
+      </div>
+      <details class="advanced-panel" id="advancedPanel"><summary>Advanced · Sync &amp; integration settings</summary><div class="advanced-body">
+      <div class="info-banner" id="outbound"><svg><use href="#i-shield"/></svg><span>Checking send permissions…</span></div><div class="auto-sync-bar"><span class="net-dot"></span><strong>Libredesk ticket sync</strong><span id="syncStatus">Connecting…</span><button class="btn secondary" id="syncNow" type="button">Sync now</button></div>
+      <details class="setup-panel" id="integrationPanel">
+        <summary><svg><use href="#i-settings"/></svg> Integration settings &amp; event diagnostics <span id="integrationBadge">Not configured</span></summary>
+        <div class="setup-content">
+          <p>One Libredesk account, two brands. Create the real email inboxes using their own IMAP/SMTP authorization in Libredesk Admin. No passwords are collected by AI Support Gate.</p>
+          <div class="setup-links">
+            <a href="https://support.thaiduy.digital/admin/inboxes/new" target="_blank" rel="noopener noreferrer">Create email inbox in Libredesk</a>
+            <a href="https://support.thaiduy.digital/admin/webhooks" target="_blank" rel="noopener noreferrer">Manage webhooks</a>
+          </div>
+          <div class="setup-controls"><button type="button" class="btn primary" id="connectWebhook">Connect incoming events</button><button type="button" class="btn secondary" id="refreshEvents">Refresh event queue</button></div>
+          <div class="setup-meta" id="inboundStatus">Checking event receiver…</div>
+          <details class="technical-events"><summary>Technical event log (advanced)</summary><div class="events-list" id="inboundEvents"></div></details>
+          <p class="help-text">Incoming events are signed and retained as metadata only. AI never sends email without Owner approval.</p>
+        </div>
+      </details>
+      <details class="technical-events ticket-meta-advanced" id="ticketMetaDetails">
+        <summary>Advanced: ticket recipient and subject</summary>
+       <div class="two">
+        <label>Product <select id="brand"><option value="light-remote">Light Remote</option><option value="lightbi">LightBI</option></select></label>
+        <label>Customer email <input id="recipient" type="email" placeholder="customer@example.com"></label>
+       </div>
+       <label>Subject <input id="subject" maxlength="240" placeholder="Support request subject"></label>
+       </details>
+       <details class="technical-events"><summary>Advanced: manually reload ticket</summary><div class="ticket-read-actions"><button class="btn secondary" type="button" id="loadTicket">Reload selected ticket</button><span>Read only · Libredesk Inbox 1</span></div></details>
+       <details class="technical-events"><summary>Advanced: imported message snapshot</summary>       <pre id="ticketPreview" class="ticket-preview" hidden></pre></details>
+       <details class="technical-events ticket-advanced"><summary>Advanced: conversation &amp; message IDs</summary>
+         <label>Conversation ID <input id="conversation" spellcheck="false" placeholder="Libredesk conversation UUID"></label>
+         <label>Latest message ID <input id="latest" spellcheck="false" placeholder="Latest public message UUID"></label>
+       </details>
+</div></details>
+      <div class="integration-note"><svg><use href="#i-shield"/></svg><span>Send reply is an explicit owner action. AI automation requires separate authorization.</span></div>
+     </div>
+    </div>
+   </section>
+  </section>
+ </main>
+</div>
+<dialog class="send-dialog" id="sendConfirm" aria-labelledby="sendConfirmTitle">
+ <div class="send-dialog-icon"><svg><use href="#i-send"/></svg></div>
+ <h2 id="sendConfirmTitle">Send approved reply?</h2>
+ <p id="sendConfirmText"></p>
+ <div class="send-dialog-actions">
+  <button type="button" class="btn secondary" id="sendCancel">Cancel</button>
+  <button type="button" class="btn strong" id="sendProceed">Send reply</button>
+ </div>
+</dialog>
+<div class="toast" id="feedback" role="status" aria-live="polite"></div>
+</body></html>

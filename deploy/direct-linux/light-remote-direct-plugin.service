@@ -1,0 +1,31 @@
+[Unit]
+Description=Light Remote Direct MCP Plugin Server
+After=network-online.target light-remote-direct-operator.service
+Wants=network-online.target
+Requires=light-remote-direct-operator.service
+
+[Service]
+Type=simple
+User=lightremote
+Group=lightremote
+WorkingDirectory=/opt/light-remote-direct/current/plugin-server
+EnvironmentFile=/etc/light-remote-direct/plugin.env
+UnsetEnvironment=LIGHT_REMOTE_VERSION OPERATOR_VERSION
+ExecStart=/opt/light-remote-direct/current/runtime/node /opt/light-remote-direct/current/plugin-server/server.mjs
+Restart=always
+RestartSec=2
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/light-remote-direct/plugin-state
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

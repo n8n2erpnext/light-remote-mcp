@@ -1,0 +1,79 @@
+[
+  {
+    "container": "light-remote-abv2-lab-20261101",
+    "service": "light-remote-gold-operator.service",
+    "exit": 0,
+    "observedAt": "2026-11-08T09:59:01.961034+00:00",
+    "result": {
+      "cwd": "/opt/light-remote-abv2-lab/t11-f16p02-owner-consent-preview-20261108",
+      "readOnlyInspection": true,
+      "instance": "abv2lab01",
+      "postgres": {
+        "database": "light_remote_gold_dev",
+        "role": "lr_gold_app",
+        "version": "17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
+        "read_only": "on"
+      },
+      "schema": {
+        "count": 43,
+        "max": 43,
+        "contiguous": true
+      },
+      "ownerAuthority": true,
+      "appPrivileges": {
+        "schema_create": false,
+        "ledger_insert": false,
+        "migrator_member": false
+      },
+      "redis": {
+        "version": "8.10.2",
+        "operation": "INFO server (read-only)"
+      }
+    }
+  },
+  {
+    "container": "light-remote-gold-uat",
+    "service": "light-remote-gold-operator.service",
+    "exit": 0,
+    "observedAt": "2026-11-08T09:59:02.893202+00:00",
+    "result": {
+      "cwd": "/opt/light-remote-gold-uat-candidates/49b0a2e9f98640a6081b54481858e765125b9f9e",
+      "readOnlyInspection": true,
+      "instance": "uat19",
+      "postgres": {
+        "database": "light_remote_gold_dev",
+        "role": "lr_gold_app",
+        "version": "17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
+        "read_only": "on"
+      },
+      "schema": {
+        "count": 42,
+        "max": 42,
+        "contiguous": true
+      },
+      "ownerAuthority": false,
+      "appPrivileges": {
+        "schema_create": false,
+        "ledger_insert": false,
+        "migrator_member": false
+      },
+      "redis": {
+        "version": "8.10.2",
+        "operation": "INFO server (read-only)"
+      }
+    }
+  },
+  {
+    "container": "light-remote-direct",
+    "service": "light-remote-direct-operator.service",
+    "exit": 0,
+    "observedAt": "2026-11-08T09:59:03.239393+00:00",
+    "result": {
+      "nodeVersion": "v22.23.2",
+      "cwd": "/opt/light-remote-direct/releases/ux-v5-device-os-20261009-r4",
+      "goldDatabase": "NOT_CONFIGURED",
+      "nodeExecutable": "/opt/light-remote-direct/releases/ux-v5-device-os-20261009-r4/runtime/node",
+      "readOnlyInspection": true
+    }
+  }
+]

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "project": "light-remote-mcp",
+  "repository": "n8n2erpnext/light-remote-mcp",
+  "version": "0.10.0-dev.1",
+  "apiContractVersion": "light-remote.api.v1",
+  "database": {
+    "coreLock": "platform-v2/sql/migrations.lock.json",
+    "coreThrough": 43,
+    "extensions": [
+      {
+        "id": "owner-authority.v1",
+        "file": "platform-v2/sql/045_gold_single_owner_authority.sql",
+        "sha256": "218ada24591311b9bd9fa492726a728190bb3f2a8053b6b4f8499e713d925f8d",
+        "dependencies": [
+          "core:43"
+        ]
+      }
+    ],
+    "deferred": [
+      {
+        "id": "pro-share-guest.v1",
+        "file": "platform-v2/sql/044_gold_pro_share.sql",
+        "reason": "Native Guest runtime wiring is incomplete; never bypass GOLD_GUEST_NATIVE_RUNTIME_WIRED."
+      }
+    ]
+  },
+  "defaultBuildProfile": "goldabv2-desktop-v4",
+  "sourceCommitPolicy": "Resolve exact clean Git HEAD and tree at build; never a source directory name or STAGED pointer.",
+  "productionRelease": false
+}

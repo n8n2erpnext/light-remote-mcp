@@ -1,0 +1,272 @@
+name: Gold G3 Operator Regression
+
+on:
+  push:
+    branches:
+      - 'feature/light-remote-gold-rebuild-20261018'
+      - 'feature/gold-m6-integrated-20261023' # isolated Gold M6 + owner permissions integration CI
+      - 'feature/gold-memory-reader-codex-win-20261025' # owner-scoped Memory Library and Windows Codex runtime
+      - 'feature/gold-navigation-codex-managed-memory-delete-20261025' # isolated Gold Wall navigation and optional runtime
+      - 'feature/gold-memory-completion-20261026' # scoped Memory lifecycle and Codex task CRUD
+      - 'fix/gold-pulse-stale-lock-20261025' # signed channel and crash-lock UAT regression
+    paths:
+      - 'operator-host/**'
+      - 'plugin-server/tools.mjs'
+      - 'plugin-server/tool-helper.mjs'
+      - 'plugin-server/device-public.mjs'
+      - 'plugin-server/tool-error-classification.mjs'
+      - 'deploy/scripts/selftest-gold-tool-error-origin.mjs'
+      - 'device-agent/**'
+      - 'lib/**'
+      - 'client/core-files.json'
+      - 'deploy/scripts/selftest-g3-*.mjs'
+      - 'deploy/scripts/selftest-gold-wall-close-session-*.mjs'
+      - 'deploy/scripts/selftest-g4-*.mjs'
+      - 'deploy/scripts/selftest-g5-*.mjs'
+      - 'deploy/scripts/selftest-gold-multi-agent-entitlement.mjs'
+      - 'deploy/scripts/selftest-gold-m3-personal-schema-contract.mjs'
+      - 'deploy/scripts/selftest-gold-m3-shared-tool-admission.mjs'
+      - 'deploy/scripts/selftest-gold-m4-resource-policy.mjs'
+      - 'deploy/scripts/selftest-gold-m4-pg-resource-admission.mjs'
+      - 'deploy/scripts/selftest-gold-m4-worker-lease-pg.mjs'
+      - 'deploy/scripts/selftest-gold-m4-download-resource-pg.mjs'
+      - 'deploy/scripts/selftest-gold-m3-pro-3plus1-device.mjs'
+      - 'deploy/scripts/selftest-gold-m3-pg-personal-admission.mjs'
+      - 'platform-v2/sql/**'
+      - 'deploy/scripts/selftest-gold-m2-long-command-mode.mjs'
+      - 'deploy/scripts/selftest-gold-m5-owner-process-wall.mjs'
+      - 'deploy/scripts/selftest-gold-m5-process-supervisor-agent-restart.mjs'
+      - 'deploy/scripts/selftest-gold-m5-supervisor-restart-journal.mjs'
+      - 'deploy/scripts/selftest-gold-m5-isolated-worker-core.mjs'
+      - 'deploy/scripts/selftest-gold-fleet-jobs-m6.mjs'
+      - 'deploy/scripts/selftest-gold-m6-process-stop.mjs'
+      - 'deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs'
+      - 'deploy/scripts/selftest-gold-native-device-fk-removal.mjs'
+      - 'deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs'
+      - 'deploy/scripts/selftest-gold-owner-filesystem-roots.mjs'
+      - 'deploy/scripts/selftest-gold-m6-resource-metrics.mjs'
+      - 'deploy/scripts/selftest-gold-m6-terminal-replay.mjs'
+      - 'deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs'
+      - 'deploy/scripts/selftest-gold-m6-device-telemetry.mjs'
+      - 'deploy/scripts/selftest-gold-owner-permission-authorization.mjs'
+      - 'deploy/scripts/gold-m6-uat-four-service-cutover.sh'
+      - 'lib/device-resource-telemetry.mjs'
+      - 'lib/native-terminal-receipt-spool.mjs'
+      - 'lib/native-process.mjs'
+      - 'lib/gold-device-resource-locks.mjs'
+      - 'lib/supervisor-job-journal.mjs'
+      - 'lib/gold-device-resource-metrics.mjs'
+      - 'deploy/scripts/selftest-device-agent-cli.mjs'
+      - 'deploy/scripts/gold-g3-*.sh'
+      - 'deploy/scripts/uat-gold-g3-readiness-audit.mjs'
+      - 'deploy/scripts/soak-g3-duplex-readiness.mjs'
+      - 'deploy/scripts/selftest-v08-fleet-router.mjs'
+      - 'deploy/scripts/stage-client-core.mjs'
+      - 'deploy/scripts/selftest-host-install-layout.mjs'
+      - 'deploy/scripts/install-host.sh'
+      - 'deploy/server-linux/**'
+      - 'deploy/gold-demo/nginx-gold.conf'
+      - '.github/workflows/gold-g3-operator.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gold-operator-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - name: Install test dependencies
+        run: npm ci --ignore-scripts
+      - name: Gold G3 duplex, Fleet, reconnect and installer source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for source in lib/device-duplex-client.mjs operator-host/device-duplex-session.mjs operator-host/fleet-router.mjs operator-host/executor-routes-device-channel.mjs device-agent/operator-agent.mjs; do
+            node --check "$source"
+          done
+          node deploy/scripts/selftest-g3-fleet-channel-stale-inflight.mjs
+          node deploy/scripts/selftest-g3-command-liveness-pulse.mjs
+          node deploy/scripts/selftest-g3-agent-state-lock-recovery.mjs
+          node deploy/scripts/selftest-gold-memory-reader-export.mjs
+          node deploy/scripts/selftest-gold-codex-binary-discovery.mjs
+          node deploy/scripts/selftest-gold-wall-navigation.mjs
+          node deploy/scripts/selftest-gold-no-native-browser-dialogs.mjs
+          node deploy/scripts/selftest-gold-managed-codex-runtime.mjs
+          node deploy/scripts/selftest-gold-memory-delete-settings.mjs
+          node deploy/scripts/selftest-gold-client-core-imports.mjs
+          node deploy/scripts/selftest-gold-memory-scope-management.mjs
+          node deploy/scripts/selftest-gold-memory-account-delete.mjs
+          node deploy/scripts/selftest-gold-codex-task-management.mjs
+          node deploy/scripts/selftest-gold-codex-supervisor.mjs
+          node deploy/scripts/selftest-gold-codex-coordinator.mjs
+          node deploy/scripts/selftest-gold-wall-close-session-cache.mjs "$PWD"
+          node deploy/scripts/selftest-gold-wall-close-session-http.mjs
+          node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
+          node deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs
+          node deploy/scripts/selftest-g3-gold-preview-stream-config.mjs
+          node deploy/scripts/selftest-g3-redis-wall-status-rate.mjs
+          node deploy/scripts/selftest-gold-windows-wall-nonblocking-inventory.mjs
+          node deploy/scripts/selftest-gold-owner-filesystem-roots.mjs
+          node deploy/scripts/selftest-g3-ab-control-lane-lookup.mjs
+          node deploy/scripts/selftest-g3-command-transport-provenance.mjs
+          node deploy/scripts/selftest-g3-agent-inline-stdout.mjs
+          node deploy/scripts/selftest-g4-gold-durable-operation-claim.mjs
+          node deploy/scripts/selftest-g5-native-fs-cas.mjs
+          node deploy/scripts/selftest-g5-gold-edit-tool-schema.mjs
+          node deploy/scripts/selftest-gold-multi-agent-entitlement.mjs
+          node deploy/scripts/selftest-gold-m3-personal-schema-contract.mjs
+          node deploy/scripts/selftest-gold-m3-shared-tool-admission.mjs
+          node deploy/scripts/selftest-gold-m4-resource-policy.mjs
+          node --check deploy/scripts/selftest-gold-m4-pg-resource-admission.mjs
+          node --check deploy/scripts/selftest-gold-m4-worker-lease-pg.mjs
+          node --check deploy/scripts/selftest-gold-m4-download-resource-pg.mjs
+          node --check deploy/scripts/selftest-gold-m3-pro-3plus1-device.mjs
+          node --check deploy/scripts/selftest-gold-m3-pg-personal-admission.mjs
+          node --check lib/gold-personal-agent-scheduler.mjs
+          node --check operator-host/executor.mjs
+          node deploy/scripts/selftest-gold-m2-long-command-mode.mjs
+          node deploy/scripts/selftest-gold-m5-owner-process-wall.mjs
+          node deploy/scripts/selftest-gold-m5-process-supervisor-agent-restart.mjs
+          node deploy/scripts/selftest-gold-m5-supervisor-restart-journal.mjs
+          node deploy/scripts/selftest-gold-m5-isolated-worker-core.mjs
+          node --check lib/gold-job-ledger.mjs
+          node --check operator-host/fleet-job-view.mjs
+          node --check device-agent/fleet-job-page.mjs
+          node --check device-agent/fleet-wall-runtime.mjs
+          node deploy/scripts/selftest-gold-fleet-jobs-m6.mjs
+          node deploy/scripts/selftest-gold-m6-process-stop.mjs
+          node deploy/scripts/selftest-gold-m6-owner-orphan-recovery.mjs
+          node deploy/scripts/selftest-gold-native-device-fk-removal.mjs
+          node --check lib/gold-device-resource-metrics.mjs
+          node deploy/scripts/selftest-gold-m6-resource-metrics.mjs
+          node --check deploy/scripts/apply-gold-db.mjs
+          node deploy/scripts/selftest-gold-m6-terminal-replay.mjs
+          node --check lib/native-terminal-receipt-spool.mjs
+          node deploy/scripts/selftest-gold-m6-native-terminal-spool.mjs
+          node --check lib/device-resource-telemetry.mjs
+          node deploy/scripts/selftest-gold-m6-device-telemetry.mjs
+          node deploy/scripts/selftest-gold-owner-permission-authorization.mjs
+          bash -n deploy/scripts/gold-m6-uat-four-service-cutover.sh
+          node deploy/scripts/selftest-v10-light-scp-file.mjs
+          node deploy/scripts/selftest-v10-light-scp-owner.mjs
+          node deploy/scripts/selftest-v10-light-scp-routing.mjs
+          node deploy/scripts/selftest-g3-operator-rate-error-handler.mjs
+          node deploy/scripts/selftest-gold-tool-error-origin.mjs
+          node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
+          node deploy/scripts/selftest-g3-executor-hang-readiness.mjs
+          node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
+          node deploy/scripts/selftest-g3-executor-readiness-probe.mjs
+          node deploy/scripts/selftest-g3-executor-probe-deadline.mjs
+          node deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs
+          node deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs
+          node deploy/scripts/selftest-g3-live-readiness-evidence.mjs
+          node deploy/scripts/soak-g3-duplex-readiness.mjs --cycles 2
+          node deploy/scripts/selftest-g3-strict-executor-admission.mjs
+          node --check deploy/scripts/uat-gold-g3-live-enrolled-agent.mjs
+          node --check deploy/scripts/uat-gold-g3-readiness-audit.mjs
+          for script in deploy/scripts/gold-g3-stage-candidate.sh deploy/scripts/gold-g3-uat-backup.sh deploy/scripts/gold-g3-uat-cutover.sh deploy/scripts/gold-g3-uat-rollback.sh; do
+            bash -n "$script"
+          done
+          grep -Fq 'extra_args=" daemon"' deploy/scripts/gold-g3-uat-cutover.sh
+          grep -Fq 'ExecStart=/usr/bin/node $ROOT/$entry$extra_args' deploy/scripts/gold-g3-uat-cutover.sh
+          grep -Fq 'G3_GOLD_VALIDATE_WALL_DAEMON_ARG_MISSING' deploy/scripts/gold-g3-uat-cutover.sh
+          grep -Fq 'G3_GOLD_STABLE_HEALTH_10_SAMPLES=PASS' deploy/scripts/gold-g3-uat-cutover.sh
+          echo G3_GOLD_UAT_CUTOVER_DAEMON_AND_ROLLBACK_CONTRACT=PASS
+          node deploy/scripts/selftest-v08-fleet-router.mjs
+          node deploy/scripts/selftest-host-install-layout.mjs
+          bash -n deploy/scripts/install-host.sh
+          node deploy/scripts/stage-client-core.mjs "$RUNNER_TEMP/gold-core"
+          node deploy/scripts/stage-client-core.mjs --verify "$RUNNER_TEMP/gold-core"
+          echo gold-g3-operator-contract=PASS
+
+  gold-g3-cli-enrollment-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+      - name: CLI synthetic enrollment and Agent daemon isolate inherited host identity
+        shell: bash
+        env:
+          OPERATOR_AGENT_IDENTITY_FILE: /nonexistent-g3-test-only-key
+          OPERATOR_AGENT_WALL_HOST: 203.0.113.1
+          OPERATOR_FLEET_WALL_HOST: 203.0.113.1
+        run: |
+          set -euo pipefail
+          node deploy/scripts/selftest-device-agent-cli.mjs
+
+  gold-g3-real-agent-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+      - name: Real dormant Agent process suspend resume and restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          node deploy/scripts/selftest-g3-agent-daemon-lifecycle.mjs
+
+  gold-g3-bounded-soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+      - name: Bounded TCP reconnect, executor hang and half-open soak
+        shell: bash
+        run: |
+          set -euo pipefail
+          node deploy/scripts/soak-g3-duplex-readiness.mjs --cycles 2
+
+  gold-uat-server-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - name: Prepare Gold UAT package dependencies
+        run: npm ci --ignore-scripts
+      - name: Build isolated Gold server bundle (never deploy)
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash deploy/server-linux/build-bundle.sh "${{ matrix.arch }}"
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          OUT="dist/server-linux/${{ matrix.arch }}"
+          (cd "$OUT" && sha256sum -c SHA256SUMS.txt)
+          ARCHIVE="$OUT/Light-Remote-MCP-Server-Linux-${{ matrix.arch }}-$VERSION.tar.gz"
+          tar -tzf "$ARCHIVE" > "$RUNNER_TEMP/gold-bundle-files.txt"
+          for required in package/lib/gold-db.mjs package/lib/gold-job-ledger.mjs package/lib/gold-registry-persistence.mjs package/lib/gold-session-redis.mjs package/operator-host/executor-routes-device-channel.mjs; do
+            grep -Fxq "$required" "$RUNNER_TEMP/gold-bundle-files.txt"
+          done
+          echo "gold-g3-server-bundle-${{ matrix.arch }}=PASS"
+      - name: Retain Gold CI artifacts only
+        uses: actions/upload-artifact@v4
+        with:
+          name: gold-g3-server-${{ matrix.arch }}-${{ github.sha }}
+          path: |
+            dist/server-linux/${{ matrix.arch }}/*.tar.gz
+            dist/server-linux/${{ matrix.arch }}/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7

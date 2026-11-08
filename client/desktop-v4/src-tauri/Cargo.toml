@@ -1,0 +1,45 @@
+[package]
+name = "light-remote-desktop-v4-pilot"
+version = "0.10.0-dev.1"
+description = "Light Remote Desktop V4 unified Owner, UI and native Agent IPC shell"
+authors = ["Thai Duy Digital"]
+edition = "2021"
+rust-version = "1.77.2"
+build = "build.rs"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[features]
+default = ["desktop-owner-login"]
+# Native Owner, secure vault and Agent IPC are part of the unified app.
+desktop-owner-login = ["dep:keyring", "dep:base64", "dep:rand", "dep:sha2", "dep:reqwest", "dep:serde", "dep:tokio"]
+
+[dependencies]
+tauri = { version = "2", features = [] }
+# Platform native OS credential stores, never a Webview/localStorage credential.
+keyring = { version = "=3.6.3", default-features = false, features = ["apple-native", "windows-native", "sync-secret-service"], optional = true }
+# Native-only OAuth authorization-code flow; never included in the UI-only pilot.
+base64 = { version = "0.22.1", optional = true }
+rand = { version = "0.8.5", optional = true }
+sha2 = { version = "0.10.9", optional = true }
+url = { version = "2.5.7" }
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0" }
+reqwest = { version = "0.12.24", default-features = false, features = ["blocking", "json", "rustls-tls"], optional = true }
+# Async bounded OS-private named pipe/Unix socket delivery. No HTTP bearer route.
+tokio = { version = "1", features = ["net", "io-util", "time"], optional = true }
+
+# Tray is a Windows-only UI capability; macOS/Linux package remains untouched.
+[target.'cfg(target_os = "windows")'.dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+
+[profile.dev]
+incremental = true
+
+[profile.release]
+codegen-units = 1
+lto = true
+panic = "abort"
+strip = "symbols"

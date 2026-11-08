@@ -1,0 +1,1866 @@
+import {API_CONTRACT_VERSION,API_VERSION_HEADER} from '../lib/api-contract.mjs';
+import http from 'node:http';
+import os from 'node:os';
+import fs from 'node:fs';
+import path from 'node:path';
+import zlib from 'node:zlib';
+import crypto from 'node:crypto';
+import { StringDecoder } from 'node:string_decoder';
+import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
+import { spawn } from 'node:child_process';
+import { SessionRegistry, SessionError, SESSION_GRACE_PRESETS } from './session-manager.mjs';
+import { personalCapacity } from './execution-capacity-policy.mjs';
+import { GoldPersonalAgentScheduler } from '../lib/gold-personal-agent-scheduler.mjs';
+import { GoldDeviceResourceLocks } from '../lib/gold-device-resource-locks.mjs';
+import { GoldConnectionJobReaper, DEFAULT_OFFLINE_GC_MS } from '../lib/gold-connection-job-reaper.mjs';
+import {GoldAdminJobRecovery} from './gold-admin-job-recovery.mjs';
+import { GoldStaleClaimMonitor } from '../lib/gold-stale-claim-monitor.mjs';
+import { GoldExecutionEpochs } from '../lib/gold-execution-epoch.mjs';
+import { DeviceResourceSampleCache } from '../lib/device-resource-telemetry.mjs';
+import { deviceResourceIntent } from './device-resource-intent.mjs';
+import { usesPersonalAgentSlot } from './personal-agent-tool-admission.mjs';
+import { resolveExecMode } from './long-running-exec-policy.mjs';
+import { DeviceRegistry, DeviceError } from './device-registry.mjs';
+import { EnrollmentRegistry, EnrollmentError } from './enrollment-registry.mjs';
+import { FleetRouter, FleetError } from './fleet-router.mjs';
+import { leafCapabilityAdmission } from './leaf-capability-admission.mjs';
+import { inferOutboundExecCapabilities } from './outbound-exec-capabilities.mjs';
+import { DeviceConnectionRegistry, DeviceConnectionError, DEFAULT_PLAN_CONNECTION_CAPS } from './device-connection-registry.mjs';
+import { DeviceAccessGrantRegistry, DeviceAccessGrantError } from './device-access-grant-registry.mjs';
+import { DevicePairingRegistry, DevicePairingRegistryError } from './device-pairing-registry.mjs';
+import { AgentClientRegistry, AgentClientRegistryError } from './agent-client-registry.mjs';
+import { AccountRegistry, AccountError } from './account-registry.mjs';
+import { UsageRegistry } from './usage-registry.mjs';
+import { AccountNotificationRegistry, AccountNotificationError } from './account-notification-registry.mjs';
+import { connectGoldStorage } from '../lib/gold-db.mjs';
+import {ensureGoldDeviceShortId,reconcileGoldOwnerDeviceShortIds} from '../lib/gold-device-short-id.mjs';
+import { GoldRegistryPersistence } from '../lib/gold-registry-persistence.mjs';
+import { GoldSessionRedis } from '../lib/gold-session-redis.mjs';
+import { GoldJobLedger, GoldOperationEffectError } from '../lib/gold-job-ledger.mjs';
+import { createTrustedChannelRateLimiter, TrustedChannelRateLimitError } from './trusted-channel-rate-limiter.mjs';
+import { ProTeamRegistry, ProTeamError } from './pro-team-registry.mjs';
+import { requestTeamMemberApproval } from './team-approval-requests.mjs';
+import { TeamPrincipalProofVerifier, verifyTeamPrincipalRequest } from '../lib/team-oauth-principal-proof.mjs';
+import { TeamEntitlementError } from './team-entitlement-policy.mjs';
+import { LicenseKeyRegistry, LicenseKeyError } from './license-key-registry.mjs';
+import { FleetAuthorityRegistry, FleetAuthorityError } from './fleet-authority-registry.mjs';
+import { loadOrCreateHostDeviceIdentity, ensureHostCompanionState } from './host-device-identity.mjs';
+import { executeNativeFs, filesystemPolicy } from '../lib/native-fs.mjs';
+import { NativeProcessRegistry } from '../lib/native-process.mjs';
+import { NativeTerminalRegistry } from '../lib/native-terminal.mjs';
+import { NativeSearchRegistry } from '../lib/native-search.mjs';
+import realRemoteInputPolicy from '../lib/real-remote-input.cjs';
+import { LightScpRegistry } from '../lib/light-scp-registry.mjs';
+import { normalizeUpdateReport } from '../lib/update-contract.mjs';
+import { clientCompatibility, releaseCompatibilityFloor } from '../lib/version-compat.mjs';
+import { runtimeVersion } from '../lib/runtime-version.mjs';
+import { restoreActivityRing } from '../lib/activity-ring.mjs';
+import { isOutboundTarget } from '../lib/operator-target-route.mjs';
+import { createPlatformAdapter } from '../device-agent/platform-adapters/index.mjs';
+import { handleAccountRoutes } from './executor-routes-account.mjs';
+import {createGoldSessionOwnerHttp} from './gold-session-owner-http.mjs';
+import {createGoldProShareAccountHttp,createGoldProShareStoreFromOperator} from './pro-share-account-http.mjs';
+import {createGoldProShareGuestHelper} from './pro-share-guest-helper.mjs';
+import {createGoldProShareGuestPoll} from './pro-share-guest-poll.mjs';
+import {GoldProShareGuestSlotPg} from './pro-share-guest-slot-pg.mjs';
+import {createGoldProShareGuestQueueHttp} from './pro-share-guest-queue-http.mjs';
+import {createGoldProShareVerifiedLaunch} from './pro-share-verified-launch.mjs';
+import {createGoldProShareGuestApproval} from './pro-share-guest-approval.mjs';
+import {createGoldAbV2OwnerHttpFromOperator} from './gold-ab-v2-owner-http.mjs';
+import {createGoldAbV2GrantOperator} from './gold-ab-v2-grant-operator.mjs';
+import {createGoldAbV2SignedPreview} from './gold-ab-v2-signed-preview.mjs';
+import {createGoldAbV2SignedApproval} from './gold-ab-v2-signed-approval.mjs';
+import {createGoldAbV2HelperTarget} from './gold-ab-v2-helper-target.mjs';
+import {createGoldAbV2HelperPoll} from './gold-ab-v2-helper-poll.mjs';
+import { GoldDeviceBootObservations } from './gold-device-boot-observations.mjs';
+import { handleDeviceChannelRoutes } from './executor-routes-device-channel.mjs';
+import { createDesktopWallSsoOperatorGateV4 } from './desktop-wall-sso-operator-gate-v4.mjs';
+import {GoldMemoryAccountSyncPolicy} from './gold-memory-account-sync-policy.mjs';
+import {GoldMemoryAccountDelete} from './gold-memory-account-delete.mjs';
+import { handleRuntimeRoutes } from './executor-routes-runtime.mjs';
+import { handlePluginRoutes } from './executor-routes-plugin.mjs';
+import { RealRemoteLiveRegistry } from './real-remote-live-registry.mjs';
+import { createNativeActivityFormatter } from './executor-native-activity.mjs';
+
+const SOCKET_PATH = process.env.OPERATOR_SOCKET || '/run/gpt-vps-operator/operator.sock';
+const KEY_FILE = process.env.OPERATOR_KEY_FILE || '/home/ubuntu/.config/gpt-vps-operator/operator.private.json';
+const LOG_DIR = process.env.OPERATOR_LOG_DIR || '/var/log/gpt-vps-operator';
+const LOG_FILE = path.join(LOG_DIR, 'operations.jsonl');
+const STATE_DIR = process.env.OPERATOR_STATE_DIR || '/var/lib/gpt-vps-operator';
+const DEVICE_STATE_FILE = path.join(STATE_DIR, 'devices.json');
+const ENROLLMENT_STATE_FILE = path.join(STATE_DIR, 'enrollments.json');
+const ENROLLMENT_SIGNER_FILE = path.join(STATE_DIR, 'enrollment-signer.pem');
+const HOST_DEVICE_IDENTITY_FILE = path.join(STATE_DIR, 'host-device-identity.json');
+const HOST_COMPANION_STATE_FILE = path.join(STATE_DIR, 'host-companion-device.json');
+const CONNECTION_STATE_FILE = path.join(STATE_DIR, 'device-connections.json');
+const ACCESS_STATE_FILE = path.join(STATE_DIR, 'device-access-grants.json');
+const AGENT_CLIENT_STATE_FILE = path.join(STATE_DIR, 'agent-clients.json');
+const ACCOUNT_STATE_FILE = path.join(STATE_DIR, 'accounts.json');
+const USAGE_STATE_FILE = path.join(STATE_DIR, 'usage.json');
+const PRO_TEAM_STATE_FILE = path.join(STATE_DIR, 'pro-teams.json');
+const NOTIFICATION_STATE_FILE = path.join(STATE_DIR, 'account-notifications.json');
+const LICENSE_STATE_FILE = path.join(STATE_DIR, 'license-keys.json');
+const FLEET_AUTHORITY_TTL_MS = Number(process.env.OPERATOR_FLEET_AUTHORITY_TTL_MS || 10 * 60 * 1000);
+const RING_HARD_CAP_BYTES = 10 * 1024 * 1024;
+const MAX_RING_BYTES = Math.max(1024 * 1024, Math.min(Number(process.env.OPERATOR_RING_BYTES || 8 * 1024 * 1024), RING_HARD_CAP_BYTES));
+const MAX_RING_AGE_MS = Math.max(60000, Math.min(Number(process.env.OPERATOR_RING_AGE_MS || 60 * 60 * 1000), 3600000));
+const DISK_FLUSH_MS = Math.max(10, Math.min(Number(process.env.OPERATOR_DISK_FLUSH_MS || 50), 1000));
+const DISK_BATCH_BYTES = Math.max(16384, Math.min(Number(process.env.OPERATOR_DISK_BATCH_BYTES || 262144), 1048576));
+const MAX_RING_EVENTS = Number(process.env.OPERATOR_RING_EVENTS || 5000);
+const MAX_MEMORY_OUTPUT = Number(process.env.OPERATOR_MEMORY_OUTPUT || 4 * 1024 * 1024);
+const MAX_BODY_BYTES = Number(process.env.OPERATOR_MAX_BODY || 8 * 1024 * 1024);
+const MAX_JOB_CACHE_BYTES = Number(process.env.OPERATOR_JOB_CACHE_BYTES || 64 * 1024 * 1024);
+const MAX_JOB_CACHE_AGE_MS = Number(process.env.OPERATOR_JOB_CACHE_AGE_MS || 6 * 60 * 60 * 1000);
+const OPERATION_DEDUPE_MS = Number(process.env.OPERATOR_DEDUPE_MS || 6 * 60 * 60 * 1000);
+const SESSION_IDLE_MS = Number(process.env.OPERATOR_SESSION_IDLE_MS || 30 * 60 * 1000);
+const SESSION_MIN_IDLE_MS = Number(process.env.OPERATOR_SESSION_MIN_IDLE_MS || 15 * 60 * 1000);
+const SESSION_MAX_IDLE_MS = Number(process.env.OPERATOR_SESSION_MAX_IDLE_MS || 60 * 60 * 1000);
+const SESSION_ACTIVE_WINDOW_MS = Number(process.env.OPERATOR_SESSION_ACTIVE_WINDOW_MS || 60 * 1000);
+const SESSION_HISTORY_MS = Number(process.env.OPERATOR_SESSION_HISTORY_MS || 7 * 24 * 60 * 60 * 1000);
+// Opt-in Gold migration; default remains compatible with existing client tests.
+const SCOPED_SESSION_LIMITS = process.env.OPERATOR_SCOPED_SESSION_LIMITS==='1';
+const PERSONAL_AGENT_SCHEDULER = process.env.OPERATOR_PERSONAL_AGENT_SCHEDULER==='1';
+const DEVICE_RESOURCE_LOCKS = process.env.OPERATOR_DEVICE_RESOURCE_LOCKS==='1';
+if(DEVICE_RESOURCE_LOCKS&&!PERSONAL_AGENT_SCHEDULER)throw Error('m4_personal_scheduler_required');
+if(PERSONAL_AGENT_SCHEDULER&&!SCOPED_SESSION_LIMITS)throw Error('m3_scoped_sessions_required');
+// OFF by default; Gold UAT can opt in without touching published clients.
+const MANAGED_LONG_EXEC = process.env.OPERATOR_MANAGED_LONG_EXEC==='1';
+const MAX_ACTIVE_SESSIONS = Number(process.env.OPERATOR_MAX_ACTIVE_SESSIONS || (SCOPED_SESSION_LIMITS ? 128 : 5));
+const ACCOUNT_ID = String(process.env.OPERATOR_ACCOUNT_ID || 'self-hosted-local');
+const ACCOUNT_PLAN = String(process.env.OPERATOR_ACCOUNT_PLAN || 'free').trim().toLowerCase();
+const CONNECTION_LEASE_ENFORCE = ['1','true','yes'].includes(String(process.env.OPERATOR_CONNECTION_LEASE_ENFORCE || '0').toLowerCase());
+const CONNECTION_REAP_MS = Number(process.env.OPERATOR_CONNECTION_REAP_MS || 30 * 1000);
+// Opt-in PG-authoritative cleanup of jobs after 60m continuously offline.
+const CONNECTION_JOB_GC_ENABLED = process.env.OPERATOR_CONNECTION_JOB_GC_ENABLED==='1';
+// P1-A owner-scoped observer. Requires explicit synthetic/test-device allowlist.
+const STALE_CLAIM_MONITOR_ENABLED=process.env.OPERATOR_STALE_CLAIM_MONITOR_ENABLED==='1';
+const STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS=Object.hasOwn(process.env,'OPERATOR_STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS')
+ ? String(process.env.OPERATOR_STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS).split(',').map(x=>x.trim()):null;
+const STALE_CLAIM_MONITOR_SCAN_MS=Math.max(10000,Math.min(300000,Number(process.env.OPERATOR_STALE_CLAIM_MONITOR_SCAN_MS)||30000));
+// Additive schema041 feature: OFF until signed Agent + PG epoch UAT acceptance.
+const EXECUTION_EPOCH_ENABLED = process.env.OPERATOR_EXECUTION_EPOCH_ENABLED==='1';
+const EXECUTION_EPOCH_ONLY_DEVICE_IDS=Object.hasOwn(process.env,'OPERATOR_EXECUTION_EPOCH_ONLY_DEVICE_IDS')
+ ? String(process.env.OPERATOR_EXECUTION_EPOCH_ONLY_DEVICE_IDS).split(',').map(x=>x.trim()) : null;
+if(EXECUTION_EPOCH_ONLY_DEVICE_IDS&&(!EXECUTION_EPOCH_ONLY_DEVICE_IDS.length||
+ EXECUTION_EPOCH_ONLY_DEVICE_IDS.some(id=>!/^[A-Za-z0-9._:-]{1,160}$/.test(id))))
+ throw Error('gold_execution_epoch_invalid_device_allowlist');
+const requiresExecutionEpoch=deviceId=>EXECUTION_EPOCH_ENABLED&&
+ (EXECUTION_EPOCH_ONLY_DEVICE_IDS===null||EXECUTION_EPOCH_ONLY_DEVICE_IDS.includes(String(deviceId)));
+const CONNECTION_JOB_GC_OFFLINE_MS = Number(process.env.OPERATOR_CONNECTION_JOB_GC_OFFLINE_MS || DEFAULT_OFFLINE_GC_MS);
+const CONNECTION_JOB_GC_SCAN_MS = Math.max(5000,Math.min(300000,Number(process.env.OPERATOR_CONNECTION_JOB_GC_SCAN_MS)||10000));
+const CONNECTION_JOB_GC_BATCH = Math.max(1,Math.min(128,Number(process.env.OPERATOR_CONNECTION_JOB_GC_BATCH)||128));
+// Optional UAT-only scope: never sweep another customer's historical claim.
+// An explicit empty list is invalid; omission retains account-wide semantics.
+const CONNECTION_JOB_GC_ONLY_DEVICE_IDS = Object.hasOwn(process.env,'OPERATOR_CONNECTION_JOB_GC_ONLY_DEVICE_IDS')
+  ? String(process.env.OPERATOR_CONNECTION_JOB_GC_ONLY_DEVICE_IDS).split(',').map(x=>x.trim()) : null;
+const DEVICE_ID = String(process.env.OPERATOR_DEVICE_ID || 'arm-local');
+const NODE_ID = String(process.env.OPERATOR_NODE_ID || 'arm');
+const DEVICE_NAME = String(process.env.OPERATOR_DEVICE_NAME || os.hostname());
+const DEVICE_POLICY_PROFILE = String(process.env.OPERATOR_DEVICE_POLICY_PROFILE || 'self-hosted-owner');
+const INTEGRATED_HOST_ENABLED = !['0','false','no','off'].includes(String(process.env.OPERATOR_INTEGRATED_HOST || '1').trim().toLowerCase());
+const DEVICE_PRESENCE_TTL_MS = Number(process.env.OPERATOR_DEVICE_PRESENCE_TTL_MS || 90 * 1000);
+const DEVICE_HEARTBEAT_MS = Number(process.env.OPERATOR_DEVICE_HEARTBEAT_MS || 30 * 1000);
+const ENROLLMENT_TTL_MS = Number(process.env.OPERATOR_ENROLLMENT_TTL_MS || 10 * 60 * 1000);
+const ENROLLMENT_ACTIVATION_URL = String(process.env.OPERATOR_ENROLLMENT_ACTIVATION_URL || 'https://light-remote.thaiduy.digital/enroll');
+const FLEET_CHANNEL_TTL_MS = Number(process.env.OPERATOR_FLEET_CHANNEL_TTL_MS || 20 * 1000);
+const FLEET_COMMAND_LEASE_MS = Number(process.env.OPERATOR_FLEET_COMMAND_LEASE_MS || 12 * 1000);
+const FLEET_MAX_QUEUED_PER_NODE = Number(process.env.OPERATOR_FLEET_MAX_QUEUED_PER_NODE || 64);
+const DEVICE_CHANNEL_RUNTIME_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_RUNTIME_LIMIT || 240));
+const DEVICE_CHANNEL_OBSERVER_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_OBSERVER_LIMIT || 240));
+const DEVICE_CHANNEL_FLEET_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_FLEET_LIMIT || 600));
+const DEVICE_CHANNEL_CONTROL_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_CONTROL_LIMIT || 120));
+const DEVICE_CHANNEL_RM_LIVE_LIMIT = Math.max(1, Number(process.env.OPERATOR_DEVICE_CHANNEL_RM_LIVE_LIMIT || 1800));
+if (!Number.isFinite(DEVICE_PRESENCE_TTL_MS) || DEVICE_PRESENCE_TTL_MS < 10_000) throw new Error('invalid_device_presence_ttl');
+if (!Number.isFinite(DEVICE_HEARTBEAT_MS) || DEVICE_HEARTBEAT_MS < 5_000 || DEVICE_HEARTBEAT_MS >= DEVICE_PRESENCE_TTL_MS) throw new Error('invalid_device_heartbeat');
+const HOST_PLATFORM_ADAPTER=createPlatformAdapter({platform:process.platform});
+const HOST_CAPABILITIES = HOST_PLATFORM_ADAPTER.discoverCapabilities();
+const VERSION = runtimeVersion({envNames:['LIGHT_REMOTE_VERSION','OPERATOR_VERSION']});
+const CLIENT_BACKWARD_RELEASES=Math.max(0,Math.min(Number(process.env.OPERATOR_CLIENT_BACKWARD_RELEASES)||3,20));
+const MIN_SUPPORTED_CLIENT_VERSION=String(process.env.OPERATOR_MIN_SUPPORTED_CLIENT_VERSION||'').trim()||releaseCompatibilityFloor()||null;
+const compatibilityFor=device=>clientCompatibility(VERSION,device?.agentVersion,{backwardReleases:CLIENT_BACKWARD_RELEASES,explicit:MIN_SUPPORTED_CLIENT_VERSION});
+// No canonical Operator can start without its independent Gold database services.
+const goldStorage=await connectGoldStorage();
+const memorySyncPolicy=new GoldMemoryAccountSyncPolicy(goldStorage.pool);
+const memoryAccountDelete=new GoldMemoryAccountDelete(goldStorage.pool);
+const goldWriterLease=await goldStorage.pool.connect();
+const singleWriter=(await goldWriterLease.query(
+  "SELECT pg_try_advisory_lock(hashtext($1)) AS acquired",
+  ['light_remote_gold:'+goldStorage.prefix+':operator'])).rows?.[0]?.acquired;
+if(singleWriter!==true){
+ goldWriterLease.release();await goldStorage.close();
+ throw Error('gold_operator_single_writer_already_active');
+}
+const goldRegistries=await GoldRegistryPersistence.open({pool:goldStorage.pool});
+const goldSessionState=await GoldSessionRedis.open({client:goldStorage.redis,prefix:goldStorage.prefix});
+// Only a DB schema approved by the checksum-pinned migration lock and the runtime
+// release gate may preserve Guest UNKNOWN across an Operator restart.
+const goldJobs=await GoldJobLedger.open({pool:goldStorage.pool,redact,
+ preserveGuestUnknown:goldStorage.schema?.guestSchemaReady===true});
+// Separate OFF-by-default Guest slot receipt reconciliation. This never
+// admits a Guest tool or attaches an Agent and does not change owner M6.
+const goldProShareGuestSlots=process.env.LR_GOLD_PRO_SHARE_GUEST_SLOTS==='1'?
+ new GoldProShareGuestSlotPg({
+  pool:goldStorage.pool,env:process.env,
+  verifySignedLaunch:createGoldProShareVerifiedLaunch({
+   pool:goldStorage.pool,env:process.env})
+ }):null;
+const deviceResourceLocks=DEVICE_RESOURCE_LOCKS?
+ new GoldDeviceResourceLocks({capacity:Math.max(1,Math.min(8,Number(process.env.OPERATOR_DEVICE_WORKER_BUDGET)||2))}):null;
+const personalAgentScheduler=PERSONAL_AGENT_SCHEDULER?
+ new GoldPersonalAgentScheduler({pool:goldStorage.pool,
+  resources:deviceResourceLocks,
+  preserveGuestReservations:goldStorage.schema?.guestSchemaReady===true}):null;
+if(personalAgentScheduler)await personalAgentScheduler.recoverStartup();
+const pendingForegroundExec=new Map();
+// Stop intents are retried over independently signed liveness channels.
+// A request is NOT a kill receipt; only an authenticated device result can
+// transition a dispatched job to cancelled.
+const pendingDeviceJobStops=new Map();
+function deviceStopRequests(accountId,deviceId){
+ const pending=[];
+ for(const [commandId,row] of pendingDeviceJobStops){
+   const job=jobs.get(row.jobId);
+   // Device may be disconnected longer than 15 minutes. Do not silently
+   // abandon a Kill intent while the original job can still be running.
+   // Only a verified terminal state may retire the intent.
+   if(!job||job.finishedAt){
+     pendingDeviceJobStops.delete(commandId);continue;
+   }
+   if(row.accountId===accountId&&row.deviceId===deviceId&&pending.length<16)
+     pending.push({commandId,jobId:row.jobId});
+ }
+ return pending;
+}
+
+// A launch ACK closes the Agent execution slot, not the device resource lease.
+// Synchronize a fast signed terminal receipt with the launch-PG transaction.
+const pendingProcessLeaseWrites=new Map();
+async function reconcileSignedTerminalProcessReceipts(ctx,items){
+ if(!deviceResourceLocks||!Array.isArray(items))return [];
+ const acks=[];
+ for(const entry of items.slice(0,32)){
+  if(!/^lp_[A-Za-z0-9_-]{20,80}$/.test(String(entry?.processId||''))||
+     !['finished','stopped','timeout','error'].includes(entry.state)||
+     !Number.isSafeInteger(Number(entry.finishedAt))||Number(entry.finishedAt)<=0)continue;
+  try{
+   const pending=pendingProcessLeaseWrites.get(entry.processId);
+   if(pending)await pending;
+   const ack=await deviceResourceLocks.acknowledgeVerifiedTerminal(goldStorage.pool,{
+    accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,process:entry});
+   if(ack.acked){
+    // A verified Agent receipt has ALREADY been committed by M6 above.
+    // Only the matching durable owner/device/job/process ACK may retire
+    // the independent Guest slot. Failing this keeps Agent replay active.
+    if(goldProShareGuestSlots)
+     await goldProShareGuestSlots.reconcileDevice({
+      ownerAccountId:ctx.binding.accountId,deviceId:ctx.device.deviceId});
+    acks.push({processId:entry.processId,state:entry.state,finishedAt:entry.finishedAt});
+   }
+   if(!ack.released)continue;
+   pushEvent({type:'m4_worker_signed_terminal_receipt',accountId:ctx.binding.accountId,
+    deviceId:ctx.device.deviceId,processId:entry.processId,state:entry.state});
+   for(const id of await deviceResourceLocks.waitingAccounts(goldStorage.pool,ctx.device.deviceId))
+    await pumpPersonalAgentAccount(id);
+  }catch(error){console.error(JSON.stringify({event:'m4_signed_process_reconcile_failed',
+    code:String(error?.code||'PG_UNAVAILABLE')}));}
+ }
+ return acks;
+}
+async function reconcileBackgroundProcessReceipt(job){
+ if(!deviceResourceLocks||job.exitCode!==0)return;
+ const data=job.resultData;
+ if(!data||typeof data!=='object'||!String(job.note||'').startsWith('native-process:'))return;
+ const op=String(data.operation||'');
+ const records=op==='list'&&Array.isArray(data.processes)?data.processes.slice(0,32):
+  (op==='output'&&data.processId?[data]:['stop','input'].includes(op)&&data.process?[data.process]:[]);
+ for(const process of records){
+  if(!process?.processId||process.accountId&&process.accountId!==job.accountId||
+     process.deviceId&&process.deviceId!==job.deviceId)continue;
+  try{
+   const before=pendingProcessLeaseWrites.get(process.processId);
+   if(before)await before;
+   const receipt=await deviceResourceLocks.acknowledgeVerifiedTerminal(goldStorage.pool,
+    {accountId:job.accountId,deviceId:job.deviceId,process});
+   if(receipt.released){
+    pushEvent({type:'m4_background_resource_released',jobId:job.id,
+      accountId:job.accountId,deviceId:job.deviceId,processId:process.processId});
+    const accounts=await deviceResourceLocks.waitingAccounts(goldStorage.pool,job.deviceId);
+    for(const account of accounts)await pumpPersonalAgentAccount(account);
+   }
+  }catch(error){console.error(JSON.stringify({event:'m4_process_receipt_reconcile_failed',
+    code:String(error?.code||'PG_UNAVAILABLE')}));}
+ }
+}
+
+// Only work that can start a new effect holds an Agent execution slot.
+// Stop/status/output/input remain control-plane operations so owners can
+// always inspect and cancel a long-running process without waiting.
+
+async function schedulePersonalEffect(job,dispatch){
+ if(!job.personalScheduled)return dispatch();
+ pendingForegroundExec.set(job.id,dispatch);
+ try{
+  const resource=job.resourceIntent||deviceResourceIntent({family:'exec',cwd:job.cwd,script:job.script});
+  await personalAgentScheduler.enqueue({jobId:job.id,accountId:job.accountId,
+   agentId:job.agentId,sessionId:job.sessionId,operationId:job.operationId,
+   deviceId:deviceResourceLocks?job.deviceId:null,resource:deviceResourceLocks?resource:null});
+  await pumpPersonalAgentAccount(job.accountId);
+ }catch(error){
+  pendingForegroundExec.delete(job.id);
+  const queueFull=['m3_device_queue_capacity_reached','m3_personal_queue_capacity_reached'].includes(String(error?.message||''));
+  job.resultData={ok:false,error:queueFull?'queue_full':'m3_personal_scheduler_unavailable',status:queueFull?429:503};
+  job.resultSummary=queueFull?'queue_full':'m3_personal_scheduler_unavailable';
+  finishJob(job,1,null);
+  throw error;
+ }
+ return job;
+}
+
+const pumpingPersonalAccounts=new Set();
+async function pumpPersonalAgentAccount(accountId){
+ if(!personalAgentScheduler||pumpingPersonalAccounts.has(accountId))return;
+ pumpingPersonalAccounts.add(accountId);
+ try{
+  const ids=await personalAgentScheduler.admit(accountId,
+    personalCapacity(operationalAccount(accountId).plan).agentConcurrencyLimit);
+  if(deviceResourceLocks){
+    const reasons=await goldStorage.pool.query("SELECT job_id,queue_reason FROM lr_gold_personal_agent_work WHERE account_id=$1 AND state='queued' ORDER BY queued_at LIMIT 64",[accountId]);
+    for(const row of reasons.rows){
+      const queued=jobs.get(row.job_id);
+      if(queued){queued.queueReason=row.queue_reason||'QUEUED_AGENT_SLOT';goldJobs.save(queued);}
+    }
+  }
+  for(const id of ids){
+   const task=pendingForegroundExec.get(id),job=jobs.get(id);
+   if(!task||!job){
+    pushEvent({type:'m3_foreground_reconcile_required',jobId:id,accountId,reason:'admitted_payload_missing'});
+    continue;
+   }
+   pendingForegroundExec.delete(id);
+   try{
+    const session=sessions.get(job.sessionId,job.agentId);
+    if(!['active','hold'].includes(session.state)||session.accountId!==accountId||
+       session.deviceId!==job.deviceId||session.nodeId!==job.nodeId)
+      throw Error('m3_session_no_longer_authorized');
+    operationalAccount(accountId);
+    requireDeviceConnection(job.deviceId);
+    const approved=job.remote?targetRoute(job.nodeId,{accountId}).capabilities:hostEffectiveCapabilities();
+    if((job.requiredCapabilities||[]).some(cap=>!approved.includes(cap)))
+      throw Error('m3_capability_revoked_during_queue');
+   }catch(error){
+    job.resultData={ok:false,error:String(error.message||error),status:403};
+    finishJob(job,1,null);
+    continue;
+   }
+   job.status='running';job.queueReason=null;job.admittedAt=Date.now();
+   goldJobs.save(job);
+   pushEvent({type:'m3_agent_slot_granted',jobId:id,accountId,agentId:job.agentId});
+   try{task();}catch(error){
+    job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};
+    finishJob(job,1,null);
+   }
+  }
+ }catch(error){
+  pushEvent({type:'m3_scheduler_unavailable',accountId,reason:'personal_agent_admission_failure'});
+  console.error(JSON.stringify({event:'m3_scheduler_failure',message:String(error?.message||error)}));
+ }finally{pumpingPersonalAccounts.delete(accountId);}
+}
+async function expireOwnerQueued(accountId){
+ const ids=await personalAgentScheduler.expireQueued(accountId,600000);
+ for(const id of ids){
+  const job=jobs.get(id);
+  if(!job||job.finishedAt)continue;
+  job.timedOut=true;
+  job.resultSummary='queue_wait_timeout';
+  finishJob(job,124,null);
+ }
+}
+if(deviceResourceLocks){
+  const ticker=setInterval(async()=>{
+    try{
+      const q=await goldStorage.pool.query("SELECT DISTINCT account_id FROM lr_gold_personal_agent_work WHERE state='queued' ORDER BY account_id LIMIT 64");
+      for(const {account_id:id} of q.rows){await expireOwnerQueued(id);await pumpPersonalAgentAccount(id);}
+    }catch(error){console.error(JSON.stringify({event:'m4_queue_reconcile_failed',code:String(error?.code||'PG_UNAVAILABLE')}));}
+  },3000);
+  ticker.unref();
+}
+const NATIVE_PROCESSES=new NativeProcessRegistry();
+const NATIVE_TERMINALS=new NativeTerminalRegistry({emit:event=>pushEvent(event)});
+const NATIVE_SEARCHES=new NativeSearchRegistry();
+const LIGHT_SCP=new LightScpRegistry();
+
+const jobs = new Map();
+const operationDedupe = new Map();
+const replay = new Map();
+const trustedChannelRateLimiter=createTrustedChannelRateLimiter({redis:goldStorage.redis,prefix:goldStorage.prefix,limits:{runtime:DEVICE_CHANNEL_RUNTIME_LIMIT,observer:DEVICE_CHANNEL_OBSERVER_LIMIT,fleet:DEVICE_CHANNEL_FLEET_LIMIT,control:DEVICE_CHANNEL_CONTROL_LIMIT,'rm-live':DEVICE_CHANNEL_RM_LIVE_LIMIT}});
+const ring = [];
+const sseClients = new Set();
+let ringBytes = 0;
+let sequence = 0;
+const usage = goldRegistries.mount('usage',new UsageRegistry({ stateFile:null }));
+const sessions = goldSessionState.mount(new SessionRegistry({ idleMs:SESSION_IDLE_MS, minIdleMs:SESSION_MIN_IDLE_MS, maxIdleMs:SESSION_MAX_IDLE_MS, activeWindowMs:SESSION_ACTIVE_WINDOW_MS, maxActive:MAX_ACTIVE_SESSIONS, historyMs:SESSION_HISTORY_MS, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, emit:event => pushEvent(event) }));
+const devices = goldRegistries.mount('devices',new DeviceRegistry({ stateFile:null, presenceTtlMs:DEVICE_PRESENCE_TTL_MS, emit:event => pushEvent(event) }));
+const enrollments = goldRegistries.mount('enrollments',new EnrollmentRegistry({ stateFile:null, signerFile:ENROLLMENT_SIGNER_FILE, activationBaseUrl:ENROLLMENT_ACTIVATION_URL, ttlMs:ENROLLMENT_TTL_MS, emit:event => pushEvent(event) }));
+const fleet = new FleetRouter({ channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE, requireExecutorReady:process.env.OPERATOR_REQUIRE_EXECUTOR_READY==='1', emit:event => pushEvent(event) });
+const connections = goldRegistries.mount('connections',new DeviceConnectionRegistry({ stateFile:null, emit:event => pushEvent(event) }));
+const executionEpochs=EXECUTION_EPOCH_ENABLED?new GoldExecutionEpochs({pool:goldStorage.pool,signer:enrollments.signer}):null;
+const accessGrants = goldRegistries.mount('access_grants',new DeviceAccessGrantRegistry({ stateFile:null, emit:event => pushEvent(event) }));
+const pairingCodes = new DevicePairingRegistry({ emit:event => pushEvent(event) });
+const agentClients = goldRegistries.mount('agent_clients',new AgentClientRegistry({ stateFile:null, emit:event => pushEvent(event) }));
+const accounts = goldRegistries.mount('accounts',new AccountRegistry({ stateFile:null, bootstrapAccountId:ACCOUNT_ID, emit:event => pushEvent(event) }));
+const teamVerifyFile=String(process.env.OPERATOR_TEAM_OAUTH_VERIFY_KEY_FILE||'');
+const teamPrincipalVerifier=teamVerifyFile?new TeamPrincipalProofVerifier({publicKey:fs.readFileSync(teamVerifyFile)}):null;
+const verifyTeamPrincipal=(req,url,body)=>verifyTeamPrincipalRequest(req,url,body,teamPrincipalVerifier);
+const teamInviteSecretFile=String(process.env.OPERATOR_TEAM_INVITE_SECRET_FILE||'');
+const teamInviteSecret=teamInviteSecretFile?fs.readFileSync(teamInviteSecretFile):null;
+const accountNotifications=new AccountNotificationRegistry({pool:goldStorage.pool});
+const proTeams=goldRegistries.mount('pro_teams',new ProTeamRegistry({stateFile:null,inviteKey:teamInviteSecret,
+  planFor:accountId=>operationalAccount(accountId).plan,
+  accountActive:accountId=>{try{return operationalAccount(accountId).status==='active';}catch{return false;}},
+  emailFor:accountId=>{try{const a=operationalAccount(accountId);return a.emailVerified===true?a.email:null;}catch{return null;}},
+  onRevoke:({memberAccountId,deviceId,reason})=>accessGrants.revokeTeamMember({accountId:memberAccountId,deviceId,reason})}));
+const teamSessions=null;
+const licenses = goldRegistries.mount('licenses',new LicenseKeyRegistry({ stateFile:null, emit:event => pushEvent(event) }));
+const fleetAuthority = new FleetAuthorityRegistry({ ttlMs:FLEET_AUTHORITY_TTL_MS, emit:event => pushEvent(event) });
+const realRemoteLive = new RealRemoteLiveRegistry();
+const hostIdentity = INTEGRATED_HOST_ENABLED ? loadOrCreateHostDeviceIdentity(HOST_DEVICE_IDENTITY_FILE) : null;
+
+fs.mkdirSync(LOG_DIR, { recursive: true });
+function redact(value) {
+  if (value == null) return value;
+  let text = String(value);
+  text = text.replace(/(authorization\s*[:=]\s*bearer\s+)[^\s"']+/ig, '$1[REDACTED]');
+  text = text.replace(/(bearer\s+)[A-Za-z0-9._~+\/-]{20,}/ig, '$1[REDACTED]');
+  text = text.replace(/-----BEGIN [^-]+PRIVATE KEY-----[\s\S]*?-----END [^-]+PRIVATE KEY-----/g, '[REDACTED PRIVATE KEY]');
+  text = text.replace(/((?:password|passwd|token|secret|api[_-]?key)\s*[:=]\s*)[^\s"']+/ig, '$1[REDACTED]');
+  return text;
+}
+
+let diskQueue = []; let diskQueueBytes = 0; let diskFlushTimer = null; let diskWriteChain = Promise.resolve();function serializedDiskRecord(event) {
+  const safe = { ...event };
+  for (const key of ['script', 'stdout', 'stderr', 'chunk', 'note']) if (safe[key] != null) safe[key] = redact(safe[key]);
+  return JSON.stringify(safe)+"\n";
+}
+
+function flushDiskRecords(){if(diskFlushTimer){clearTimeout(diskFlushTimer);diskFlushTimer=null;}if(!diskQueue.length)return diskWriteChain;const batch=diskQueue.join('');diskQueue=[];diskQueueBytes=0;diskWriteChain=diskWriteChain.then(()=>fs.promises.appendFile(LOG_FILE,batch,{encoding:'utf8'})).catch(e=>console.error('[disk] append failed',e?.message||e));return diskWriteChain;}
+function queueDiskRecord(event){const line=serializedDiskRecord(event);diskQueue.push(line);diskQueueBytes+=Buffer.byteLength(line);if(diskQueueBytes>=DISK_BATCH_BYTES)void flushDiskRecords();else if(!diskFlushTimer){diskFlushTimer=setTimeout(()=>void flushDiskRecords(),DISK_FLUSH_MS);diskFlushTimer.unref?.();}}function pruneRing(now=Date.now()){const cutoff=now-MAX_RING_AGE_MS;while(ring.length&&(ring.length>MAX_RING_EVENTS||ringBytes>MAX_RING_BYTES||ring[0].atMs<cutoff)){const old=ring.shift();ringBytes-=old.bytes;}}function pushEvent(input) {
+  const now=Date.now(); const event={id:++sequence,at:new Date(now).toISOString(),...input};
+  const encoded = JSON.stringify(event);
+  const bytes = Buffer.byteLength(encoded);
+  ring.push({ event, bytes, atMs:now });
+  ringBytes += bytes;
+  pruneRing(now);
+  const frame = `id: ${event.id}\nevent: activity\ndata: ${encoded}\n\n`;
+  for (const res of sseClients) { try { res.write(frame); } catch {} }
+  try { usage.ingest(event); } catch (error) { console.error('[usage] ingest failed', error?.message || error); }
+  queueDiskRecord(event);
+  return event;
+}
+const restoredActivity=restoreActivityRing({files:logFilesOldestFirst(),readText:readLogText,now:Date.now(),maxAgeMs:MAX_RING_AGE_MS,maxEvents:MAX_RING_EVENTS,maxBytes:MAX_RING_BYTES});
+if(restoredActivity.ring.length){
+  const current=[...ring];ring.length=0;ring.push(...restoredActivity.ring,...current);
+  ring.sort((a,b)=>a.atMs-b.atMs||Number(a.event?.id||0)-Number(b.event?.id||0));
+  ringBytes=ring.reduce((sum,item)=>sum+item.bytes,0);
+  sequence=Math.max(sequence,restoredActivity.sequence);
+  pruneRing();
+}
+if (devices.loadError) pushEvent({ type:'device_registry_load_error', status:'error', detail:redact(devices.loadError) });
+if (enrollments.loadError) pushEvent({ type:'enrollment_registry_load_error', status:'error', detail:redact(enrollments.loadError) });
+if (connections.loadError) pushEvent({ type:'device_connection_registry_load_error', status:'error', detail:redact(connections.loadError) });
+if (accessGrants.loadError) pushEvent({ type:'device_access_registry_load_error', status:'error', detail:redact(accessGrants.loadError) });
+if (agentClients.loadError) pushEvent({ type:'agent_client_registry_load_error', status:'error', detail:redact(agentClients.loadError) });
+if (accounts.loadError) pushEvent({ type:'account_registry_load_error', status:'error', detail:redact(accounts.loadError) });
+if (licenses.loadError) pushEvent({ type:'license_registry_load_error', status:'error', detail:redact(licenses.loadError) });
+if (usage.loadError) pushEvent({ type:'usage_registry_load_error', status:'error', detail:redact(usage.loadError) });
+let hostBinding=null,deviceHeartbeat=null;
+if(INTEGRATED_HOST_ENABLED){
+  hostBinding=enrollments.ensureTrustedBinding({accountId:ACCOUNT_ID,deviceId:DEVICE_ID,publicIdentityKey:hostIdentity.publicKey,displayName:DEVICE_NAME,platform:os.platform(),architecture:os.arch(),agentVersion:VERSION,fingerprintSummary:`integrated hub / ${os.platform()} ${os.arch()} / key ${hostIdentity.publicKeySha256.slice(0,12)}`,capabilities:HOST_CAPABILITIES,policyProfile:DEVICE_POLICY_PROFILE});
+  ensureHostCompanionState(HOST_COMPANION_STATE_FILE,{identity:hostIdentity,binding:hostBinding,signer:enrollments.signerInfo(),nodeId:NODE_ID});
+  devices.register({ accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, displayName:DEVICE_NAME, platform:os.platform(), architecture:os.arch(), agentVersion:VERSION, publicIdentityKey:hostBinding.publicIdentityKey, capabilities:HOST_CAPABILITIES, policyProfile:DEVICE_POLICY_PROFILE });
+  deviceHeartbeat=setInterval(() => { try { devices.heartbeat(DEVICE_ID); } catch (error) { console.error('[device] heartbeat failed', error?.message || error); } }, DEVICE_HEARTBEAT_MS);
+  deviceHeartbeat.unref();
+}
+function reapAccessGrants(){
+  return accessGrants.reap({connectionForDevice:deviceId=>connections.get(deviceId),liveSessionsForDevice:deviceId=>sessions.activeCountByDevice(deviceId)});
+}
+const connectionReaper = setInterval(() => {
+  try {
+    const closed=connections.reap();
+    for(const item of closed){ sessions.closeByDevice(item.deviceId,`device_${item.reason}`,{force:true}); accessGrants.closeByDevice(item.deviceId,`device_${item.reason}`); pairingCodes.invalidateDevice(item.deviceId,`device_${item.reason}`); agentClients.removeDevice(item.deviceId,`device_${item.reason}`); }
+    pairingCodes.reap();agentClients.reap();reapAccessGrants();
+  } catch(error) { console.error('[connection] reap failed', error?.message || error); }
+}, Math.max(5000,CONNECTION_REAP_MS));
+connectionReaper.unref();
+
+// Separate from M4 admission: post-connection lifecycle GC. A server record
+// is retired as UNKNOWN only after an hour without a fresh Agent channel.
+// OS effects without a signed terminal receipt retain independent PG fences.
+if(CONNECTION_JOB_GC_ENABLED&&!DEVICE_RESOURCE_LOCKS)throw Error('gold_connection_gc_requires_m4');
+if(CONNECTION_JOB_GC_ENABLED&&!EXECUTION_EPOCH_ENABLED)throw Error('gold_connection_gc_requires_durable_execution_epoch');
+if(CONNECTION_JOB_GC_ENABLED&&EXECUTION_EPOCH_ONLY_DEVICE_IDS!==null&&
+ (!CONNECTION_JOB_GC_ONLY_DEVICE_IDS||
+  CONNECTION_JOB_GC_ONLY_DEVICE_IDS.some(id=>!EXECUTION_EPOCH_ONLY_DEVICE_IDS.includes(id))))
+ throw Error('gold_connection_gc_outside_epoch_device_allowlist');
+let connectionJobGcTicker=null,connectionJobGcBusy=false,connectionJobGcReaper=null;
+if(CONNECTION_JOB_GC_ENABLED){
+  connectionJobGcReaper=new GoldConnectionJobReaper({
+    pool:goldStorage.pool,
+    offlineMs:CONNECTION_JOB_GC_OFFLINE_MS,
+    limit:CONNECTION_JOB_GC_BATCH,
+    allowedDevices:CONNECTION_JOB_GC_ONLY_DEVICE_IDS,
+    channelFresh:async deviceId=>{
+      if(fleet.list().some(node=>node.deviceId===deviceId&&node.channelFresh))return true;
+      // A fresh connection/renewal may not yet have flushed to PG. Respect it,
+      // but do not treat an old connected lease as proof of an online channel.
+      const row=connections.get(deviceId),now=Date.now();
+      return row.state==='connected'&&
+        (Number(row.connectedAt)>now-CONNECTION_JOB_GC_OFFLINE_MS||
+          Number(row.lastRenewedAt)>now-CONNECTION_JOB_GC_OFFLINE_MS);
+    },
+    event:pushEvent,
+    onRetired:({deviceId,jobIds})=>{
+      const retired=new Set(jobIds);
+      // Prevent a queued/in-flight Fleet command from re-dispatching on
+      // reconnect after its durable server job was declared interrupted.
+      for(const [id,row] of [...fleet.commands]){
+        if(row.deviceId===deviceId&&retired.has(row.jobId))fleet.abandon(id,'offline_gc_unknown');
+      }
+      for(const jobId of retired){
+        pendingForegroundExec.delete(jobId);
+        const job=jobs.get(jobId);
+        if(!job||job.finishedAt)continue;
+        clearTimeout(job.timer);
+        for(const [cmd,row] of [...pendingDeviceJobStops]){
+          if(row.jobId===jobId)pendingDeviceJobStops.delete(cmd);
+        }
+        job.status='interrupted';job.finishedAt=Date.now();
+        job.resultSummary='offline_gc_unknown';job.exitCode=null;
+        job.signedResultVerified=false;
+        try{sessions.finishJob(job.sessionId,job.id,'interrupted');}catch{}
+      }
+    }
+  });
+  connectionJobGcTicker=setInterval(async()=>{
+    if(connectionJobGcBusy)return;connectionJobGcBusy=true;
+    try{
+      await goldJobs.flush(); // No older async ledger save may overwrite GC.
+      const result=await connectionJobGcReaper.sweep({dryRun:false});
+      if(result.cleaned)pushEvent({type:'gold_connection_gc_batch',status:'ok',
+        checked:result.scanned,cleaned:result.cleaned});
+    }catch(error){console.error(JSON.stringify({event:'gold_connection_gc_failed',
+      code:String(error?.code||'PG_UNAVAILABLE')}));}
+    finally{connectionJobGcBusy=false}
+  },CONNECTION_JOB_GC_SCAN_MS);
+  connectionJobGcTicker.unref();
+}
+
+// P1-A never touches claims: signed terminal replay (P1-C) and audited owner
+// recovery (P1-D) remain separate authorization and disposition paths.
+if(STALE_CLAIM_MONITOR_ENABLED&&(!STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS||
+ !STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS.length||
+ STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS.some(id=>!/^[A-Za-z0-9._:-]{1,160}$/.test(id))))
+ throw Error('p1_stale_claim_monitor_explicit_allowlist_required');
+const staleClaimMonitor=STALE_CLAIM_MONITOR_ENABLED?new GoldStaleClaimMonitor({
+ pool:goldStorage.pool,getDeviceViews:()=>allDeviceViews(),
+ allowedDevices:STALE_CLAIM_MONITOR_ONLY_DEVICE_IDS,
+ // Alert details remain owner-scoped in memory and Fleet Jobs. Do not
+ // broadcast any other owner's claim count through the global SSE ring.
+ onAlert:()=>console.warn('[p1] M4 stale-claim diagnostic available in owner Fleet Jobs')
+}):null;
+if(staleClaimMonitor){
+ const ticker=setInterval(()=>void staleClaimMonitor.tick().catch(error=>{
+  console.error(JSON.stringify({event:'p1_stale_claim_monitor_failed',
+   reason:String(error?.message||error).slice(0,120)}));
+ }),STALE_CLAIM_MONITOR_SCAN_MS);
+ ticker.unref();
+}
+
+function pruneReplay(now = Date.now()) {
+  for (const [id, exp] of replay) if (exp <= now) replay.delete(id);
+}
+
+function decryptEnvelope(envelope) {
+  const now = Date.now();
+  pruneReplay(now);
+  const requestId = envelope?.requestId;
+  const iat = Number(envelope?.iat);
+  const exp = Number(envelope?.exp);
+  if (!requestId || !Number.isFinite(iat) || !Number.isFinite(exp)) throw new Error('invalid_envelope');
+  if (iat > now + 30000 || exp < now || exp - iat > 120000) throw new Error('expired_envelope');
+  if (replay.has(requestId)) throw new Error('replay_detected');
+  let result;
+  try { result = decryptSealedEnvelope(envelope, KEY_FILE); }
+  catch (error) {
+    if (error?.message === 'unknown_kid') throw error;
+    throw new Error('invalid_envelope_auth');
+  }
+  replay.set(requestId, exp);
+  return result;
+}
+
+function likelyBinaryBytes(value) {
+  const buf=Buffer.isBuffer(value)?value:Buffer.from(value);
+  if(!buf.length)return false;
+  if(buf.length>=4){
+    if(buf[0]===0x1f&&buf[1]===0x8b)return true;
+    if(buf[0]===0x50&&buf[1]===0x4b&&[0x03,0x05,0x07].includes(buf[2]))return true;
+    if(buf[0]===0x7f&&buf[1]===0x45&&buf[2]===0x4c&&buf[3]===0x46)return true;
+    if(buf[0]===0x00&&buf[1]===0x01&&buf[2]===0x00&&buf[3]===0x00)return true;
+    const magic=buf.subarray(0,4).toString('ascii');if(magic==='wOFF'||magic==='wOF2')return true;
+  }
+  const sample=buf.subarray(0,Math.min(buf.length,8192));let controls=0;
+  for(const byte of sample){if(byte===0)return true;if(byte<32&&byte!==9&&byte!==10&&byte!==13)controls++;}
+  return controls>=8&&controls/sample.length>0.01;
+}
+function streamState(job,stream){
+  job.outputStates ||= {};
+  return job.outputStates[stream] ||= {decoder:new StringDecoder('utf8'),binary:false,binaryBytes:0,finished:false};
+}
+function appendStreamText(job,stream,text){
+  if(!text)return;
+  job[stream].add(text);
+  for(let i=0;i<text.length;i+=16384)pushEvent({type:stream,jobId:job.id,requestId:job.requestId,operationId:job.operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',chunk:redact(text.slice(i,i+16384))});
+}
+function flushOutputStates(job){
+  for(const stream of ['stdout','stderr']){const state=job.outputStates?.[stream];if(!state||state.finished)continue;state.finished=true;if(state.binary){appendStreamText(job,stream,'[binary '+stream+' suppressed · '+state.binaryBytes+' bytes]\n');continue;}appendStreamText(job,stream,state.decoder.end());}
+}
+function createAccumulator(limit = MAX_MEMORY_OUTPUT) {
+  let total = 0;
+  let full = '';
+  let head = '';
+  let tail = '';
+  let truncated = false;
+  return {
+    add(chunk) {
+      const text = String(chunk);
+      total += Buffer.byteLength(text);
+      if (!truncated && Buffer.byteLength(full) + Buffer.byteLength(text) <= limit) {
+        full += text;
+        return;
+      }
+      if (!truncated) {
+        truncated = true;
+        const headTarget = Math.floor(limit * 0.25);
+        const tailTarget = limit - headTarget;
+        head = Buffer.from(full).subarray(0, headTarget).toString('utf8');
+        tail = Buffer.from(full).subarray(-tailTarget).toString('utf8');
+        full = '';
+      }
+      const tailTarget = Math.floor(limit * 0.75);
+      tail = Buffer.from(tail + text).subarray(-tailTarget).toString('utf8');
+    },
+    snapshot() {
+      return truncated
+        ? { text: `${head}\n\n[... output truncated in memory; full copy is on disk ...]\n\n${tail}`, totalBytes: total, truncated: true }
+        : { text: full, totalBytes: total, truncated: false };
+    }
+  };
+}
+
+function telemetryTimestamp(value,now=Date.now()) {
+  const n=Number(value);
+  return Number.isSafeInteger(n)&&n>0&&Math.abs(now-n)<=24*60*60*1000?n:null;
+}
+function ingressTelemetry(raw={},operatorAcceptedAt=Date.now()) {
+  return {bridgeReceivedAt:telemetryTimestamp(raw?.bridgeReceivedAt,operatorAcceptedAt),gatewayAcceptedAt:telemetryTimestamp(raw?.gatewayAcceptedAt,operatorAcceptedAt),operatorAcceptedAt};
+}
+function applyDeviceTelemetry(job,raw={}) {
+  const now=Date.now(),next={...(job.telemetry||{})};
+  for(const key of ['deviceReceivedAt','firstOutputAt','completedAt']){const value=telemetryTimestamp(raw?.[key],now);if(value)next[key]=value;}
+  job.telemetry=next;if(next.firstOutputAt)job.firstOutputAt=next.firstOutputAt;return next;
+}
+function latencyView(job) {
+  const t=job.telemetry||{},dispatchAt=t.dispatchAt??job.startedAt??null,deviceReceivedAt=t.deviceReceivedAt??(!job.remote?job.startedAt:null),firstOutputAt=t.firstOutputAt??job.firstOutputAt??null,completedAt=t.completedAt??job.finishedAt??null;
+  const delta=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&b>=a?b-a:null;
+  return {bridgeReceivedAt:t.bridgeReceivedAt??null,gatewayAcceptedAt:t.gatewayAcceptedAt??null,operatorAcceptedAt:t.operatorAcceptedAt??null,dispatchAt,deviceReceivedAt,firstOutputAt,completedAt,bridgeMs:delta(t.bridgeReceivedAt,t.gatewayAcceptedAt),gatewayMs:delta(t.gatewayAcceptedAt,t.operatorAcceptedAt),dispatchMs:delta(t.operatorAcceptedAt,deviceReceivedAt),firstByteMs:delta(deviceReceivedAt,firstOutputAt),executionMs:delta(deviceReceivedAt,completedAt)};
+}
+
+function jobView(job) {
+  const out = job.stdout.snapshot();
+  const err = job.stderr.snapshot();
+  return {
+    jobId: job.id, requestId: job.requestId, operationId: job.operationId, ...(job.personalScheduled?{agentAdmission:'personal',queueReason:job.queueReason||null,admittedAt:job.admittedAt||null}:{}), accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId: job.agentId, nodeId: job.nodeId, status: job.status,
+    ...(job.managedExec?{executionMode:'background',jobRole:'process_launch',longCommandHint:job.longCommandHint||null}:{}),
+    cwd: job.cwd, script: redact(job.script), note: redact(job.note || ''), pid: job.pid || null, route:job.remote?'outbound-leaf':'local', commandId:job.commandId||null, requiredCapabilities:[...(job.requiredCapabilities||[])],
+    startedAt: job.startedAt, finishedAt: job.finishedAt || null,
+    stopRequestedAt: Number.isSafeInteger(job.stopRequestedAt)?job.stopRequestedAt:null,
+    exitCode: job.exitCode,
+    signal: job.signal || null, durationMs: job.finishedAt ? job.finishedAt - job.startedAt : Date.now() - job.startedAt,
+    stdout: redact(out.text), stderr: redact(err.text), stdoutBytes: out.totalBytes, stderrBytes: err.totalBytes,
+    outputTruncated: out.truncated || err.truncated, resultData:job.resultData ?? null, resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job)
+  };
+}
+function approximateJobMemoryBytes(job) {
+  const out = job.stdout.snapshot();
+  const err = job.stderr.snapshot();
+  return Buffer.byteLength(out.text) + Buffer.byteLength(err.text) + Buffer.byteLength(job.script || '');
+}
+
+function pruneJobs(now = Date.now()) {
+  for (const [op, entry] of operationDedupe) if (entry.expiresAt <= now) operationDedupe.delete(op);
+  for (const [id, job] of jobs) {
+    if (job.finishedAt && now - job.finishedAt > MAX_JOB_CACHE_AGE_MS) jobs.delete(id);
+  }
+  const finished = [...jobs.values()].filter(job => job.finishedAt).sort((a, b) => a.finishedAt - b.finishedAt);
+  let bytes = finished.reduce((sum, job) => sum + approximateJobMemoryBytes(job), 0);
+  while (bytes > MAX_JOB_CACHE_BYTES && finished.length > 1) {
+    const old = finished.shift();
+    bytes -= approximateJobMemoryBytes(old);
+    jobs.delete(old.id);
+  }
+}
+
+function finishJob(job, exitCode, signal) {
+  if (job.finishedAt) return;
+  if(job.commandId)pendingDeviceJobStops.delete(job.commandId);
+  job.finishedAt = Date.now();
+  job.telemetry={...(job.telemetry||{}),completedAt:job.telemetry?.completedAt||job.finishedAt};
+  if(!job.telemetry.deviceReceivedAt&&!job.remote)job.telemetry.deviceReceivedAt=job.startedAt;
+  if(!job.firstOutputAt)job.firstOutputAt=job.telemetry.firstOutputAt||job.finishedAt;
+  if(!job.telemetry.firstOutputAt)job.telemetry.firstOutputAt=job.firstOutputAt;
+  job.exitCode = exitCode;
+  job.signal = signal || null;
+  job.status = job.cancelled === true ? 'cancelled' : exitCode === 0 ? 'ok' : job.timedOut ? 'timeout' : 'error';
+  flushOutputStates(job);
+  if(job.managedExec&&job.resultData?.process?.processId&&job.exitCode===0)
+    job.resultData={...job.resultData,executionMode:'background',
+      lifecycle:'managed_process',commandState:job.resultData.process.state,
+      processId:job.resultData.process.processId,launchJobId:job.id};
+  if(!job.resultSummary&&job.resultData)job.resultSummary=nativeActivityResult(job.toolMeta,job.resultData);
+  clearTimeout(job.timer);
+  sessions.finishJob(job.sessionId, job.id, job.status);
+  if (job.autoCloseSession) { try { sessions.close(job.sessionId, job.agentId); } catch {} }
+  pushEvent({ type: 'job_finished', jobId: job.id, requestId: job.requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId,
+    status: job.status, exitCode, signal: signal || null, durationMs: job.finishedAt - job.startedAt, requiredCapabilities:job.requiredCapabilities||[], cwd:job.cwd||'', script:redact(job.script||''), note:redact(job.note||''), resultSummary:redact(job.resultSummary||''), toolMeta:job.toolMeta||null, latency:latencyView(job) });
+  goldJobs.save(job);
+  if(job.personalScheduled){
+    pendingForegroundExec.delete(job.id);
+    // Only an authenticated process-start receipt can attach a durable
+    // process identity. A transport timeout leaves an unresolved lock.
+    const process=job.note?.startsWith('native-process:start')&&job.exitCode===0?
+      job.resultData?.process:null;
+    const running=process&&['running','starting','stopping'].includes(process.state);
+    const retained=running&&/^lp_[A-Za-z0-9_-]{20,80}$/.test(String(process.processId||''))?
+      process.processId:null;
+    const holdUnknown=Boolean(deviceResourceLocks&&job.note?.startsWith('native-process:start')&&
+      job.timedOut&&!retained);
+    const persisted=personalAgentScheduler.complete(job.id,job.accountId,job.status,
+      {processId:retained,holdUnknown});
+    if(retained){
+      pendingProcessLeaseWrites.set(retained,persisted);
+      void persisted.finally(()=>{if(pendingProcessLeaseWrites.get(retained)===persisted)
+        pendingProcessLeaseWrites.delete(retained);}).catch(()=>{});
+    }
+    void persisted
+      .then(async()=>{
+        await pumpPersonalAgentAccount(job.accountId);
+        if(deviceResourceLocks){
+          const accounts=await deviceResourceLocks.waitingAccounts(goldStorage.pool,job.deviceId);
+          await Promise.all(accounts.filter(id=>id!==job.accountId).map(id=>pumpPersonalAgentAccount(id)));
+        }
+      })
+      .catch(error=>console.error(JSON.stringify({event:'m3_slot_release_failed',jobId:job.id,
+        message:String(error?.message||error)})));
+  }
+  if(deviceResourceLocks&&String(job.note||'').startsWith('native-process:')&&
+     !job.note.endsWith(':start'))
+    void reconcileBackgroundProcessReceipt(job);
+  for (const resolve of job.waiters.splice(0)) resolve();
+  pruneJobs(job.finishedAt);
+}
+
+// Rejected fleet queue dispatch must not pin session.activeJobs forever.
+function enqueueForJob(job, command) {
+  try { return fleet.enqueue(command); }
+  catch (error) {
+    job.resultSummary='remote_dispatch_rejected';
+    job.resultData={ok:false,error:String(error?.message||'remote_dispatch_rejected'),status:Number(error?.status)||500};
+    finishJob(job,1,null);
+    throw error;
+  }
+}
+function emitStream(job, stream, data) {
+  const now=Date.now();if(!job.firstOutputAt){job.firstOutputAt=now;job.telemetry={...(job.telemetry||{}),firstOutputAt:job.telemetry?.firstOutputAt||now};}
+  const buf=Buffer.isBuffer(data)?data:Buffer.from(data);const state=streamState(job,stream);
+  if(state.binary||likelyBinaryBytes(buf)){state.binary=true;state.binaryBytes+=buf.length;return;}
+  appendStreamText(job,stream,state.decoder.write(buf));
+}
+
+async function reserveGoldJob(job){
+ const prior=await goldJobs.reserve(job);
+ if(!prior)return null;
+ if(prior.operationFingerprint&&prior.operationFingerprint!==job.operationFingerprint)
+   throw new GoldOperationEffectError('operation_id_conflict',prior.jobId);
+ const inMemory=jobs.get(prior.jobId);
+ if(inMemory&&inMemory.operationFingerprint===job.operationFingerprint)return inMemory;
+ // PostgreSQL knows the operation was previously admitted, but cannot prove
+ // whether its effect happened before a lost ACK / Operator restart.
+ // Never create another external shell, filesystem or SCP effect silently.
+ throw new GoldOperationEffectError('operation_effect_unknown',prior.jobId);
+}
+async function startJob(payload, requestId) {
+  pruneJobs();
+  const operationId = String(payload.operationId || '').trim();
+  if (!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId)) throw new Error('invalid_operation_id');
+  const script = String(payload.script || '');
+  if (!script.trim()) throw new Error('empty_script');
+  if (Buffer.byteLength(script) > 1024 * 1024) throw new Error('script_too_large');
+  const timeoutMs = Math.max(1000, Math.min(Number(payload.timeoutMs) || 600000, 7200000));
+  const shell = String(payload.shell || 'default');
+  const requestedSessionId = String(payload.sessionId || '');
+  const agentId = String(payload.agentId || '').trim();
+  const session = sessions.ensure(requestedSessionId, { agentId });
+  requireDeviceConnection(session.deviceId);
+  if (payload.nodeId != null && String(payload.nodeId) !== session.nodeId) throw new SessionError('session_target_mismatch',409);
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId});
+  let cwd=payload.cwd==null||String(payload.cwd)==='' ? (remote?'':'/home/ubuntu') : String(payload.cwd);
+  if (cwd.length>1024 || cwd.includes('\0') || (!remote && !cwd)) throw new Error('invalid_cwd');
+  if (!remote) {
+    cwd=path.resolve(cwd);
+    const stat = fs.statSync(cwd);
+    if (!stat.isDirectory()) throw new Error('cwd_not_directory');
+  }
+  const requiredCapabilities=[];
+  for(const raw of Array.isArray(payload.requiredCapabilities)&&payload.requiredCapabilities.length?payload.requiredCapabilities:['filesystem']) {
+    const item=String(raw||'').trim();
+    if(!/^[A-Za-z0-9._:-]{1,80}$/.test(item))throw new Error('invalid_required_capability');
+    if(!requiredCapabilities.includes(item))requiredCapabilities.push(item);
+  }
+  if(!remote){
+    for(const raw of HOST_PLATFORM_ADAPTER.inferRequiredCapabilities(script,{shell}))if(!requiredCapabilities.includes(raw))requiredCapabilities.push(raw);
+    const denied=HOST_PLATFORM_ADAPTER.hardDeny?.(script)||null;if(denied)throw new DeviceError(`local platform policy denied: ${denied}`,403);
+  }
+  requiredCapabilities.sort();
+  let route=null;
+  if(remote) {
+    route=targetRoute(session.nodeId,{accountId:session.accountId});
+    if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
+    // Operator and Agent use the same platform inference. Inbound-only
+    // declared capabilities are insufficient for an outbound exec batch:
+    // detect a missing Docker/LXD/etc right at admission, before creating a
+    // doomed job, while retaining Agent's independent final deny.
+    for(const cap of inferOutboundExecCapabilities(script,{platform:route.platform,shell,declared:requiredCapabilities}))
+      if(!requiredCapabilities.includes(cap))requiredCapabilities.push(cap);
+    requiredCapabilities.sort();
+    const missing=requiredCapabilities.filter(cap=>!route.capabilities.includes(cap));
+    if(missing.length){
+      const fleetState=fleet.view(route.nodeId),binding=enrollments.binding(route.deviceId);
+      const evidence=leafCapabilityAdmission({reported:fleetState.capabilities,
+        approved:binding.approvedCapabilities,required:missing,
+        reportedRevision:fleetState.reportedPolicyRevision,
+        approvedRevision:binding.policyRevision});
+      // A refused job never reaches job_started. Record a sanitized policy
+      // diagnosis so Wall/activity can distinguish routing from host safety.
+      pushEvent({type:'job_admission_denied',status:'denied',
+        reason:'target_node_capability_missing',route:'outbound-leaf',
+        accountId:session.accountId,deviceId:session.deviceId,nodeId:session.nodeId,
+        sessionId:session.id,requiredCapabilities,missingCapabilities:missing,
+        missingCapabilityReasons:evidence.missingCapabilityReasons});
+      throw new FleetError('target_node_capability_missing',409);
+    }
+  } else {
+    const missing=requiredCapabilities.filter(cap=>!hostEffectiveCapabilities().includes(cap));
+    if(missing.length){
+      pushEvent({type:'job_admission_denied',status:'denied',
+        reason:'local_host_capability_missing',route:'local',
+        accountId:session.accountId,deviceId:session.deviceId,nodeId:session.nodeId,
+        sessionId:session.id,requiredCapabilities,missingCapabilities:missing});
+      throw new DeviceError('local_host_capability_missing',409);
+    }
+  }
+  const mode=resolveExecMode({mode:payload.executionMode,script,enabled:MANAGED_LONG_EXEC});
+  if(mode.effective==='background'){
+    // Reuse the same authorized, G4-reserved NativeProcess launch route as
+    // light_remote_process. The Operator receipt confirms launch only; callers
+    // use the returned processId for running status, stdout and explicit stop.
+    // Never hold the signed poll command until curl/wget/build finishes.
+    const processPayload={...payload,action:'process',
+      process:{op:'start',script,cwd,shell,timeoutMs,requiredCapabilities,
+        executionMode:mode.effective}};
+    return startProcessOperation(processPayload,requestId,{managedExec:true,longCommandHint:mode.hint});
+  }
+  assertToolCallQuota(session.accountId);
+  sessions.record(session.id, 'toolCalls');
+  sessions.record(session.id, 'execCalls');
+  const sessionId = session.id;
+  const note = String(payload.note || '');
+  const fingerprint = crypto.createHash('sha256').update(JSON.stringify({ script, cwd, shell, timeoutMs, sessionId, note, nodeId:session.nodeId, requiredCapabilities })).digest('hex');
+  const existing = operationDedupe.get(operationId);
+  if (existing) {
+    if (existing.fingerprint !== fingerprint) throw new Error('operation_id_conflict');
+    const prior = jobs.get(existing.jobId); if (prior) return prior; operationDedupe.delete(operationId);
+  }
+  const job = {
+    id: crypto.randomUUID(), requestId, operationId, operationFingerprint: fingerprint, accountId:session.accountId, deviceId:session.deviceId, sessionId, agentId:session.agentId, nodeId:session.nodeId, note,
+    cwd, script, shell, status: PERSONAL_AGENT_SCHEDULER?'queued':'running', personalScheduled:PERSONAL_AGENT_SCHEDULER, queueReason:PERSONAL_AGENT_SCHEDULER?'QUEUED_AGENT_SLOT':null, admittedAt:null, startedAt: Date.now(), finishedAt: null, exitCode: null, signal: null,
+    timedOut: false, stdout: createAccumulator(), stderr: createAccumulator(), waiters: [], pid: null, timer: null,
+    remote, commandId:null, requiredCapabilities
+  };
+  const historical=await reserveGoldJob(job);if(historical)return historical;
+  jobs.set(job.id, job);goldJobs.save(job);
+  sessions.attachJob(job.sessionId, job.id);
+  operationDedupe.set(operationId, { jobId: job.id, fingerprint, expiresAt: Date.now() + OPERATION_DEDUPE_MS });
+  pushEvent({ type: 'job_started', jobId: job.id, requestId, operationId: job.operationId, accountId:job.accountId, deviceId:job.deviceId, sessionId: job.sessionId, agentId:job.agentId, nodeId:job.nodeId, status: job.status, route:remote?'outbound-leaf':'local', requiredCapabilities,
+    cwd, script: redact(script), note: redact(job.note), timeoutMs });
+  const performForegroundExec=()=>{
+  if(remote) {
+    const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'exec',operationId,sessionId,agentId:job.agentId,script,cwd,shell,timeoutMs,note,requiredCapabilities}});
+    job.commandId=command.commandId;
+    job.timer=setTimeout(()=>{
+      if(job.finishedAt)return;
+      fleet.abandon(job.commandId,'remote_result_timeout');
+      job.timedOut=true;
+      emitStream(job,'stderr',Buffer.from('remote command result timeout\n'));
+      finishJob(job,124,null);
+    },timeoutMs+FLEET_CHANNEL_TTL_MS*2);
+    job.timer.unref();
+    return job;
+  }
+  const localSpec=HOST_PLATFORM_ADAPTER.commandFor(script,{shell});
+  const child = spawn(localSpec.file, localSpec.args, { cwd, env: { ...process.env, GPT_OPERATOR_ACCOUNT:job.accountId, GPT_OPERATOR_DEVICE:job.deviceId, GPT_OPERATOR_NODE:job.nodeId, GPT_OPERATOR_SESSION: job.sessionId }, stdio: ['ignore', 'pipe', 'pipe'] });
+  job.pid = child.pid || null;
+  child.stdout.on('data', data => emitStream(job, 'stdout', data));
+  child.stderr.on('data', data => emitStream(job, 'stderr', data));
+  child.on('error', error => { emitStream(job, 'stderr', Buffer.from(`${error.message}\n`)); finishJob(job, 127, null); });
+  child.on('exit', (code, signal) => finishJob(job, code ?? 128, signal));
+  job.timer = setTimeout(() => {
+    if (job.finishedAt) return;
+    job.timedOut = true;
+    child.kill('SIGTERM');
+    setTimeout(() => { if (!job.finishedAt) child.kill('SIGKILL'); }, 5000).unref();
+  }, timeoutMs);
+  job.timer.unref();
+  return job;
+  };
+  return schedulePersonalEffect(job,performForegroundExec);
+}
+const {fsActivityMeta,fsActivityResult,shortNativeId,scpActivityMeta,processActivityMeta,searchActivityMeta,nativeActivityResult,shortTerminalId,terminalInputPreview,terminalWallMeta,terminalResultSummary}=createNativeActivityFormatter({redact});
+
+async function startFsOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();
+  if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});
+  requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  const fsRequest=payload.fs&&typeof payload.fs==='object'&&!Array.isArray(payload.fs)?payload.fs:null;
+  if(!fsRequest)throw new Error('filesystem_request_required');
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
+  if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}
+  else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const shouldQueue=usesPersonalAgentSlot({enabled:Boolean(personalAgentScheduler),family:'fs',op:String(fsRequest.op||'')});
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({fsRequest,sessionId:session.id,nodeId:session.nodeId})).digest('hex');
+  const existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const toolMeta=fsActivityMeta(fsRequest);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-fs:${String(fsRequest.op||'unknown')}`,cwd:'',script:'',status:shouldQueue?'queued':'running',personalScheduled:shouldQueue,queueReason:shouldQueue?'QUEUED_AGENT_SLOT':null,admittedAt:null,startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:job.status,route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  const dispatch=()=>{
+  if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'fs',operationId,sessionId:job.sessionId,agentId:job.agentId,fs:fsRequest}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
+  Promise.resolve().then(()=>executeNativeFs(fsRequest,{policy:filesystemPolicy()})).then(data=>{job.resultData=data;job.resultSummary=fsActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};job.resultSummary=String(error?.message||error);emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n','utf8'));finishJob(job,1,null);});
+  return job;
+  };
+  if(deviceResourceLocks&&job.personalScheduled)job.resourceIntent=deviceResourceIntent({family:'fs',op:String(fsRequest.op||''),request:fsRequest});
+  return schedulePersonalEffect(job,dispatch);
+}
+
+async function startScpOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  const request=payload.scp&&typeof payload.scp==='object'&&!Array.isArray(payload.scp)?payload.scp:null;if(!request)throw new Error('scp_request_required');
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
+  if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const shouldQueue=usesPersonalAgentSlot({enabled:Boolean(personalAgentScheduler),family:'scp',op:String(request.op||'')});
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const toolMeta=scpActivityMeta(request);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`light-scp:${toolMeta.op}`,cwd:String(request.destination||request.source||''),script:'',status:shouldQueue?'queued':'running',personalScheduled:shouldQueue,queueReason:shouldQueue?'QUEUED_AGENT_SLOT':null,admittedAt:null,startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:job.status,route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  const dispatch=()=>{
+  if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'scp',operationId,sessionId:job.sessionId,agentId:job.agentId,scp:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
+  Promise.resolve().then(()=>executeLocalScpRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  };
+  if(deviceResourceLocks&&job.personalScheduled)job.resourceIntent=deviceResourceIntent({family:'scp',op:String(request.op||''),request:request});
+  return schedulePersonalEffect(job,dispatch);
+}
+
+async function executeLocalScpRequest(job,request){
+  const owner={accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId},op=String(request.op||'');
+  if(op==='upload-begin')return {ok:true,operation:op,transfer:await LIGHT_SCP.beginUpload(owner,request)};
+  if(op==='upload-chunk')return {ok:true,operation:op,transfer:await LIGHT_SCP.putUploadChunk(owner,request.transferId,request)};
+  if(op==='upload-commit')return {ok:true,operation:op,result:await LIGHT_SCP.commitUpload(owner,request.transferId)};
+  if(op==='download-begin')return {ok:true,operation:op,transfer:await LIGHT_SCP.beginDownload(owner,request)};
+  if(op==='download-chunk'){const chunk=await LIGHT_SCP.readDownloadChunk(owner,request.transferId,request);return {ok:true,operation:op,chunk,transfer:await LIGHT_SCP.status(owner,request.transferId)};}
+  if(op==='status')return {ok:true,operation:op,transfer:await LIGHT_SCP.status(owner,request.transferId)};
+  if(op==='cancel')return {ok:true,operation:op,result:await LIGHT_SCP.cancel(owner,request.transferId)};
+  throw new Error('scp_operation_unsupported');
+}
+
+async function startProcessOperation(payload,requestId,{managedExec=false,longCommandHint=null}={}){
+  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  const request=payload.process&&typeof payload.process==='object'&&!Array.isArray(payload.process)?payload.process:null;if(!request)throw new Error('process_request_required');
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
+  if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const shouldQueue=usesPersonalAgentSlot({enabled:Boolean(personalAgentScheduler),family:'process',op:String(request.op||'')});
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const toolMeta=processActivityMeta(request);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-process:${toolMeta.op}`,cwd:String(request.cwd||''),script:String(request.script||''),status:shouldQueue?'queued':'running',personalScheduled:shouldQueue,queueReason:shouldQueue?'QUEUED_AGENT_SLOT':null,admittedAt:null,startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta,managedExec,longCommandHint};
+  assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:job.status,route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  const dispatch=()=>{
+  if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'process',operationId,sessionId:job.sessionId,agentId:job.agentId,process:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
+  Promise.resolve().then(()=>executeLocalProcessRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  };
+  if(deviceResourceLocks&&job.personalScheduled)job.resourceIntent=deviceResourceIntent({family:'process',op:String(request.op||''),request:request});
+  return schedulePersonalEffect(job,dispatch);
+}
+
+async function executeLocalProcessRequest(job,request){
+  const owner={accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId},op=String(request.op||'');
+  if(op==='start'){
+    const script=String(request.script||'');if(!script.trim())throw new Error('process_script_required');
+    const required=[...new Set([...(Array.isArray(request.requiredCapabilities)?request.requiredCapabilities:[]),...HOST_PLATFORM_ADAPTER.inferRequiredCapabilities(script,{shell:request.shell})])].sort();
+    const denied=HOST_PLATFORM_ADAPTER.hardDeny?.(script)||null;if(denied)throw new Error(`local platform policy denied: ${denied}`);
+    const missing=required.filter(cap=>!hostEffectiveCapabilities().includes(cap));if(missing.length)throw new DeviceError('local_host_capability_missing',409);
+    const cwd=path.resolve(String(request.cwd||'/home/ubuntu'));let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
+    return {ok:true,operation:'start',process:NATIVE_PROCESSES.start({...owner,script,cwd,timeoutMs:request.timeoutMs,spawnSpec:value=>HOST_PLATFORM_ADAPTER.commandFor(value,{shell:request.shell}),env:{GPT_OPERATOR_ACCOUNT:job.accountId,GPT_OPERATOR_DEVICE:job.deviceId,GPT_OPERATOR_NODE:job.nodeId,GPT_OPERATOR_SESSION:job.sessionId}})};
+  }
+  if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  if(op==='input')return {ok:true,operation:'input',process:NATIVE_PROCESSES.input(request.processId,owner,{data:request.data,eof:Boolean(request.eof)})};
+  if(op==='output')return {ok:true,operation:'output',...NATIVE_PROCESSES.output(request.processId,owner,{stream:request.stream,offset:request.offset,limit:request.limit})};
+  if(op==='stop')return {ok:true,operation:'stop',process:NATIVE_PROCESSES.stop(request.processId,owner,{force:Boolean(request.force)})};
+  if(op==='list')return {ok:true,operation:'list',processes:NATIVE_PROCESSES.list(owner)};
+  throw new Error('process_operation_unsupported');
+}
+
+async function startTerminalOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  const request=payload.terminal&&typeof payload.terminal==='object'&&!Array.isArray(payload.terminal)?payload.terminal:null;if(!request)throw new Error('terminal_request_required');
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['terminal'];
+  if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('terminal'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('terminal'))throw new DeviceError('local_host_capability_missing',409);
+  const shouldQueue=usesPersonalAgentSlot({enabled:Boolean(personalAgentScheduler),family:'terminal',op:String(request.op||'')});
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const toolMeta=terminalWallMeta(request);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-terminal:${toolMeta.op}`,cwd:String(toolMeta.cwd||''),script:toolMeta.label,status:shouldQueue?'queued':'running',personalScheduled:shouldQueue,queueReason:shouldQueue?'QUEUED_AGENT_SLOT':null,admittedAt:null,startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:job.status,route:remote?'outbound-leaf':'local',requiredCapabilities,cwd:job.cwd,script:redact(job.script),note:job.note,toolMeta:job.toolMeta});
+  const dispatch=()=>{
+  if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'terminal',operationId,sessionId:job.sessionId,agentId:job.agentId,terminal:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
+  Promise.resolve().then(()=>executeLocalTerminalRequest(job,request)).then(data=>{job.resultData=data;job.resultSummary=terminalResultSummary(data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};job.resultSummary='error · '+redact(String(error?.message||error));emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  };
+  if(deviceResourceLocks&&job.personalScheduled)job.resourceIntent=deviceResourceIntent({family:'terminal',op:String(request.op||''),request:request});
+  return schedulePersonalEffect(job,dispatch);
+}
+
+async function executeLocalTerminalRequest(job,request){
+  const owner={accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId},op=String(request.op||'');
+  if(!hostEffectiveCapabilities().includes('terminal'))throw new DeviceError('local_host_capability_missing',409);
+  if(op==='start'){
+    const cwd=path.resolve(String(request.cwd||os.homedir()));let stat;try{stat=fs.statSync(cwd);}catch{}if(!stat?.isDirectory())throw new Error('cwd_not_directory');
+    const shellSpec=HOST_PLATFORM_ADAPTER.terminalFor({shell:request.shell});
+    return {ok:true,operation:'start',terminal:NATIVE_TERMINALS.start({...owner,shellSpec,cwd,cols:request.cols,rows:request.rows,term:request.term,env:{GPT_OPERATOR_ACCOUNT:job.accountId,GPT_OPERATOR_DEVICE:job.deviceId,GPT_OPERATOR_NODE:job.nodeId,GPT_OPERATOR_SESSION:job.sessionId}})};
+  }
+  if(op==='input')return {ok:true,operation:'input',terminal:NATIVE_TERMINALS.input(request.terminalId,owner,{data:request.data})};
+  if(op==='output')return {ok:true,operation:'output',...NATIVE_TERMINALS.output(request.terminalId,owner,{offset:request.offset,limit:request.limit})};
+  if(op==='resize')return {ok:true,operation:'resize',terminal:NATIVE_TERMINALS.resize(request.terminalId,owner,{cols:request.cols,rows:request.rows})};
+  if(op==='signal')return {ok:true,operation:'signal',terminal:NATIVE_TERMINALS.signal(request.terminalId,owner,{signal:request.signal})};
+  if(op==='stop')return {ok:true,operation:'stop',terminal:NATIVE_TERMINALS.stop(request.terminalId,owner,{force:Boolean(request.force)})};
+  if(op==='list')return {ok:true,operation:'list',terminals:NATIVE_TERMINALS.list(owner)};
+  throw new Error('terminal_operation_unsupported');
+}
+
+const {normalizeDesktopInput}=realRemoteInputPolicy;
+
+async function startDesktopOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  let request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
+  const op=String(request.op||'');if(!['status','attach','resume','detach','windows','frame','input','run','observe','act','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close'].includes(op))throw new Error('desktop_operation_unsupported');
+  // Resolve the enrolled target platform before validating physical typing.
+  // Never accept a caller-supplied platform: a Windows device must continue
+  // rejecting the macOS-only HID+AX verified `type` event.
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId});
+  if(!remote)throw new DeviceError('desktop_local_host_not_supported',409);
+  const route=targetRoute(session.nodeId,{accountId:session.accountId});
+  if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
+  const targetPlatform=route.platform==='darwin'?'darwin':'win32';
+  if(op==='input'||(op==='act'&&Array.isArray(request.events)))request={op,...normalizeDesktopInput(request,{platform:targetPlatform})};
+  if(op==='run'){
+    const semanticAction=Boolean(String(request.nodeId||'').trim()&&String(request.action||'').trim()&&!Array.isArray(request.events));
+    let normalized;
+    if(semanticAction){
+      const afterSeq=Number(request.afterSeq),settleMs=Number(request.settleMs);
+      normalized={
+        op,
+        semanticSessionId:String(request.semanticSessionId||''),
+        nodeId:String(request.nodeId||'').slice(0,512),
+        action:String(request.action||'').slice(0,80),
+        afterSeq:Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0,
+        settleMs:Math.max(0,Math.min(Number.isFinite(settleMs)?Math.floor(settleMs):90,250))
+      };
+      if(request.value!=null)normalized.value=String(request.value).slice(0,4096);
+    }else normalized={op,...normalizeDesktopInput(request,{platform:targetPlatform})};
+    const rawWait=request.await&&typeof request.await==='object'&&!Array.isArray(request.await)?request.await:null;
+    if(rawWait){
+      const wait={};
+      for(const key of ['foregroundTitleContains','foregroundTitleEquals','focusedNameContains']){
+        if(rawWait[key]!=null){const value=String(rawWait[key]).trim();if(value)wait[key]=value.slice(0,512);}
+      }
+      const timeoutMs=Number(rawWait.timeoutMs);
+      wait.timeoutMs=Math.max(50,Math.min(Number.isFinite(timeoutMs)?Math.floor(timeoutMs):3000,15000));
+      normalized.await=wait;
+    }
+    request=normalized;
+  }
+  const requiredCapabilities=(op==='input'||op==='run'||op==='act')?['desktop','desktop-input']:['desktop'];
+  if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':op==='attach'?'Desktop attach':op==='resume'?'Desktop resume':op==='detach'?'Desktop detach':op==='windows'?'Desktop windows':op==='frame'?'Desktop frame':op==='input'?'Desktop input':op==='run'?'Desktop run':op==='observe'?'Computer observe':op==='act'?'Computer act':op==='semantic-attach'?'Semantic attach':op==='semantic-snapshot'?'Semantic snapshot':op==='semantic-events'?'Semantic events':op==='live-open'?'Real Remote live open':op==='live-close'?'Real Remote live close':'Semantic detach'};
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-desktop:${op}`,cwd:'',script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities,note:job.note,toolMeta});
+  const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'desktop',operationId,sessionId:job.sessionId,agentId:job.agentId,desktop:request}});
+  job.commandId=command.commandId;
+  job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();
+  return job;
+}
+
+async function startSearchOperation(payload,requestId){
+  const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
+  const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
+  if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
+  const request=payload.search&&typeof payload.search==='object'&&!Array.isArray(payload.search)?payload.search:null;if(!request)throw new Error('search_request_required');
+  const remote=isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:session.nodeId}),requiredCapabilities=['filesystem'];
+  if(remote){const route=targetRoute(session.nodeId,{accountId:session.accountId});if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);if(!route.capabilities.includes('filesystem'))throw new FleetError('target_node_capability_missing',409);}else if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  const shouldQueue=usesPersonalAgentSlot({enabled:Boolean(personalAgentScheduler),family:'search',op:String(request.op||'')});
+  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
+  if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
+  const toolMeta=searchActivityMeta(request);
+  const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-search:${toolMeta.op}`,cwd:String(request.path||''),script:'',status:shouldQueue?'queued':'running',personalScheduled:shouldQueue,queueReason:shouldQueue?'QUEUED_AGENT_SLOT':null,admittedAt:null,startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
+  assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
+  pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:job.status,route:remote?'outbound-leaf':'local',requiredCapabilities,note:job.note,toolMeta:job.toolMeta});
+  const dispatch=()=>{
+  if(remote){const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'search',operationId,sessionId:job.sessionId,agentId:job.agentId,search:request}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},30000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();return job;}
+  Promise.resolve().then(()=>executeLocalSearchRequest(job,request)).then(data=>{job.resultData=data;const v=data?.search||data;if(v&&typeof v==='object'){for(const key of ['path','searchType','pattern','filePattern'])if(v[key]!=null&&!job.toolMeta[key])job.toolMeta[key]=key==='pattern'?redact(String(v[key])).slice(0,180):String(v[key]);}job.resultSummary=nativeActivityResult(job.toolMeta,data);finishJob(job,0,null);}).catch(error=>{job.resultData={ok:false,error:String(error?.message||error),status:Number(error?.status)||500};emitStream(job,'stderr',Buffer.from(String(error?.message||error)+'\n'));finishJob(job,1,null);});return job;
+  };
+  if(deviceResourceLocks&&job.personalScheduled)job.resourceIntent=deviceResourceIntent({family:'search',op:String(request.op||''),request:request});
+  return schedulePersonalEffect(job,dispatch);
+}
+
+async function executeLocalSearchRequest(job,request){
+  const owner={accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId},op=String(request.op||'');
+  if(!hostEffectiveCapabilities().includes('filesystem'))throw new DeviceError('local_host_capability_missing',409);
+  if(op==='start'){const policy=filesystemPolicy();return {ok:true,operation:'start',search:await NATIVE_SEARCHES.start({...owner,path:request.path,searchType:request.searchType,pattern:request.pattern,literalSearch:Boolean(request.literalSearch),ignoreCase:request.ignoreCase!==false,filePattern:request.filePattern,contextLines:request.contextLines,maxResults:request.maxResults,readRoots:policy.readRoots})};}
+  if(op==='results')return {ok:true,operation:'results',...NATIVE_SEARCHES.results(request.searchId,owner,{offset:request.offset,limit:request.limit})};
+  if(op==='cancel')return {ok:true,operation:'cancel',search:NATIVE_SEARCHES.cancel(request.searchId,owner)};
+  throw new Error('search_operation_unsupported');
+}
+
+async function waitForJob(job, waitMs) {
+  if (job.finishedAt || waitMs <= 0) return;
+  await Promise.race([
+    new Promise(resolve => job.waiters.push(resolve)),
+    new Promise(resolve => setTimeout(resolve, waitMs))
+  ]);
+}
+
+function logFilesOldestFirst() {
+  const candidates = [
+    `${LOG_FILE}.3.gz`, `${LOG_FILE}.3`, `${LOG_FILE}.2.gz`, `${LOG_FILE}.2`,
+    `${LOG_FILE}.1.gz`, `${LOG_FILE}.1`, LOG_FILE
+  ];
+  return candidates.filter(file => fs.existsSync(file));
+}
+
+function readLogText(file) {
+  const data = fs.readFileSync(file);
+  return file.endsWith('.gz') ? zlib.gunzipSync(data).toString('utf8') : data.toString('utf8');
+}
+
+function jobOwnerFromDisk(jobId) {
+  for (const file of logFilesOldestFirst()) {
+    for (const line of readLogText(file).split('\n')) {
+      if (!line) continue;
+      let event; try { event = JSON.parse(line); } catch { continue; }
+      if (event.jobId === jobId && event.type === 'job_started') return { sessionId:event.sessionId, agentId:event.agentId || null, nodeId:event.nodeId || 'arm' };
+    }
+  }
+  return null;
+}
+function assertDiskJobOwner(jobId, agentId) {
+  const owner=jobOwnerFromDisk(jobId);
+  if (!owner) return null;
+  if (!agentId || owner.agentId !== agentId) throw new SessionError('session_owner_mismatch',409);
+  return owner;
+}
+function abandonedCommandReceiptFromDisk(commandId,{maxAgeMs=24*60*60*1000,now=Date.now()}={}) {
+  const id=String(commandId||'').trim();
+  if(!/^cmd_[A-Za-z0-9._:-]{20,128}$/.test(id))return null;
+  const cutoff=now-Math.max(10*60_000,Math.min(Number(maxAgeMs)||24*60*60*1000,7*24*60*60*1000));
+  for(const file of [...logFilesOldestFirst()].reverse()){
+    const lines=readLogText(file).split('\n');
+    for(let i=lines.length-1;i>=0;i--){
+      const line=lines[i];if(!line||!line.includes(id)||!line.includes('node_command_abandoned'))continue;
+      let event;try{event=JSON.parse(line);}catch{continue;}
+      if(event.type!=='node_command_abandoned'||event.commandId!==id)continue;
+      const at=Date.parse(event.at||event.ts||0);if(!Number.isFinite(at)||at<cutoff)return null;
+      if(!event.accountId||!event.deviceId||!event.nodeId||!event.jobId)return null;
+      return {commandId:id,jobId:String(event.jobId),accountId:String(event.accountId),deviceId:String(event.deviceId),nodeId:String(event.nodeId),abandoned:true,abandonReason:String(event.reason||'abandoned'),abandonedAt:at,duplicate:true,recoveredFromDisk:true};
+    }
+  }
+  return null;
+}
+
+// Recover an already completed Fleet receipt only when its own Operator
+// event was durably written. The signed Agent result is still acknowledged
+// only after the matching terminal PostgreSQL record is verified.
+function completedCommandReceiptFromDisk(commandId,{maxAgeMs=24*60*60*1000,now=Date.now()}={}){
+  const id=String(commandId||'').trim();
+  if(!/^cmd_[A-Za-z0-9._:-]{20,128}$/.test(id))return null;
+  const cutoff=now-Math.max(10*60_000,Math.min(Number(maxAgeMs)||24*60*60*1000,7*24*60*60*1000));
+  for(const file of [...logFilesOldestFirst()].reverse()){
+    const lines=readLogText(file).split('\n');
+    for(let i=lines.length-1;i>=0;i--){
+      const line=lines[i];
+      if(!line||!line.includes(id)||!line.includes('node_command_completed'))continue;
+      let event;try{event=JSON.parse(line);}catch{continue;}
+      if(event.type!=='node_command_completed'||event.commandId!==id)continue;
+      const at=Date.parse(event.at||event.ts||0);
+      if(!Number.isFinite(at)||at<cutoff)return null;
+      if(!event.accountId||!event.deviceId||!event.nodeId||!event.jobId)return null;
+      return {commandId:id,jobId:String(event.jobId),accountId:String(event.accountId),
+        deviceId:String(event.deviceId),nodeId:String(event.nodeId),
+        duplicate:true,recoveredFromDisk:true,completedAt:at};
+    }
+  }
+  return null;
+}
+
+function fullOutputFromDisk(jobId, stream) {
+  let output = '';
+  for (const file of logFilesOldestFirst()) {
+    for (const line of readLogText(file).split('\n')) {
+      if (!line) continue;
+      let event;
+      try { event = JSON.parse(line); } catch { continue; }
+      if (event.jobId === jobId && event.type === stream && event.chunk) output += event.chunk;
+    }
+  }
+  return output;
+}
+function sessionStatsFromDisk(hours = 168) {
+  const cutoff = Date.now() - Math.max(1, Math.min(Number(hours) || 168, 24 * 90)) * 3600000;
+  const bySession = new Map();
+  const get = id => {
+    if (!bySession.has(id)) bySession.set(id, { sessionId:id, agentId:'', nodeId:'arm', firstSeenAt:null, lastSeenAt:null, label:'', workspace:'', opens:0, resumes:0, expires:0, closes:0, holdStarts:0, holdReleases:0, toolCalls:0, execCalls:0, jobReads:0, outputReads:0 });
+    return bySession.get(id);
+  };
+  for (const file of logFilesOldestFirst()) {
+    for (const line of readLogText(file).split('\n')) {
+      if (!line) continue;
+      let e; try { e=JSON.parse(line); } catch { continue; }
+      const at=Date.parse(e.at || e.ts || 0); if (!Number.isFinite(at) || at < cutoff || !e.sessionId) continue;
+      const row=get(e.sessionId); row.firstSeenAt=row.firstSeenAt==null?at:Math.min(row.firstSeenAt,at); row.lastSeenAt=Math.max(row.lastSeenAt||0,at);
+      if (e.type==='session_opened') { row.opens++; row.label=e.label||row.label; row.workspace=e.workspace||row.workspace; row.agentId=e.agentId||row.agentId||''; row.nodeId=e.nodeId||row.nodeId||'arm'; }
+      else if (e.type==='session_resumed') row.resumes++;
+      else if (e.type==='session_expired') row.expires++;
+      else if (e.type==='session_closed') row.closes++;
+      else if (e.type==='session_hold_started') row.holdStarts++;
+      else if (e.type==='session_hold_released') row.holdReleases++;
+      else if (e.type==='session_activity' && e.action in row) row[e.action]++;
+    }
+  }
+  const sessions=[...bySession.values()].sort((a,b)=>(b.lastSeenAt||0)-(a.lastSeenAt||0));
+  const totals=sessions.reduce((a,s)=>{ for (const k of ['opens','resumes','expires','closes','holdStarts','holdReleases','toolCalls','execCalls','jobReads','outputReads']) a[k]=(a[k]||0)+s[k]; return a; },{sessions:sessions.length});
+  return { hours:Math.max(1, Math.min(Number(hours)||168,24*90)), totals, sessions };
+}
+
+function backfillUsageIfNeeded(){
+  if(!usage.isEmpty()){usage.reconcileConnections(connections.list());return {backfilled:false};}
+  const events=[];
+  for(const file of logFilesOldestFirst()) for(const line of readLogText(file).split('\n')){if(!line)continue;try{events.push(JSON.parse(line));}catch{}}
+  const result=usage.backfill(events);usage.reconcileConnections(connections.list());return result;
+}
+// Fresh Gold state is PostgreSQL-only. Do not replay old JSONL usage logs
+// into a new database, and never read legacy production state at startup.
+usage.reconcileConnections(connections.list());
+
+async function sendJson(res, status, value, headers={}) {
+  const body = JSON.stringify(value);
+  try {
+    // Never acknowledge Account, Device, A/B, Team, Usage or License changes
+    // until their canonical PostgreSQL transaction has completed.
+    await Promise.all([goldRegistries.flush(),goldSessionState.flush(),goldJobs.flush()]);
+  } catch(error) {
+    console.error('[gold-registry-commit]',error?.message||error);
+    if(!res.headersSent){
+      res.writeHead(503,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});
+      res.end(JSON.stringify({ok:false,error:'gold_postgres_persistence_unavailable'}));
+    }else res.destroy(error);
+    return;
+  }
+  if(res.headersSent)return;
+  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
+  res.end(body);
+}
+
+async function readJson(req) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > MAX_BODY_BYTES) throw new Error('body_too_large');
+    chunks.push(chunk);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+}
+function accountSessionToken(req){
+  return String(req.headers['x-light-account-session']||'').trim();
+}
+function requireAccount(req,{touch=true}={}){
+  return accounts.authenticate(accountSessionToken(req),{touch});
+}
+
+function activeAccount(accountId=ACCOUNT_ID){try{return accounts.account(accountId);}catch{return {accountId,plan:ACCOUNT_PLAN,entitlement:{plan:ACCOUNT_PLAN,source:'environment',validUntil:null}};}}
+function operationalAccount(accountId=ACCOUNT_ID){try{return accounts.assertOperational(accountId);}catch(error){if(error?.message==='account_not_found'&&String(accountId)===String(ACCOUNT_ID))return {accountId,plan:ACCOUNT_PLAN,entitlement:{plan:ACCOUNT_PLAN,source:'environment',validUntil:null},status:'active'};throw error;}}
+function activeAccountPlan(accountId=ACCOUNT_ID){return String(activeAccount(accountId).plan||ACCOUNT_PLAN).toLowerCase();}
+function hostEffectiveCapabilities(){
+  try{const state=JSON.parse(fs.readFileSync(HOST_COMPANION_STATE_FILE,'utf8')),allowed=Array.isArray(state.effectiveCapabilities)?state.effectiveCapabilities:[];return HOST_CAPABILITIES.filter(cap=>allowed.includes(cap));}
+  // Missing/corrupt local policy must never enable the full OS capability catalog.
+  catch{return [];}
+}
+const PLAN_FEATURES=Object.freeze({free:{fleetWall:false,multiDeviceConsole:false,toolCallLimit:10_000},pro:{fleetWall:true,multiDeviceConsole:true,toolCallLimit:null},vip:{fleetWall:true,multiDeviceConsole:true,toolCallLimit:null}});
+function planEntitlements(input){const account=typeof input==='object'&&input?input:null,key=String(account?.plan||input||'free').toLowerCase(),capMs=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free,validUntil=account?.entitlement?.validUntil??null,features=PLAN_FEATURES[key]||PLAN_FEATURES.free;return {plan:key,connectionLeaseMs:capMs,connectionLeaseHours:capMs/3600000,fleetWall:Boolean(features.fleetWall),multiDeviceConsole:Boolean(features.multiDeviceConsole),usageMetering:true,toolCallLimit:features.toolCallLimit==null?null:Number(features.toolCallLimit),toolCallsUnlimited:features.toolCallLimit==null,singleCodebase:true,...(SCOPED_SESSION_LIMITS?{sessionLimit:personalCapacity(key).sessionLimit,agentConcurrencyTarget:personalCapacity(key).agentConcurrencyLimit}:{}),validUntil,source:account?.entitlement?.source||null};}
+function assertToolCallQuota(accountId){const account=operationalAccount(accountId),entitlements=planEntitlements(account),limit=entitlements.toolCallLimit;if(limit==null)return {allowed:true,used:null,limit:null};const used=usage.summary(account.accountId,{months:1}).toolCallsThisMonth;if(used>=limit){const error=new AccountError('tool_call_quota_exceeded',429);error.plan=entitlements.plan;error.limit=limit;error.used=used;throw error;}return {allowed:true,used,limit};}
+function connectionSpec(accountId,requestedLeaseMs){const account=operationalAccount(accountId),key=String(account.plan||'free').toLowerCase(),planCap=DEFAULT_PLAN_CONNECTION_CAPS[key]||DEFAULT_PLAN_CONNECTION_CAPS.free,expires=Number(account.entitlement?.validUntil),now=Date.now(),remaining=key!=='free'&&Number.isFinite(expires)&&expires>now?expires-now:planCap,cap=Math.min(planCap,remaining),requested=requestedLeaseMs==null?cap:Number(requestedLeaseMs);if(!Number.isFinite(requested)||requested<=0||requested>cap)throw new DeviceConnectionError('invalid_device_connection_lease');return {plan:key,requestedLeaseMs:requested,account};}
+function revokeRuntimeForDevice(deviceId,reason){
+  const why=String(reason||'owner_revoked');
+  try{connections.disconnect(deviceId,why);}catch{}
+  try{accessGrants.closeByDevice(deviceId,why);}catch{}
+  try{pairingCodes.invalidateDevice(deviceId,why);}catch{}
+  try{agentClients.removeDevice(deviceId,why);}catch{}
+  try{sessions.closeByDevice(deviceId,why,{force:true});}catch{}
+  try{fleetAuthority.invalidateDevice(deviceId,why);}catch{}
+}
+function removeRuntimeForDevice(deviceId,reason='account_owner_removed'){
+  const why=String(reason||'account_owner_removed');
+  revokeRuntimeForDevice(deviceId,why);
+  try{connections.remove(deviceId,why);}catch{}
+  try{accessGrants.purgeDevice(deviceId,why);}catch{}
+  try{pairingCodes.purgeDevice(deviceId,why);}catch{}
+  try{agentClients.removeDevice(deviceId,why);}catch{}
+  try{fleetAuthority.invalidateDevice(deviceId,why);}catch{}
+}
+function closeRuntimeForAccount(accountId,reason){
+  const closed=[];
+  for(const device of devices.list().filter(row=>row.accountId===String(accountId||''))){revokeRuntimeForDevice(device.deviceId,reason);closed.push(device.deviceId);}
+  return closed;
+}
+function clearMainIfMatches(accountId,deviceId,reason='main_device_unavailable'){
+  try{const account=accounts.account(accountId);if(account.mainDeviceId===String(deviceId||''))return accounts.clearMainDevice(accountId,{reason});}catch{}
+  return null;
+}
+
+function capabilities() {
+  return {
+    service: 'gpt-vps-operator', version: VERSION, accountId:ACCOUNT_ID, deviceId:DEVICE_ID, nodeId:NODE_ID, user: process.env.USER || 'ubuntu',
+    execution: ['exec_batch', 'async_jobs', 'output_retrieval', 'managed_sessions', 'device_presence', 'device_scoped_reconnect_grace', 'device_enrollment', 'fleet_routing'],
+    expectedHostCapabilities: HOST_CAPABILITIES,
+    socket: SOCKET_PATH, logFile: LOG_FILE,
+    presence: { ttlMs:DEVICE_PRESENCE_TTL_MS, heartbeatMs:DEVICE_HEARTBEAT_MS },
+    enrollment: { ttlMs:ENROLLMENT_TTL_MS, activationUrl:ENROLLMENT_ACTIVATION_URL, signer:enrollments.signerInfo(), keyAlgorithm:'Ed25519', oneTimeCode:true, signedHeartbeat:true },
+    fleet: { hubNodeId:NODE_ID, outboundLeafChannel:true, explicitTargetRouting:true, silentFallback:false, channelTtlMs:FLEET_CHANNEL_TTL_MS, commandLeaseMs:FLEET_COMMAND_LEASE_MS, maxQueuedPerNode:FLEET_MAX_QUEUED_PER_NODE },
+    deviceConnection: { enforced:CONNECTION_LEASE_ENFORCE, accountPlan:activeAccountPlan(), planCapsMs:DEFAULT_PLAN_CONNECTION_CAPS, reconnectGraceMinMs:15*60*1000, reconnectGraceMaxMs:60*60*1000, unlimited:false },
+    sessionGracePresets: SESSION_GRACE_PRESETS,
+    limits: { maxScriptBytes: 1024 * 1024, maxTimeoutMs: 7200000, memoryOutputBytes: MAX_MEMORY_OUTPUT,
+      ringBytes: MAX_RING_BYTES, ringHardCapBytes:RING_HARD_CAP_BYTES, ringAgeMs:MAX_RING_AGE_MS, ringEvents: MAX_RING_EVENTS, diskFlushMs:DISK_FLUSH_MS, diskBatchBytes:DISK_BATCH_BYTES, jobCacheBytes: MAX_JOB_CACHE_BYTES, jobCacheAgeMs: MAX_JOB_CACHE_AGE_MS, operationDedupeMs: OPERATION_DEDUPE_MS,
+      sessionGraceMs: SESSION_IDLE_MS, sessionMinGraceMs:SESSION_MIN_IDLE_MS, sessionMaxGraceMs:SESSION_MAX_IDLE_MS, sessionActiveWindowMs:SESSION_ACTIVE_WINDOW_MS, sessionHistoryMs: SESSION_HISTORY_MS, maxActiveSessions: MAX_ACTIVE_SESSIONS }
+  };
+}
+
+function recentEvents(limit = 500, deviceId = null) {
+  pruneRing();
+  const n = Math.max(1, Math.min(Number(limit) || 500, MAX_RING_EVENTS));
+  const did = deviceId == null ? null : String(deviceId);
+  const rows = did ? ring.map(item => item.event).filter(event => String(event.deviceId || '') === did) : ring.map(item => item.event);
+  return rows.slice(-n);
+}
+
+function routingViewForDevice(device) {
+  if (!isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:device.nodeId})) return { mode:'local', state:'online', draining:false, sessionCeiling:MAX_ACTIVE_SESSIONS, queuedCommands:0, inFlightCommands:0 };
+  try { return { mode:'outbound-leaf', ...fleet.view(device.nodeId) }; }
+  catch { return { mode:'outbound-leaf', state:'offline', draining:false, sessionCeiling:null, queuedCommands:0, inFlightCommands:0, channelTtlMs:FLEET_CHANNEL_TTL_MS }; }
+}
+function policyViewForDevice(device) {
+  if (!isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:device.nodeId})) return null;
+  try { return enrollments.policyView(device.deviceId); } catch { return null; }
+}
+function connectionViewForDevice(deviceId) {
+  const view=connections.get(deviceId);
+  return { ...view, enforced:CONNECTION_LEASE_ENFORCE };
+}
+function requireDeviceConnection(deviceId) {
+  if (!CONNECTION_LEASE_ENFORCE) return connections.get(deviceId);
+  return connections.assertConnected(deviceId);
+}
+function deviceView(device) { return { ...device, routing:routingViewForDevice(device), policy:policyViewForDevice(device), connection:connectionViewForDevice(device.deviceId), compatibility:compatibilityFor(device) }; }
+function allDeviceViews({accountId=null}={}) {
+  const counts=sessions.activeCountsByNode();
+  return devices.list({accountId,activeSessionsForNode:nodeId=>counts.get(String(nodeId))||0}).map(deviceView);
+}
+function queueHelperUpdate(deviceId,{source='remote-owner'}={}) {
+  const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});if(device.nodeId===NODE_ID)throw new DeviceError('helper_update_hub_not_client',409);const route=targetRoute(device.nodeId,{accountId:device.accountId}),updateSource=String(source||'remote-owner').slice(0,40);
+  const agentId=`agent-update-${crypto.randomBytes(8).toString('hex')}`,openId=`open-update-${crypto.randomBytes(8).toString('hex')}`;let session;
+  try{session=sessions.open({accountId:device.accountId,agentId,openId,label:'client update',workspace:'',gracePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling});const operationId=`client-update-${crypto.randomBytes(8).toString('hex')}`,requestId=`update-${crypto.randomUUID()}`;
+    const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:null,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.sessionId,agentId:session.agentId,nodeId:session.nodeId,note:`${updateSource} requested helper client update`,cwd:'',script:'request signed client update',status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities:[],resultData:null,autoCloseSession:true};
+    assertToolCallQuota(job.accountId);jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities:[],note:job.note});
+    const command=enqueueForJob(job,{accountId:job.accountId,deviceId:job.deviceId,nodeId:job.nodeId,jobId:job.id,payload:{type:'update',operationId,sessionId:job.sessionId,agentId:job.agentId,update:{op:'request',source:updateSource}}});job.commandId=command.commandId;job.timer=setTimeout(()=>{if(job.finishedAt)return;fleet.abandon(job.commandId,'remote_result_timeout');job.timedOut=true;finishJob(job,124,null);},60000+FLEET_CHANNEL_TTL_MS*2);job.timer.unref();pushEvent({type:'device_update_requested',accountId:device.accountId,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,jobId:job.id,status:'queued',source:updateSource});return {accepted:true,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,source:updateSource,job:jobView(job)};
+  }catch(error){if(session?.sessionId){try{sessions.close(session.sessionId,agentId);}catch{}}throw error;}
+}
+
+async function queueSignedUpdate(deviceId) {
+  const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+  if(device.nodeId===NODE_ID||device.platform!=='linux')throw new DeviceError('maintenance_update_unsupported_platform',409);
+  const route=targetRoute(device.nodeId,{accountId:device.accountId}),requiredCapabilities=['sudo-on-demand','systemctl'];
+  const missing=requiredCapabilities.filter(cap=>!route.capabilities.includes(cap));
+  if(missing.length)throw new FleetError('target_node_capability_missing',409);
+  const agentId=`agent-maintenance-${crypto.randomBytes(8).toString('hex')}`;
+  const openId=`open-maintenance-${crypto.randomBytes(8).toString('hex')}`;
+  let session;
+  try {
+    session=sessions.open({accountId:device.accountId,agentId,openId,label:'signed client update',workspace:'/home/ubuntu',gracePreset:'30m',nodeId:route.nodeId,deviceId:route.deviceId,maxActiveForNode:route.sessionCeiling});
+    const operationId=`maintenance-update-${crypto.randomBytes(8).toString('hex')}`;
+    const requestId=`maintenance-${crypto.randomUUID()}`;
+    const job=await startJob({operationId,script:'sudo -n systemctl start --no-block gpt-operator-agent-update.service',cwd:'/home/ubuntu',timeoutMs:15_000,sessionId:session.sessionId,agentId,nodeId:route.nodeId,requiredCapabilities,note:'owner requested signed client update'},requestId);
+    job.autoCloseSession=true;
+    pushEvent({type:'device_maintenance_update_requested',accountId:device.accountId,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,jobId:job.id,status:'queued'});
+    return {accepted:true,deviceId:device.deviceId,nodeId:device.nodeId,sessionId:session.sessionId,agentId,job:jobView(job)};
+  } catch(error) {
+    if(session?.sessionId){try{sessions.close(session.sessionId,agentId);}catch{}}
+    throw error;
+  }
+}
+function targetRoute(requestedNodeId,{accountId:requestedAccountId=ACCOUNT_ID}={}) {
+  const nodeId=String(requestedNodeId || NODE_ID).trim(), accountId=String(requestedAccountId||ACCOUNT_ID).trim();
+  if (!/^[A-Za-z0-9._:-]{1,128}$/.test(nodeId)) throw new DeviceError('invalid_node_id');
+  if (!/^[A-Za-z0-9._:-]{1,128}$/.test(accountId)) throw new DeviceError('invalid_account_id');
+  // Keep targetRoute aligned with startJob's isOutboundTarget(). In a
+  // separated Operator, even a numerically identical nodeId MUST pass
+  // Fleet routing and enrollment-approved leaf capabilities. No Main-policy
+  // substitution is permitted for outbound commands.
+  if (!isOutboundTarget({integratedHostEnabled:INTEGRATED_HOST_ENABLED,localNodeId:NODE_ID,targetNodeId:nodeId})) { if(accountId!==ACCOUNT_ID) throw new DeviceError('target_node_account_mismatch',403); requireDeviceConnection(DEVICE_ID); return { accountId, deviceId:DEVICE_ID, nodeId:NODE_ID, mode:'local', sessionCeiling:MAX_ACTIVE_SESSIONS, capabilities:hostEffectiveCapabilities(), state:'online', draining:false }; }
+  const device=devices.getByNodeId(nodeId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+  if (device.accountId!==accountId) throw new DeviceError('target_node_account_mismatch',403);
+  if (device.state!=='online') throw new DeviceError('target_node_offline',409);
+  requireDeviceConnection(device.deviceId);
+  const route=fleet.assertRoutable(nodeId,{accountId,deviceId:device.deviceId});
+  const binding=enrollments.binding(device.deviceId);
+  const evidence=leafCapabilityAdmission({reported:route.capabilities,approved:binding.approvedCapabilities});
+  return { ...route, platform:device.platform, capabilities:evidence.capabilities, mode:'outbound-leaf' };
+}
+async function verifiedChannelContext(body, action) {
+  const payload=body?.payload;
+  if (!payload || typeof payload!=='object' || Array.isArray(payload)) throw new EnrollmentError('invalid_device_channel_payload');
+  const proof=enrollments.verifyChannel(body,action,payload), binding=proof.binding;
+  const device=devices.get(binding.deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+  if (device.accountId!==binding.accountId || device.publicIdentityKey!==binding.publicIdentityKey) throw new EnrollmentError('device_binding_mismatch',403);
+  await trustedChannelRateLimiter.check(device.deviceId,action);
+  return {payload,proof,binding,device};
+}
+function fleetEligibility(ctx){
+  const account=accounts.account(ctx.binding.accountId),entitlements=planEntitlements(account),compatibility=compatibilityFor(ctx.device);
+  if(!entitlements.fleetWall||!entitlements.multiDeviceConsole)throw new FleetAuthorityError('fleet_entitlement_required',403);
+  if(!account.mainDeviceId||account.mainDeviceId!==ctx.device.deviceId){fleetAuthority.invalidateDevice(ctx.device.deviceId,'main_device_mismatch');throw new FleetAuthorityError('fleet_main_device_required',403);}
+  if(ctx.device.state==='revoked')throw new FleetAuthorityError('fleet_main_device_revoked',403);
+  if(!compatibility.supported)throw new FleetAuthorityError(compatibility.status,409);
+  return {account,entitlements,compatibility};
+}
+function verifiedFleetContext(ctx){
+  const {account,entitlements}=fleetEligibility(ctx),token=String(ctx.payload.fleetToken||'');
+  const lease=fleetAuthority.verify(token,{accountId:account.accountId,deviceId:ctx.device.deviceId,publicKeySha256:ctx.binding.publicKeySha256});
+  return {...ctx,account,entitlements,lease};
+}
+function fleetTarget(ctx,deviceId){
+  const targetId=String(deviceId||'').trim();
+  if(!/^[A-Za-z0-9._:-]{1,128}$/.test(targetId))throw new FleetAuthorityError('invalid_fleet_target');
+  const device=devices.get(targetId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});
+  if(device.accountId!==ctx.account.accountId)throw new FleetAuthorityError('fleet_target_account_mismatch',403);
+  if(device.state==='revoked')throw new FleetAuthorityError('fleet_target_revoked',409);
+  return device;
+}
+function wakeDeviceChannelForDevice(deviceId){
+  if(!deviceId)return false;
+  try{const device=devices.get(deviceId,{activeSessionsForNode:id=>sessions.activeCountByNode(id)});fleet.wake(device.nodeId||device.deviceId);return true;}catch{return false;}
+}
+function verifiedLeafCapabilities(value,binding,reportedRevision=0) {
+  const reported=[];
+  for (const raw of Array.isArray(value)?value:[]) {
+    const item=String(raw||'').trim();
+    if (!/^[A-Za-z0-9._:-]{1,80}$/.test(item)) throw new EnrollmentError('invalid_device_capability');
+    if (!reported.includes(item)) reported.push(item);
+  }
+  const currentRevision=Math.max(1,Number(binding.policyRevision)||1), stale=currentRevision>1 && Number(reportedRevision||0)<currentRevision;
+  const extras=reported.filter(item=>!binding.approvedCapabilities.includes(item));
+  if (extras.length && !stale) throw new EnrollmentError('device_capability_escalation',403);
+  const out=reported.filter(item=>binding.approvedCapabilities.includes(item)).sort();
+  if (!out.length) throw new EnrollmentError('device_capabilities_required');
+  return out;
+}
+
+async function cancelQueuedPersonalJob({jobId,accountId,deviceIds}={}){
+ if(!/^[a-f0-9-]{36}$/i.test(String(jobId||''))||!accountId||!(deviceIds instanceof Set))
+  throw Object.assign(Error('m6_invalid_job_scope'),{status:400});
+ const job=jobs.get(jobId);
+ if(!job||job.accountId!==accountId||!deviceIds.has(job.deviceId))
+  throw Object.assign(Error('fleet_job_not_found'),{status:404});
+ if(!personalAgentScheduler||!job.personalScheduled||job.finishedAt||!pendingForegroundExec.has(jobId))
+  throw Object.assign(Error('fleet_job_not_queued'),{status:409});
+ const cancelled=await personalAgentScheduler.cancelQueued({jobId,accountId});
+ if(!cancelled)throw Object.assign(Error('fleet_job_already_admitted_or_finished'),{status:409});
+ job.cancelled=true;
+ job.resultData={ok:false,error:'cancelled_before_dispatch'};
+ job.resultSummary='cancelled_before_dispatch';
+ finishJob(job,130,null);
+ // Do not acknowledge cancellation to the AI before PostgreSQL confirms
+ // the terminal record; queue admission and job history must agree.
+ await goldJobs.flush();
+ return {ok:true,jobId,state:'cancelled',reason:'cancelled_before_dispatch'};
+}
+
+// Cancellation is a CONTROL operation: never put it behind the device's
+// execution queue. Only acknowledge cancellation before Agent admission.
+// Once dispatched, refuse rather than lying about killing an OS effect.
+async function cancelControlJob({jobId,accountId,deviceId,agentId=null}={}){
+ if(!/^[a-f0-9-]{36}$/i.test(String(jobId||'')))throw Object.assign(Error('invalid_job_id'),{status:400});
+ const job=jobs.get(jobId);
+ if(!job||job.accountId!==accountId||job.deviceId!==deviceId||
+    (agentId!==null&&job.agentId!==agentId))
+   throw Object.assign(Error('job_not_found'),{status:404});
+ if(job.finishedAt){
+   if(job.status==='cancelled'&&job.exitCode===130)
+     return {ok:true,jobId,state:'cancelled',reason:'already_cancelled_verified'};
+   throw Object.assign(Error('job_already_finished'),{status:409});
+ }
+ if(job.personalScheduled&&pendingForegroundExec.has(jobId)){
+   return cancelQueuedPersonalJob({jobId,accountId,deviceIds:new Set([deviceId])});
+ }
+ if(job.remote&&job.commandId){
+   let command;
+   try{command=fleet.command(job.commandId);}catch{
+     throw Object.assign(Error('job_dispatch_receipt_unavailable'),{status:409});
+   }
+   if(command.accountId!==accountId||command.deviceId!==deviceId||command.jobId!==jobId)
+     throw Object.assign(Error('job_device_mismatch'),{status:403});
+   if(command.dispatchedAt!==null){
+     if(job.note?.startsWith('native-exec:')||job.script){
+       job.stopRequestedAt??=Date.now();
+       pendingDeviceJobStops.set(command.commandId,{
+         jobId,accountId,deviceId,requestedAt:job.stopRequestedAt
+       });
+       pushEvent({type:'job_stop_requested',jobId,accountId,deviceId,
+         sessionId:job.sessionId,agentId:job.agentId,status:'stop_requested'});
+       goldJobs.save(job);
+       // Persist the pending Stop marker before reporting request acceptance.
+       // This is NOT a verified process terminal receipt.
+       await goldJobs.flush();
+       return {ok:true,jobId,state:'stop_requested',commandId:command.commandId,
+         reason:'await_verified_device_exit'};
+     }
+     throw Object.assign(Error('job_running_no_verified_exec_stop_handle'),{status:409});
+   }
+   const cancelled=fleet.cancelUndispatched(command.commandId);
+   if(!cancelled)throw Object.assign(Error('job_already_dispatched_stop_requires_device_receipt'),{status:409});
+   job.cancelled=true;
+   job.resultData={ok:false,error:'cancelled_before_device_dispatch'};
+   job.resultSummary='cancelled_before_device_dispatch';
+   finishJob(job,130,null);
+   await goldJobs.flush();
+   return {ok:true,jobId,state:'cancelled',reason:'cancelled_before_device_dispatch'};
+ }
+ throw Object.assign(Error('job_running_no_verified_stop_handle'),{status:409});
+}
+
+// Fleet owner Stop requests reuse the original process owner principal.
+ // Accepted means dispatched only; final OS termination is recorded separately
+ // by a verified device process receipt. Never free a worker claim here.
+const fleetStopDispatching=new Set();
+async function requestFleetProcessStop(args={}){
+ const key=String(args.jobId||'');
+ if(fleetStopDispatching.has(key))
+  throw new FleetAuthorityError('fleet_process_stop_dispatch_in_progress',409);
+ fleetStopDispatching.add(key);
+ try{return await dispatchFleetProcessStop(args);}
+ finally{fleetStopDispatching.delete(key);}
+}
+async function dispatchFleetProcessStop({jobId,accountId,deviceIds}={}){
+ if(!/^[a-f0-9-]{36}$/i.test(String(jobId||''))||!accountId||!(deviceIds instanceof Set))
+  throw new FleetAuthorityError('fleet_invalid_process_job',400);
+ const launch=jobs.get(jobId);
+ if(!launch||launch.accountId!==accountId||!deviceIds.has(launch.deviceId))
+  throw new FleetAuthorityError('fleet_process_job_not_found',404);
+ if(!launch.finishedAt||launch.exitCode!==0||launch.managedExec!==true||
+    String(launch.note||'')!=='native-process:start')
+  throw new FleetAuthorityError('fleet_process_launch_not_verified',409);
+ if(!deviceResourceLocks)throw new FleetAuthorityError('fleet_process_lease_unavailable',409);
+ const claim=await goldStorage.pool.query(
+  "SELECT process_id FROM lr_gold_device_resource_claims WHERE job_id=$1 AND account_id=$2 AND device_id=$3 AND worker_state='running' LIMIT 1",
+  [jobId,accountId,launch.deviceId]);
+ const processId=String(claim.rows?.[0]?.process_id||'');
+ if(!/^lp_[A-Za-z0-9_-]{20,80}$/.test(processId))
+  throw new FleetAuthorityError('fleet_process_not_running_or_unverified',409);
+ // The original signed Agent's session must still be authorized for its node.
+ // Never mint or impersonate a new Agent or bypass its session policy.
+ const session=sessions.ensure(launch.sessionId,{agentId:launch.agentId});
+ if(session.accountId!==accountId||session.deviceId!==launch.deviceId||session.nodeId!==launch.nodeId)
+  throw new FleetAuthorityError('fleet_process_session_mismatch',403);
+ if(launch.fleetStopRequested)throw new FleetAuthorityError('fleet_process_stop_already_requested',409);
+ const stopJob=await startProcessOperation({
+  operationId:crypto.randomUUID(),agentId:launch.agentId,
+  sessionId:launch.sessionId,nodeId:launch.nodeId,
+  process:{op:'stop',processId,force:false}
+ },crypto.randomUUID());
+ launch.fleetStopRequested=true;
+ launch.fleetStopJobId=stopJob.id;
+ launch.fleetStopProcessId=processId;
+ pushEvent({type:'fleet_owner_process_stop_requested',accountId,deviceId:launch.deviceId,
+  jobId,stopJobId:stopJob.id,status:'requested'});
+ return {ok:true,jobId,stopJobId:stopJob.id,state:'stop_requested',
+  terminalVerified:false,reason:'awaiting_device_terminal_receipt'};
+}
+
+const adminJobRecovery=new GoldAdminJobRecovery({pool:goldStorage.pool,reaper:connectionJobGcReaper});
+const deviceResourceSampleCache=new DeviceResourceSampleCache();
+const deviceBootObservations=new GoldDeviceBootObservations(goldStorage.pool);
+// Gold schema 043 is isolated behind the release gate. Never allocate a
+// public Short ID on older Gold/production databases. Persist the device
+// registry row first, then allocate idempotently in PG043; retries never reuse
+// retired codes. On restart reconcile only durable, non-revoked registered
+// devices. A static list of account IDs must not prevent future Owner devices.
+const goldShortIdActive=goldStorage.schema?.version>=43&&
+ process.env.LR_GOLD_AB_V2_HELPER_TARGET_QUERY==='1';
+const goldShortIdAfterEnrollment=goldShortIdActive?
+ async deviceId=>{
+   await goldRegistries.flush();
+   return ensureGoldDeviceShortId(goldStorage.pool,{deviceId});
+ }:null;
+if(goldShortIdActive){
+ // This is a bounded recovery, not a source of Owner authorization. New
+ // enrollment Short IDs are allocated by goldShortIdAfterEnrollment above.
+ const ownerRows=await goldStorage.pool.query(
+  "SELECT DISTINCT d.owner_account_id AS account_id FROM lr_devices d "+
+  "WHERE d.state<>'revoked' AND d.owner_account_id IS NOT NULL "+
+  "ORDER BY d.owner_account_id LIMIT 200");
+ const accountIds=(ownerRows.rows||[]).map(r=>r.account_id)
+  .filter(id=>/^[A-Za-z0-9._:-]{1,160}$/.test(String(id)));
+ if(accountIds.length){
+  const recovered=await reconcileGoldOwnerDeviceShortIds(goldStorage.pool,{
+   accountIds,maxDevices:50});
+  if(recovered.created)console.info('[gold-abv2-short-id-reconciled]',recovered.created);
+ }
+}
+
+// T04b6: independent, exact opt-in only. No flags in normal Lab/prod.
+// Desktop Owner Auth + Token gates alone NEVER enable signed Wall SSO.
+const desktopWallSsoOperatorGate=createDesktopWallSsoOperatorGateV4({
+  env:process.env,storage:goldStorage,accounts,enrollments
+});
+
+const goldShortIdByDevice=async({deviceId,accountId})=>{
+ if(goldStorage.schema?.version<43)return null;
+ try{
+  const result=await goldStorage.pool.query(
+    "SELECT s.short_id FROM lr_gold_device_short_ids s "+
+    "JOIN lr_devices d ON d.device_id=s.device_id "+
+    "WHERE s.device_id=$1 AND d.owner_account_id=$2 AND d.state<>'revoked' LIMIT 1",
+    [deviceId,accountId]);
+  const code=String(result.rows?.[0]?.short_id||'');
+  return /^[0-9A-HJKMNP-TV-Z]{6}$/.test(code)?code:null;
+ }catch{return null;}
+};
+// One owner-scoped PG043 query: no per-device N+1 and no cross-Owner identity.
+const goldSnapshotShortIds=async({accountId,deviceIds})=>{
+ if(goldStorage.schema?.version<43)return new Map();
+ if(!/^[A-Za-z0-9._:-]{1,128}$/.test(String(accountId||''))||
+    !Array.isArray(deviceIds)||deviceIds.length>200||
+    deviceIds.some(id=>typeof id!=='string'||!/^[A-Za-z0-9._:-]{1,160}$/.test(id)))
+  throw Error('desktop_snapshot_short_id_scope_invalid');
+ if(!deviceIds.length)return new Map();
+ const result=await goldStorage.pool.query(
+  "SELECT s.device_id,s.short_id FROM lr_gold_device_short_ids s "+
+  "JOIN lr_devices d ON d.device_id=s.device_id "+
+  "WHERE d.owner_account_id=$1 AND d.state<>'revoked' "+
+  "AND s.device_id=ANY($2::text[])",[accountId,deviceIds]);
+ return new Map((result.rows||[]).filter(r=>
+  deviceIds.includes(r.device_id)&&/^[0-9A-HJKMNP-TV-Z]{6}$/.test(r.short_id))
+  .map(r=>[r.device_id,r.short_id]));
+};
+const routeDeps=()=>({
+  goldShortIdByDevice,goldSnapshotShortIds,
+  desktopWallSsoSignedRedeem:desktopWallSsoOperatorGate.signedRedeem,
+  desktopWallSsoInternalIssue:desktopWallSsoOperatorGate.internalIssue,
+  desktopWallSsoFamilyCurrent:desktopWallSsoOperatorGate.familyCurrent,
+  ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,
+  DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,DevicePairingRegistryError,EnrollmentError,
+  FleetAuthorityError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,
+  MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,
+  SESSION_MIN_IDLE_MS,VERSION,accessGrants,accountSessionToken,accounts,
+  abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,agentClients,allDeviceViews,applyDeviceTelemetry,assertDiskJobOwner,assertToolCallQuota,capabilities,
+  clearMainIfMatches,clientCompatibility,closeRuntimeForAccount,compatibilityFor,connectionSpec,
+  connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,
+  deviceHasHistoricalReferences:deviceId=>goldRegistries.native.accounts.deviceHasHistoricalReferences(deviceId),
+  emitStream,enrollments,finishJob,fleet,fleetAuthority,reconcileSignedTerminalProcessReceipts,
+  executionEpochs,requiresExecutionEpoch,
+  fleetEligibility,fleetTarget,flushDiskRecords,flushGoldRegistries:()=>goldRegistries.flush(),goldShortIdAfterEnrollment,fs,fullOutputFromDisk,
+  ingressTelemetry,jobView,jobs,goldJobs,goldSessionState,deviceResourceLocks,staleClaimMonitor,adminJobRecovery,deviceResourceSampleCache,deviceBootObservations,memorySyncPolicy,memoryAccountDelete,
+  inspectOwnerOrphanDevice:options=>deviceResourceLocks.inspectOwnerOrphanDevice(goldStorage.pool,options),
+  abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),
+  cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,licenses,normalizeUpdateReport,
+  pairingCodes,goldAbV2SignedPreview,goldAbV2SignedApproval,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
+  queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
+  removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
+  ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
+  startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,
+  startTerminalOperation,targetRoute,verifyTeamPrincipal,terminalResultSummary,usage,verifiedChannelContext,
+  verifiedFleetContext,verifiedLeafCapabilities,waitForJob,wakeDeviceChannelForDevice,
+});
+
+// Source-only A/B V2 owner HTTP seam; OFF unless an explicit allowlisted
+// source/UAT runtime supplies key, HTTPS origin and exact owner/device lists.
+const goldAbV2SignedPreview=createGoldAbV2SignedPreview({
+ env:process.env,storage:goldStorage,accounts,devices,connections,enrollments
+});
+const goldAbV2SignedApproval=createGoldAbV2SignedApproval({
+ env:process.env,storage:goldStorage,accounts,devices,connections,enrollments,
+ accessGrants,goldRegistries
+});
+const goldAbV2HelperPoll=createGoldAbV2HelperPoll({
+ env:process.env,storage:goldStorage,accounts,devices,connections,enrollments,
+ accessGrants,agentClients,goldRegistries,readJson,sendJson
+});
+const goldAbV2HelperTarget=createGoldAbV2HelperTarget({
+ env:process.env,storage:goldStorage,accounts,devices,connections,enrollments,
+ readJson,sendJson
+});
+const goldAbV2GrantOperator=createGoldAbV2GrantOperator({
+ env:process.env,storage:goldStorage,requireAccount,accountSessionToken,
+ accounts,devices,connections,enrollments,accessGrants,goldRegistries
+});
+const goldProShareGuestStore=process.env.LR_GOLD_PRO_SHARE_GUEST_AB_TARGET_QUERY==='1'?
+ createGoldProShareStoreFromOperator({env:process.env,pool:goldStorage.pool,accounts}):null;
+const goldProShareGuestHelper=createGoldProShareGuestHelper({
+ env:process.env,storage:goldStorage,store:goldProShareGuestStore,
+ accounts,devices,connections,enrollments,readJson,sendJson
+});
+const goldProShareGuestPoll=createGoldProShareGuestPoll({
+ env:process.env,storage:goldStorage,store:goldProShareGuestStore,
+ accounts,devices,connections,enrollments,accessGrants,
+ agentClients,goldRegistries,readJson,sendJson
+});
+const goldProShareGuestQueueHttp=createGoldProShareGuestQueueHttp({
+ env:process.env,storage:goldStorage,store:goldProShareGuestStore,
+ accounts,devices,connections,enrollments,accessGrants,agentClients,
+ readJson,sendJson
+});
+const goldProShareGuestApproval=createGoldProShareGuestApproval({
+ env:process.env,storage:goldStorage,accounts,devices,connections,enrollments,
+ accessGrants,goldRegistries,store:goldProShareGuestStore,
+ requireAccount,accountSessionToken
+});
+const goldProShareAccountHttp=createGoldProShareAccountHttp({
+ env:process.env,pool:goldStorage.pool,accounts,requireAccount,
+ accountSessionToken,readJson,sendJson,guestApproval:goldProShareGuestApproval
+});
+const goldSessionOwnerHttp=createGoldSessionOwnerHttp({
+ env:process.env,requireAccount,accountSessionToken,sessions,
+ flushSessions:()=>goldSessionState.flush(),readJson,sendJson
+});
+const goldAbV2OwnerHttp=createGoldAbV2OwnerHttpFromOperator({
+ env:process.env,storage:goldStorage,requireAccount,accountSessionToken,
+ accounts,devices,connections,enrollments,readJson,sendJson,
+ grantOperator:goldAbV2GrantOperator
+});
+await Promise.all([goldRegistries.flush(),goldSessionState.flush(),goldJobs.flush()]);
+const server = http.createServer(async (req, res) => {
+  res.setHeader(API_VERSION_HEADER,API_CONTRACT_VERSION);
+  const url = new URL(req.url || '/', 'http://operator.local');
+  try {
+    if (req.method === 'GET' && url.pathname === '/healthz') {
+      return sendJson(res, 200, { ok: true, ...capabilities() });
+    }
+    if (req.method === 'GET' && url.pathname === '/v1/capabilities') {
+      return sendJson(res, 200, { ok: true, ...capabilities() });
+    }
+    if(await goldProShareAccountHttp(req,res,url))return;
+    await goldAbV2OwnerHttp(req,res,url);
+    if(res.headersSent)return;
+    if(await goldProShareGuestHelper(req,res,url))return;
+    if(await goldProShareGuestPoll(req,res,url))return;
+    if(await goldProShareGuestQueueHttp(req,res,url))return;
+    if(await goldAbV2HelperTarget(req,res,url))return;
+    if(await goldAbV2HelperPoll(req,res,url))return;
+    await handlePluginRoutes(req,res,url,routeDeps());
+    if(res.headersSent)return;
+    if(await goldSessionOwnerHttp(req,res,url))return;
+    await handleAccountRoutes(req,res,url,routeDeps());
+    if(res.headersSent)return;
+    await handleDeviceChannelRoutes(req,res,url,routeDeps());
+    if(res.headersSent)return;
+    await handleRuntimeRoutes(req,res,url,routeDeps());
+    if(res.headersSent)return;
+    return sendJson(res, 404, { ok: false, error: 'not_found' });
+  } catch (error) {
+    const message = error?.message || 'internal_error';
+    pushEvent({ type: 'executor_error', status: 'error', detail: redact(message) });
+    const status = error instanceof SessionError || error instanceof DeviceError || error instanceof EnrollmentError || error instanceof FleetError || error instanceof DeviceConnectionError || error instanceof DeviceAccessGrantError || error instanceof DevicePairingRegistryError || error instanceof AgentClientRegistryError || error instanceof AccountError || error instanceof AccountNotificationError || error instanceof ProTeamError || error instanceof TeamEntitlementError || error instanceof LicenseKeyError || error instanceof FleetAuthorityError || error instanceof GoldOperationEffectError || error instanceof TrustedChannelRateLimitError || (error?.status===503 && ['trusted_channel_rate_storage_unavailable','trusted_channel_rate_invalid_response'].includes(message)) ? error.status : ['invalid_envelope', 'expired_envelope', 'replay_detected', 'unknown_kid', 'invalid_envelope_auth', 'unsupported_action'].includes(message) ? 401 : message === 'operation_id_conflict' ? 409 : 400;
+    const limited=error instanceof TrustedChannelRateLimitError;
+    return sendJson(res, status, { ok: false, error: message, ...(error instanceof GoldOperationEffectError&&/^[a-f0-9-]{36}$/i.test(error.jobId||'')?{originalJobId:error.jobId}:{}), ...(limited?{scope:error.scope,retryAfterSeconds:error.retryAfterSeconds}:{}) }, limited?{'retry-after':String(error.retryAfterSeconds)}:{});
+  }
+});
+
+if (fs.existsSync(SOCKET_PATH)) fs.unlinkSync(SOCKET_PATH);
+server.listen(SOCKET_PATH, () => {
+  fs.chmodSync(SOCKET_PATH, 0o660);
+  console.log(`gpt-vps-operator v${VERSION} listening on ${SOCKET_PATH}`);
+});
+
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  NATIVE_PROCESSES.close();
+  NATIVE_TERMINALS.close();
+  console.log(`[operator] ${signal}, shutting down`);
+  clearInterval(deviceHeartbeat);
+  clearInterval(connectionReaper);
+  if(connectionJobGcTicker)clearInterval(connectionJobGcTicker);
+  try { devices.markOffline(DEVICE_ID, signal.toLowerCase()); } catch {}
+  for (const res of sseClients) { try { res.end(); } catch {} }
+  sseClients.clear();
+  for (const job of jobs.values()) {
+    if (job.status === 'running' && job.pid) {
+      try { process.kill(job.pid, 'SIGTERM'); } catch {}
+    }
+  }
+  void flushDiskRecords().finally(()=>server.close(async()=>{
+    await goldRegistries.flush().catch(error=>console.error('[gold-registry-flush]',error?.message));
+    await goldSessionState.flush().catch(error=>console.error('[gold-session-flush]',error?.message));
+    await goldJobs.flush().catch(error=>console.error('[gold-job-flush]',error?.message));
+    goldWriterLease.release();
+    await goldStorage.close().catch(error=>console.error('[gold-db-close]',error?.message));
+    process.exit(0);
+  }));
+  server.closeAllConnections?.();
+  setTimeout(() => process.exit(1), 5000).unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

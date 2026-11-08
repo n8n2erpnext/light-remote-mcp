@@ -1,0 +1,118 @@
+using LightRemote.Configuration;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace LightRemote.Updater;
+
+internal static class Program
+{
+    private static async Task<int> Main(string[] args)
+    {
+        try
+        {
+            var apply=Array.IndexOf(args,"--apply-update");if(apply>=0&&apply+6<args.Length){_=int.TryParse(args[apply+4],out var parentPid);return await UpdateApplier.ApplyAsync(args[apply+1],args[apply+2],args[apply+3],parentPid,args[apply+5],args[apply+6]);}
+            var promote=Array.IndexOf(args,"--promote-helper-stage");if(promote>=0&&promote+5<args.Length){_=int.TryParse(args[promote+3],out var parentPid);return await UpdateApplier.PromoteHelperStageAsync(args[promote+1],args[promote+2],parentPid,args[promote+4],args[promote+5]);}
+            var restart=Array.IndexOf(args,"--restart-agent-only");if(restart>=0&&restart+2<args.Length&&string.Equals(args[restart+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await UpdateApplier.RestartAgentOnlyAsync(args[restart+2]);
+            var verify=Array.IndexOf(args,"--verify-update-fixture");if(verify>=0&&verify+3<args.Length)return VerifyFixture(args[verify+1],args[verify+2],args[verify+3])?0:1;
+            var self=Array.IndexOf(args,"--self-test-output");if(self>=0&&self+2<args.Length)return SelfTest(args[self+1],args[self+2])?0:1;
+            var cacheSelf=Array.IndexOf(args,"--cache-self-test-output");if(cacheSelf>=0&&cacheSelf+1<args.Length)return await CacheSelfTestAsync(args[cacheSelf+1])?0:1;
+            var profileSelf=Array.IndexOf(args,"--endpoint-profile-self-test-output");
+            if(profileSelf>=0&&profileSelf+1<args.Length)return EndpointProfileSelfTest(args[profileSelf+1])?0:1;
+            var check=Array.IndexOf(args,"--check-update");if(check>=0&&check+2<args.Length&&string.Equals(args[check+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunCheckUpdateAsync(args[check+2]);
+            var now=Array.IndexOf(args,"--apply-update-now");if(now>=0&&now+2<args.Length&&string.Equals(args[now+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunApplyUpdateNowAsync(args[now+2]);
+            var scheduled=Array.IndexOf(args,"--scheduled-update");if(scheduled>=0&&scheduled+2<args.Length&&string.Equals(args[scheduled+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await RunCheckUpdateAsync(args[scheduled+2]);
+            return 2;
+        }
+        catch(FileNotFoundException){return 0;}
+        catch(UpdateChannelHeldException){return 0;}
+        catch(Exception ex){UpdateApplier.Log($"updater_failed {ex.GetType().Name}: {ex.Message}");return 1;}
+    }
+
+    private static string CurrentVersion(string installDir){if(!Path.IsPathFullyQualified(installDir))throw new InvalidOperationException("Install directory must be absolute.");var file=Path.Combine(installDir,"VERSION");if(!File.Exists(file))throw new FileNotFoundException("Installed VERSION file is missing.",file);return File.ReadAllText(file).Trim();}
+    private static void WriteJson(string file,JsonObject value){RecoveryPaths.EnsureDirectories();var tmp=file+"."+Environment.ProcessId+".tmp";File.WriteAllText(tmp,value.ToJsonString());File.Move(tmp,file,true);}
+    private static void WriteStatus(string state,string currentVersion,string? targetVersion=null,string? code=null)=>WriteJson(RecoveryPaths.StatusFile,new JsonObject{{"state",state},{"currentVersion",currentVersion},{"targetVersion",targetVersion},{"helperVersion",RecoveryPaths.HelperVersion()},{"code",code},{"updatedAt",DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}});
+    private static bool TryConsumeRestartRequest(){try{RecoveryPaths.EnsureDirectories();var f=RecoveryPaths.RestartRequestFile;if(!File.Exists(f))return false;var fresh=(DateTime.UtcNow-File.GetLastWriteTimeUtc(f))<TimeSpan.FromMinutes(2);File.Delete(f);if(!fresh){UpdateApplier.Log("restart_request_stale_ignored");return false;}return true;}catch(Exception ex){UpdateApplier.Log($"restart_request_consume_failed {ex.GetType().Name}: {ex.Message}");return false;}}
+    private static async Task<int> RunCheckUpdateAsync(string installDir)
+    {
+        if(TryConsumeRestartRequest()){UpdateApplier.Log("restart_request_consumed");return await UpdateApplier.RestartAgentOnlyAsync(installDir);}
+        var current=CurrentVersion(installDir);WriteStatus("checking",current);
+        try{
+            var client=new UpdateClient();var update=await client.CheckAsync(current);
+            if(update is null){WriteStatus("idle",current);return 0;}
+            WriteStatus("downloading",current,update.Version);
+            try{await client.DownloadAndVerifyAsync(update);}
+            catch{WriteStatus("failed",current,update.Version,"LRU111");throw;}
+            WriteStatus("ready",current,update.Version);
+            return 0;
+        }
+        catch(UpdateChannelHeldException){WriteStatus("hold",current,null,"LRU_PRODUCT_FEED_HOLD");return 0;}
+        catch(FileNotFoundException){WriteStatus("idle",current);return 0;}
+        catch(Exception){WriteStatus("failed",current,null,"LRU100");throw;}
+    }
+    private static async Task<int> RunApplyUpdateNowAsync(string installDir)
+    {
+        var current=CurrentVersion(installDir);WriteStatus("checking",current);UpdateClient client;UpdateInfo? update;try{client=new UpdateClient();update=await client.CheckAsync(current);}catch(UpdateChannelHeldException){WriteStatus("hold",current,null,"LRU_PRODUCT_FEED_HOLD");return 0;}catch(FileNotFoundException){WriteStatus("idle",current);return 0;}catch{WriteStatus("failed",current,null,"LRU100");throw;}if(update is null){WriteStatus("idle",current);return 0;}WriteStatus("verifying_cache",current,update.Version);string installer;
+        try{installer=await client.DownloadAndVerifyAsync(update);}
+        catch{WriteStatus("failed",current,update.Version,"LRU111");throw;}
+        var txId="ut_"+Guid.NewGuid().ToString("N");WriteJson(RecoveryPaths.TransactionFile,new JsonObject{{"schemaVersion",1},{"txId",txId},{"fromVersion",current},{"targetVersion",update.Version},{"startedAt",DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}});try{File.Delete(RecoveryPaths.AckFile);}catch{}WriteStatus("installing_core",current,update.Version);
+        try{client.LaunchApplyHelper(installer,installDir,current,update.Version,txId);}
+        catch{WriteStatus("failed",current,update.Version,"LRU120");try{File.Delete(RecoveryPaths.TransactionFile);}catch{}throw;}
+        return 0;
+    }
+    // Native executable proof: valid signed-manifest PRODUCT metadata cannot
+    // silently select another product/profile, and ABV2 has no approved feed.
+    // No HTTP calls, install, account access or update state is changed.
+    private static bool EndpointProfileSelfTest(string output)
+    {
+        bool ok=false;
+        try
+        {
+            var e=CanonicalEndpoints.Gold;
+            if(e.ProductId!="goldabv2-desktop-v4"||!e.UpdateOnHold||
+               e.UpdateManifestUrl is not null||e.UpdateSignatureUrl is not null)
+                throw new InvalidOperationException("goldabv2_feed_not_on_hold");
+            using var wrong=JsonDocument.Parse("""{"productId":"regular-gold","profile":"goldabv2-lab","channel":"goldabv2-lab"}""");
+            bool wrongRejected=false;
+            try { e.RequireSignedUpdateIdentity(wrong.RootElement); }
+            catch(InvalidDataException){ wrongRejected=true; }
+            using var valid=JsonDocument.Parse("""{"productId":"goldabv2-desktop-v4","profile":"goldabv2-lab","channel":"goldabv2-lab"}""");
+            e.RequireSignedUpdateIdentity(valid.RootElement);
+            ok=wrongRejected;
+            File.WriteAllText(output,new JsonObject{{"ok",ok},{"productId",e.ProductId},
+                {"selectedProfile",e.SelectedProfile},{"revision",e.ConfigRevision},
+                {"manifestOnHold",e.UpdateOnHold},{"wrongProductRejected",wrongRejected}}.ToJsonString());
+            return ok;
+        }
+        catch(Exception ex)
+        {
+            File.WriteAllText(output,new JsonObject{{"ok",false},{"error",ex.GetType().Name}}.ToJsonString());
+            return false;
+        }
+    }
+    // Executable-level cache proof on a Windows runner. No network or real
+    // installer is launched, and the updater's production files are untouched.
+    private static async Task<bool> CacheSelfTestAsync(string output)
+    {
+        var file=Path.Combine(Path.GetTempPath(),"lr-updater-cache-fixture-"+Guid.NewGuid().ToString("N")+".bin");
+        try
+        {
+            var bytes=System.Security.Cryptography.RandomNumberGenerator.GetBytes(512);
+            await File.WriteAllBytesAsync(file,bytes);
+            var digest=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+            var artifact=new UpdateArtifact("https://example.invalid/fixture",digest,bytes.Length,null);
+            var valid=await UpdateClient.VerifyCachedFileAsync(file,artifact);
+            bytes[0]^=0xff;await File.WriteAllBytesAsync(file,bytes);
+            var rejectsTamper=!await UpdateClient.VerifyCachedFileAsync(file,artifact);
+            var rejectsLength=!await UpdateClient.VerifyCachedFileAsync(file,artifact with{Size=bytes.Length+1});
+            var ok=valid&&rejectsTamper&&rejectsLength;
+            File.WriteAllText(output,new JsonObject{{"ok",ok},{"validCacheAccepted",valid},
+                {"tamperRejected",rejectsTamper},{"lengthRejected",rejectsLength}}.ToJsonString());
+            return ok;
+        }
+        catch(Exception ex){File.WriteAllText(output,new JsonObject{{"ok",false},{"error",ex.Message}}.ToJsonString());return false;}
+        finally{try{File.Delete(file);}catch{}}
+    }
+    private static bool VerifyFixture(string manifest,string signature,string output){try{UpdateClient.VerifySignedManifest(File.ReadAllBytes(manifest),File.ReadAllText(signature).Trim(),RecoveryPaths.UpdatePublicKey);File.WriteAllText(output,new JsonObject{{"ok",true},{"updateSignature","valid"},{"runtime","independent-updater"}}.ToJsonString());return true;}catch(Exception ex){File.WriteAllText(output,new JsonObject{{"ok",false},{"error",ex.Message}}.ToJsonString());return false;}}
+    private static bool SelfTest(string output,string installDir){try{var process=Environment.ProcessPath??"";var appExe=Path.Combine(installDir,"GptOperator.Client.exe");var ok=File.Exists(process)&&File.Exists(RecoveryPaths.UpdatePublicKey)&&Path.IsPathFullyQualified(installDir);var outside=!IsUnder(process,installDir);var result=new JsonObject{{"ok",ok},{"runtime","independent-updater"},{"helperVersion",RecoveryPaths.HelperVersion()},{"updater",process},{"app",appExe},{"updaterOutsideApp",outside}};File.WriteAllText(output,result.ToJsonString());return ok&&outside;}catch(Exception ex){File.WriteAllText(output,new JsonObject{{"ok",false},{"error",ex.Message}}.ToJsonString());return false;}}
+    private static bool IsUnder(string file,string root){var f=Path.GetFullPath(file).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;var r=Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;return f.StartsWith(r,StringComparison.OrdinalIgnoreCase);}
+}

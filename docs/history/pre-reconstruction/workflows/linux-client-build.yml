@@ -1,0 +1,235 @@
+name: Linux Client Packages
+
+on:
+  push:
+    branches:
+      - main
+      - 'codex/**'
+      - 'feature/light-remote-gold-rebuild-20261018' # isolated Gold CI artifacts only
+      - 'fix/docker-capability-refresh-20261022' # isolated permissions UAT artifact; never publish production
+      - 'feature/gold-m6-integrated-20261023' # isolated M6/permission Linux artifact
+    tags:
+      - 'v0.9.*'
+    paths:
+      - 'VERSION'
+      - 'client/**'
+      - 'device-agent/**'
+      - 'lib/device-proof.mjs'
+      - 'lib/native-fs.mjs'
+      - 'lib/native-process.mjs'
+      - 'lib/native-terminal.mjs'
+      - 'lib/device-duplex-client.mjs'
+      - 'lib/native-search.mjs'
+      - 'lib/light-scp-file.mjs'
+      - 'lib/light-scp-registry.mjs'
+      - 'lib/update-contract.mjs'
+      - 'lib/public-endpoint.mjs'
+      - 'lib/runtime-version.mjs'
+      - 'lib/version-compat.mjs'
+      - 'lib/brand.mjs'
+      - 'lib/update-helper-reconcile.mjs'
+      - 'deploy/scripts/stage-client-core.mjs'
+      - 'deploy/scripts/stage-terminal-runtime.mjs'
+      - 'deploy/scripts/terminal-runtime-smoke.mjs'
+      - 'deploy/scripts/selftest-g2-posix-natural-exit-reap.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-executor-rejection.mjs'
+      - 'deploy/scripts/selftest-g3-executor-hang-readiness.mjs'
+      - 'deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs'
+      - 'deploy/scripts/selftest-g3-executor-readiness-probe.mjs'
+      - 'deploy/scripts/selftest-g3-executor-probe-deadline.mjs'
+      - 'deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs'
+      - 'deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs'
+      - 'deploy/scripts/selftest-g3-agent-daemon-lifecycle.mjs'
+      - 'deploy/scripts/selftest-device-agent-cli.mjs'
+      - 'deploy/scripts/selftest-gold-linux-host-write-policy.mjs'
+      - 'deploy/scripts/selftest-gold-permission-groups.mjs'
+      - 'deploy/scripts/selftest-infra-capability-catalog.mjs'
+      - 'deploy/scripts/selftest-docker-capability-refresh.mjs'
+      - 'deploy/scripts/selftest-gold-owner-permission-authorization.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'client/core-files.json'
+      - 'assets/**'
+      - '.github/workflows/linux-client-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build self-contained package
+        shell: bash
+        env:
+          NODE_VERSION: 22.23.2
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          OUT="$PWD/dist/linux/$TARGET_ARCH"
+          PKG="$OUT/package"
+          mkdir -p "$PKG/runtime" "$PKG/client/linux" "$PKG/client/linux-debian/tray" "$PKG/licenses/node"
+          NODE_TAR="node-v${NODE_VERSION}-linux-${TARGET_ARCH}.tar.xz"
+          curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt"
+          curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TAR}"
+          grep "  ${NODE_TAR}$" SHASUMS256.txt | sha256sum -c -
+          tar -xJf "$NODE_TAR"
+          install -m 0755 "node-v${NODE_VERSION}-linux-${TARGET_ARCH}/bin/node" "$PKG/runtime/node"
+          cp "node-v${NODE_VERSION}-linux-${TARGET_ARCH}/LICENSE" "$PKG/licenses/node/LICENSE"
+          npm ci --ignore-scripts
+          node deploy/scripts/stage-client-core.mjs "$PKG"
+          node deploy/scripts/stage-terminal-runtime.mjs "$PKG" linux "$TARGET_ARCH"
+          cp device-agent/linux-service-policy.mjs "$PKG/device-agent/"
+          cp client/linux/updater.mjs client/linux/update-lifeboat.mjs "$PKG/client/linux/"
+          install -m 0755 client/linux/light-remote "$PKG/client/linux/light-remote"
+          cp client/linux/cli-commands.sh client/linux/cli-status.mjs "$PKG/client/linux/"
+          cp client/linux-debian/updater-wrapper.mjs "$PKG/client/linux-debian/"
+          cp client/linux-debian/tray/light-remote-tray.py "$PKG/client/linux-debian/tray/"
+          cp LICENSE NOTICE THIRD_PARTY_DISTRIBUTION_NOTICES.md "$PKG/"
+          CORE_DIGEST="$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync(process.argv[1],'utf8')).digest)" "$PKG/client-core.json")"
+          cat > "$PKG/manifest.json" <<JSON
+          {
+            "product": "Light Remote Linux ${TARGET_ARCH}",
+            "version": "${VERSION}",
+            "gitSha": "${GITHUB_SHA}",
+            "node": "v${NODE_VERSION}",
+            "platform": "linux-${TARGET_ARCH}",
+            "coreDigest": "${CORE_DIGEST}",
+            "builtAtUtc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          JSON
+          tar -czf "$OUT/Light-Remote-MCP-Client-Linux-${TARGET_ARCH}-${VERSION}.tar.gz" -C "$OUT" package
+          (cd "$OUT" && sha256sum "Light-Remote-MCP-Client-Linux-${TARGET_ARCH}-${VERSION}.tar.gz") > "$OUT/SHA256SUMS.txt"
+      - name: Package contract smoke
+        shell: bash
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          OUT="$PWD/dist/linux/$TARGET_ARCH"
+          PKG="$OUT/package"
+          test -x "$PKG/runtime/node"
+          test -s "$PKG/licenses/node/LICENSE"
+          test -s "$PKG/LICENSE"
+          test -s "$PKG/NOTICE"
+          test -s "$PKG/THIRD_PARTY_DISTRIBUTION_NOTICES.md"
+          node deploy/scripts/stage-client-core.mjs --verify "$PKG"
+          node deploy/scripts/selftest-packaged-local-wall.mjs "$PKG"
+          # Run privilege-policy contract checks before long G2/G3 lifecycle tests.
+          node deploy/scripts/selftest-gold-linux-host-write-policy.mjs
+          node deploy/scripts/selftest-device-agent-service.mjs
+          node deploy/scripts/selftest-v09-linux-service-policy.mjs
+          node deploy/scripts/selftest-infra-capability-catalog.mjs
+          node deploy/scripts/selftest-docker-capability-refresh.mjs
+          node deploy/scripts/selftest-gold-owner-permission-authorization.mjs
+          node deploy/scripts/selftest-g2-pty-missing-exit.mjs
+          node deploy/scripts/selftest-g2-transport-drop-job-survival.mjs
+          node deploy/scripts/selftest-g2-pty-missing-pid-exit.mjs
+          node deploy/scripts/selftest-g3-fleet-channel-stale-inflight.mjs
+          node deploy/scripts/selftest-g3-duplex-halfopen-watchdog.mjs
+          node deploy/scripts/selftest-g3-duplex-ready-timeout-diagnostic.mjs
+          node deploy/scripts/selftest-g3-duplex-executor-rejection.mjs
+          node deploy/scripts/selftest-g3-executor-hang-readiness.mjs
+          node deploy/scripts/selftest-g3-duplex-reconnect-inflight.mjs
+          node deploy/scripts/selftest-g3-executor-readiness-probe.mjs
+          node deploy/scripts/selftest-g3-executor-probe-deadline.mjs
+          node deploy/scripts/selftest-g3-signed-enrollment-executor-duplex.mjs
+          node deploy/scripts/selftest-g3-local-wall-executor-readiness.mjs
+          node deploy/scripts/selftest-g3-agent-daemon-lifecycle.mjs
+          node deploy/scripts/selftest-device-agent-cli.mjs
+          node deploy/scripts/selftest-v08-fleet-router.mjs
+          node deploy/scripts/selftest-g2-posix-natural-exit-reap.mjs
+          test -f "$PKG/client-core.json"
+          test -f "$PKG/device-agent/operator-agent.mjs"
+          test -f "$PKG/device-agent/fleet-component-manager.mjs"
+          test -f "$PKG/device-agent/fleet-component-supervisor.mjs"
+          test -f "$PKG/device-agent/linux-service-policy.mjs"
+          test -f "$PKG/lib/device-proof.mjs"
+          test -f "$PKG/lib/native-fs.mjs"
+          test -f "$PKG/lib/native-process.mjs"
+          test -f "$PKG/lib/native-terminal.mjs"
+          test -s "$PKG/licenses/terminal-runtime/homebridge-node-pty-LICENSE"
+          test -f "$PKG/lib/native-search.mjs"
+          test -f "$PKG/lib/light-scp-file.mjs"
+          test -f "$PKG/lib/light-scp-registry.mjs"
+          test -f "$PKG/lib/update-contract.mjs"
+          test -f "$PKG/lib/runtime-version.mjs"
+          test -f "$PKG/client/linux/update-lifeboat.mjs"
+          test -f "$PKG/client/linux/updater.mjs"
+          test -x "$PKG/client/linux/light-remote"
+          test -s "$PKG/client/linux/cli-commands.sh"
+          test -s "$PKG/client/linux/cli-status.mjs"
+          bash -n "$PKG/client/linux/light-remote"
+          bash -n "$PKG/client/linux/cli-commands.sh"
+          node --check "$PKG/client/linux/cli-status.mjs"
+          test -f "$PKG/client/linux-debian/updater-wrapper.mjs"
+          test -f "$PKG/client/linux-debian/tray/light-remote-tray.py"
+          test -f "$PKG/assets/branding/light-remote-mark.svg"
+          test -f "$PKG/assets/branding/light-remote-mark-256.png"
+          test -f "$PKG/manifest.json"
+          (cd "$OUT" && sha256sum -c SHA256SUMS.txt)
+          if [[ "$TARGET_ARCH" == "x64" ]]; then
+            export OPERATOR_AGENT_STATE="$RUNNER_TEMP/gpt-empty-device.json"
+            STATUS="$($PKG/runtime/node $PKG/device-agent/operator-agent.mjs status)"
+            python3 - "$STATUS" <<'PY'
+          import json,sys
+          j=json.loads(sys.argv[1])
+          assert j['platformAdapter']=='linux',j
+          assert not j['enrolled'],j
+          print('linux-x64-agent-smoke=PASS')
+          PY
+          else
+            file "$PKG/runtime/node" | grep -Eq 'ARM aarch64|aarch64'
+            echo 'linux-arm64-runtime-architecture=PASS'
+          fi
+          if [[ "$TARGET_ARCH" == "x64" ]]; then
+            node deploy/scripts/terminal-runtime-smoke.mjs "$PKG"
+          else
+            file "$PKG/node_modules/@homebridge/node-pty-prebuilt-multiarch/prebuilds/linux-arm64/node.abi127.node" | grep -Eq 'ARM aarch64|aarch64'
+            echo 'linux-arm64-terminal-runtime-architecture=PASS'
+          fi
+          bash -n client/linux/install.sh
+          "$PKG/runtime/node" --check "$PKG/client/linux/updater.mjs" || [[ "$TARGET_ARCH" == "arm64" ]]
+      - name: Build Debian package
+        shell: bash
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          VERSION="$(tr -d '\r\n' < VERSION)"
+          OUT="$PWD/dist/linux/$TARGET_ARCH"
+          BUNDLE="$OUT/Light-Remote-MCP-Client-Linux-${TARGET_ARCH}-${VERSION}.tar.gz"
+          client/linux-debian/build-deb.sh "$BUNDLE" "$OUT/deb"
+          DEB_ARCH=$([[ "$TARGET_ARCH" == x64 ]] && echo amd64 || echo arm64)
+          DEB="$OUT/deb/light-remote_${VERSION}_${DEB_ARCH}.deb"
+          test -s "$DEB"
+          DEB_INFO="$RUNNER_TEMP/light-remote-${DEB_ARCH}.info"
+          DEB_CONTENTS="$RUNNER_TEMP/light-remote-${DEB_ARCH}.contents"
+          dpkg-deb -I "$DEB" > "$DEB_INFO"
+          dpkg-deb -c "$DEB" > "$DEB_CONTENTS"
+          grep -Fq 'Package: light-remote' "$DEB_INFO"
+          grep -Fq 'light-remote-agent.service' "$DEB_CONTENTS"
+          grep -Fq 'client/linux-debian/updater-wrapper.mjs' "$DEB_CONTENTS"
+          echo "debian-${DEB_ARCH}-package-contract=PASS"
+
+      - name: Upload Linux package
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpt-operator-linux-${{ matrix.arch }}-${{ github.sha }}
+          path: |
+            dist/linux/${{ matrix.arch }}/Light-Remote-MCP-Client-Linux-${{ matrix.arch }}-*.tar.gz
+            dist/linux/${{ matrix.arch }}/SHA256SUMS.txt
+            client/linux/install.sh
+            dist/linux/${{ matrix.arch }}/deb/*.deb
+          if-no-files-found: error
+          retention-days: 14

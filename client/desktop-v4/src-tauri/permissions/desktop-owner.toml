@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-desktop-owner"
+description = "Opt-in native Owner login/restore/logout with sanitized phase only; no credentials or Agent grants exposed."
+commands.allow = ["desktop_owner_begin", "desktop_owner_status", "desktop_owner_restore", "desktop_owner_logout", "desktop_owner_wall_sso_approve", "desktop_owner_abv2_pending", "desktop_owner_abv2_approve", "desktop_owner_snapshot", "desktop_native_action", "desktop_link_ui_intent"]

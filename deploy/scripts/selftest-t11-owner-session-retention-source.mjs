@@ -1,0 +1,32 @@
+// T11-F15-H3: enforce exact Owner read privacy/retention provenance,
+// never turn Redis recovery into an implicit indefinite audit archive.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+const redis=read('lib/gold-session-redis.mjs');
+const owner=read('operator-host/desktop-v4-owner-activity-page.mjs');
+const portal=read('plugin-server/desktop-owner-token-v4.mjs');
+const native=read('client/desktop-v4/src/lib/native-activity.ts');
+const ui=read('client/desktop-v4/src/FeatureScreens.tsx');
+const tests=read('lib/gold-session-retention.test.mjs');
+assert.match(redis,/const TTL_SECONDS=7\*24\*60\*60/);
+assert.match(redis,/retentionPolicy\(registry\)/);
+assert.match(redis,/terminalPruneAfterMs:registry\.historyMs,immutableAudit:false/);
+assert.match(redis,/registry!==this\.registry/);
+assert.match(owner,/sessionBacking\.retentionPolicy\?\.\(sessions\)/);
+assert.match(owner,/desktop_activity_session_retention_unverified/);
+assert.match(owner,/membershipFingerprint\(\)!==originalMembership/);
+assert.match(owner,/await sessionBacking\.flush\(\)/);
+assert.match(owner,/retention\?\{retention\}/);
+assert.match(portal,/desktop_snapshot_retention_unverified/);
+assert.match(portal,/snapshotTtlSeconds===604800/);
+assert.match(native,/SessionRetention/);
+assert.match(native,/r\.immutableAudit!==false/);
+assert.match(native,/source:coverage\.source as ActivityCoverage\['source'\]/);
+assert.match(ui,/Redis snapshot TTL/);
+assert.match(ui,/Terminal sessions are pruned/);
+assert.match(ui,/Not an immutable audit archive/);
+assert.match(tests,/pruned session tombstone committed before returning Owner result/);
+assert.match(tests,/Redis TTL expiry without writes clears recoverable snapshot/);
+assert.doesNotMatch(redis,/indefinite.*audit.*enabled/i);
+console.log('T11_F15_H3_OWNER_REDIS_RETENTION_PRIVACY_SOURCE_BOUNDARY=PASS');

@@ -1,0 +1,11 @@
+[Unit]
+Description=Poll for new Light Remote releases and publish them to R2
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

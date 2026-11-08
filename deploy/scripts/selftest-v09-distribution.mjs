@@ -1,0 +1,66 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+const text=file=>fs.readFileSync(path.join(root,file),'utf8');
+function expect(value,message){if(!value)throw new Error(message);}
+
+const version=text('VERSION').trim();
+expect(/^0\.9\.[0-9]+-(?:beta|rc)\.[0-9]+$/.test(version),'prerelease_version_file_invalid');
+expect(JSON.parse(text('package.json')).version===version,'package_version_mismatch');
+expect(text('LICENSE').includes('Apache License')&&text('LICENSE').includes('Version 2.0'),'apache_license_missing');
+expect(text('NOTICE').includes('Light Remote MCP'),'notice_missing');
+expect(text('package.json').includes('"license": "Apache-2.0"'),'root_package_license_missing');
+expect(text('gateway/package.json').includes('"license": "Apache-2.0"'),'gateway_package_license_missing');
+expect(text('deploy/server-linux/install.sh').includes('--wall-bind'),'server_wall_bind_option_missing');
+expect(text('deploy/server-linux/install.sh').includes('OPERATOR_PUBLIC_KEYS_JSON value'),'server_public_key_handoff_missing');
+expect(text('.github/workflows/server-linux-build.yml').includes('arch: [x64, arm64]'),'server_arch_matrix_missing');
+expect(text('deploy/server-linux/build-bundle.sh').includes('device-agent/platform-adapters'),'server_bundle_platform_adapters_missing');
+expect(text('.github/workflows/server-linux-build.yml').includes('server-linux-runtime-smoke=PASS'),'server_runtime_smoke_ci_missing');
+const linuxClientWorkflow=text('.github/workflows/linux-client-build.yml'),macosClientWorkflow=text('.github/workflows/macos-client-build.yml'),betaWorkflow=text('.github/workflows/beta-release.yml');
+expect(linuxClientWorkflow.includes('Light-Remote-MCP-Client-Linux-${{ matrix.arch }}-*.tar.gz'),'linux_client_artifact_upload_name_mismatch');
+expect(linuxClientWorkflow.includes('dist/linux/${{ matrix.arch }}/deb/*.deb'),'debian_artifact_upload_missing');
+expect(macosClientWorkflow.includes('arch: x64')&&macosClientWorkflow.includes('arch: arm64')&&macosClientWorkflow.includes('dist/macos/${{ matrix.arch }}/pkg/*.pkg'),'macos_distribution_matrix_missing');
+expect(betaWorkflow.includes('macos-client:')&&betaWorkflow.includes('light-remote_*.deb')&&betaWorkflow.includes('Light-Remote-*.pkg'),'beta_release_cross_platform_assets_missing');
+expect(!linuxClientWorkflow.includes('GPT-Operator-Agent-Linux-${{ matrix.arch }}-dev.tar.gz'),'stale_linux_client_artifact_name_present');
+expect(text('.github/workflows/vercel-bridge-package.yml').includes('vercel-bridge-package-contract=PASS'),'vercel_bundle_ci_missing');
+expect(text('lib/operator-crypto.js').includes('OPERATOR_PUBLIC_KEYS_JSON'),'vercel_public_key_env_override_missing');
+const readmeVi=text('README.md'),readmeEn=text('README.en.md');
+expect(readmeVi.includes('## Quick start')&&readmeVi.includes('### Bước 5 — cho ChatGPT Web kết nối tới đúng máy'),'readme_vi_user_quickstart_missing');
+expect(readmeEn.includes('## Quick start for low-tech users')&&readmeEn.includes('### Step 5 — connect ChatGPT Web to the exact machine'),'readme_en_user_quickstart_missing');
+expect(readmeVi.includes('connection-helper')&&readmeVi.includes('Vercel bridge URL'),'readme_connection_helper_vercel_path_missing');
+expect(text('api/guide.js').includes("directMcp:'Business/Enterprise/Edu test/future Plugin lane only'"),'direct_mcp_boundary_contract_missing');
+const workspaceProbe=spawnSync(process.execPath,['--input-type=module','-e',
+  "import {rootNames} from './gateway/workspace.mjs'; console.log(JSON.stringify(rootNames()));"],{
+  cwd:root,encoding:'utf8',env:{...process.env,MCP_WORKSPACE_ROOTS_JSON:'{"project":"/workspace/project"}'}
+});
+expect(workspaceProbe.status===0,`workspace_probe_failed:${workspaceProbe.stderr}`);
+expect(workspaceProbe.stdout.trim()==='["project"]','workspace_env_not_authoritative');
+
+for(const script of ['deploy/server-linux/install.sh','deploy/server-linux/build-bundle.sh','deploy/vercel/build-bundle.sh']){
+  const check=spawnSync('bash',['-n',path.join(root,script)],{encoding:'utf8'});
+  expect(check.status===0,`${script}_syntax:${check.stderr}`);
+}
+
+const out=fs.mkdtempSync(path.join(os.tmpdir(),'lrm-vercel-bundle-'));
+try{
+  const build=spawnSync('bash',[path.join(root,'deploy/vercel/build-bundle.sh')],{cwd:root,encoding:'utf8',env:{...process.env,OUT_DIR:out}});
+  expect(build.status===0,`vercel_bundle_build_failed:${build.stderr}`);
+  const archive=path.join(out,`Light-Remote-MCP-Vercel-Bridge-${version}.tar.gz`);
+  expect(fs.existsSync(archive),'vercel_bundle_missing');
+  const listing=spawnSync('tar',['-tzf',archive],{encoding:'utf8'});
+  expect(listing.status===0,'vercel_bundle_tar_invalid');
+  for(const required of ['api/operator.js','lib/operator-crypto.js','DEPLOY.md','LICENSE','NOTICE','vercel.json','operator-public-keys.json'])
+    expect(listing.stdout.includes(`light-remote-mcp-vercel/${required}`),`vercel_bundle_missing:${required}`);
+  const extract=spawnSync('tar',['-xzf',archive,'-C',out,'light-remote-mcp-vercel/operator-public-keys.json'],{encoding:'utf8'});
+  expect(extract.status===0,'vercel_placeholder_key_extract_failed');
+  const placeholder=JSON.parse(fs.readFileSync(path.join(out,'light-remote-mcp-vercel/operator-public-keys.json'),'utf8'));
+  expect(!placeholder.currentKid&&Object.keys(placeholder.keys||{}).length===0,'vercel_bundle_must_not_ship_reference_operator_key');
+} finally { fs.rmSync(out,{recursive:true,force:true}); }
+
+console.log('v09-distribution-license=PASS');
+console.log('v09-distribution-selfhost-contract=PASS');
+console.log('v09-distribution-vercel-bundle=PASS');

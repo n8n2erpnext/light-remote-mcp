@@ -1,0 +1,65 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {maybeInlineExecStdout} from '../../plugin-server/exec-inline-output.mjs';
+const finished={ok:true,data:null,job:{jobId:'job-1',state:'ok',running:false,exitCode:0}};
+let calls=0;
+const adapter={output:async(jobId,stream,offset,limit,full)=>{calls++;assert.equal(jobId,'job-1');assert.equal(stream,'stdout');assert.equal(offset,0);assert.equal(full,false);assert.equal(limit,1536);return{output:'OK\n',totalBytes:3,hasMore:false};}};
+const initial=await maybeInlineExecStdout(finished,adapter,{});
+assert.deepEqual(initial,finished);assert.equal(calls,0);
+console.log('G3_INLINE_STDOUT_DEFAULT_COMPATIBILITY_NO_EXTRA_CALL=PASS');
+const ready=await maybeInlineExecStdout(finished,adapter,{inlineStdout:true});
+assert.equal(ready.inlineStdout.complete,true);
+assert.equal(ready.inlineStdout.output,'OK\n');
+assert.equal(ready.job.jobId,'job-1');
+assert.equal(calls,1);
+console.log('G3_INLINE_STDOUT_SMALL_SUCCESS_ONE_MCP_RESULT=PASS');
+const big=await maybeInlineExecStdout(finished,{output:async()=>({output:'a'.repeat(1536),totalBytes:6000,hasMore:true})},{inlineStdout:true});
+assert.equal(big.inlineStdout.complete,false);
+assert.equal(big.inlineStdout.reason,'use_light_remote_output');
+assert.equal(big.inlineStdout.output,undefined);
+console.log('G3_INLINE_STDOUT_LARGE_DATA_NOT_INJECTED=PASS');
+const pending=await maybeInlineExecStdout({...finished,job:{...finished.job,running:true,state:'running'}},{output:async()=>{throw Error('must_not_read')}},{inlineStdout:true});
+assert.equal(pending.inlineStdout,undefined);
+const denied=await maybeInlineExecStdout({...finished,ok:false},{output:async()=>{throw Error('must_not_read')}},{inlineStdout:true});
+assert.equal(denied.inlineStdout,undefined);
+console.log('G3_INLINE_STDOUT_PENDING_OR_DENIED_UNCHANGED=PASS');
+const fallback=await maybeInlineExecStdout(finished,{output:async()=>{throw Error('transient_canonical_output_error')}},{inlineStdout:true});
+assert.equal(fallback.ok,true);assert.equal(fallback.job.jobId,'job-1');
+assert.equal(fallback.inlineStdout.complete,false);
+console.log('G3_INLINE_STDOUT_ERROR_RECOVERABLE_CANONICAL_JOBID=PASS');
+
+const failed={ok:false,data:null,error:'command_exit_nonzero',
+ layer:'command_execution',retryable:false,executionCompleted:true,
+ commandSucceeded:false,job:{jobId:'nonzero-7',state:'error',running:false,exitCode:7}};
+const streams=[];
+const failedOut=await maybeInlineExecStdout(failed,{
+ output:async(id,stream,offset,limit,full)=>{
+  assert.equal(id,'nonzero-7');assert.equal(offset,0);assert.equal(limit,1536);
+  assert.equal(full,false);streams.push(stream);
+  return {output:stream==='stdout'?'FAILED_OUT':'FAILED_ERR',
+    totalBytes:10,hasMore:false};
+ }
+},{inlineStdout:true});
+assert.equal(failedOut.ok,false);
+assert.equal(failedOut.executionCompleted,true);
+assert.equal(failedOut.commandSucceeded,false);
+assert.equal(failedOut.inlineStdout.output,'FAILED_OUT');
+assert.equal(failedOut.inlineStderr.output,'FAILED_ERR');
+assert.deepEqual(streams,['stdout','stderr']);
+assert.equal(failedOut.job.jobId,'nonzero-7');
+// Do not inline output for policy error even if error job has exitCode 7.
+const rejected=await maybeInlineExecStdout({...failed,
+ error:'filesystem_path_outside_allowed_roots',executionCompleted:undefined},
+ {output:async()=>{throw Error('should_not_fetch_denied_output')}},{inlineStdout:true});
+assert.equal(rejected.inlineStdout,undefined);
+console.log('GOLD_EXEC_NONZERO_SMALL_STDOUT_STDERR_INLINE_RECEIPT=PASS');
+const source=fs.readFileSync(new URL('../../plugin-server/tools.mjs',import.meta.url),'utf8');
+assert.ok(source.includes('inlineStdout:z.boolean().optional()'));
+assert.ok(source.includes('maybeInlineExecStdout(completedExecOutcome(await a.exec'));
+assert.ok(source.includes("process.env.LIGHT_REMOTE_GOLD_INDEPENDENT==='1'&&process.env.LIGHT_REMOTE_GOLD_INLINE_STDOUT_DEFAULT==='1'"));
+assert.ok(source.includes('inlineStdout:x.inlineStdout??goldAutoInlineStdout'));
+console.log('G3_INLINE_STDOUT_GOLD_TOOL_SCHEMA=PASS');
+const switchScript=fs.readFileSync(new URL('./gold-g3-uat-inline-stdout-switch.sh',import.meta.url),'utf8');
+for(const proof of ['G3_INLINE_OPT_IN','gold_not_idle_ready_strict','LIGHT_REMOTE_GOLD_INLINE_STDOUT_DEFAULT=1','G3_GOLD_INLINE_ROLLBACK_PLUGIN_ACTIVE'])
+  assert.ok(switchScript.includes(proof),'gold_only_inline_switch_lacks_guard:'+proof);
+console.log('G3_INLINE_STDOUT_GOLD_ONLY_RUNTIME_SWITCH_GUARDS=PASS');

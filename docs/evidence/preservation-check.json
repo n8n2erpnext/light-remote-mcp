@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-11-08T10:28:09.307114+00:00",
+  "oldPrimaryRefs": 227,
+  "oldPrimaryRefsUnchanged": true,
+  "oldCanonicalHeads": {
+    "main": "f2e0880f829e8cbd10ac7e885d6c77e77dc5cea5",
+    "desktop": "eb9a6487c371b072cd5e52cb098fd6873abe3a49",
+    "gold": "a80d5ebe0644766e7b4c4dfd3ca2d18beff18209"
+  },
+  "oldSourceRuntimeAndBusinessDataMutatedByReconstruction": false,
+  "oldDatabaseInspection": "BEGIN READ ONLY / SELECT / INFO server only",
+  "AMD": "OUT_OF_SCOPE per Owner confirmation"
+}

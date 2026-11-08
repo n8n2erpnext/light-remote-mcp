@@ -1,0 +1,13 @@
+[
+  {
+    "container": "light-remote-gold-uat",
+    "root": "/opt/light-remote-gold-uat-candidates/49b0a2e9f98640a6081b54481858e765125b9f9e",
+    "candidateCommit": "49b0a2e9f98640a6081b54481858e765125b9f9e",
+    "fingerprintedFiles": 941,
+    "comparedGitPaths": 941,
+    "mismatchedPaths": [],
+    "nonCommitPaths": [],
+    "allFingerprintedTrackedSourceMatches": true,
+    "scope": "Source fingerprint subset; not a claim about third-party binaries or unobserved files."
+  }
+]

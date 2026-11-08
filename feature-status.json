@@ -1,0 +1,473 @@
+{
+  "schemaVersion": 1,
+  "features": [
+    {
+      "feature": "Device identity/enrollment",
+      "source": "device-agent/",
+      "backend": "signed enrolled channel",
+      "historicalEvidence": "historical/source",
+      "remaining": "new candidate Agent needed",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SCOPED_API_PASS",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Short ID",
+      "source": "lib/gold-short-id.mjs",
+      "backend": "core043 immutable SQL identity",
+      "historicalEvidence": "source",
+      "remaining": "real enrolled-device exercise",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "A/B V2 consent/approval",
+      "source": "device-agent/ + operator-host/",
+      "backend": "Wall/account signed routes",
+      "historicalEvidence": "historical Wall physical 4dddf511",
+      "remaining": "new candidate signed B",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Owner/Agent grants",
+      "source": "operator-host/",
+      "backend": "native AB ledger",
+      "historicalEvidence": "source",
+      "remaining": "device-bound positive/negative integration",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Session lifecycle/durable sessions",
+      "source": "lib/ + operator-host/",
+      "backend": "PG receipts / Redis retained sessions",
+      "historicalEvidence": "source",
+      "remaining": "restart with live candidate Agent",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Remote command",
+      "source": "device-agent/",
+      "backend": "signed device command channel",
+      "historicalEvidence": "historical Wall physical 4dddf511",
+      "remaining": "new candidate Agent",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "PTY/ConPTY",
+      "source": "device-agent/ + client/",
+      "backend": "PTY bridge/native Windows",
+      "historicalEvidence": "source",
+      "remaining": "physical Windows ConPTY",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Managed processes",
+      "source": "lib/managed-processes.mjs",
+      "backend": "device tool dispatch",
+      "historicalEvidence": "source",
+      "remaining": "new Agent integration",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Files/SCP",
+      "source": "device-agent/ + lib/",
+      "backend": "device filesystem/SCP integrity",
+      "historicalEvidence": "source",
+      "remaining": "cross-platform integration",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Live logs/history",
+      "source": "device-agent/local-wall.mjs",
+      "backend": "bounded live/retained history",
+      "historicalEvidence": "source",
+      "remaining": "new deployed Wall",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Account management",
+      "source": "operator-host/account-registry.mjs",
+      "backend": "Portal + native PG",
+      "historicalEvidence": "source",
+      "remaining": "real DEV acceptance",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SCOPED_API_PASS",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Main Device/Fleet",
+      "source": "operator-host/",
+      "backend": "account-bound device APIs",
+      "historicalEvidence": "source",
+      "remaining": "candidate multi-device exercise",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Policies",
+      "source": "device-agent/",
+      "backend": "local effective policy enforcement",
+      "historicalEvidence": "source",
+      "remaining": "native platform acceptance",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Signed device communications",
+      "source": "lib/ + operator-host/",
+      "backend": "enrollment signature/freshness checks",
+      "historicalEvidence": "source",
+      "remaining": "candidate enrolled Agent",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Recovery/update/rollback",
+      "source": "client/ + deploy/",
+      "backend": "signed update/helper flow",
+      "historicalEvidence": "historical/source",
+      "remaining": "new CI installer + physical rollback",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Long Memory",
+      "source": "device-agent/ + operator-host/",
+      "backend": "local module/sync/delete flows",
+      "historicalEvidence": "source",
+      "remaining": "deployed UI state acceptance",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Owner Login",
+      "source": "client/desktop-v4/src-tauri/src/owner_login.rs",
+      "backend": "Portal consent/PKCE/native token",
+      "historicalEvidence": "historical physical 4dddf511",
+      "remaining": "new real DEV + native artifact",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SCOPED_API_PASS",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Persistent Owner session",
+      "source": "client/desktop-v4/src-tauri/src/owner_login.rs",
+      "backend": "secure native vault / rotating family",
+      "historicalEvidence": "historical process cold restore",
+      "remaining": "new native vault acceptance",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Owner Logout",
+      "source": "client/desktop-v4/",
+      "backend": "family revoke + vault clear",
+      "historicalEvidence": "source",
+      "remaining": "real DEV revoke + native clear",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SCOPED_API_PASS",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Local Wall SSO",
+      "source": "client/desktop-v4/ + plugin-server/",
+      "backend": "mTLS issuer + signed enrolled relay",
+      "historicalEvidence": "source",
+      "remaining": "positive candidate relay + native bootstrap",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "BACKEND_ISSUER_PASS; LOCAL_WIRING_MISSING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Native Agent IPC",
+      "source": "client/desktop-v4/ + client/windows-native/",
+      "backend": "named pipe/native binding",
+      "historicalEvidence": "historical pending read 4dddf511",
+      "remaining": "new Windows IPC acceptance",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Device overview",
+      "source": "client/desktop-v4/",
+      "backend": "Owner snapshot",
+      "historicalEvidence": "source",
+      "remaining": "real DEV + deployed UI",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SCOPED_API_PASS",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Device link/relink",
+      "source": "client/desktop-v4/ + client/",
+      "backend": "Owner/local Agent identity boundary",
+      "historicalEvidence": "source",
+      "remaining": "new Windows candidate",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "AI Access/pending approvals",
+      "source": "client/desktop-v4/",
+      "backend": "A/B pending read/approve gate",
+      "historicalEvidence": "historical pending read only",
+      "remaining": "new native approval not inferred",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Active grants",
+      "source": "client/desktop-v4/",
+      "backend": "Owner snapshot grants page",
+      "historicalEvidence": "source",
+      "remaining": "real DEV + granted device fixture",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Sessions/activity/jobs",
+      "source": "client/desktop-v4/",
+      "backend": "typed snapshot pages PG/Redis",
+      "historicalEvidence": "source",
+      "remaining": "real DEV and retention markers",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SCOPED_API_PASS",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Inventory/usage",
+      "source": "client/desktop-v4/",
+      "backend": "bounded device/usage pages",
+      "historicalEvidence": "source",
+      "remaining": "real DEV typed pages",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SCOPED_API_PASS",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Logs/settings",
+      "source": "client/desktop-v4/",
+      "backend": "native/local settings bridge",
+      "historicalEvidence": "source",
+      "remaining": "new Windows acceptance",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Fleet/account screens",
+      "source": "client/desktop-v4/",
+      "backend": "account/device routes",
+      "historicalEvidence": "source",
+      "remaining": "multi-device candidate",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Windows tray/Open Wall/update status",
+      "source": "client/",
+      "backend": "C# host + Tauri launch/environment",
+      "historicalEvidence": "historical installed artifact",
+      "remaining": "new package/physical",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "RM V2",
+      "source": "client/ + device-agent/",
+      "backend": "native helpers/visual lease/task flow",
+      "historicalEvidence": "source/historical scoped",
+      "remaining": "new platform acceptance",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Project Continuity",
+      "source": "device-agent/project-continuity-*.mjs",
+      "backend": "restored standalone source",
+      "historicalEvidence": "RESTORED_ONLY",
+      "remaining": "core wiring / Windows DACL",
+      "layers": {
+        "implementation": "RESTORED_ONLY",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "NOT_IN_ACTIVE_PROFILE_OR_FULL_PACKAGE",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Chrome LM extension",
+      "source": "extensions/light-remote-lm-abv2/",
+      "backend": "restored complete bundle",
+      "historicalEvidence": "RESTORED_ONLY",
+      "remaining": "modern Wall compatibility",
+      "layers": {
+        "implementation": "RESTORED_ONLY",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "NOT_IN_ACTIVE_PROFILE_OR_FULL_PACKAGE",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "RC50 portability",
+      "source": "platform-v2/",
+      "backend": "restored prototype modules",
+      "historicalEvidence": "RESTORED_ONLY",
+      "remaining": "active runtime wiring",
+      "layers": {
+        "implementation": "RESTORED_ONLY",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "NOT_IN_ACTIVE_PROFILE_OR_FULL_PACKAGE",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Guest/pro-share",
+      "source": "platform-v2/sql/044_gold_pro_share.sql",
+      "backend": "native Guest incomplete",
+      "historicalEvidence": "MISSING",
+      "remaining": "finish native wiring before schema enable",
+      "layers": {
+        "implementation": "MISSING",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "NOT_IN_ACTIVE_PROFILE_OR_FULL_PACKAGE",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "macOS/Linux full packages",
+      "source": "client/ + deploy/",
+      "backend": "historical build recipes/native source",
+      "historicalEvidence": "UNKNOWN_NEW_PACKAGE",
+      "remaining": "exact-commit packaging",
+      "layers": {
+        "implementation": "UNKNOWN_NEW_PACKAGE",
+        "dev": "SEE_REMAINING",
+        "nativeCI": "NOT_IN_ACTIVE_PROFILE_OR_FULL_PACKAGE",
+        "newPhysical": "NOT_RUN"
+      }
+    }
+  ]
+}

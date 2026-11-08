@@ -1,0 +1,66 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+const root=new URL('../../',import.meta.url);
+const read=(path)=>readFileSync(new URL(path,root),'utf8');
+const tray=read('client/windows-native/GptOperator.Client/TrayApplicationContext.cs');
+const agentHost=read('client/windows-native/GptOperator.Client/AgentHost.cs');
+const supervisor=read('client/windows-native/GptOperator.Client/AgentSupervisor.cs');
+const agent=read('device-agent/operator-agent.mjs');
+const wf=read('.github/workflows/windows-native-client.yml');
+
+assert.ok(tray.includes('new("Link / Relink")') ||
+          tray.includes('new("Relink this Windows PC…")'), 'native or prior relink item required');
+if(tray.includes('new("Link / Relink")')){
+ assert.match(tray,/ContextMenuStrip = menu/);
+ assert.doesNotMatch(tray,/new TrayPopoverForm\(/);
+ assert.match(tray,/_relink.Visible = true/);
+}
+assert.match(tray,/menu\.Items\.Add\(_relink\)/);
+assert.match(tray,/_relink\.Click \+= async \(_, _\) => await RelinkWindowsAsync\(\)/);
+assert.match(tray,/previouslyEnrolled \? new\[\] \{ "login", "--reenroll", "--no-wait" \}/);
+assert.match(tray,/MessageBoxButtons\.YesNo, MessageBoxIcon\.Question, MessageBoxDefaultButton\.Button2/);
+assert.match(tray,/status\.PendingEnrollmentId/);
+assert.match(tray,/AgentAsync\("poll"\)/);
+assert.match(tray,/if \(state == "approved"\)/);
+assert.match(tray,/Task\.Run\(RestartAgentTransactional\)/);
+assert.match(tray,/return sawDown && back \? \(true,""\)/);
+assert.match(tray,/newState\.CloudState\.Equals\("connected"/);
+assert.match(tray,/var cloud = await AgentAsync\("connect"\)/);
+assert.match(tray,/connected = newState\.Enrolled && newState\.CloudDesiredConnected/);
+assert.match(tray,/TrustedEnrollmentActivationUrl\(activation, ConnectionConfig\.Load\(\)\.BridgeUrl\)/);
+assert.match(tray,/source\.IsLoopback && source\.Port == 5583/);
+assert.ok(tray.includes(String.raw`@"^\?id=`), 'activation query must match literal question mark');
+assert.ok(!tray.includes(String.raw`@"^\\?id=`), 'double escaped question mark rejected');
+assert.match(tray,/source\.IdnHost\.Equals\(bridge\.IdnHost/);
+assert.match(tray,/Uri\.EscapeDataString\(match\.Groups\[1\]\.Value\)/);
+assert.match(tray,/TrustedEnrollmentActivationUrl\("https:\/\/evil\.example\/enroll\?id="/);
+assert.match(tray,/RelinkRuntimeSelfTest\(\)/);
+assert.match(tray,/Clipboard\.SetText\(code\)/);
+assert.match(tray,/if \(completing\) _busy = false/);
+assert.doesNotMatch(tray,/File\.Delete\(AppPaths\.StateFile\)/);
+
+assert.match(agentHost,/internal static void ConfigureRealRemoteEnvironment\(ProcessStartInfo psi\)/);
+assert.match(agentHost,/File\.Exists\(companion\)/);
+assert.match(agentHost,/psi\.Environment\["LIGHT_REMOTE_REAL_REMOTE"\] = "1"/);
+assert.match(agentHost,/psi\.Environment\["LIGHT_REMOTE_CLIENT_EXE"\] = companion/);
+assert.match(agentHost,/psi\.Environment\.Remove\("LIGHT_REMOTE_CLIENT_EXE"\)/);
+assert.match(agentHost,/ConfigureRealRemoteEnvironment\(psi\)/);
+assert.match(agentHost,/while \(true\)/, 'agent host must survive daemon crashes');
+assert.match(agentHost,/NextFailureCount\(failures, uptime\.Elapsed\)/);
+assert.match(agentHost,/RestartDelay\(failures\)/);
+assert.match(agentHost,/Thread\.Sleep\(delay\)/);
+assert.match(agentHost,/job = CreateKillOnCloseJob\(\)/);
+assert.match(agentHost,/if \(job != IntPtr\.Zero\) CloseHandle\(job\)/);
+assert.match(agentHost,/NextFailureCount\(7, HealthyRunWindow\) == 1/);
+assert.match(read('client/windows-native/GptOperator.Client/Program.cs'),/AgentHost\.SelfTestRestartPolicy\(\)/);
+assert.match(tray,/AgentHost\.ConfigureRealRemoteEnvironment\(p\)/);
+assert.match(supervisor,/AgentHost\.ConfigureRealRemoteEnvironment\(psi\)/);
+assert.match(supervisor,/enrolled \? "login --reenroll --no-wait" : "login --no-wait"/);
+assert.match(agent,/if\(state\.enrollment\?\.deviceId&&!args\.reenroll&&!args\.relink\)/);
+assert.match(agent,/if\(e\.state==='approved'\)/);
+assert.match(agent,/desiredConnected:false,state:'dormant'/);
+assert.match(wf,/runs-on: windows-latest/);
+assert.match(wf,/Gold Windows tray Relink regression/);
+assert.match(wf,/LIGHT_REMOTE_BUILD_PROFILE: goldabv2-desktop-v4/);
+console.log('GOLD_WINDOWS_RELINK_RM_STABILITY_CONTRACT_PASS');

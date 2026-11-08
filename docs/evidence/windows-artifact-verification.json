@@ -1,0 +1,17 @@
+{
+  "id": 13613101863,
+  "name": "light-remote-desktop-v4-COMPLETE-windows-x64-eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
+  "bytes": 180458474,
+  "sha256": "5aef8c6071ddb36f8df888d223812e7a3bdf4f4f149cc49ee2a6812bdda0e76c",
+  "verified": true,
+  "installerSha256": "2c2c7a8a94638a1dbbed378a289d562d53b696a1dcece6d6684f39ca5dc6e41e",
+  "sourceCommit": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
+  "sourceTree": "d517bb7b10bb99af6db346eff4e1f53af6f416a9",
+  "zipFiles": [
+    "Light-Remote-MCP-Setup-x64.exe",
+    "SHA256SUMS.txt",
+    "BUILD_MANIFEST.json",
+    "F16_OWNER_UAT_INTAKE.json"
+  ],
+  "path": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/recovery/ci-artifacts/13613101863.zip"
+}

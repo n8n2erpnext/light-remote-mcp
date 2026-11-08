@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const src=readFileSync(new URL('../../device-agent/local-wall.mjs',import.meta.url),'utf8');
+assert.match(src,/const visibleStatus=j\.stopRequested&&j\.status==='running'\?'stopping':j\.status\|\|'running'/);
+assert.equal((src.match(/esc\(visibleStatus\)/g)||[]).length,2,'status class and label must use the same display state');
+assert.match(src,/\.hold,\.running,\.stopping\{color:/);
+assert.match(src,/else j\.stopRequested=true; \/\/ Running stays visible until signed terminal result/);
+assert.match(src,/j\.stopRequested=true; \/\/ Only a signed terminal result changes primary status/);
+assert.match(src,/e\.type==='job_finished'[\s\S]*?stopRequested:false/);
+assert.match(src,/j\.status==='running'\|\|j\.status==='queued'/);
+console.log('P0_WALL_RUNNING_TO_VISIBLE_STOPPING_TO_SIGNED_TERMINAL_CONTRACT_PASS');

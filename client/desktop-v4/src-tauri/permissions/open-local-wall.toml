@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-open-local-wall"
+description = "Open exactly this device's predefined Local Wall Home or Activity Logs in its default browser."
+commands.allow = ["open_local_wall", "probe_local_wall"]

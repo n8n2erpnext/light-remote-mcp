@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${LIGHT_REMOTE_ROOT:-/opt/gpt-operator-agent}"
+SERVICE="${LIGHT_REMOTE_SERVICE:-gpt-operator-device-agent.service}"
+AGENT="$ROOT/current/device-agent/operator-agent.mjs"
+NODE="$ROOT/current/runtime/node"
+
+die(){ printf 'Light Remote: %s\n' "$*" >&2; exit 2; }
+as_root(){
+  if [[ $EUID -eq 0 ]]; then "$@";
+  else command -v sudo >/dev/null 2>&1 || die "sudo is required for service changes"; sudo "$@"; fi
+}
+
+TARGET_USER="$(systemctl show "$SERVICE" --property=User --value 2>/dev/null || true)"
+[[ -n "$TARGET_USER" ]] || TARGET_USER="${SUDO_USER:-${USER:-$(id -un)}}"
+TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+[[ -n "$TARGET_HOME" ]] || die "unable to determine home for $TARGET_USER"
+STATE_FILE="$TARGET_HOME/.config/gpt-operator-agent/device.json"
+
+run_as_target(){
+  if [[ "$(id -un)" == "$TARGET_USER" ]]; then
+    "$@"
+  elif [[ $EUID -eq 0 ]] && command -v runuser >/dev/null 2>&1; then
+    runuser -u "$TARGET_USER" -- "$@"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo -u "$TARGET_USER" "$@"
+  else
+    die "run this command as $TARGET_USER or install sudo"
+  fi
+}
+
+BASE_URL="https://light-remote.thaiduy.digital"
+HUB_URL="$BASE_URL"
+WALL_HOST="127.0.0.1"
+WALL_PORT="5491"
+SERVICE_ENV="$(systemctl show "$SERVICE" --property=Environment --value 2>/dev/null || true)"
+for item in $SERVICE_ENV; do
+  case "$item" in
+    OPERATOR_AGENT_BASE_URL=*) BASE_URL="${item#*=}";;
+    OPERATOR_AGENT_HUB_URL=*) HUB_URL="${item#*=}";;
+    OPERATOR_AGENT_WALL_HOST=*) WALL_HOST="${item#*=}";;
+    OPERATOR_AGENT_WALL_PORT=*) WALL_PORT="${item#*=}";;
+  esac
+done
+BASE_URL="${BASE_URL%\"}"; BASE_URL="${BASE_URL#\"}"
+HUB_URL="${HUB_URL%\"}"; HUB_URL="${HUB_URL#\"}"
+WALL_HOST="${WALL_HOST%\"}"; WALL_HOST="${WALL_HOST#\"}"
+WALL_PORT="${WALL_PORT%\"}"; WALL_PORT="${WALL_PORT#\"}"
+
+agent(){
+  [[ -x "$NODE" && -f "$AGENT" ]] || die "Light Remote runtime is not installed"
+  run_as_target env HOME="$TARGET_HOME" OPERATOR_AGENT_STATE="$STATE_FILE" OPERATOR_AGENT_BASE_URL="$BASE_URL" OPERATOR_AGENT_HUB_URL="$HUB_URL" OPERATOR_AGENT_WALL_HOST="$WALL_HOST" OPERATOR_AGENT_WALL_PORT="$WALL_PORT" "$NODE" "$AGENT" "$@"
+}
+
+refresh_service_policy(){
+  local helper="$ROOT/current/device-agent/linux-service-policy.mjs"
+  local unit="/etc/systemd/system/$SERVICE"
+  local no_new restrict_suid clear_caps cap_line
+  [[ -f "$STATE_FILE" ]] || die "device enrollment state is missing"
+  [[ -f "$helper" && -f "$unit" ]] || die "Linux service policy files are missing"
+  no_new="$("$NODE" "$helper" "$STATE_FILE" noNewPrivileges)"
+  restrict_suid="$("$NODE" "$helper" "$STATE_FILE" restrictSuidSgid)"
+  clear_caps="$("$NODE" "$helper" "$STATE_FILE" clearCapabilityBoundingSet)"
+  for value in "$no_new" "$restrict_suid" "$clear_caps"; do
+    [[ "$value" == "true" || "$value" == "false" ]] || die "invalid Linux service policy helper output"
+  done
+  if [[ "$clear_caps" == "true" ]]; then
+    cap_line='CapabilityBoundingSet='
+  else
+    cap_line='# CapabilityBoundingSet left at the system default for approved sudo-on-demand'
+  fi
+  as_root sed -i -E \
+    -e "s|^NoNewPrivileges=.*|NoNewPrivileges=$no_new|" \
+    -e "s|^RestrictSUIDSGID=.*|RestrictSUIDSGID=$restrict_suid|" \
+    -e "s|^(# )?CapabilityBoundingSet.*|$cap_line|" \
+    "$unit"
+  grep -q "^NoNewPrivileges=$no_new$" "$unit" || die "failed to refresh NoNewPrivileges"
+  grep -q "^RestrictSUIDSGID=$restrict_suid$" "$unit" || die "failed to refresh RestrictSUIDSGID"
+}
+
+wall_health(){
+  local code pid
+  for _ in {1..40}; do
+    pid="$(systemctl show "$SERVICE" -p MainPID --value 2>/dev/null || echo 0)"
+    code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 1 "http://$WALL_HOST:$WALL_PORT/" 2>/dev/null || true)"
+    if systemctl is-active --quiet "$SERVICE" && [[ "$pid" =~ ^[1-9][0-9]*$ ]] && [[ "$code" =~ ^(200|303|401)$ ]]; then
+      return 0
+    fi
+    sleep .5
+  done
+  systemctl --no-pager --full status "$SERVICE" | sed -n '1,24p' >&2 || true
+  die "service failed post-enrollment health gate"
+}
+
+# The separate CLI layer keeps device status JSON available for automation.
+CLI_COMMANDS="$ROOT/current/client/linux/cli-commands.sh"
+[[ -f "$CLI_COMMANDS" ]] || die "CLI commands missing from installed release"
+# shellcheck source=client/linux/cli-commands.sh
+source "$CLI_COMMANDS"

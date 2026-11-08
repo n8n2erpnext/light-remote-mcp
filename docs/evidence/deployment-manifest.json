@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
+  "sourceTree": "d517bb7b10bb99af6db346eff4e1f53af6f416a9",
+  "projectVersion": "0.10.0-dev.1",
+  "apiContractVersion": "light-remote.api.v1",
+  "profile": "goldabv2-desktop-v4",
+  "candidateId": "lru-eb6b2e6eee-100808",
+  "candidateImage": "sha256:756e503b7ab6e8d4f1aa256c4ffad05dfe565d347dfda1dbdf9b4548186d176b",
+  "components": {
+    "agent": "0.10.0-dev.1",
+    "plugin": "0.10.0-dev.1",
+    "operator": "0.10.0-dev.1",
+    "wall": "0.10.0-dev.1",
+    "desktop": "0.10.0-dev.1"
+  },
+  "desktopArtifactId": 13613101863,
+  "desktopInstalledOnOwnerWindows": false,
+  "backendContainers": [
+    {
+      "name": "lru-eb6b2e6eee-100808-pg",
+      "running": true,
+      "image": "sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b",
+      "publishedHostPorts": []
+    },
+    {
+      "name": "lru-eb6b2e6eee-100808-redis",
+      "running": true,
+      "image": "sha256:09160599abd229764c0fb44cb6be640294e1d360a54b19985ab4843dcf2d90f1",
+      "publishedHostPorts": []
+    },
+    {
+      "name": "lru-eb6b2e6eee-100808-app",
+      "running": true,
+      "image": "sha256:756e503b7ab6e8d4f1aa256c4ffad05dfe565d347dfda1dbdf9b4548186d176b",
+      "publishedHostPorts": []
+    }
+  ],
+  "networkInternal": true,
+  "publicHostPorts": [],
+  "schema": {
+    "coreThrough": 43,
+    "extensions": [
+      {
+        "id": "owner-authority.v1",
+        "sha256": "218ada24591311b9bd9fa492726a728190bb3f2a8053b6b4f8499e713d925f8d"
+      }
+    ]
+  },
+  "devChecks": 21,
+  "physicalAcceptance": false,
+  "verifiedAt": "2026-11-08T10:28:09.307114+00:00"
+}

@@ -1,0 +1,108 @@
+name: GoldABV2 Desktop V4 isolated Windows Agent QA
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/goldabv2-desktop-owner-lab-20261103
+    paths:
+      - '.github/workflows/goldabv2-desktop-v4-windows-agent-qa.yml'
+      - 'deploy/windows-goldabv2-v4-qa/**'
+      - 'device-agent/desktop-abv2-native-ipc-v4.mjs'
+      - 'device-agent/desktop-abv2-native-ipc-v4.test.mjs'
+      - 'device-agent/operator-agent.mjs'
+      - 'client/core-files.json'
+      - 'package.json'
+      - 'package-lock.json'
+permissions:
+  contents: read
+jobs:
+  build-isolated-agent:
+    name: Test Windows named pipe and package manual GoldABV2 sidecar
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+      - name: Verify isolated sidecar never modifies installed Gold
+        shell: pwsh
+        run: node deploy/scripts/selftest-goldabv2-v4-windows-qa-sidecar.mjs
+      - name: Regression test Local Wall SSE browser disconnect stays alive
+        shell: pwsh
+        run: |
+          node --test device-agent/local-wall-events-close.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Windows Local Wall SSE close regression failed' }
+      - name: Test real Windows OS named pipe Owner/Agent protocol (mock Operator only)
+        shell: pwsh
+        run: |
+          node --test device-agent/desktop-abv2-native-ipc-v4.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Windows native A/B V2 named pipe checks failed' }
+      - name: Package exact GoldABV2 signed-Agent source with separate Node 22
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $Root = Join-Path $PWD 'dist\goldabv2-desktop-v4-windows-qa'
+          $Agent = Join-Path $Root 'agent'
+          $Runtime = Join-Path $Root 'runtime'
+          $Qa = Join-Path $Root 'qa'
+          New-Item -ItemType Directory -Force -Path $Agent,$Runtime,$Qa | Out-Null
+          node deploy/scripts/stage-client-core.mjs $Agent
+          if ($LASTEXITCODE -ne 0) { throw 'Agent core staging failed' }
+          node deploy/scripts/stage-client-core.mjs --verify $Agent
+          if ($LASTEXITCODE -ne 0) { throw 'Agent core verification failed' }
+          Copy-Item package.json,package-lock.json -Destination $Agent
+          Copy-Item -LiteralPath (Get-Command node).Source -Destination (Join-Path $Runtime 'node.exe')
+          Copy-Item -LiteralPath 'deploy\windows-goldabv2-v4-qa\Invoke-GoldABV2-V4-QA.ps1' -Destination $Qa
+          Copy-Item -LiteralPath 'deploy\windows-goldabv2-v4-qa\README.md' -Destination $Qa
+          Push-Location $Agent
+          try {
+            npm ci --omit=dev --no-audit --no-fund
+            if ($LASTEXITCODE -ne 0) { throw 'Native Windows Agent dependency staging failed' }
+          } finally { Pop-Location }
+          if (-not (Test-Path (Join-Path $Agent 'node_modules'))) { throw 'No Windows Node dependencies staged' }
+          if (-not (Test-Path (Join-Path $Agent 'device-agent\desktop-abv2-native-ipc-v4.mjs'))) { throw 'Native B module missing from Agent package' }
+          if (-not (Test-Path (Join-Path $Agent 'device-agent\operator-agent.mjs'))) { throw 'Enrolled Agent entry missing from package' }
+          Write-Host 'GoldABV2 Windows QA bundle staged with separate runtime and package'
+      - name: Smoke isolated launcher without enrollment or service installation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $Root = Join-Path $PWD 'dist\goldabv2-desktop-v4-windows-qa'
+          $Entry = Join-Path $Root 'qa\Invoke-GoldABV2-V4-QA.ps1'
+          & $Entry -Action check
+          if ($LASTEXITCODE -ne 0) { throw 'QA check action failed' }
+          & $Entry -Action status
+          if ($LASTEXITCODE -ne 0) { throw 'Isolated source Agent status smoke failed' }
+          if (Test-Path (Join-Path $Root 'state\device.json')) {
+            throw 'An unapproved enrollment must not be created by QA status/check'
+          }
+          Write-Host 'QA launcher PASS: no device enrollment, tasks, services, 5491/5492 changes'
+      - name: Zip unsigned manual QA package and SHA-256 manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $Out = Join-Path $PWD 'dist\goldabv2-v4-qa-artifact'
+          $Root = Join-Path $PWD 'dist\goldabv2-desktop-v4-windows-qa'
+          New-Item -ItemType Directory -Force $Out | Out-Null
+          $Zip = Join-Path $Out 'goldabv2-desktop-v4-windows-agent-sidecar-QA.zip'
+          Compress-Archive -Path (Join-Path $Root '*') -DestinationPath $Zip -CompressionLevel Optimal
+          if (-not (Test-Path $Zip)) { throw 'QA zip missing' }
+          $Hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Zip).Hash
+          @(
+            "source_commit=${{ github.sha }}",
+            "sha256_zip=$Hash",
+            "install=NONE - unpack manually and run qa\Invoke-GoldABV2-V4-QA.ps1",
+            "agent_backend=goldabv2.light-remote.thaiduy.digital",
+            "qa_local_wall=127.0.0.1:5591",
+            "qa_fleet=127.0.0.1:5592",
+            "old_gold_5491_5492=UNCHANGED"
+          ) | Set-Content -LiteralPath (Join-Path $Out 'manifest.txt') -Encoding UTF8
+          Write-Host "QA_ZIP_SHA256=$Hash"
+      - name: Upload isolated GoldABV2 Agent QA package only
+        uses: actions/upload-artifact@v4
+        with:
+          name: goldabv2-desktop-v4-windows-agent-QA-UNSIGNED-NO-PRODUCTION-${{ github.run_id }}
+          path: dist/goldabv2-v4-qa-artifact/
+          if-no-files-found: error
+          retention-days: 7

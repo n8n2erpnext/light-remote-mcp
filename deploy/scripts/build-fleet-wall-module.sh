@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+OUT="${1:-$ROOT/dist/fleet-wall}"
+VERSION="${LIGHT_REMOTE_FLEET_VERSION:-$(tr -d '\r\n' < "$ROOT/VERSION")}"
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+  echo "invalid fleet component version: $VERSION" >&2
+  exit 2
+fi
+GIT_SHA="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+WORK="$OUT/work"
+PKG="$WORK/fleet-wall"
+rm -rf "$WORK"; mkdir -p "$PKG/device-agent" "$PKG/lib" "$PKG/gateway" "$PKG/assets/branding" "$PKG/assets/fonts/web" "$PKG/assets/icons/material" "$OUT"
+cp "$ROOT/device-agent/fleet-wall-runtime.mjs" "$PKG/device-agent/"
+cp "$ROOT/device-agent/fleet-job-page.mjs" "$PKG/device-agent/"
+cp "$ROOT/device-agent/update-settings-page.mjs" "$PKG/device-agent/"
+cp "$ROOT/device-agent/local-wall-auth.mjs" "$PKG/device-agent/"
+cp "$ROOT/lib/device-proof.mjs" "$ROOT/lib/runtime-version.mjs" "$ROOT/lib/brand.mjs" "$ROOT/lib/material-icon.mjs" "$ROOT/lib/web-typography.mjs" "$PKG/lib/"
+cp "$ROOT/gateway/dashboard.mjs" "$PKG/gateway/"
+cp "$ROOT/gateway/device-policy-page.mjs" "$PKG/gateway/"
+cp "$ROOT/gateway/brand.mjs" "$PKG/gateway/"
+cp "$ROOT/assets/branding/light-remote-mark.svg" "$PKG/assets/branding/"
+cp "$ROOT/assets/fonts/CascadiaMono.ttf" "$PKG/assets/fonts/"
+cp "$ROOT/assets/fonts/web/CascadiaCode.ttf" "$PKG/assets/fonts/web/"
+cp "$ROOT"/assets/icons/material/*.svg "$PKG/assets/icons/material/"
+cat > "$PKG/manifest.json" <<JSON
+{
+  "component": "fleet-wall",
+  "version": "$VERSION",
+  "gitSha": "$GIT_SHA",
+  "universal": true,
+  "runtime": "node>=22",
+  "port": 5492
+}
+JSON
+ART="$OUT/Light-Remote-Fleet-Wall-${VERSION}.tar.gz"
+SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(git -C "$ROOT" log -1 --format=%ct)}"
+find "$PKG" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
+tar --sort=name --mtime="@$SOURCE_DATE_EPOCH" --owner=0 --group=0 --numeric-owner --format=gnu -cf - -C "$WORK" fleet-wall | gzip -n > "$ART"
+SHA="$(sha256sum "$ART" | awk '{print $1}')"
+SIZE="$(stat -c %s "$ART")"
+cat > "$OUT/fleet-wall-module-metadata.json" <<JSON
+{
+  "schemaVersion": 1,
+  "component": "fleet-wall",
+  "version": "$VERSION",
+  "gitSha": "$GIT_SHA",
+  "artifact": {
+    "filename": "$(basename "$ART")",
+    "sha256": "$SHA",
+    "size": $SIZE
+  }
+}
+JSON
+rm -rf "$WORK"
+printf '%s  %s\n' "$SHA" "$(basename "$ART")" > "$OUT/SHA256SUMS.txt"
+echo "fleet-wall-module-build=PASS version=$VERSION size=$SIZE sha256=$SHA"

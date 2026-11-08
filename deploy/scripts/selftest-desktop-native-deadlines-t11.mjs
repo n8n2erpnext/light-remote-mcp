@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const src=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
+const pipe=src('client/desktop-v4/src-tauri/src/owner_abv2.rs');
+const tray=src('client/desktop-v4/src-tauri/src/unified_tray.rs');
+const agent=src('client/windows-native/GptOperator.Client/TrayApplicationContext.cs');
+assert.match(pipe,/named_pipe::ClientOptions::new/);
+assert.match(pipe,/timeout\(Duration::from_secs\(9\)/);
+assert.match(pipe,/read_to_end\(&mut bytes\)\.await/);
+assert.match(pipe,/MAX_RESPONSE\+1/);
+assert.doesNotMatch(pipe,/std::fs::OpenOptions::new\(\)\.read\(true\)\.write\(true\)/,
+ 'the Windows pipe cannot retain a blocking open/read path');
+assert.match(tray,/let deadline=Instant::now\(\)\+Duration::from_secs\(14\)/);
+assert.match(tray,/match child.try_wait\(\)/);
+assert.match(tray,/let _=child.kill\(\);let _=child.wait\(\)/);
+assert.match(tray,/\.take\(8193\)\.read_to_end\(&mut out\)/);
+assert.doesNotMatch(tray,/\.output\(\)\.map_err/);
+assert.match(agent,/CancellationTokenSource\(TimeSpan.FromSeconds\(12\)\)/);
+assert.match(agent,/WaitForExitAsync\(deadline.Token\)/);
+assert.match(agent,/Kill\(entireProcessTree: true\)/);
+assert.match(agent,/ReadAgentBounded\(p.StandardOutput, 8192, deadline.Token\)/);
+assert.match(agent,/ReadAgentBounded\(p.StandardError, 2048, deadline.Token\)/);
+assert.doesNotMatch(agent,/WaitForExitAsync\(\);/);
+assert.match(agent,/agent_command_timeout/);
+console.log('T11_WINDOWS_TAURI_DOTNET_NATIVE_DEADLINES_AND_BOUNDED_OUTPUT_SOURCE=PASS');

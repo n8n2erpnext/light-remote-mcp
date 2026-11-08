@@ -1,0 +1,26 @@
+[Unit]
+Description=GoldABV2 Lab TLS1.3 mTLS sidecar (Owner Windows CA)
+After=network.target light-remote-gold-plugin.service
+Wants=light-remote-gold-plugin.service
+
+[Service]
+Type=simple
+User=gold-uat
+Group=gold-uat
+WorkingDirectory=/opt/light-remote-abv2-lab/mtls-runtime-20261104
+Environment=GOLD_LAB_MTLS_OLD_SHA256=c6eeff91df53051d7a2eb194de47d60fbbb3d57bc5ebcf1197f63f86a653f7b8
+Environment=GOLD_LAB_MTLS_NEXT_SHA256=6c257d29dcb66258b36809e1d9d49e0206a4bc4049decbe4ed159256a64c7e96
+ExecStart=/usr/bin/node /opt/light-remote-abv2-lab/mtls-runtime-20261104/mtls-bridge.mjs
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+CapabilityBoundingSet=
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

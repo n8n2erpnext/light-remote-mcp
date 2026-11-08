@@ -1,0 +1,37 @@
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
+const need=(ok,name)=>{if(!ok)throw new Error(name);console.log(`${name}=PASS`);};
+const tray=read('client/macos/tray/main.swift');
+const pkg=read('client/macos/build-pkg.sh');
+const plist=read('client/macos/launchd/com.lightremote.tray.plist');
+const flow=read('.github/workflows/macos-client-build.yml');
+const agent=read('device-agent/operator-agent.mjs');
+const wall=read('device-agent/local-wall.mjs');
+const uninstall=read('client/macos/uninstall.sh');
+need(tray.includes('agentRun(["login", "--no-wait"])')&&tray.includes('Activation URL:')&&tray.includes('Device code:'),'macos-first-run-account-enrollment');
+need(tray.includes('agentRun(["poll"])')&&tray.includes('state == "approved"')&&tray.includes('restartAgentNow()'),'macos-enrollment-poll-restart');
+need(tray.includes('Relink this Mac…')&&tray.includes('#selector(relinkAccount)')&&tray.includes('alert.runModal() == .alertFirstButtonReturn')&&tray.includes('agentRun(["login", "--reenroll", "--no-wait"])'),'macos-relink-requires-local-owner-confirmation');
+need(tray.includes('Open Fleet')&&tray.includes('#selector(openFleet)')&&tray.includes('openFleetItem.isHidden = fleetURL == nil')&&tray.includes('openFleetItem.isEnabled = fleetURL != nil'),'macos-fleet-tray-visibility-follows-agent-health');
+need(tray.includes('status["fleetWall"] as? [String: Any]')&&tray.includes('(fleet["healthy"] as? Bool) == true')&&tray.includes('127.0.0.1:')&&tray.includes('fleet["publicUrl"]')&&tray.includes('NSWorkspace.shared.open(url)'),'macos-fleet-tray-windows-url-parity');
+need(tray.includes('scheme == "http" || scheme == "https"')&&tray.includes('url.user == nil, url.password == nil'),'macos-fleet-tray-url-scheme-safety');
+
+need(tray.includes('if available && pendingId != nil { pollEnrollmentIfNeeded(pendingId) }')&&tray.includes('pendingId != nil ? "Waiting for account approval"'),'macos-relink-polls-even-when-already-enrolled');
+need(wall.includes('device_account_mismatch')&&wall.includes('Relink this Mac')&&wall.includes('classifyLocalWallLoginFailure'),'macos-wall-relink-guidance');
+
+need(agent.includes('writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE')&&wall.includes('action=\"/auth/logout\"'),'macos-approved-wall-login-logout');
+need(tray.includes('Account / Logout…')&&tray.includes('https://light-remote.thaiduy.digital/'),'macos-account-logout-discovery');
+need(tray.includes('.systemGreen')&&tray.includes('.systemOrange')&&tray.includes('.systemGray')&&tray.includes('.systemRed'),'macos-tray-connection-states');
+need(tray.includes('NSStatusItem.squareLength')&&tray.includes('statusItem.isVisible = true'),'macos-tray-fixed-visible-slot');
+need(tray.includes('LightRemote.icns')&&tray.includes('base.draw(in: NSRect(origin: .zero, size: size))')&&tray.includes('NSString(string: \"LR\")'),'macos-tray-icon-fallback');
+need(pkg.includes('/Applications/Light Remote.app')&&pkg.includes('<key>CFBundleIdentifier</key><string>com.lightremote.client</string>'),'macos-app-bundle-install');
+need(pkg.includes('lsregister -f')&&uninstall.includes('lsregister -u'),'macos-launchservices-registration');
+need(pkg.includes('LightRemoteLauncher')&&pkg.includes('launchctl kickstart -k')&&pkg.includes('iconutil -c icns'),'macos-launchpad-reopen-launcher');
+need(pkg.includes('launchctl print \"gui/\\$UID_NUM/\\$LABEL\"')&&pkg.includes('http://127.0.0.1:5491/')&&pkg.includes('[[ \"\\$WALL_OK\" == 1 ]] || exit 36'),'macos-postinstall-wall-health-gate');
+need(tray.includes('func wallReachable() -> Bool')&&tray.includes('restartAgentNow()')&&tray.includes('Local Wall unavailable'),'macos-tray-wall-self-recovery');
+need(plist.includes('<key>RunAtLoad</key><true/>')&&plist.includes('<key>KeepAlive</key><false/>'),'macos-tray-quit-lifetime');
+need(flow.includes('Applications/Light Remote.app/Contents/Info.plist')&&flow.includes('LightRemote.icns'),'macos-ci-app-payload-gate');
+need(pkg.includes('Contents/Resources/uninstall.sh')&&tray.includes('Uninstall Light Remote…')&&tray.includes('--from-tray'),'macos-official-uninstall-entry');
+need(uninstall.includes('com.lightremote.client.macos-x64')&&uninstall.includes('com.lightremote.client.macos-arm64')&&uninstall.includes('/Library/LaunchAgents/com.lightremote.agent.plist')&&uninstall.includes('/Library/LaunchDaemons/com.lightremote.updater.plist'),'macos-full-uninstall-cleanup');
+need(!uninstall.includes('.config/gpt-operator-agent')||uninstall.includes('is preserved for safe reinstall continuity'),'macos-uninstall-preserves-device-identity');
+need(flow.includes('macos-system-package-receipt=PASS')&&flow.includes('Applications/Light Remote.app/Contents/Resources/uninstall.sh'),'macos-package-receipt-uninstall-gate');
+console.log('V10_MACOS_DESKTOP_UX_GATE=PASS');

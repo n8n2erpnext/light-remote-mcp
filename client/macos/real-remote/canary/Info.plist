@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key><string>digital.thaiduy.lightremote.rmv2.canary</string>
+  <key>CFBundleName</key><string>Light Remote RMV2 Canary</string>
+  <key>CFBundleDisplayName</key><string>Light Remote RMV2 Canary</string>
+  <key>CFBundleExecutable</key><string>LightRemoteRealRemote</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>0.9.0</string>
+  <key>CFBundleVersion</key><string>47</string>
+  <key>LSMinimumSystemVersion</key><string>11.0</string>
+  <key>LSUIElement</key><true/>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSAppleEventsUsageDescription</key><string>Used only by explicitly owner-authorized local macOS Real Remote tests.</string>
+</dict>
+</plist>

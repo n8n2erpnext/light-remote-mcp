@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "status": "GAPS_IDENTIFIED_NOT_WIRED",
+  "basis": "mutating-route-census.json SHA-pinned source-only candidate occurrences",
+  "method": "file-group triage, not a list of distinct HTTP routes; every source candidate still requires action-level review",
+  "routeGroups": [
+    {
+      "source": "operator-host/executor-routes-account.mjs",
+      "authorityPlane": "account_identity_grants_team",
+      "priority": "critical",
+      "requiredGate": "transactional_account_grant_epoch_and_revocation",
+      "notes": "account,team,device,A/B,login,quota,admin mutators",
+      "classification": "MANUAL_PER_ENDPOINT_REVIEW_PENDING",
+      "guardInstalled": false
+    },
+    {
+      "source": "operator-host/executor-routes-device-channel.mjs",
+      "authorityPlane": "device_enrollment_channel_dispatch",
+      "priority": "critical",
+      "requiredGate": "owner_device_grant_epoch_plus_agent_receipt",
+      "notes": "enrollment, A/B access, device channel long-poll and results",
+      "classification": "MANUAL_PER_ENDPOINT_REVIEW_PENDING",
+      "guardInstalled": false
+    },
+    {
+      "source": "operator-host/executor-routes-plugin.mjs",
+      "authorityPlane": "plugin_sessions",
+      "priority": "high",
+      "requiredGate": "session_owner_epoch_grace_and_durable_close",
+      "notes": "sessions open/resume/hold/close and token-scoped touch",
+      "classification": "MANUAL_PER_ENDPOINT_REVIEW_PENDING",
+      "guardInstalled": false
+    },
+    {
+      "source": "operator-host/executor-routes-runtime.mjs",
+      "authorityPlane": "direct_operations",
+      "priority": "critical",
+      "requiredGate": "dual_ingress_and_agent_physical_execution_epoch",
+      "notes": "filesystem, process, terminal, desktop, SCP and search",
+      "classification": "MANUAL_PER_ENDPOINT_REVIEW_PENDING",
+      "guardInstalled": false
+    },
+    {
+      "source": "plugin-server/account-portal.mjs",
+      "authorityPlane": "recovery_account_portal",
+      "priority": "high",
+      "requiredGate": "account_recovery_single_use_epoch",
+      "notes": "recovery and delegated account writes",
+      "classification": "MANUAL_PER_ENDPOINT_REVIEW_PENDING",
+      "guardInstalled": false
+    },
+    {
+      "source": "plugin-server/admin-portal.mjs",
+      "authorityPlane": "admin_gateway_entitlement_config",
+      "priority": "critical",
+      "requiredGate": "owner_authenticated_write_fence_then_operator_transaction",
+      "notes": "admin, announcement, plans, refund and config changes",
+      "classification": "MANUAL_PER_ENDPOINT_REVIEW_PENDING",
+      "guardInstalled": false
+    },
+    {
+      "source": "plugin-server/device-public.mjs",
+      "authorityPlane": "public_device_proxy",
+      "priority": "critical",
+      "requiredGate": "device_binding_and_epoch_before_forward",
+      "notes": "public request proxy and device-channel stream/action",
+      "classification": "MANUAL_PER_ENDPOINT_REVIEW_PENDING",
+      "guardInstalled": false
+    },
+    {
+      "source": "plugin-server/oauth.mjs",
+      "authorityPlane": "oauth_token_lifecycle",
+      "priority": "critical",
+      "requiredGate": "durable_jti_consumption_and_epoch",
+      "notes": "register/authorize/token and refresh anti-replay",
+      "classification": "MANUAL_PER_ENDPOINT_REVIEW_PENDING",
+      "guardInstalled": false
+    },
+    {
+      "source": "plugin-server/paddle-billing.mjs",
+      "authorityPlane": "billing_webhook",
+      "priority": "critical",
+      "requiredGate": "provider_signature_then_idempotent_durable_event_inbox",
+      "notes": "Paddle webhook external accounting side effects",
+      "classification": "MANUAL_PER_ENDPOINT_REVIEW_PENDING",
+      "guardInstalled": false
+    },
+    {
+      "source": "plugin-server/server.mjs",
+      "authorityPlane": "mcp_entrypoint",
+      "priority": "critical",
+      "requiredGate": "per_tool_action_fence_never_only_mcp_post",
+      "notes": "multiplexed MCP RPC and tool operation dispatch",
+      "classification": "MANUAL_PER_ENDPOINT_REVIEW_PENDING",
+      "guardInstalled": false
+    },
+    {
+      "source": "plugin-server/support-backoffice.mjs",
+      "authorityPlane": "support_ticket_outbox",
+      "priority": "high",
+      "requiredGate": "freeze_enqueue_and_delivery_pump_receipts",
+      "notes": "support ticket create/update and ERPNext delivery",
+      "classification": "MANUAL_PER_ENDPOINT_REVIEW_PENDING",
+      "guardInstalled": false
+    }
+  ],
+  "backgroundPolicy": {
+    "status": "PENDING_MANUAL_REVIEW",
+    "mustInclude": [
+      "plugin-server/support-backoffice.mjs",
+      "operator-host/executor.mjs",
+      "operator-host/fleet-router.mjs",
+      "plugin-server/paddle-billing.mjs",
+      "plugin-server/oauth.mjs"
+    ],
+    "risk": "Timers, external webhook callbacks, Fleet poll and PTY dispatch can mutate without a standard POST route"
+  },
+  "criticalAcceptance": [
+    "every_actual_mutation_classified",
+    "owner_authorized_epoch",
+    "tx_db_guard_in_same_transaction",
+    "agent_signed_epoch_and_grant_proof",
+    "deny_stale_before_physical_action",
+    "idempotent_provider_and_usage_receipts",
+    "timer_and_fleet_drain",
+    "authenticated_revocation_and_rollback",
+    "independent_nonproduction_restore"
+  ],
+  "globalFenceComplete": false,
+  "productionCutoverAuthorized": false
+}

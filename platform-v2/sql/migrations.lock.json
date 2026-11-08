@@ -1,0 +1,221 @@
+{
+  "target": "light_remote_gold_dev - independent Gold only",
+  "format": 1,
+  "migrations": [
+    {
+      "version": 1,
+      "file": "001_core.sql",
+      "sha256": "057a876706e65a8e241014bfc63c081aaab8efa6423f40540acf157867652465"
+    },
+    {
+      "version": 2,
+      "file": "002_usage_monthly.sql",
+      "sha256": "8be93fdeb5b4f1c9922f7e33bdb095fe0cc1fbd266d15b5b8d138bce1a24832e"
+    },
+    {
+      "version": 3,
+      "file": "003_auth_device_communications.sql",
+      "sha256": "ad1d9fd089d009ee76f8e26bf73e9de4d81c592ffd4e16e864da4b4e50a7be8b"
+    },
+    {
+      "version": 4,
+      "file": "004_tenant_binding_guards.sql",
+      "sha256": "853d4635e49a3304732dcda5bb1f72366ad57309040a8e3575847cba22ce175b"
+    },
+    {
+      "version": 5,
+      "file": "005_team_seat_guard.sql",
+      "sha256": "98dcf444697b7824b3b1aa5b4fc06ecf74d80f4f3315342f1c78d6e5b7fe66a9"
+    },
+    {
+      "version": 6,
+      "file": "006_worker_outbox_leases.sql",
+      "sha256": "fccc06fcb0dfea84704a736b0d72223af04e95257e556f2106d46b57831d3c96"
+    },
+    {
+      "version": 7,
+      "file": "007_worker_function_permissions.sql",
+      "sha256": "156a71d4cbd1505c04ab47392491e52744650e5f788ecdb8dce8fb0d89c860ef"
+    },
+    {
+      "version": 8,
+      "file": "008_usage_event_idempotency.sql",
+      "sha256": "d4cfb1d35eee7dbdcf57d22368503f4ef29365f54c0cc8f9ec4e53d894f60665"
+    },
+    {
+      "version": 9,
+      "file": "009_free_family_quota.sql",
+      "sha256": "b980d1ecb33b4f385e5758a68776f2e7501c58ccf868c879cc24ed30c0d63e26"
+    },
+    {
+      "version": 10,
+      "file": "010_free_meter_path_guard.sql",
+      "sha256": "8910f55793beafd8a47b660ba30c819b5c6824eb6ac8a4b8ec7d41c5e64f5b6b"
+    },
+    {
+      "version": 11,
+      "file": "011_team_owner_billed_uat.sql",
+      "sha256": "f67597c77664f2560910c9ff9d9e71c368be51290aeb8a2f5660d3bdbbb4b4f7"
+    },
+    {
+      "version": 12,
+      "file": "012_signed_rotation_proof.sql",
+      "sha256": "ae4b29d7e0cbc96494fcfd2bdf16e1de7b52ca29daa2848071e3132d40e933f3"
+    },
+    {
+      "version": 13,
+      "file": "013_oauth_atomic_replay.sql",
+      "sha256": "91d240ebe417ee24d85af80e8045c67b2424683e781e0efd7e33465575e44983"
+    },
+    {
+      "version": 14,
+      "file": "014_gold_site_storage.sql",
+      "sha256": "f329eff54f5309b1c47d076ae5cdc0673825b2e025a195dd5f7c8f583af9cdf2"
+    },
+    {
+      "version": 15,
+      "file": "015_gold_canonical_registry_storage.sql",
+      "sha256": "df09330fcb60d317b4e84dcc15ed5181e32f5440f4b2a5795e3812b256331283"
+    },
+    {
+      "version": 16,
+      "file": "016_gold_job_records.sql",
+      "sha256": "16284abce6ac21301475f2cac2cd5d5ade9e0ac65307168ce170a3b8b6f5bac4"
+    },
+    {
+      "version": 17,
+      "file": "017_gold_google_native.sql",
+      "sha256": "5c6ed57adc4a228c3dbf1a0ae06c1400760c9f3cff5eab6ca9165392b2dfd829"
+    },
+    {
+      "version": 18,
+      "file": "018_gold_site_announcements_native.sql",
+      "sha256": "9e1f0a24745810d9880d7e619dfd382aa326a69f635a306c8c9ef8a2b5183aaa"
+    },
+    {
+      "version": 19,
+      "file": "019_gold_site_analytics_native.sql",
+      "sha256": "cdf4368b8c387086c962cdfbccc3c7bdf89eda60c2bc1052aae26daf735dcbaf"
+    },
+    {
+      "version": 20,
+      "file": "020_gold_accounts_devices_native.sql",
+      "sha256": "1d492c3319c26437abf590e75a4264f03ee511c29b03699c088c9c073b865910"
+    },
+    {
+      "version": 21,
+      "file": "021_gold_team_native.sql",
+      "sha256": "22e94a9e977d4865b83bcbaab4866a9292cca08d9ca9724700087c64c2bde718"
+    },
+    {
+      "version": 22,
+      "file": "022_gold_license_native.sql",
+      "sha256": "4a7b19c5572b6b28549cb65d284809a61687799972eb17294384296b913e2040"
+    },
+    {
+      "version": 23,
+      "file": "023_gold_connections_native.sql",
+      "sha256": "c979eed27d903813b70a515eff3ad8a81ff79c3a07262d87f9227562ff213aba"
+    },
+    {
+      "version": 24,
+      "file": "024_gold_paddle_native.sql",
+      "sha256": "0324cf306a7126b6c3d70043a0762f43b6c10f37757d35d77e4ec14475e15f25"
+    },
+    {
+      "version": 25,
+      "file": "025_gold_support_native.sql",
+      "sha256": "ede7388b4ddef1ffd687699accd72827dddc79b469925735929395b783b352bf"
+    },
+    {
+      "version": 26,
+      "file": "026_gold_ab_native.sql",
+      "sha256": "e9ca1e46400263343644703c0348c6cbb43a0bff0d934785c489e680810ae9b2"
+    },
+    {
+      "version": 27,
+      "file": "027_gold_enrollment_native.sql",
+      "sha256": "fe9b7601e2f79b9d48716bdda4f97299d1a0aa2eef76242a69411b2a2ef3cd30"
+    },
+    {
+      "version": 28,
+      "file": "028_gold_agent_client_native.sql",
+      "sha256": "9f31dc4148fcf276b37d6e2f990ddd8c60a94db2d67588433b9c572ae46f7837"
+    },
+    {
+      "version": 29,
+      "file": "029_gold_usage_native.sql",
+      "sha256": "967b822e566ae7b8f2f6a776d48f44ab1b0768332502d6b81be5a5e6ae4656f0"
+    },
+    {
+      "version": 30,
+      "file": "030_gold_account_aux_native.sql",
+      "sha256": "13bb72ed44010193934aed1c4a816afa9d13a93c26ed0945787dea20de476144"
+    },
+    {
+      "version": 31,
+      "file": "031_gold_drop_generic_snapshot.sql",
+      "sha256": "f8cf33be6a578087c960d70a5effc24769a38e04631c47c9a3489a29f319c29b"
+    },
+    {
+      "version": 32,
+      "file": "032_gold_personal_agent_admission.sql",
+      "sha256": "bd77b09cffe711acfd7b27ac3a5119cd38d6ee7e72de094948ee4475de8585cb"
+    },
+    {
+      "version": 33,
+      "file": "033_gold_device_resource_claims.sql",
+      "sha256": "ab43cba46bbfbfd3869d5e274d618c78128fd5f6b46bf5fe6313795fc3c297c8"
+    },
+    {
+      "version": 34,
+      "file": "034_gold_background_resource_receipts.sql",
+      "sha256": "82dc70c38b53f4f29c86f1316dbea8523d1b263e8084da92dcd4b4927ed8ed16"
+    },
+    {
+      "version": 35,
+      "file": "035_gold_terminal_receipt_acks.sql",
+      "sha256": "6b73ab68a3d165cf67709a178d845a0a5fc3206dfb45afe4b505d5c6e405b085"
+    },
+    {
+      "version": 36,
+      "file": "036_gold_memory_account_sync_modes.sql",
+      "sha256": "bd5b09bb4adfb90dfd2f48877bf5ff4d16cdf3669b8313f386437414aed8b242"
+    },
+    {
+      "version": 37,
+      "file": "037_gold_memory_account_delete_tombstones.sql",
+      "sha256": "c25c11c4220158c7ac824cc3ec63a9777cb8e3c45f720bcd9a6b28b9f195a749"
+    },
+    {
+      "version": 38,
+      "file": "038_gold_job_cancelled_status.sql",
+      "sha256": "04850c368b24b0583236b8eca9f4543a5168a85bd96c37775a6e8ca9d5b51357"
+    },
+    {
+      "version": 39,
+      "file": "039_gold_device_boot_observations.sql",
+      "sha256": "36225831bef9e272b0678d0cd91cb8f3563234d7a98fb63ba80415e1b14475d3"
+    },
+    {
+      "version": 40,
+      "file": "040_gold_connection_job_gc_fences.sql",
+      "sha256": "88a970188aeb6e66667d648b85b78a5aadadbab62c90d75902ce0d1583741878"
+    },
+    {
+      "version": 41,
+      "file": "041_gold_device_execution_epoch.sql",
+      "sha256": "ff16394e4c72ff685bec3b704454ca688e3255146b68fdeaf657028fa03f533f"
+    },
+    {
+      "version": 42,
+      "file": "042_gold_wall_announcements_channel.sql",
+      "sha256": "56ec2b281582b67a537140b5a6cb1e3a95d7546604c222d8ea01ac53143d345b"
+    },
+    {
+      "version": 43,
+      "file": "043_gold_device_short_ids.sql",
+      "sha256": "935b268899c7b59761781db33d8ad2c573773566844fbfab0b861046f3a680d4"
+    }
+  ]
+}

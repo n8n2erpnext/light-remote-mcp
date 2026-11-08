@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>LightRemote.Updater</AssemblyName>
+    <RootNamespace>LightRemote.Updater</RootNamespace>
+    <ApplicationIcon>..\GptOperator.Client\Assets\light-remote.ico</ApplicationIcon>
+    <Version>0.10.0-dev.1</Version>
+    <FileVersion>0.10.0.0</FileVersion>
+    <AssemblyVersion>0.10.0.0</AssemblyVersion>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>true</PublishTrimmed>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <TrimMode>partial</TrimMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\CanonicalEndpoints.cs" Link="CanonicalEndpoints.cs" />
+    <Compile Include="..\Shared\WallListenerOwnership.cs" Link="WallListenerOwnership.cs" />
+    <Compile Include="..\Shared\LocalWallChallengeProof.cs" Link="LocalWallChallengeProof.cs" />
+    <EmbeddedResource Include="..\..\..\config\endpoints.json" LogicalName="LightRemote.Canonical.Endpoints.json" />
+  </ItemGroup>
+</Project>

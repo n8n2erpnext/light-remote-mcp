@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {validateSignedUpdateManifest} from '../../lib/update-readiness.mjs';
+
+const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),args=process.argv.slice(2);
+const get=(name,fallback=null)=>{const i=args.indexOf(name);return i>=0?args[i+1]:fallback;};
+const manifestFile=path.resolve(get('--manifest',path.join(repo,'channels/beta/client-update.json')));
+const signatureFile=path.resolve(get('--signature',`${manifestFile}.sig`));
+const publicKeyFile=path.resolve(get('--public-key',path.join(repo,'client/update-public.pem')));
+const serverVersion=get('--server-version',fs.readFileSync(path.join(repo,'VERSION'),'utf8').trim()),exact=args.includes('--exact-current');
+const policy=JSON.parse(fs.readFileSync(path.join(repo,'client/update-channel-policy.json'),'utf8'));
+const result=validateSignedUpdateManifest({manifestBytes:fs.readFileSync(manifestFile),signatureText:fs.readFileSync(signatureFile,'utf8'),publicKeyPem:fs.readFileSync(publicKeyFile,'utf8'),serverVersion,policy,exact});
+console.log('update_readiness=PASS');
+console.log(`server_version=${serverVersion}`);
+console.log(`minimum_supported_client=${result.minimum}`);
+console.log(`signed_update_version=${result.manifest.version}`);
+console.log(`signed_update_platforms=${policy.requiredPlatforms.join(',')}`);
+console.log(`update_public_key_sha256=${result.keySha}`);
+console.log(`signed_update_compatible=${result.compatibility.supported}`);

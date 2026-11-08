@@ -1,0 +1,13 @@
+# Gold Windows Tray Relink — UAT handoff (2026-10-28)
+
+Scope: Gold Windows client built by GitHub Actions run #536 (merge 227a0eb) lacked a Windows tray relink UI, unlike macOS. After server-side removal, offline Windows Agent retains prior enrollment accountId locally; Wall login rejects with device_account_mismatch until explicitly re-enrolled. Owner confirmed manual reenrollment and that Windows client is online.
+
+Source branch feature/gold-windows-relink-ci-20261028 forked from 227a0eb, separate from production and Gold UAT runtime. Change only client/windows-native/GptOperator.Client/TrayApplicationContext.cs plus CI workflow and static regression test.
+
+Right-click tray > Relink this Windows PC (or Link this Windows PC when not enrolled). Owner confirms first with Cancel as default; already-enrolled invokes Agent login --reenroll --no-wait; not-enrolled uses login --no-wait. Uses existing Ed25519 identity without deleting local state or memory, displays and copies one-time code, opens Gold activation URL over HTTPS restricted to configured Bridge host, waits for owner browser approval. Agent poll is scheduled via the regular 5-second refresh while pending; duplicate relink requests disabled. On approval, requests transactionally supervised Agent restart and confirms success/failure. Expired, replaced or cancelled codes allow retry. No plaintext codes in logs.
+
+Regression: deploy/scripts/selftest-gold-windows-tray-relink.mjs validates CLI modes, explicit confirmation, same-host HTTPS, pending status, poll/restart, no deletion. TrayApplicationContext.SelfTest checks exact CLI args. Windows Tray Client workflow targets new branch and runs static regression prior to native client build; Windows runner builds, installs, smoke-tests, uninstalls and uploads artifact and SHA256.
+
+Manual acceptance on Windows 11: right click tray, Relink, cancel -> no account change; repeat and confirm -> new code and browser; approve under target Gold account; Tray auto polls and restarts Agent; Local Wall login for new account works; old account denied; ensure Memory preserved. Must not disable Windows security; Microsoft SAC and signing remain a separate track.
+
+Safety: no production changes, no Gold UAT server changes, no Windows test-machine changes, no client auto-upgrade, no Store submission. Trigger GitHub Actions once on this branch; do not declare build passed before GitHub completes.

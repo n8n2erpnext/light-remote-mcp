@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "DESIGN_ONLY_NOT_A_BACKUP_OR_RELEASE",
+  "scope": "source-only portability package contract; no runtime or production reads",
+  "target_platforms": [
+    "linux/arm64",
+    "linux/amd64"
+  ],
+  "runtime": {
+    "language": "node-esm-mjs",
+    "framework": "express-5",
+    "node_path_in_install": "/opt/light-remote-direct/current/runtime/node",
+    "service_user": "lightremote",
+    "artifacts": [
+      "operator-host/executor.mjs",
+      "plugin-server/server.mjs",
+      "plugin-server/package-lock.json"
+    ],
+    "binary_digest_required": true,
+    "architecture_specific_dependency_audit_required": true
+  },
+  "systemd": {
+    "operator_source": "deploy/direct-linux/light-remote-direct-operator.service",
+    "plugin_source": "deploy/direct-linux/light-remote-direct-plugin.service",
+    "operator_env_reference": "/etc/light-remote-direct/operator.env",
+    "plugin_env_reference": "/etc/light-remote-direct/plugin.env",
+    "operator_entry": "/opt/light-remote-direct/current/operator-host/executor.mjs",
+    "plugin_entry": "/opt/light-remote-direct/current/plugin-server/server.mjs"
+  },
+  "envelopes": {
+    "application": {
+      "digest_required": true,
+      "include_secrets": false,
+      "include_customer_state": false,
+      "reproducible_arm64_amd64_required": true
+    },
+    "configuration": {
+      "versioned_references_only": true,
+      "actual_runtime_paths_require_separate_authorization": true
+    },
+    "durable_data": {
+      "inventory_source": "platform-v2/portability/legacy-state-contract.json",
+      "single_writer_freeze_required": true,
+      "independent_restore_required": true
+    },
+    "secret_identity": {
+      "in_repository": false,
+      "in_artifact": false,
+      "offline_owner_authorized_custody": true,
+      "device_private_keys_never_exported": true
+    }
+  },
+  "uat_template": {
+    "path": "platform-v2/portability/compose.uat.yml",
+    "synthetic_only": true,
+    "may_be_used_for_production": false
+  },
+  "relocation_requirements": [
+    "artifact_sha_and_runtime_abi",
+    "source_writer_fence",
+    "drain_jobs_and_pty",
+    "snapshot_consistency",
+    "oauth_key_identity_continuity",
+    "grant_revocation_continuity",
+    "usage_and_billing_reconcile",
+    "idempotent_webhook_outbox",
+    "single_authority_switch",
+    "reverse_fence_before_rollback"
+  ],
+  "blocked_operations": [
+    "sealed_synthetic_backup_runtime_tests",
+    "docker_two_stack_cold_move",
+    "provision_privileged_app_db_roles",
+    "production_secret_or_customer_data_export"
+  ],
+  "validation_state": "static-contract-only"
+}

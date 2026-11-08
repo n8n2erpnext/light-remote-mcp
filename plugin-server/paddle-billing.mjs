@@ -1,0 +1,1403 @@
+import { Environment, EventName, Paddle } from '@paddle/paddle-node-sdk';
+
+import { callOperatorJson } from './operator-client.mjs';
+import { recordPaddlePurchase, recordPaddleRefund } from './commerce-backoffice.mjs';
+import { sendPaddlePurchaseConfirmation } from './mailer.mjs';
+import { sandboxOfferCatalog,resolveSandboxOffer,verifiedTransactionOffer,verifiedSubscriptionOffer,assertSandboxPriceDetails,chooseSandboxCheckoutAction } from './paddle-sandbox-offers.mjs';
+import { PaddleSandboxTeamCoordinator } from './paddle-sandbox-team-coordinator.mjs';
+
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing']);
+const PLAN_RANK = Object.freeze({ free: 0, pro: 1, vip: 2 });
+const PRO_PLAN = 'pro';
+
+function text(value) {
+  return String(value ?? '').trim();
+}
+
+function safeEventId(event) {
+  return text(event?.eventId || event?.event_id || event?.notificationId || event?.notification_id);
+}
+
+function safeEventType(event) {
+  return text(event?.eventType || event?.event_type);
+}
+
+function safeData(event) {
+  return event?.data && typeof event.data === 'object' ? event.data : {};
+}
+
+function safeCustomData(data) {
+  const value = data?.customData ?? data?.custom_data;
+  return value && typeof value === 'object' ? value : {};
+}
+
+function accountIdFrom(data) {
+  const custom = safeCustomData(data);
+  return text(custom.light_remote_account_id || custom.lightRemoteAccountId);
+}
+
+function planFrom(data) {
+  const custom = safeCustomData(data);
+  return text(custom.light_remote_plan || custom.lightRemotePlan || PRO_PLAN).toLowerCase();
+}
+
+function sourceRefFrom(data) {
+  return text(data?.id || data?.subscriptionId || data?.subscription_id);
+}
+
+function accountEmailFrom(data) {
+  const custom = safeCustomData(data);
+  return text(custom.light_remote_account_email || custom.lightRemoteAccountEmail).toLowerCase();
+}
+
+function minorUnitDivisor(currency) {
+  return new Set(['JPY','KRW']).has(text(currency).toUpperCase()) ? 1 : 100;
+}
+
+function majorAmount(value, currency) {
+  const number = Number(value ?? 0);
+  if (!Number.isFinite(number)) return 0;
+  return number / minorUnitDivisor(currency);
+}
+
+function firstValue(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null && value !== '') return value;
+  }
+  return 0;
+}
+
+function paddleAccounting(transaction) {
+  const details = transaction?.details || {};
+  const totals = details?.totals || {};
+  const payout = details?.payoutTotals || details?.payout_totals || {};
+  const adjustedPayout = details?.adjustedPayoutTotals || details?.adjusted_payout_totals || {};
+  const currency = text(
+    transaction?.currencyCode ||
+    transaction?.currency_code ||
+    totals?.currencyCode ||
+    totals?.currency_code ||
+    payout?.currencyCode ||
+    payout?.currency_code ||
+    'USD'
+  ).toUpperCase();
+  return {
+    currency,
+    subtotal: majorAmount(firstValue(totals?.subtotal), currency),
+    gross: majorAmount(firstValue(totals?.grandTotal, totals?.grand_total, totals?.total), currency),
+    tax: majorAmount(firstValue(totals?.tax), currency),
+    fee: majorAmount(firstValue(payout?.fee, totals?.fee), currency),
+    earnings: majorAmount(firstValue(payout?.earnings, totals?.earnings), currency),
+    retainedFee: majorAmount(
+      firstValue(
+        adjustedPayout?.retainedFee,
+        adjustedPayout?.retained_fee,
+        payout?.retainedFee,
+        payout?.retained_fee,
+        totals?.retainedFee,
+        totals?.retained_fee,
+      ),
+      currency,
+    ),
+  };
+}
+
+function normalizeState(raw) {
+  const state = raw && typeof raw === 'object' ? raw : {};
+  const events = state.events && typeof state.events === 'object' ? state.events : {};
+  const subscriptions = state.subscriptions && typeof state.subscriptions === 'object' ? state.subscriptions : {};
+  const refunds = state.refunds && typeof state.refunds === 'object' ? state.refunds : {};
+  return { schemaVersion: 2, events, subscriptions, refunds };
+}
+
+function defaultConfig(env = process.env) {
+  const environment = text(env.LIGHT_REMOTE_PADDLE_ENV).toLowerCase();
+  const rawCheckoutEnabled = text(env.LIGHT_REMOTE_PADDLE_CHECKOUT_ENABLED || 'true').toLowerCase();
+  const checkoutAllowed = !['0', 'false', 'off', 'no'].includes(rawCheckoutEnabled);
+  return {
+    environment,
+    checkoutAllowed,
+    apiKey: text(env.LIGHT_REMOTE_PADDLE_API_KEY),
+    clientToken: text(env.LIGHT_REMOTE_PADDLE_CLIENT_TOKEN),
+    proPriceId: text(env.LIGHT_REMOTE_PADDLE_PRO_PRICE_ID),
+    proMonthlyPriceId: text(env.LIGHT_REMOTE_PADDLE_PRO_PRICE_ID),
+    proYearlyPriceId: text(env.LIGHT_REMOTE_PADDLE_PRO_YEARLY_PRICE_ID),
+    teamMonthlyPriceId: text(env.LIGHT_REMOTE_PADDLE_TEAM_MONTHLY_PRICE_ID),
+    teamYearlyPriceId: text(env.LIGHT_REMOTE_PADDLE_TEAM_YEARLY_PRICE_ID),
+    teamSandboxEnabled: environment === 'sandbox' && text(env.LIGHT_REMOTE_PADDLE_TEAM_SANDBOX_ENABLED).toLowerCase() === 'true',
+    teamUatCallBudget: Number(text(env.LIGHT_REMOTE_PADDLE_TEAM_UAT_CALL_BUDGET) || 5000),
+    webhookSecret: text(env.LIGHT_REMOTE_PADDLE_WEBHOOK_SECRET),
+  };
+}
+
+function validatePaddleIdentifiers(config) {
+  if (!config.environment) return { ok: false, reason: 'paddle_environment_required' };
+  if (!['sandbox', 'production'].includes(config.environment)) {
+    return { ok: false, reason: 'paddle_environment_invalid' };
+  }
+  const sandbox = config.environment === 'sandbox';
+  if (config.apiKey) {
+    if (sandbox && !config.apiKey.startsWith('pdl_sdbx_apikey_')) {
+      return { ok: false, reason: 'paddle_sandbox_api_key_required' };
+    }
+    if (!sandbox && !config.apiKey.startsWith('pdl_live_apikey_')) {
+      return { ok: false, reason: 'paddle_live_api_key_required' };
+    }
+  }
+  if (config.clientToken) {
+    if (sandbox && !config.clientToken.startsWith('test_')) {
+      return { ok: false, reason: 'paddle_sandbox_client_token_required' };
+    }
+    if (!sandbox && !config.clientToken.startsWith('live_')) {
+      return { ok: false, reason: 'paddle_live_client_token_required' };
+    }
+  }
+  if (config.proPriceId && !/^pri_[a-z0-9]{26}$/.test(config.proPriceId)) {
+    return { ok: false, reason: 'paddle_price_id_invalid' };
+  }
+  return { ok: true, reason: null };
+}
+
+function paddleEnvironment(environment) {
+  return environment === 'sandbox' ? Environment.sandbox : Environment.production;
+}
+
+export class PaddleBilling {
+  constructor({
+    config = defaultConfig(),
+    paddleClient = null,
+    operatorCall = callOperatorJson,
+    purchaseRecorder = recordPaddlePurchase,
+    refundRecorder = recordPaddleRefund,
+    purchaseMailer = sendPaddlePurchaseConfirmation,
+    now = () => Date.now(),
+  } = {}) {
+    this.config = config;
+    this.operatorCall = operatorCall;
+    this.purchaseRecorder = purchaseRecorder;
+    this.refundRecorder = refundRecorder;
+    this.purchaseMailer = purchaseMailer;
+    this.now = now;
+    this.state = normalizeState(null); // Fresh Gold state; loaded from PostgreSQL before requests.
+    this.eventQueue = Promise.resolve();
+    this.pendingEventCount = 0;
+    this.persistenceFatal = null;
+    this.validation = validatePaddleIdentifiers(config);
+    // Never build the Team coordinator for production or when sandbox opt-in
+    // is absent. Existing PRO subscription processing remains unchanged.
+    this.sandboxTeam = config.environment === 'sandbox' && config.teamSandboxEnabled === true
+      ? new PaddleSandboxTeamCoordinator({config,operatorCall,now})
+      : null;
+    this.paddle = paddleClient || (
+      this.validation.ok && config.apiKey
+        ? new Paddle(config.apiKey, { environment: paddleEnvironment(config.environment) })
+        : null
+    );
+  }
+
+  _persist(){throw Error('gold_paddle_pg_not_initialized')}
+
+  status() {
+    const credentialsConfigured = Boolean(
+      this.validation.ok &&
+      this.paddle &&
+      this.config.clientToken &&
+      this.config.proPriceId &&
+      this.config.webhookSecret
+    );
+    const checkoutAllowed = this.config.checkoutAllowed !== false;
+    const checkoutEnabled = Boolean(
+      checkoutAllowed &&
+      this.validation.ok &&
+      this.paddle &&
+      this.config.clientToken &&
+      this.config.proPriceId
+    );
+    const webhookEnabled = Boolean(
+      this.validation.ok &&
+      this.paddle &&
+      this.config.webhookSecret
+    );
+    return {
+      environment: this.config.environment,
+      configured: credentialsConfigured,
+      checkoutAllowed,
+      checkoutEnabled,
+      webhookEnabled,
+      reason: this.validation.ok ? null : this.validation.reason,
+      priceConfigured: Boolean(this.config.proPriceId),
+      apiConfigured: Boolean(this.config.apiKey),
+      clientConfigured: Boolean(this.config.clientToken),
+      webhookConfigured: Boolean(this.config.webhookSecret),
+      teamSandboxEnabled: Boolean(this.sandboxTeam),
+      offerPricesConfigured: this.sandboxTeam
+        ? Object.keys(sandboxOfferCatalog(this.config).offers)
+        : [],
+    };
+  }
+
+  publicConfig() {
+    const status = this.status();
+    const paused = Boolean(status.configured && !status.checkoutAllowed);
+    return {
+      enabled: status.checkoutEnabled,
+      configured: status.configured,
+      paused,
+      environment: status.environment,
+      clientToken: status.checkoutEnabled ? this.config.clientToken : null,
+      proPriceId: status.checkoutEnabled ? this.config.proPriceId : null,
+      currency: 'USD',
+      sandboxTeamEnabled: Boolean(this.sandboxTeam && status.checkoutAllowed && this.paddle && this.config.clientToken),
+      sandboxOffers: this.sandboxTeam && status.checkoutAllowed && this.paddle && this.config.clientToken
+        ? Object.fromEntries(Object.entries(sandboxOfferCatalog(this.config).offers)
+            .map(([key,row])=>[key,{priceId:row.priceId,amountUSD:row.amountUSD}]))
+        : {},
+      reason: status.checkoutEnabled
+        ? null
+        : paused
+          ? 'paddle_checkout_paused'
+          : status.reason || 'paddle_not_configured',
+    };
+  }
+
+  async createCheckout(account) {
+    const status = this.status();
+    if (!status.checkoutEnabled) {
+      const error = new Error(status.reason || 'paddle_checkout_not_configured');
+      error.status = 503;
+      throw error;
+    }
+    const accountId = text(account?.accountId);
+    const email = text(account?.email).toLowerCase();
+    const accountPlan = text(account?.plan || 'free').toLowerCase();
+    if (!accountId || !email) {
+      const error = new Error('paddle_account_required');
+      error.status = 400;
+      throw error;
+    }
+    if (accountPlan !== 'free') {
+      const error = new Error('paddle_account_already_paid');
+      error.status = 409;
+      throw error;
+    }
+
+    const latest = await this.latestTransactionForAccount(account);
+    if (latest && text(latest?.status).toLowerCase() === 'completed') {
+      const approvedFullRefund = (latest.adjustments || []).some(row =>
+        text(row?.action).toLowerCase() === 'refund' &&
+        text(row?.status).toLowerCase() === 'approved' &&
+        text(row?.type).toLowerCase() === 'full'
+      );
+      if (!approvedFullRefund) {
+        const subscriptionId = text(latest?.subscriptionId || latest?.subscription_id);
+        let subscriptionStatus = '';
+        if (subscriptionId) {
+          try {
+            subscriptionStatus = text((await this.paddle.subscriptions.get(subscriptionId))?.status).toLowerCase();
+          } catch {}
+        }
+        const blocksCheckout = !subscriptionId ||
+          !subscriptionStatus ||
+          ['active', 'trialing', 'past_due', 'paused'].includes(subscriptionStatus);
+        if (blocksCheckout) {
+          const error = new Error('paddle_active_purchase_exists');
+          error.status = 409;
+          throw error;
+        }
+      }
+    }
+
+    let customer = await this.customerForAccount(account);
+    if (!customer?.id) {
+      customer = await this.paddle.customers.create({ email });
+    }
+    if (!customer?.id || text(customer?.email).toLowerCase() !== email) {
+      const error = new Error('paddle_customer_binding_failed');
+      error.status = 502;
+      throw error;
+    }
+
+    const transaction = await this.paddle.transactions.create({
+      items: [{ priceId: this.config.proPriceId, quantity: 1 }],
+      customerId: customer.id,
+      customData: {
+        light_remote_account_id: accountId,
+        light_remote_account_email: email,
+        light_remote_plan: PRO_PLAN,
+        light_remote_environment: this.config.environment,
+      },
+    });
+
+    return {
+      transactionId: transaction.id,
+      checkoutUrl: transaction?.checkout?.url || null,
+      environment: this.config.environment,
+      plan: PRO_PLAN,
+    };
+  }
+
+  /**
+   * SANDBOX ONLY. Creates a transaction only for an account with no active
+   * Paddle subscription. Existing paid Pro->Team requires an explicit
+   * Paddle subscription change, NOT a second checkout.
+   */
+  async checkSandboxPrice(offer,{allowArchived=false}={}){
+    if(!this.sandboxTeam||typeof this.paddle?.prices?.get!=='function')
+      throw Object.assign(new Error('paddle_sandbox_price_validation_unavailable'),{status:503});
+    const quote=await this.paddle.prices.get(offer.priceId);
+    return assertSandboxPriceDetails(offer,quote,{allowArchived});
+  }
+
+  async createSandboxOfferCheckout(account,{product,period}={}){
+    if(!this.sandboxTeam||!this.status().checkoutEnabled)
+      throw Object.assign(new Error('paddle_team_sandbox_not_enabled'),{status:403});
+    const offer=resolveSandboxOffer(this.config,{product,period});
+    await this.checkSandboxPrice(offer);
+    const accountId=text(account?.accountId),email=text(account?.email).toLowerCase();
+    if(!accountId||!email)throw Object.assign(new Error('paddle_account_required'),{status:400});
+    const latest=await this.latestTransactionForAccount(account);
+    let latestSub=null;
+    const subId=text(latest?.subscriptionId||latest?.subscription_id||
+      (account?.entitlement?.source==='paddle'?account?.entitlement?.sourceRef:''));
+    if(subId){
+      try{latestSub=await this.paddle.subscriptions.get(subId)}
+      catch{throw Object.assign(new Error('paddle_subscription_requires_reconciliation'),{status:409})}
+    }
+    // If paid entitlement has no identifiable subscription, fail closed.
+    const selection=chooseSandboxCheckoutAction({account,offer,latestSubscription:latestSub});
+    if(selection.action==='change_existing_subscription'){
+      throw Object.assign(new Error('paddle_subscription_change_required'),{status:409});
+    }
+    if(latest&&text(latest.status).toLowerCase()==='completed'&&!latestSub){
+      const refunded=(latest.adjustments||[]).some(row=>
+        text(row?.action).toLowerCase()==='refund'&&text(row?.status).toLowerCase()==='approved'&&
+        text(row?.type).toLowerCase()==='full');
+      if(!refunded)throw Object.assign(new Error('paddle_active_purchase_exists'),{status:409});
+    }
+    let customer=await this.customerForAccount(account);
+    if(!customer?.id)customer=await this.paddle.customers.create({email});
+    if(!customer?.id||text(customer.email).toLowerCase()!==email)
+      throw Object.assign(new Error('paddle_customer_binding_failed'),{status:502});
+    const transaction=await this.paddle.transactions.create({
+      items:[{priceId:offer.priceId,quantity:1}],
+      customerId:customer.id,
+      customData:{
+        light_remote_account_id:accountId,
+        light_remote_account_email:email,
+        light_remote_plan:offer.product,
+        light_remote_billing_period:offer.period,
+        light_remote_environment:'sandbox'
+      }
+    });
+    return {transactionId:transaction.id,environment:'sandbox',
+      product:offer.product,period:offer.period,checkoutUrl:transaction?.checkout?.url||null};
+  }
+
+  async currentAccount(accountId) {
+    const row = await this.operatorCall(
+      'GET',
+      `/v1/admin/accounts/${encodeURIComponent(accountId)}`,
+    );
+    return row?.account || null;
+  }
+
+  async grantSubscription(data, eventType) {
+    const accountId = accountIdFrom(data);
+    const plan = planFrom(data);
+    const subscriptionId = sourceRefFrom(data);
+    const status = text(data?.status).toLowerCase();
+
+    if (!accountId || !subscriptionId || plan !== PRO_PLAN) {
+      return { action: 'ignored', reason: 'paddle_metadata_missing', accountId, subscriptionId };
+    }
+    // An event name alone cannot grant paid access when Paddle reports a
+    // non-active subscription (paused, canceled, past_due, etc.).
+    if (!ACTIVE_SUBSCRIPTION_STATUSES.has(status)) {
+      return { action: 'ignored', reason: 'subscription_not_active', accountId, subscriptionId, status };
+    }
+
+    const current = await this.currentAccount(accountId);
+    if (!current) {
+      const error = new Error('paddle_account_not_found');
+      error.status = 404;
+      throw error;
+    }
+
+    const currentPlan = text(current.plan || 'free').toLowerCase();
+    if ((PLAN_RANK[currentPlan] || 0) > PLAN_RANK[PRO_PLAN]) {
+      return { action: 'kept_higher_plan', accountId, subscriptionId, currentPlan };
+    }
+
+    const entitlement = current.entitlement || {};
+    if (currentPlan === PRO_PLAN && entitlement.source !== 'paddle') {
+      return { action: 'kept_existing_pro', accountId, subscriptionId, currentPlan };
+    }
+    if (
+      currentPlan === PRO_PLAN &&
+      entitlement.source === 'paddle' &&
+      text(entitlement.sourceRef) === subscriptionId
+    ) {
+      return { action: 'already_active', accountId, subscriptionId, plan: PRO_PLAN };
+    }
+    if (currentPlan === PRO_PLAN && entitlement.source === 'paddle') {
+      return {
+        action: 'kept_existing_paddle',
+        reason: 'different_subscription_already_owns_entitlement',
+        accountId,
+        subscriptionId,
+        currentSubscriptionId: text(entitlement.sourceRef) || null,
+        plan: PRO_PLAN,
+      };
+    }
+
+    const out = await this.operatorCall(
+      'POST',
+      `/v1/admin/accounts/${encodeURIComponent(accountId)}/entitlement`,
+      {
+        plan: PRO_PLAN,
+        source: 'paddle',
+        sourceRef: subscriptionId,
+        allowDowngrade: false,
+      },
+    );
+    return {
+      action: 'granted',
+      accountId,
+      subscriptionId,
+      plan: out?.account?.plan || PRO_PLAN,
+    };
+  }
+
+  async revokeSubscription(data) {
+    const accountId = accountIdFrom(data);
+    const subscriptionId = sourceRefFrom(data);
+    if (!accountId || !subscriptionId) {
+      return { action: 'ignored', reason: 'paddle_metadata_missing', accountId, subscriptionId };
+    }
+
+    const current = await this.currentAccount(accountId);
+    const entitlement = current?.entitlement || {};
+    if (
+      text(entitlement.source) !== 'paddle' ||
+      text(entitlement.sourceRef) !== subscriptionId
+    ) {
+      return {
+        action: 'ignored',
+        reason: 'subscription_not_current_entitlement',
+        accountId,
+        subscriptionId,
+        currentPlan: current?.plan || null,
+      };
+    }
+
+    const out = await this.operatorCall(
+      'POST',
+      `/v1/admin/accounts/${encodeURIComponent(accountId)}/entitlement/revoke`,
+      {
+        source: 'paddle',
+        reason: `paddle:${subscriptionId}`,
+      },
+    );
+    return {
+      action: 'revoked',
+      accountId,
+      subscriptionId,
+      plan: out?.account?.plan || 'free',
+    };
+  }
+
+  refundCaptureTime(transaction) {
+    const captured = (transaction?.payments || [])
+      .filter(payment => text(payment?.status).toLowerCase() === 'captured')
+      .map(payment => text(payment?.capturedAt || payment?.captured_at || payment?.createdAt || payment?.created_at))
+      .filter(Boolean)
+      .map(value => Date.parse(value))
+      .filter(Number.isFinite)
+      .sort((a, b) => b - a);
+    if (captured.length) return captured[0];
+
+    const fallback = text(
+      transaction?.billedAt ||
+      transaction?.billed_at ||
+      transaction?.updatedAt ||
+      transaction?.updated_at ||
+      transaction?.createdAt ||
+      transaction?.created_at
+    );
+    const parsed = Date.parse(fallback);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  async adminBillingTransactions({
+    query = '',
+    limit = 50,
+    refundWindowHours = 24,
+  } = {}) {
+    if (!this.paddle) {
+      return {
+        environment: this.config.environment,
+        refundWindowHours: 24,
+        transactions: [],
+      };
+    }
+
+    const pageLimit = Math.min(100, Math.max(1, Number(limit) || 50));
+    const windowHours = Math.min(24, Math.max(1, Number(refundWindowHours) || 24));
+    const windowMs = windowHours * 60 * 60 * 1000;
+    const q = text(query).toLowerCase();
+
+    const collection = this.paddle.transactions.list({
+      status: ['completed'],
+      perPage: 100,
+      include: ['adjustment'],
+    });
+    const page = await collection.next();
+    const rows = [];
+
+    for (const transaction of page) {
+      const custom = safeCustomData(transaction);
+      const accountId = text(custom.light_remote_account_id || custom.lightRemoteAccountId);
+      const email = text(custom.light_remote_account_email || custom.lightRemoteAccountEmail).toLowerCase();
+      const plan = text(custom.light_remote_plan || custom.lightRemotePlan || '').toLowerCase();
+      const subscriptionId = text(transaction?.subscriptionId || transaction?.subscription_id);
+
+      if (!accountId || !email) continue;
+      let classifiedPlan=plan;
+      if(this.sandboxTeam){
+        // Admin revenue/refund listing derives product from Paddle's actual
+        // transaction price, never the merchant's mutable customData.
+        let verified;
+        try{verified=verifiedTransactionOffer(this.config,transaction)}catch{continue}
+        if(verified.accountId!==accountId)continue;
+        classifiedPlan=verified.product;
+      }else if(plan!==PRO_PLAN)continue;
+
+      const searchable = [
+        transaction.id,
+        subscriptionId,
+        accountId,
+        email,
+      ].join(' ').toLowerCase();
+      if (q && !searchable.includes(q)) continue;
+
+      const capturedMs = this.refundCaptureTime(transaction);
+      const ageMs = capturedMs == null ? null : this.now() - capturedMs;
+      const paddleAdjustments = (transaction?.adjustments || [])
+        .filter(row => text(row?.action).toLowerCase() === 'refund')
+        .map(row => ({
+          adjustmentId: text(row?.id) || null,
+          status: text(row?.status) || null,
+          type: text(row?.type) || null,
+        }));
+
+      const stateRefundEntry = Object.entries(this.state.refunds || {})
+        .filter(([, row]) => text(row?.transactionId) === text(transaction.id))
+        .sort((a, b) => Number(b[1]?.updatedAt || b[1]?.requestedAt || 0) - Number(a[1]?.updatedAt || a[1]?.requestedAt || 0))[0] || null;
+      const stateRefund = stateRefundEntry ? {
+        adjustmentId: stateRefundEntry[0],
+        status: text(stateRefundEntry[1]?.status) || null,
+        type: 'full',
+      } : null;
+
+      const refund = paddleAdjustments[0] || stateRefund || null;
+      const refundStatus = text(refund?.status).toLowerCase();
+      const hasOpenRefund = Boolean(refund && refundStatus !== 'rejected');
+      const withinWindow = ageMs != null && ageMs >= -5 * 60 * 1000 && ageMs <= windowMs;
+      const eligible = withinWindow && !hasOpenRefund;
+
+      const capturedPayment = (transaction?.payments || [])
+        .find(payment => text(payment?.status).toLowerCase() === 'captured');
+      const totals = transaction?.details?.totals || {};
+
+      rows.push({
+        transactionId: text(transaction.id),
+        subscriptionId: subscriptionId || null,
+        accountId,
+        email,
+        plan:classifiedPlan,
+        transactionStatus: text(transaction?.status) || null,
+        currency: text(transaction?.currencyCode || totals?.currencyCode || 'USD') || 'USD',
+        amountMinor: text(totals?.grandTotal || totals?.total || capturedPayment?.amount || '0'),
+        subtotalMinor: text(totals?.subtotal || '0'),
+        taxMinor: text(totals?.tax || '0'),
+        capturedAt: capturedMs == null ? null : new Date(capturedMs).toISOString(),
+        ageMs,
+        refundWindowHours: windowHours,
+        refundRemainingMs: eligible ? Math.max(0, windowMs - Math.max(0, ageMs)) : 0,
+        refundEligible: eligible,
+        refund: refund ? {
+          adjustmentId: refund.adjustmentId || null,
+          status: refund.status || null,
+          type: refund.type || null,
+        } : null,
+      });
+    }
+
+    rows.sort((a, b) => Date.parse(b.capturedAt || 0) - Date.parse(a.capturedAt || 0));
+    const limited = rows.slice(0, pageLimit);
+
+    const uniqueAccounts = [...new Set(limited.map(row => row.accountId))];
+    const accountPairs = await Promise.all(uniqueAccounts.map(async accountId => {
+      try {
+        return [accountId, await this.currentAccount(accountId)];
+      } catch {
+        return [accountId, null];
+      }
+    }));
+    const accounts = new Map(accountPairs);
+
+    return {
+      environment: this.config.environment,
+      refundWindowHours: windowHours,
+      transactions: limited.map(row => {
+        const current = accounts.get(row.accountId);
+        return {
+          ...row,
+          currentPlan: text(current?.plan || '') || null,
+          currentEntitlementSource: text(current?.entitlement?.source || '') || null,
+          currentEntitlementRef: text(current?.entitlement?.sourceRef || '') || null,
+        };
+      }),
+    };
+  }
+
+  async customerForAccount(account) {
+    if (!this.paddle) return null;
+    const email = text(account?.email).toLowerCase();
+    if (!email) return null;
+    const collection = this.paddle.customers.list({ email: [email], perPage: 10 });
+    const page = await collection.next();
+    const exact = [...page].filter(row => text(row?.email).toLowerCase() === email);
+    return exact.find(row => text(row?.status).toLowerCase() !== 'archived') || exact[0] || null;
+  }
+
+  async latestTransactionForAccount(account) {
+    if (!this.paddle) return null;
+    const accountId = text(account?.accountId);
+    const email = text(account?.email).toLowerCase();
+    if (!accountId && !email) return null;
+    const collection = this.paddle.transactions.list({
+      status: ['completed'],
+      perPage: 100,
+      include: ['adjustment'],
+    });
+    const page = await collection.next();
+    const rows = [...page].filter(transaction => {
+      const custom = safeCustomData(transaction);
+      const txAccountId = text(custom.light_remote_account_id || custom.lightRemoteAccountId);
+      const txEmail = text(custom.light_remote_account_email || custom.lightRemoteAccountEmail).toLowerCase();
+      return (accountId && txAccountId === accountId) || (email && txEmail === email);
+    });
+    rows.sort((a, b) => Number(this.refundCaptureTime(b) || 0) - Number(this.refundCaptureTime(a) || 0));
+    return rows[0] || null;
+  }
+
+  async accountBillingSummary(account) {
+    if (!this.paddle) {
+      return {
+        available: false,
+        environment: this.config.environment,
+        reason: 'paddle_not_configured',
+      };
+    }
+    const [customer, transaction] = await Promise.all([
+      this.customerForAccount(account),
+      this.latestTransactionForAccount(account),
+    ]);
+    const subscriptionId = text(
+      account?.entitlement?.source === 'paddle'
+        ? account?.entitlement?.sourceRef
+        : transaction?.subscriptionId || transaction?.subscription_id
+    );
+    let subscription = null;
+    if (subscriptionId) {
+      try { subscription = await this.paddle.subscriptions.get(subscriptionId); } catch {}
+    }
+    const accounting = transaction ? paddleAccounting(transaction) : null;
+    const transactionItem = transaction?.items?.[0] || null;
+    const subscriptionItem = subscription?.items?.[0] || null;
+    const billingCycle = subscription?.billingCycle || subscription?.billing_cycle || transactionItem?.price?.billingCycle || transactionItem?.price?.billing_cycle || null;
+    const nextBilledAt = text(
+      subscription?.nextBilledAt ||
+      subscription?.next_billed_at ||
+      subscriptionItem?.nextBilledAt ||
+      subscriptionItem?.next_billed_at
+    ) || null;
+    const purchasedAtMs = transaction ? this.refundCaptureTime(transaction) : null;
+    const taxMode = text(transactionItem?.price?.taxMode || transactionItem?.price?.tax_mode).toLowerCase() || null;
+    const refund = (transaction?.adjustments || []).find(row => text(row?.action).toLowerCase() === 'refund') || null;
+    return {
+      available: Boolean(customer || transaction),
+      environment: this.config.environment,
+      portalAvailable: Boolean(customer),
+      plan: text(account?.plan || 'free').toLowerCase(),
+      transaction: transaction ? {
+        transactionId: text(transaction.id),
+        status: text(transaction?.status) || null,
+        invoiceNumber: text(transaction?.invoiceNumber || transaction?.invoice_number) || null,
+        purchasedAt: purchasedAtMs == null ? null : new Date(purchasedAtMs).toISOString(),
+        currency: accounting?.currency || text(transaction?.currencyCode || transaction?.currency_code || 'USD').toUpperCase(),
+        subtotal: accounting?.subtotal ?? null,
+        tax: accounting?.tax ?? null,
+        total: accounting?.gross ?? null,
+        taxMode,
+        refund: refund ? {
+          adjustmentId: text(refund?.id) || null,
+          status: text(refund?.status) || null,
+        } : null,
+      } : null,
+      subscription: subscriptionId ? {
+        subscriptionId,
+        status: text(subscription?.status) || null,
+        billingCycle,
+        nextBilledAt,
+      } : null,
+    };
+  }
+
+  async createCustomerPortal(account) {
+    if (!this.paddle) {
+      const error = new Error('paddle_not_configured');
+      error.status = 503;
+      throw error;
+    }
+    const customer = await this.customerForAccount(account);
+    if (!customer?.id) {
+      const error = new Error('paddle_customer_not_found');
+      error.status = 404;
+      throw error;
+    }
+    const transaction = await this.latestTransactionForAccount(account);
+    const subscriptionId = text(
+      account?.entitlement?.source === 'paddle'
+        ? account?.entitlement?.sourceRef
+        : transaction?.subscriptionId || transaction?.subscription_id
+    );
+    const portal = await this.paddle.customerPortalSessions.create(
+      customer.id,
+      subscriptionId ? [subscriptionId] : undefined,
+    );
+    const url = text(portal?.urls?.general?.overview);
+    if (!url) {
+      const error = new Error('paddle_customer_portal_unavailable');
+      error.status = 502;
+      throw error;
+    }
+    return {
+      environment: this.config.environment,
+      url,
+    };
+  }
+
+  // Price ID and owner ID must match Paddle's actual transaction item,
+  // not self-supplied metadata from a checkout browser or webhook payload.
+  async recordSandboxTeamPurchase(transaction){
+    const offer=verifiedTransactionOffer(this.config,transaction);
+    if(offer.product!=='pro_team')throw Object.assign(new Error('not_a_team_purchase'),{status:403});
+    await this.checkSandboxPrice(offer,{allowArchived:true});
+    const account=await this.currentAccount(offer.accountId);
+    const email=accountEmailFrom(transaction);
+    if(!account||text(account.email).toLowerCase()!==email)
+      throw Object.assign(new Error('paddle_team_account_email_mismatch'),{status:403});
+    const accounting=paddleAccounting(transaction),capturedAt=this.refundCaptureTime(transaction);
+    const fee=accounting.fee,earnings=accounting.earnings||Math.max(0,accounting.subtotal-fee);
+    const payload={
+      event_id:'paddle.purchase.'+offer.transactionId,source_product:'Light Remote',
+      plan_code:'PRO_TEAM',customer_email:email,account_id:offer.accountId,
+      source_reference:offer.transactionId,external_order_id:offer.subscriptionId,
+      payment_provider:'Paddle',payment_reference:offer.transactionId,
+      amount:accounting.subtotal,gross_amount:accounting.gross||accounting.subtotal,
+      tax_amount:accounting.tax,fee_amount:fee,earnings_amount:earnings,
+      currency:accounting.currency,
+      purchased_at:new Date(capturedAt||this.now()).toISOString(),
+      metadata:{paddle_environment:'sandbox',paddle_product:'pro_team',
+        billing_period:offer.period,subscription_id:offer.subscriptionId,
+        transaction_status:text(transaction.status)||null}
+    };
+    const backoffice=await this.purchaseRecorder(payload);
+    let mail={sent:false,reason:'purchase_mail_not_attempted'};
+    try{
+      const subscription=await this.paddle.subscriptions.get(offer.subscriptionId);
+      if(text(subscription?.status)==='active'){
+        mail=await this.purchaseMailer({
+          to:email,plan:'Pro Team',purchasedAt:payload.purchased_at,
+          billingCycle:subscription?.billingCycle||null,nextBilledAt:subscription?.nextBilledAt||null,
+          subtotal:accounting.subtotal,tax:accounting.tax,
+          total:accounting.gross||accounting.subtotal,currency:accounting.currency,
+          transactionId:offer.transactionId,invoiceNumber:text(transaction.invoiceNumber)||null,
+          taxInclusive:text(transaction?.items?.[0]?.price?.taxMode).toLowerCase()==='internal',
+          environment:'sandbox'
+        });
+      }else mail={sent:false,reason:'subscription_not_yet_active'};
+    }catch(error){mail={sent:false,reason:text(error?.message)||'mail_failed'}}
+    return {action:'recorded_team',accountId:offer.accountId,
+      subscriptionId:offer.subscriptionId,transactionId:offer.transactionId,
+      period:offer.period,backofficeStatus:text(backoffice?.status)||'accepted',
+      backofficeEventId:text(backoffice?.event_id)||payload.event_id,mail};
+  }
+
+  async recordCompletedTransaction(data) {
+    const transactionId = text(data?.id);
+    if (!transactionId || !this.paddle) {
+      return { action: 'ignored', reason: 'paddle_transaction_missing' };
+    }
+    const transaction = await this.paddle.transactions.get(transactionId);
+    if(this.sandboxTeam){
+      const verified=verifiedTransactionOffer(this.config,transaction);
+      if(verified.product==='pro_team')return this.recordSandboxTeamPurchase(transaction);
+    }
+    const accountId = accountIdFrom(transaction) || accountIdFrom(data);
+    const email = accountEmailFrom(transaction) || accountEmailFrom(data);
+    const plan = planFrom(transaction) || planFrom(data);
+    if (!accountId || !email || plan !== PRO_PLAN) {
+      return {
+        action: 'ignored',
+        reason: 'paddle_metadata_missing',
+        accountId: accountId || null,
+        transactionId,
+      };
+    }
+
+    const accounting = paddleAccounting(transaction);
+    const fee = accounting.fee;
+    const earnings = accounting.earnings || Math.max(0, accounting.subtotal - fee);
+    const capturedAt = this.refundCaptureTime(transaction);
+    const subscriptionId = text(transaction?.subscriptionId || transaction?.subscription_id);
+    const payload = {
+      event_id: 'paddle.purchase.' + transactionId,
+      source_product: 'Light Remote',
+      plan_code: 'PRO',
+      customer_email: email,
+      account_id: accountId,
+      source_reference: transactionId,
+      external_order_id: subscriptionId,
+      payment_provider: 'Paddle',
+      payment_reference: transactionId,
+      amount: accounting.subtotal,
+      gross_amount: accounting.gross || accounting.subtotal,
+      tax_amount: accounting.tax,
+      fee_amount: fee,
+      earnings_amount: earnings,
+      currency: accounting.currency,
+      purchased_at: new Date(capturedAt || this.now()).toISOString(),
+      metadata: {
+        paddle_environment: this.config.environment,
+        subscription_id: subscriptionId || null,
+        transaction_status: text(transaction?.status) || null,
+      },
+    };
+    const backoffice = await this.purchaseRecorder(payload);
+    let subscription = null;
+    if (subscriptionId) {
+      try { subscription = await this.paddle.subscriptions.get(subscriptionId); } catch {}
+    }
+    const transactionItem = transaction?.items?.[0] || null;
+    const subscriptionItem = subscription?.items?.[0] || null;
+    const billingCycle = subscription?.billingCycle || subscription?.billing_cycle || transactionItem?.price?.billingCycle || transactionItem?.price?.billing_cycle || null;
+    const nextBilledAt = text(
+      subscription?.nextBilledAt ||
+      subscription?.next_billed_at ||
+      subscriptionItem?.nextBilledAt ||
+      subscriptionItem?.next_billed_at
+    ) || null;
+    const taxMode = text(transactionItem?.price?.taxMode || transactionItem?.price?.tax_mode).toLowerCase();
+    let mail = { sent: false, reason: 'purchase_mail_not_attempted' };
+    try {
+      mail = await this.purchaseMailer({
+        to: email,
+        plan,
+        purchasedAt: payload.purchased_at,
+        billingCycle,
+        nextBilledAt,
+        subtotal: accounting.subtotal,
+        tax: accounting.tax,
+        total: accounting.gross || accounting.subtotal,
+        currency: accounting.currency,
+        transactionId,
+        invoiceNumber: text(transaction?.invoiceNumber || transaction?.invoice_number) || null,
+        taxInclusive: taxMode === 'internal',
+        environment: this.config.environment,
+      });
+    } catch (error) {
+      mail = { sent: false, reason: text(error?.message) || 'purchase_mail_failed' };
+    }
+    return {
+      action: 'recorded',
+      accountId,
+      transactionId,
+      subscriptionId: subscriptionId || null,
+      backofficeStatus: text(backoffice?.status) || 'accepted',
+      backofficeEventId: text(backoffice?.event_id) || payload.event_id,
+      accounting,
+      mail,
+    };
+  }
+
+  async recordApprovedRefund(adjustment, transaction) {
+    const adjustmentId = text(adjustment?.id);
+    const transactionId = text(
+      adjustment?.transactionId ||
+      adjustment?.transaction_id ||
+      transaction?.id
+    );
+    const accountId = accountIdFrom(transaction);
+    const email = accountEmailFrom(transaction);
+    if (!adjustmentId || !transactionId || !accountId || !email) {
+      return { action: 'backoffice_refund_unmapped' };
+    }
+    const accounting = paddleAccounting(transaction);
+    const adjustmentTotals = adjustment?.totals || {};
+    const adjustmentPayout = adjustment?.payoutTotals || adjustment?.payout_totals || {};
+    const currency = text(
+      adjustment?.currencyCode ||
+      adjustment?.currency_code ||
+      accounting.currency ||
+      'USD'
+    ).toUpperCase();
+    const grossRefund = majorAmount(
+      firstValue(
+        adjustmentTotals?.grandTotal,
+        adjustmentTotals?.grand_total,
+        adjustmentTotals?.total,
+      ),
+      currency,
+    ) || accounting.gross || accounting.subtotal;
+    const retainedFee = Math.abs(majorAmount(
+      firstValue(
+        adjustmentPayout?.retainedFee,
+        adjustmentPayout?.retained_fee,
+        adjustmentTotals?.retainedFee,
+        adjustmentTotals?.retained_fee,
+        transaction?.details?.adjustedPayoutTotals?.retainedFee,
+        transaction?.details?.adjustedPayoutTotals?.retained_fee,
+        transaction?.details?.adjusted_payout_totals?.retained_fee,
+      ),
+      currency,
+    ));
+    let refundPlan='PRO';
+    if(this.sandboxTeam){
+      const offer=verifiedTransactionOffer(this.config,transaction);
+      refundPlan=offer.product==='pro_team'?'PRO_TEAM':'PRO';
+      if(offer.accountId!==accountId)
+        throw Object.assign(new Error('paddle_refund_account_mismatch'),{status:403});
+    }
+    const payload = {
+      event_id: 'paddle.refund.' + adjustmentId,
+      source_product: 'Light Remote',
+      plan_code: refundPlan,
+      customer_email: email,
+      account_id: accountId,
+      source_reference: transactionId,
+      external_order_id: text(transaction?.subscriptionId || transaction?.subscription_id),
+      payment_provider: 'Paddle',
+      payment_reference: adjustmentId,
+      amount: accounting.subtotal,
+      gross_amount: grossRefund,
+      retained_fee: retainedFee,
+      currency,
+      refunded_at: text(adjustment?.updatedAt || adjustment?.updated_at || adjustment?.createdAt || adjustment?.created_at) || new Date(this.now()).toISOString(),
+      metadata: {
+        paddle_environment: this.config.environment,
+        adjustment_status: text(adjustment?.status) || null,
+        adjustment_type: text(adjustment?.type) || null,
+      },
+    };
+    const backoffice = await this.refundRecorder(payload);
+    return {
+      eventId: text(backoffice?.event_id) || payload.event_id,
+      status: text(backoffice?.status) || 'accepted',
+      retainedFee,
+    };
+  }
+
+  async requestEmergencyRefund({
+    transactionId,
+    reason,
+    maxAgeHours = 24,
+    requestedBy = 'private_admin',
+  } = {}) {
+    const id = text(transactionId);
+    const why = text(reason);
+    const hours = Number(maxAgeHours);
+    if (!this.paddle || !id || !why || why.length < 8) {
+      const error = new Error('paddle_refund_request_invalid');
+      error.status = 400;
+      throw error;
+    }
+    if (!Number.isFinite(hours) || hours <= 0 || hours > 24) {
+      const error = new Error('paddle_refund_window_invalid');
+      error.status = 400;
+      throw error;
+    }
+
+    const transaction = await this.paddle.transactions.get(id);
+    if (text(transaction?.status).toLowerCase() !== 'completed') {
+      const error = new Error('paddle_refund_transaction_not_completed');
+      error.status = 409;
+      throw error;
+    }
+
+    const accountId = accountIdFrom(transaction);
+    const plan=this.sandboxTeam
+      ? verifiedTransactionOffer(this.config,transaction).product
+      : planFrom(transaction);
+    if (!accountId || !['pro',...(this.sandboxTeam?['pro_team']:[])].includes(plan)) {
+      const error = new Error('paddle_refund_transaction_not_light_remote');
+      error.status = 403;
+      throw error;
+    }
+
+    const capturedAt = this.refundCaptureTime(transaction);
+    if (!capturedAt) {
+      const error = new Error('paddle_refund_capture_time_missing');
+      error.status = 409;
+      throw error;
+    }
+    const ageMs = this.now() - capturedAt;
+    const maxAgeMs = hours * 60 * 60 * 1000;
+    if (ageMs < -5 * 60 * 1000 || ageMs > maxAgeMs) {
+      const error = new Error('paddle_refund_window_expired');
+      error.status = 409;
+      throw error;
+    }
+
+    const adjustment = await this.paddle.adjustments.create({
+      action: 'refund',
+      type: 'full',
+      transactionId: id,
+      reason: why,
+    });
+
+    const result = await this.processRefundAdjustment(adjustment);
+    this.state.refunds[adjustment.id] = {
+      transactionId: id,
+      accountId,
+      subscriptionId: text(adjustment?.subscriptionId || transaction?.subscriptionId) || null,
+      status: text(adjustment?.status) || null,
+      requestedBy: text(requestedBy) || 'private_admin',
+      reason: why,
+      requestedAt: this.now(),
+      updatedAt: this.now(),
+      result,
+    };
+    this._persist();
+
+    return {
+      adjustmentId: adjustment.id,
+      transactionId: id,
+      accountId,
+      subscriptionId: text(adjustment?.subscriptionId || transaction?.subscriptionId) || null,
+      status: text(adjustment?.status) || null,
+      capturedAt: new Date(capturedAt).toISOString(),
+      ageHours: Math.max(0, ageMs) / 3600000,
+      action: result.action,
+    };
+  }
+
+  async processRefundAdjustment(data) {
+    if (text(data?.action).toLowerCase() !== 'refund') {
+      return { action: 'ignored', reason: 'adjustment_not_refund' };
+    }
+
+    const adjustmentId = text(data?.id);
+    const transactionId = text(data?.transactionId || data?.transaction_id);
+    const status = text(data?.status).toLowerCase();
+    const subscriptionId = text(data?.subscriptionId || data?.subscription_id);
+
+    if (!adjustmentId || !transactionId) {
+      return { action: 'ignored', reason: 'refund_metadata_missing' };
+    }
+
+    if (status !== 'approved') {
+      const result = {
+        action: status === 'rejected' ? 'refund_rejected' : 'refund_pending',
+        adjustmentId,
+        transactionId,
+        subscriptionId: subscriptionId || null,
+        status,
+      };
+      this.state.refunds[adjustmentId] = {
+        ...(this.state.refunds[adjustmentId] || {}),
+        transactionId,
+        subscriptionId: subscriptionId || null,
+        status,
+        updatedAt: this.now(),
+        result,
+      };
+      return result;
+    }
+
+    const transaction = await this.paddle.transactions.get(transactionId);
+    const accountId = accountIdFrom(transaction);
+    const effectiveSubscriptionId = subscriptionId || text(transaction?.subscriptionId);
+    if(this.sandboxTeam){
+      const verified=verifiedTransactionOffer(this.config,transaction);
+      if(verified.subscriptionId!==effectiveSubscriptionId||verified.accountId!==accountId)
+        throw Object.assign(new Error('paddle_refund_subscription_mismatch'),{status:403});
+    }
+    if (!accountId || !effectiveSubscriptionId) {
+      return {
+        action: 'refund_approved_unmapped',
+        adjustmentId,
+        transactionId,
+        subscriptionId: effectiveSubscriptionId || null,
+      };
+    }
+
+    let cancellation = 'not_needed';
+    try {
+      const subscription = await this.paddle.subscriptions.get(effectiveSubscriptionId);
+      const subscriptionStatus = text(subscription?.status).toLowerCase();
+      if (subscriptionStatus !== 'canceled') {
+        await this.paddle.subscriptions.cancel(
+          effectiveSubscriptionId,
+          { effectiveFrom: 'immediately' },
+        );
+        cancellation = 'canceled';
+      } else {
+        cancellation = 'already_canceled';
+      }
+    } catch (error) {
+      const message = text(error?.message).toLowerCase();
+      if (message.includes('canceled') || message.includes('not found')) cancellation = 'already_unavailable';
+      else throw error;
+    }
+
+    const current = await this.currentAccount(accountId);
+    const entitlement = current?.entitlement || {};
+    let entitlementAction = 'unchanged';
+    if(this.sandboxTeam){
+      const offer=verifiedTransactionOffer(this.config,transaction);
+      if(offer.product==='pro_team'){
+        await this.operatorCall('DELETE',
+          '/v1/admin/accounts/'+encodeURIComponent(accountId)+'/team-entitlement',
+          {expectedSource:'paddle:'+effectiveSubscriptionId});
+      }
+    }
+    if (
+      text(entitlement.source) === 'paddle' &&
+      text(entitlement.sourceRef) === effectiveSubscriptionId
+    ) {
+      const revoked = await this.operatorCall(
+        'POST',
+        `/v1/admin/accounts/${encodeURIComponent(accountId)}/entitlement/revoke`,
+        {
+          source: 'paddle',
+          reason: `paddle_refund:${adjustmentId}`,
+        },
+      );
+      entitlementAction = revoked?.account?.plan || 'free';
+    }
+
+    const backoffice = await this.recordApprovedRefund(data, transaction);
+    const result = {
+      action: 'refund_approved',
+      adjustmentId,
+      transactionId,
+      accountId,
+      subscriptionId: effectiveSubscriptionId,
+      cancellation,
+      entitlementAction,
+      status,
+      backoffice,
+    };
+    this.state.refunds[adjustmentId] = {
+      ...(this.state.refunds[adjustmentId] || {}),
+      transactionId,
+      accountId,
+      subscriptionId: effectiveSubscriptionId,
+      status,
+      updatedAt: this.now(),
+      result,
+    };
+    return result;
+  }
+
+  async processSandboxSubscriptionEvent(data){
+    const id=sourceRefFrom(data);
+    if(!/^sub_[a-z0-9]{20,}$/.test(id))
+      throw Object.assign(new Error('sandbox_subscription_id_required'),{status:403});
+    // A verified Paddle webhook is only the trigger: the authoritative
+    // current subscription price, owner, and status are re-read from Paddle.
+    const sub=await this.paddle.subscriptions.get(id);
+    if(text(sub?.id)!==id)
+      throw Object.assign(new Error('paddle_subscription_snapshot_mismatch'),{status:403});
+    const expected=accountIdFrom(data)||null;
+    const offer=verifiedSubscriptionOffer(this.config,sub,{expectedAccountId:expected});
+    await this.checkSandboxPrice(offer,{allowArchived:true});
+    return this.sandboxTeam.apply(sub,{expectedAccountId:expected});
+  }
+
+  async processEvent(event) {
+    // Single Gold Plugin writer: serialize provider side effects and SQL commits.
+    // Reject a missing identity rather than accepting a non-replay-safe event.
+    if (!safeEventId(event)) {
+      const error = Error('paddle_event_id_required');
+      error.status = 400;
+      throw error;
+    }
+    if (this.persistenceFatal) throw this.persistenceFatal;
+    if (this.pendingEventCount >= 128) {
+      const error = Error('paddle_webhook_queue_saturated');
+      error.status = 503;
+      throw error;
+    }
+    this.pendingEventCount++;
+    const task = this.eventQueue.then(() => this._processEventSerial(event));
+    this.eventQueue = task.then(() => undefined, () => undefined);
+    try { return await task; }
+    finally { this.pendingEventCount--; }
+  }
+
+  async _processEventSerial(event) {
+    if (this.persistenceFatal) throw this.persistenceFatal;
+    const eventType = safeEventType(event);
+    const data = safeData(event);
+    const eventId = safeEventId(event);
+
+    if (eventId && this.state.events[eventId]) {
+      return { duplicate: true, ...this.state.events[eventId].result };
+    }
+
+    let result = { action: 'ignored', reason: 'event_not_used', eventType };
+    if (this.sandboxTeam && [
+      EventName.SubscriptionCreated,
+      EventName.SubscriptionActivated,
+      EventName.SubscriptionResumed,
+      EventName.SubscriptionTrialing,
+      EventName.SubscriptionUpdated,
+      EventName.SubscriptionCanceled,
+      EventName.SubscriptionPastDue,
+      EventName.SubscriptionPaused,
+    ].includes(eventType)) {
+      result = await this.processSandboxSubscriptionEvent(data);
+    } else if ([
+      EventName.SubscriptionCreated,
+      EventName.SubscriptionActivated,
+      EventName.SubscriptionResumed,
+      EventName.SubscriptionTrialing,
+      EventName.SubscriptionUpdated,
+    ].includes(eventType)) {
+      if (text(data?.status).toLowerCase() === 'canceled') result = await this.revokeSubscription(data);
+      else result = await this.grantSubscription(data, eventType);
+    } else if (eventType === EventName.SubscriptionCanceled) {
+      result = await this.revokeSubscription(data);
+    } else if (eventType === EventName.TransactionCompleted) {
+      result = await this.recordCompletedTransaction(data);
+    } else if (
+      eventType === EventName.AdjustmentCreated ||
+      eventType === EventName.AdjustmentUpdated
+    ) {
+      result = await this.processRefundAdjustment(data);
+    }
+
+    const subscriptionId = sourceRefFrom(data);
+    if (subscriptionId && eventType.startsWith('subscription.')) {
+      this.state.subscriptions[subscriptionId] = {
+        accountId: accountIdFrom(data) || null,
+        status: text(data?.status) || null,
+        eventType,
+        updatedAt: this.now(),
+      };
+    }
+
+    if (eventId) {
+      this.state.events[eventId] = {
+        eventType,
+        processedAt: this.now(),
+        result,
+      };
+    }
+    try {
+      await this._persist(); // Event must be durable before webhook HTTP acknowledgement.
+    } catch (error) {
+      // In-memory event state might be ahead of SQL. Fail closed until restart.
+      this.persistenceFatal = error;
+      throw error;
+    }
+    return { duplicate: false, ...result };
+  }
+
+  async unmarshal(rawBody, signature) {
+    const status = this.status();
+    if (!status.webhookEnabled) {
+      const error = new Error(status.reason || 'paddle_webhook_not_configured');
+      error.status = 503;
+      throw error;
+    }
+    if (!rawBody || !signature) {
+      const error = new Error('paddle_signature_required');
+      error.status = 400;
+      throw error;
+    }
+    return this.paddle.webhooks.unmarshal(
+      String(rawBody),
+      this.config.webhookSecret,
+      String(signature),
+    );
+  }
+
+  async handleWebhook(rawBody, signature) {
+    const event = await this.unmarshal(rawBody, signature);
+    return {
+      eventId: safeEventId(event) || null,
+      eventType: safeEventType(event) || null,
+      result: await this.processEvent(event),
+    };
+  }
+}
+
+export { EventName };
+
+export const paddleBilling = new PaddleBilling();
+
+export function paddleBillingStatus() {
+  return paddleBilling.status();
+}
+
+export function paddlePublicConfig() {
+  return paddleBilling.publicConfig();
+}
+
+export async function createPaddleCheckout(account) {
+  return paddleBilling.createCheckout(account);
+}
+
+export async function createPaddleSandboxOfferCheckout(account,selection){
+  return paddleBilling.createSandboxOfferCheckout(account,selection);
+}
+
+export async function paddleBillingSummary(account) {
+  return paddleBilling.accountBillingSummary(account);
+}
+
+export async function createPaddleCustomerPortal(account) {
+  return paddleBilling.createCustomerPortal(account);
+}
+
+export function registerPaddleWebhook(app, rawMiddleware) {
+  app.post('/billing/paddle/webhook', rawMiddleware, async (req, res) => {
+    try {
+      const signature = text(req.headers?.['paddle-signature']);
+      const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : String(req.body || '');
+      const result = await paddleBilling.handleWebhook(rawBody, signature);
+      console.log(JSON.stringify({
+        event: 'paddle_webhook',
+        status: 'ok',
+        eventId: result.eventId,
+        eventType: result.eventType,
+        action: result.result?.action || null,
+        duplicate: Boolean(result.result?.duplicate),
+      }));
+      return res.status(200).json({ ok: true });
+    } catch (error) {
+      const status = Number(error?.status) || 400;
+      console.error(JSON.stringify({
+        event: 'paddle_webhook',
+        status: 'error',
+        error: String(error?.message || 'paddle_webhook_failed').slice(0, 120),
+      }));
+      return res.status(status >= 500 ? 500 : 400).json({ ok: false, error: 'paddle_webhook_rejected' });
+    }
+  });
+}

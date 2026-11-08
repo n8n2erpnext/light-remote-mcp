@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "channel": "beta",
+  "version": "0.9.0-rc.47",
+  "artifacts": {
+    "windows-x64": {
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.47/Light-Remote-MCP-Setup-x64-0.9.0-rc.47.exe",
+      "sha256": "51f32b18035bbaccbe3baf1cb5e980991ecf9e08bba29c38bb75ee753d2beb7e",
+      "size": 175112083,
+      "installerArgs": "/SILENT /NORESTART"
+    },
+    "macos-x64": {
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.47/Light-Remote-Client-macOS-x64-0.9.0-rc.47.tar.gz",
+      "sha256": "aaccfc2721cbf205499bc4d8d37cc3a233a0c9970ae9127e1de3d04cf1f5d321",
+      "size": 41468591
+    },
+    "macos-arm64": {
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.47/Light-Remote-Client-macOS-arm64-0.9.0-rc.47.tar.gz",
+      "sha256": "7e76b1d5b6001f388e2132d6eef657c4d905b97c46ba289cd103cc69a6ed70d0",
+      "size": 40247202
+    },
+    "linux-x64": {
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.47/Light-Remote-MCP-Client-Linux-x64-0.9.0-rc.47.tar.gz",
+      "sha256": "be090a1f07d04fbac5f84c6366f92ed22303e1ae1490cf25a9b4242253618d8d",
+      "size": 47286354
+    },
+    "linux-arm64": {
+      "url": "https://drive.thaiduy.store/light-remote/release/0.9.0-rc.47/Light-Remote-MCP-Client-Linux-arm64-0.9.0-rc.47.tar.gz",
+      "sha256": "9775b4f504bd390e9e14249b13ac152f4f225910cf0d3419d5a1ac44041612e2",
+      "size": 47101065
+    }
+  }
+}

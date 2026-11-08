@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Light Remote LM — GoldABV2 Lab",
+  "short_name": "LR LM ABV2",
+  "version": "0.3.0",
+  "description": "Manual, owner-reviewed ChatGPT Web snapshot handoff to the isolated Light Remote GoldABV2 Long Memory Lab.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "http://100.94.184.141:15591/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Light Remote LM",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}

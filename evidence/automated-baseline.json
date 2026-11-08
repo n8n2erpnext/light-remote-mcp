@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "aabd0c47609d891f8fac54f7d0430c0f93ed5423",
+  "nodeTests": 270,
+  "nodePass": 270,
+  "nodeFail": 0,
+  "sourceInvocations": 69,
+  "sourceExitZero": 69,
+  "platformOnlySkipped": [
+    "Windows file lock",
+    "Windows Job Object",
+    "Windows process tree"
+  ],
+  "newPhysicalAcceptance": false
+}

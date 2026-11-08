@@ -1,0 +1,156 @@
+{
+  "designStatus": "PROPOSAL_ONLY_NOT_A_DEPLOYABLE_CONFIGURATION",
+  "schemaVersion": 1,
+  "configRevision": 1,
+  "selectedProfile": "goldabv2-lab",
+  "profiles": {
+    "goldabv2-lab": {
+      "productId": "goldabv2-desktop-v4",
+      "cloudOrigins": {
+        "owner": "https://goldabv2.light-remote.thaiduy.digital",
+        "deviceChannel": "https://goldabv2.light-remote.thaiduy.digital",
+        "mcp": "https://goldabv2.light-remote.thaiduy.digital"
+      },
+      "localServices": {
+        "wall": {
+          "host": "127.0.0.1",
+          "port": 5491
+        },
+        "fleet": {
+          "host": "127.0.0.1",
+          "port": 5492
+        }
+      },
+      "updates": {
+        "productId": "goldabv2-desktop-v4",
+        "channel": "goldabv2-lab",
+        "manifestUrl": null,
+        "signatureUrl": null,
+        "activationStatus": "HOLD_UNTIL_APPROVED_PRODUCT_FEED_EXISTS"
+      },
+      "credentialBinding": [
+        "productId",
+        "selectedProfile",
+        "cloudOrigins.owner",
+        "cloudOrigins.deviceChannel"
+      ],
+      "legacyAliases": []
+    }
+  },
+  "routeCatalog": {
+    "ownerAuthorize": {
+      "originRole": "owner",
+      "method": "GET",
+      "path": "/account/desktop/v4/authorize"
+    },
+    "ownerToken": {
+      "originRole": "owner",
+      "method": "POST",
+      "path": "/account/desktop/v4/token"
+    },
+    "ownerRefresh": {
+      "originRole": "owner",
+      "method": "POST",
+      "path": "/account/desktop/v4/refresh"
+    },
+    "ownerSession": {
+      "originRole": "owner",
+      "method": "GET",
+      "path": "/account/desktop/v4/session"
+    },
+    "ownerSnapshot": {
+      "originRole": "owner",
+      "method": "POST",
+      "path": "/account/desktop/v4/snapshot"
+    },
+    "ownerLogout": {
+      "originRole": "owner",
+      "method": "POST",
+      "path": "/account/desktop/v4/logout"
+    },
+    "ownerWallTicket": {
+      "originRole": "owner",
+      "method": "POST",
+      "path": "/account/desktop/v4/wall-sso/ticket"
+    },
+    "accountPage": {
+      "originRole": "owner",
+      "method": "GET",
+      "path": "/account"
+    },
+    "mcp": {
+      "originRole": "mcp",
+      "path": "/mcp"
+    },
+    "wallHome": {
+      "originRole": "local.wall",
+      "method": "GET",
+      "path": "/"
+    },
+    "wallStatus": {
+      "originRole": "local.wall",
+      "method": "GET",
+      "path": "/api/status"
+    },
+    "wallApprovePage": {
+      "originRole": "local.wall",
+      "method": "GET",
+      "path": "/approve"
+    },
+    "wallBApprove": {
+      "originRole": "local.wall",
+      "method": "POST",
+      "path": "/api/abv2/approve"
+    },
+    "wallModulesRead": {
+      "originRole": "local.wall",
+      "method": "GET",
+      "path": "/api/gold/modules"
+    },
+    "wallModulesConfigure": {
+      "originRole": "local.wall",
+      "method": "POST",
+      "path": "/api/gold/modules/configure"
+    },
+    "wallLogsPage": {
+      "originRole": "local.wall",
+      "method": "GET",
+      "path": "/settings",
+      "fragment": "activityLogSettings"
+    }
+  },
+  "loadingContract": {
+    "authoringSource": "config/endpoints.json (proposed canonical path)",
+    "runtimeConsumers": [
+      "Node Agent",
+      "Local Wall",
+      "Rust Tauri Owner",
+      "Windows .NET bridge",
+      "independent updater",
+      "install watchdog",
+      "installer/packaging"
+    ],
+    "reloadPolicy": {
+      "displayOnlyLinks": "validated controlled reload",
+      "localListenerHostOrPort": "coordinated restart",
+      "cloudAuthorityOrIssuer": "explicit Owner sign-in/relink; never forward previous credentials"
+    },
+    "productionIntegrity": "Verify a signature with an independently pretrusted public config/release key; deny malformed or unsigned product config.",
+    "failureMode": "Fail closed with effective profile/revision diagnostic; no old-production fallback.",
+    "sameOriginBrowserRule": "Wall browser requests remain relative and retain cookies/CSRF policy; no browser bearer or arbitrary native URL."
+  },
+  "notConfigurationData": [
+    "Owner/access/refresh tokens",
+    "private signing or enrollment keys",
+    "B/consent codes",
+    "A/B grants",
+    "device capability approvals",
+    "automatic module enabling"
+  ],
+  "incompleteByDesign": [
+    "This is a review sample, not installed anywhere. It does not replace running configuration.",
+    "Complete the semantic route inventory and approved product update feed before implementation.",
+    "Legacy Gold and standalone profiles must remain explicit separate authorities; no silent mapping to GoldABV2.",
+    "Callback port is ephemeral runtime data, not a fixed deployment endpoint."
+  ]
+}

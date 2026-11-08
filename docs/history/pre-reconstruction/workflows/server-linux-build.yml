@@ -1,0 +1,159 @@
+name: Linux Server Bundle
+
+on:
+  push:
+    branches:
+      - main
+      - 'codex/**'
+    tags:
+      - 'v0.9.*'
+    paths:
+      - 'gateway/**'
+      - 'plugin-server/**'
+      - 'plugin.json'
+      - '.codex-plugin/**'
+      - 'mcp.json'
+      - 'operator-host/**'
+      - 'device-agent/**'
+      - 'lib/**'
+      - 'assets/**'
+      - 'deploy/server-linux/**'
+      - 'deploy/scripts/install-host.sh'
+      - 'deploy/scripts/build-fleet-wall-module.sh'
+      - 'deploy/scripts/selftest-*.mjs'
+      - 'deploy/scripts/test-source-surface.mjs'
+      - 'deploy/scripts/run-selftests.mjs'
+      - 'deploy/scripts/stage-terminal-runtime.mjs'
+      - 'deploy/scripts/terminal-runtime-smoke.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.dockerignore'
+      - 'deploy/scripts/sync-gateway.sh'
+      - 'deploy/scripts/generate-operator-key.mjs'
+      - 'deploy/scripts/generate-wall-auth.mjs'
+      - 'VERSION'
+      - 'LICENSE'
+      - 'NOTICE'
+      - 'THIRD_PARTY_DISTRIBUTION_NOTICES.md'
+      - '.github/workflows/server-linux-build.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+jobs:
+  audit-selftests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - name: Install audit dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix gateway
+      - name: Full repository selftest audit
+        run: npm test
+
+  build-server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fleet module reproducibility smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          A="$RUNNER_TEMP/fleet-repro-a"
+          B="$RUNNER_TEMP/fleet-repro-b"
+          bash deploy/scripts/build-fleet-wall-module.sh "$A"
+          bash deploy/scripts/build-fleet-wall-module.sh "$B"
+          ART="Light-Remote-Fleet-Wall-$(cat VERSION).tar.gz"
+          cmp "$A/$ART" "$B/$ART"
+          echo "fleet-module-reproducible=PASS sha256=$(sha256sum "$A/$ART" | awk '{print $1}')"
+      - name: Build Fleet Wall release module
+        if: matrix.arch == 'x64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash deploy/scripts/build-fleet-wall-module.sh dist/fleet-wall
+          VERSION="$(cat VERSION)"
+          test -s "dist/fleet-wall/Light-Remote-Fleet-Wall-${VERSION}.tar.gz"
+          test -s dist/fleet-wall/fleet-wall-module-metadata.json
+          (cd dist/fleet-wall && sha256sum -c SHA256SUMS.txt)
+
+      - name: Legacy live-host parity smoke
+        run: node deploy/scripts/selftest-host-install-layout.mjs
+      - name: Gateway canonical image smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n deploy/scripts/sync-gateway.sh
+          node deploy/scripts/selftest-v10-version-plane-parity.mjs
+          docker build -f gateway/Dockerfile -t light-remote-gateway-ci .
+          VERSION_EXPECTED="$(cat VERSION)"
+          docker run --rm light-remote-gateway-ci node -e "import('../lib/runtime-version.mjs').then(m=>{const v=m.runtimeVersion({env:{}});console.log('gateway-container-version='+v);if(v!==process.argv[1])process.exit(2)})" "$VERSION_EXPECTED"
+      - name: Build server bundle
+        shell: bash
+        run: |
+          npm ci --ignore-scripts
+          deploy/server-linux/build-bundle.sh "${{ matrix.arch }}"
+      - name: Server package contract smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(cat VERSION)"
+          OUT="dist/server-linux/${{ matrix.arch }}"
+          ARCHIVE="$OUT/Light-Remote-MCP-Server-Linux-${{ matrix.arch }}-${VERSION}.tar.gz"
+          (cd "$OUT" && sha256sum -c SHA256SUMS.txt)
+          TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+          tar -xzf "$ARCHIVE" -C "$TMP"
+          test -x "$TMP/package/runtime/node"
+          test -s "$TMP/package/licenses/node/LICENSE"
+          test -x "$TMP/package/install.sh"
+          test -f "$TMP/package/gateway/package-lock.json"
+          test -f "$TMP/package/operator-host/executor.mjs"
+          test -f "$TMP/package/operator-host/executor-routes-account.mjs"
+          test -f "$TMP/package/operator-host/executor-routes-device-channel.mjs"
+          test -f "$TMP/package/operator-host/executor-routes-runtime.mjs"
+          test -f "$TMP/package/lib/native-terminal.mjs"
+          test -s "$TMP/package/licenses/terminal-runtime/homebridge-node-pty-LICENSE"
+          test -f "$TMP/package/device-agent/platform-adapters/index.mjs"
+          bash -n "$TMP/package/install.sh"
+          if [[ "${{ matrix.arch }}" == x64 ]]; then
+            "$TMP/package/runtime/node" --check "$TMP/package/operator-host/executor.mjs"
+            RUNTIME="$TMP/runtime-smoke"; mkdir -p "$RUNTIME/state" "$RUNTIME/logs"
+            "$TMP/package/runtime/node" "$TMP/package/deploy/scripts/generate-operator-key.mjs" "$RUNTIME/public.json" "$RUNTIME/private.json" >/dev/null
+            OPERATOR_SOCKET="$RUNTIME/operator.sock" OPERATOR_KEY_FILE="$RUNTIME/private.json" OPERATOR_LOG_DIR="$RUNTIME/logs" OPERATOR_STATE_DIR="$RUNTIME/state" LIGHT_REMOTE_VERSION="$VERSION" OPERATOR_DEVICE_ID=ci-smoke OPERATOR_NODE_ID=ci-smoke OPERATOR_ACCOUNT_ID=ci-smoke timeout 8s "$TMP/package/runtime/node" "$TMP/package/operator-host/executor.mjs" >"$RUNTIME/stdout.log" 2>"$RUNTIME/stderr.log" & PID=$!
+            for _ in {1..50}; do [[ -S "$RUNTIME/operator.sock" ]] && break; sleep 0.1; done
+            test -S "$RUNTIME/operator.sock" || { cat "$RUNTIME/stderr.log"; exit 1; }
+            curl -fsS --unix-socket "$RUNTIME/operator.sock" http://localhost/healthz | python3 -c "import json,sys; j=json.load(sys.stdin); assert j['ok'] and j['version']==sys.argv[1],j" "$VERSION"
+            kill "$PID" 2>/dev/null || true; wait "$PID" 2>/dev/null || true
+            node deploy/scripts/terminal-runtime-smoke.mjs "$TMP/package"
+            echo server-linux-runtime-smoke=PASS
+          else
+            file "$TMP/package/runtime/node" | grep -Eq 'ARM aarch64|aarch64'
+            file "$TMP/package/node_modules/@homebridge/node-pty-prebuilt-multiarch/prebuilds/linux-arm64/node.abi127.node" | grep -Eq 'ARM aarch64|aarch64'
+            echo server-linux-arm64-terminal-runtime-architecture=PASS
+          fi
+          python3 -c "import json,sys; m=json.load(open(sys.argv[1])); assert m['version']==sys.argv[2],m; assert m['platform'].startswith('linux-'),m; print('server-linux-package-contract=PASS')" "$TMP/package/manifest.json" "$VERSION"
+      - name: Upload Linux server bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-server-linux-${{ matrix.arch }}-${{ github.sha }}
+          path: |
+            dist/server-linux/${{ matrix.arch }}/Light-Remote-MCP-Server-Linux-${{ matrix.arch }}-*.tar.gz
+            dist/server-linux/${{ matrix.arch }}/SHA256SUMS.txt
+            dist/fleet-wall/Light-Remote-Fleet-Wall-*.tar.gz
+            dist/fleet-wall/fleet-wall-module-metadata.json
+            dist/fleet-wall/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
