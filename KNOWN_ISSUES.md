@@ -13,9 +13,12 @@
 | Windows two primary EXEs | C# host plus Tauri UI retained to preserve current behavior | Single LightRemote.exe is a later product architecture task; Node/RM/updater may remain separate |
 | Endpoint/schema catalog | Critical V4 catalog/version/handler wiring exists; legacy schemas and some authorize/SSO/Wall route constants remain | Finish full catalog coverage; do not promise every URL/path can already change from JSON alone |
 | Runtime drift/data migration | Lab43+Owner, UAT42 without Owner; Lab source stages mixed | New runtime/data migration plan after acceptance; no overwrite of old paths/databases |
-| Repository reset capability | Git SSH push works; create/delete/admin export not established; browser timeout | Resolve recreation/config/secret restore preflight before any final Owner reset confirmation |
 | Windows current process inventory | WMI process read denied; binary file identity and historical artifact available | Keep runtime provenance UNKNOWN where unsupported; no privilege bypass |
 
 Resolved: stale Owner Cargo.lock made previous native builds resolve dependencies outside the committed graph. Reviewed lock committed; --locked and strict post-build source provenance PASS in final CI. Actual original Wall wrapping/module-state/B fixes were inherited from tested T11 source; reconstruction did not change the Owner's installed app or old server.
 
 DEV helper scope: status displays the last deployment receipt, not a liveness probe. Use labelled Docker inspection for actual running state. Run disposable test before retaining a start candidate; the helper's latest pointer is shared by invocations. This helper remains a DEV tool, not a production service manager.
+
+Repository conversion resolved: new ID1450214328, clean history, new CI9/9, verified GitHub-sourced ARM candidate and protected main. Old ID1361698660 is archived read-only because delete_repo scope was unavailable; old ARM sources/runtime remain untouched.
+
+Signed feed follow-up: preserved client beta manifest is legacy0.9.0-rc.47 with external asset URLs, not the new0.10.0 baseline. Fleet Wall0.9.0-rc.31 points to the old release URL under the reused repository name; the new repository has no historical release at that path. Preserve signed bytes and plan a controlled feed/release migration from legitimate signing material before public upgrades. No feed was promoted during this conversion.

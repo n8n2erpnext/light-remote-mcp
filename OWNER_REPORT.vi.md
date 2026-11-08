@@ -1,9 +1,17 @@
-# Trạng thái repo Light Remote MCP mới
+# Báo cáo hoàn tất chuyển repo
 
-Repo chính thức vẫn là https://github.com/n8n2erpnext/light-remote-mcp nhưng có ID mới 1450214328, lịch sử Git mới và initial commit không có parent cũ. Source được xuất độc lập từ snapshot ARM b250908; source sản phẩm giữ nguyên so với mốc đã build eb6b2e6.
+Repo chính thức: https://github.com/n8n2erpnext/light-remote-mcp — **ID mới 1450214328**, lịch sử mới bắt đầu từ aa378ba, không mang nhánh/tag/parent cũ. Bản code đã kiểm toán được xuất độc lập; kể từ push đầu tiên GitHub mới là nguồn phát triển và build.
 
-Phiên GitHub hiện tại có quyền quản trị/tạo/đổi tên nhưng thiếu scope xoá repo. Vì vậy repo cũ được giữ tại https://github.com/n8n2erpnext/light-remote-mcp-archive-20261108; repo mới được tạo đúng tên/URL chính thức. Không force-push. Đã lưu và xác minh phục hồi Git, release/artifact và metadata quản trị trên ARM. Không xuất giá trị secret.
+Baseline build **0.10.0-dev.1**, commit `c03b50f4328e07138f350532c31dfc8b260311ce`, contract `light-remote.api.v1`. [CI mới 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42475715858): 270 Node tests, 69 lượt kiểm tra source theo phạm vi, 21 kiểm tra DEV thật, web/UI/security, native Mac/Linux source và bộ cài Windows/install/update/rollback/uninstall. Không coi CI là nghiệm thu GUI thực tế.
 
-Toàn bộ source/runtime ARM cũ và snapshot kiểm toán giữ nguyên để đối chiếu. Kể từ push đầu tiên, phát triển và build mới lấy từ GitHub mới. Initial commit phải chạy CI mới; bằng chứng CI cũ 8/8, 270 Node tests và 21 kiểm tra DEV thật là bằng chứng trước chuyển đổi.
+Bộ cài Windows artifact 13615761284 được kiểm tra lại trên ARM: ZIP SHA-256 `4a61c5b84ae009e8409a8e3e29fd76358c103a7b94f4c9e9f2db9983aa46136b`; installer SHA-256 `23b746d2b820da1303fa1834c8e9f2d83e1bcad66a9c8d0580532ae60358b52f`. Manifest ghi đúng commit/tree/run/profile; chưa xác minh ký mã và chưa cài lên máy Owner.
 
-Các thiếu sót sản phẩm vẫn được ghi trung thực trong KNOWN_ISSUES.md; chưa nghiệm thu GUI Windows với backend mới, chưa gộp hai EXE và chưa chuyển runtime chính.
+Sau CI, clone/fetch từ GitHub mới vào `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/runtime-from-github-c03b50f432` và chạy candidate `lru-c03b50f432-114436`: **21/21 integration PASS**, 3 container đang chạy, mạng nội bộ không mở port host. Không dùng source STAGED hoặc ghi đè backend đang phục vụ.
+
+Đã thu hồi/chọn source theo subsystem: Desktop eb9a648 + core/native/Wall/Operator/Plugin; Gold mirror không có executable riêng bị bỏ sót; phục hồi Continuity, extension LM riêng và RC50. Toàn bộ phần prototype/chưa tích hợp vẫn được phân biệt rõ, không mặc định PASS.
+
+Source/runtime ARM cũ và snapshot kiểm toán b250908 giữ nguyên làm mốc đối chiếu. Git đã lưu và phục hồi kiểm tra 2.285 refs; 22 releases/421 asset records/372 objects và 32 tệp metadata quản trị được bảo toàn. Repo GitHub cũ giữ tại https://github.com/n8n2erpnext/light-remote-mcp-archive-20261108 ở chế độ chỉ đọc: phiên quản trị thiếu quyền xoá, nên dùng đổi tên/lưu trữ rồi tạo repo mới đúng tên thay vì force-push.
+
+main đã bắt buộc baseline-required, cấm force-push/xoá, áp dụng cả admin. CI mới không cần secrets; không nhập automation triển khai cũ. Chưa chuyển traffic, reset DB, đổi app đang cài hoặc phát hành update.
+
+Còn thiếu: nghiệm thu native Windows với backend mới; local SSO; B-command mới; hook/DACL Continuity; prototype/Guest; package Mac/Linux đầy đủ; toàn bộ endpoint/schema; gộp hai EXE. Feed beta cũ được giữ nguyên chữ ký, riêng Fleet Wall còn URL release lịch sử cần migration có kiểm soát trước lần nâng cấp công khai. Chi tiết và thứ tự làm tiếp nằm trong KNOWN_ISSUES.md và ROADMAP.md.

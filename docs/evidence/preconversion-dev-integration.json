@@ -1,0 +1,123 @@
+{
+  "sourceCommit": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
+  "apiContractVersion": "light-remote.api.v1",
+  "layer": "real-private-dev-integration",
+  "physicalAcceptance": false,
+  "checks": [
+    {
+      "name": "real Plugin health/version header",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "cross-origin Portal mutation denied",
+      "status": "PASS",
+      "statusCode": 403
+    },
+    {
+      "name": "snapshot route enabled and unauthenticated caller denied",
+      "status": "PASS",
+      "statusCode": 401
+    },
+    {
+      "name": "real Agent identity -> Owner approval -> signed enrollment/heartbeat/connect",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "actual Agent daemon and Local Wall listening in private candidate",
+      "status": "PASS",
+      "statusCode": 401
+    },
+    {
+      "name": "Portal Owner consent -> PKCE native token; code replay rejected",
+      "status": "PASS",
+      "statusCode": 200,
+      "replayStatus": 401
+    },
+    {
+      "name": "two real Portal accounts use durable PG credentials",
+      "status": "PASS",
+      "accounts": 2
+    },
+    {
+      "name": "native Owner live family/session verified",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "native session refuses browser cookie/origin",
+      "status": "PASS",
+      "statusCode": 403
+    },
+    {
+      "name": "Desktop snapshot -> real private Operator -> PG/Redis",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "Owner-scoped typed devices page",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "Owner-scoped typed grants page",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "Owner-scoped typed usage page",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "Owner-scoped typed jobs page",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "Owner-scoped typed sessions page",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "caller cannot inject a foreign account into snapshot",
+      "status": "PASS",
+      "statusCode": 403
+    },
+    {
+      "name": "foreign non-Owner redirected to login without Owner code",
+      "status": "PASS",
+      "statusCode": 303
+    },
+    {
+      "name": "real mTLS SSO route denies unknown target",
+      "status": "PASS",
+      "statusCode": 403
+    },
+    {
+      "name": "real mTLS SSO issuer accepts current Owner and enrolled device",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "native refresh token rotates atomically",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "logout revokes access and refresh family",
+      "status": "PASS",
+      "accessStatus": 401,
+      "refreshStatus": 401
+    }
+  ],
+  "notVerified": [
+    "Windows native IPC/vault/tray on new artifact",
+    "Live signed B approval and remote command on new candidate",
+    "Positive device-signed Wall SSO redemption/browser relay",
+    "Reboot/rollback on Windows",
+    "macOS/Linux full installer"
+  ],
+  "result": "PASS"
+}

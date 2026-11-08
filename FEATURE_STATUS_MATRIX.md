@@ -41,4 +41,4 @@ Status is per layer. IMPLEMENTED does not imply DEPLOYED, ENABLED, INTEGRATED, C
 | Guest/pro-share | `platform-v2/sql/044_gold_pro_share.sql` | native Guest incomplete | MISSING | MISSING | finish native wiring before schema enable |
 | macOS/Linux full packages | `client/ + deploy/` | historical build recipes/native source | UNKNOWN_NEW_PACKAGE | UNKNOWN_NEW_PACKAGE | exact-commit packaging |
 
-Final CI:8/8 jobs PASS at the pinned source. Per-feature product completeness, native live acceptance and restored prototype wiring remain separate. See docs/evidence/ci-status.json and KNOWN_ISSUES.md.
+Current new-repository CI:9/9 jobs PASS at `c03b50f4328e07138f350532c31dfc8b260311ce`, run42475715858. Per-feature product completeness, native live acceptance and restored prototype wiring remain separate. See docs/evidence/ci-status.json and KNOWN_ISSUES.md.

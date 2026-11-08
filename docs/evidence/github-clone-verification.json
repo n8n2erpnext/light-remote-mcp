@@ -1,0 +1,29 @@
+{
+  "verifiedAt": "2026-11-08T11:27:59.769881+00:00",
+  "repositoryId": 1450214328,
+  "repository": "n8n2erpnext/light-remote-mcp",
+  "clonedFrom": "GitHub via SSH; no staged source or local object alternates",
+  "candidateDirectory": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/runtime-from-github-c03b50f432",
+  "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+  "sourceTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
+  "rootCommits": [
+    "aa378ba64618b979ca54b34c066f53dab0067980"
+  ],
+  "commits": 2,
+  "fsck": "PASS",
+  "workingTreeClean": true,
+  "changesAgainstAuditedSnapshot": [
+    ".github/workflows/ci.yml",
+    "MASTER_CHECKPOINT.json",
+    "MIGRATION_PROVENANCE.json",
+    "OWNER_REPORT.vi.md",
+    "PROJECT_HANDOFF.md",
+    "PROJECT_TRUTH.md",
+    "README.md",
+    "client/desktop-v4/e2e/tauri-production-packaging-contract.mjs",
+    "docs/evidence/repository-conversion.json"
+  ],
+  "productSourceMatchesAuditedSnapshot": true,
+  "auditedSnapshotUntouched": true,
+  "runtimeDeployed": false
+}

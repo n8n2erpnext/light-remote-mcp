@@ -1,0 +1,13 @@
+{
+  "repositoryId": 1450214328,
+  "branch": "main",
+  "requiredCheck": "baseline-required",
+  "checkAppId": 15368,
+  "checkAppSlug": "github-actions",
+  "strict": true,
+  "enforceAdmins": true,
+  "allowForcePushes": false,
+  "allowDeletions": false,
+  "humanReviewRequirementAdded": false,
+  "verifiedAt": "2026-11-08T11:39:35.526332+00:00"
+}

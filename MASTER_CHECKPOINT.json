@@ -1,14 +1,14 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T11:25:41.928379+00:00",
+  "updatedAt": "2026-11-08T11:45:49.840469+00:00",
   "version": "0.10.0-dev.1",
-  "phase": "G_CLEAN_GITHUB_PUBLICATION",
-  "status": "FRESH_REPOSITORY_CI_BRANCH_CONTRACT_CORRECTED_VALIDATION_PENDING",
+  "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
+  "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
-  "sourceAuthority": "GitHub n8n2erpnext/light-remote-mcp after first successful push; ARM preserved historical and audited snapshots remain comparison/recovery references",
-  "baselineSourceCommit": null,
-  "baselineSourceTree": null,
+  "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
+  "baselineSourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+  "baselineSourceTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
   "validationBranch": null,
   "apiContractVersion": "light-remote.api.v1",
   "featureProfile": "goldabv2-desktop-v4",
@@ -24,19 +24,29 @@
   },
   "evidence": {
     "windows": {
-      "artifactId": 13613101863,
-      "zipSha256": "5aef8c6071ddb36f8df888d223812e7a3bdf4f4f149cc49ee2a6812bdda0e76c",
-      "installerSha256": "2c2c7a8a94638a1dbbed378a289d562d53b696a1dcece6d6684f39ca5dc6e41e",
-      "manifest": "docs/evidence/windows-build-manifest.json",
-      "verifiedOnVps": true
+      "artifactId": 13615761284,
+      "name": "light-remote-desktop-v4-COMPLETE-windows-x64-c03b50f4328e07138f350532c31dfc8b260311ce",
+      "zipSha256": "4a61c5b84ae009e8409a8e3e29fd76358c103a7b94f4c9e9f2db9983aa46136b",
+      "zipBytes": 180450748,
+      "repositoryId": 1450214328,
+      "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+      "ciRunId": 42475715858,
+      "verified": true,
+      "verifiedOnArm": true,
+      "codeSigningVerified": false,
+      "physicalAcceptance": false,
+      "installerSha256": "23b746d2b820da1303fa1834c8e9f2d83e1bcad66a9c8d0580532ae60358b52f",
+      "installerBytes": 181022239,
+      "manifest": "docs/evidence/windows-build-manifest.json"
     },
     "dev": {
-      "candidateId": "lru-eb6b2e6eee-100808",
-      "sourceCommit": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
+      "candidateId": "lru-c03b50f432-114436",
+      "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
       "checks": 21,
       "result": "PASS",
       "report": "docs/evidence/dev-integration.json",
-      "network": "internal_only_no_host_ports"
+      "network": "internal_only_no_host_ports",
+      "deployment": "docs/evidence/deployment-manifest.json"
     },
     "physicalOwnerAcceptance": "NOT_RUN",
     "historicalPhysicalSource": "4dddf5114248a014c0695e853109358039afa7ad",
@@ -61,10 +71,87 @@
       "nativeMacLinux": "locked source build/tests PASS; full installers NOT_BUILT"
     },
     "currentRepositoryCi": {
-      "firstRunId": 42475422042,
-      "sourceCommit": "aa378ba64618b979ca54b34c066f53dab0067980",
-      "failure": "Packaging source test expected old temporary reconstruction-validation branch prefix; new controller uses codex/**.",
-      "correction": "Update only the controller branch-policy assertion; keep all runtime and packaging security assertions."
+      "repository": "n8n2erpnext/light-remote-mcp",
+      "repositoryId": 1450214328,
+      "runId": 42475715858,
+      "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42475715858",
+      "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+      "sourceTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
+      "conclusion": "success",
+      "jobs": 9,
+      "passedJobs": 9,
+      "jobResults": [
+        {
+          "id": 128716745501,
+          "name": "changes",
+          "conclusion": "success",
+          "started_at": "2026-11-08T11:27:02Z",
+          "completed_at": "2026-11-08T11:27:06Z"
+        },
+        {
+          "id": 128716745737,
+          "name": "truth",
+          "conclusion": "success",
+          "started_at": "2026-11-08T11:27:02Z",
+          "completed_at": "2026-11-08T11:27:06Z"
+        },
+        {
+          "id": 128716770362,
+          "name": "Core, contracts, PostgreSQL/Redis integration",
+          "conclusion": "success",
+          "started_at": "2026-11-08T11:27:08Z",
+          "completed_at": "2026-11-08T11:29:04Z"
+        },
+        {
+          "id": 128716770373,
+          "name": "Committed native dependency resolution",
+          "conclusion": "success",
+          "started_at": "2026-11-08T11:27:13Z",
+          "completed_at": "2026-11-08T11:27:22Z"
+        },
+        {
+          "id": 128716825463,
+          "name": "desktop / Web build, tests, isolated browser screenshots",
+          "conclusion": "success",
+          "started_at": "2026-11-08T11:27:24Z",
+          "completed_at": "2026-11-08T11:28:23Z"
+        },
+        {
+          "id": 128716825499,
+          "name": "windows / build-install-smoke",
+          "conclusion": "success",
+          "started_at": "2026-11-08T11:27:27Z",
+          "completed_at": "2026-11-08T11:37:42Z"
+        },
+        {
+          "id": 128717049190,
+          "name": "desktop / Unified Light Remote Desktop V4 / macos-latest",
+          "conclusion": "success",
+          "started_at": "2026-11-08T11:28:25Z",
+          "completed_at": "2026-11-08T11:34:35Z"
+        },
+        {
+          "id": 128717049205,
+          "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+          "conclusion": "success",
+          "started_at": "2026-11-08T11:28:25Z",
+          "completed_at": "2026-11-08T11:34:25Z"
+        },
+        {
+          "id": 128719179983,
+          "name": "baseline-required",
+          "conclusion": "success",
+          "started_at": "2026-11-08T11:37:44Z",
+          "completed_at": "2026-11-08T11:37:47Z"
+        }
+      ],
+      "windowsInstallUpdateRollbackUninstall": "PASS",
+      "nodeTests": 270,
+      "portableSourceInvocations": 69,
+      "ciPrivateIntegrationChecks": 21,
+      "armGithubCloneIntegrationChecks": 21,
+      "nativeMacLinux": "locked source build/tests PASS; full installers NOT_BUILT",
+      "physicalOwnerAcceptance": "NOT_RUN"
     }
   },
   "remaining": [
@@ -74,13 +161,14 @@
     "Continuity modern Wall/core hook and old-history-dependent packaging test unresolved",
     "Legacy LM extension/RC50 prototypes not active; full Mac/Linux packages not rebuilt",
     "Single primary Windows EXE remains future product work",
-    "Full endpoint/schema catalog coverage and remaining server route constants"
+    "Full endpoint/schema catalog coverage and remaining server route constants",
+    "Signed legacy beta/feed migration before a new public release; historical Fleet Wall URL targets the old repository name"
   ],
   "repositoryReplacement": {
     "ownerConfirmed": true,
     "destructiveOperationsPerformed": false,
-    "createDeleteCapability": "Org-admin/create/rename verified; delete_repo OAuth scope unavailable",
-    "adminSettingsExport": "32 private metadata files archived and SHA-256 verified on ARM; secret names only, no secret values exported",
+    "createDeleteCapability": "Create/rename/admin verified; delete_repo unavailable, old repository preserved instead",
+    "adminSettingsExport": "32 private files verified on ARM; no repo/environment secrets or variables were present; org policy endpoints inaccessible but org settings unchanged",
     "activeCiSecretsRequired": [],
     "forcePushFallbackAllowed": false,
     "ownerConfirmedAt": "2026-11-08T11:03:31.502301+00:00",
@@ -88,14 +176,31 @@
     "oldRepositoryId": 1361698660,
     "oldArchiveUrl": "https://github.com/n8n2erpnext/light-remote-mcp-archive-20261108",
     "newRepositoryId": 1450214328,
-    "cleanInitialHistory": true
+    "cleanInitialHistory": true,
+    "oldArchivedReadOnly": true,
+    "initialCommit": "aa378ba64618b979ca54b34c066f53dab0067980",
+    "initialParents": [],
+    "sourcePushed": true,
+    "mainProtection": {
+      "repositoryId": 1450214328,
+      "branch": "main",
+      "requiredCheck": "baseline-required",
+      "checkAppId": 15368,
+      "checkAppSlug": "github-actions",
+      "strict": true,
+      "enforceAdmins": true,
+      "allowForcePushes": false,
+      "allowDeletions": false,
+      "humanReviewRequirementAdded": false,
+      "verifiedAt": "2026-11-08T11:39:35.526332+00:00"
+    }
   },
   "legacySourceAndRuntimeChanged": false,
   "scope": {
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Push the single-root initial commit via Git SSH on ARM, verify fresh-repository CI/artifact provenance, then clone that GitHub commit into a new isolated integration candidate; preserve old runtime.",
+  "nextAction": "Continue development from the new GitHub repository. Prepare controlled new-backend transport and one focused native Windows acceptance; finish remaining SSO/B integration and signed-feed migration without overwriting old runtime.",
   "receiptNote": "Documentation/evidence-only commits may follow the immutable build source commit; native inputs remain pinned.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",

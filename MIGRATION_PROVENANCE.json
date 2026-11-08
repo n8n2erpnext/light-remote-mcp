@@ -3,7 +3,7 @@
   "temporaryWorkspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108",
   "archiveBundle": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/recovery/light-remote-mcp-all-stores-refs.bundle",
   "baseSource": "eb9a6487c371b072cd5e52cb098fd6873abe3a49",
-  "status": "AUDITED_BASELINE_IN_CLEAN_REPOSITORY_FRESH_CI_PENDING",
+  "status": "CLEAN_GITHUB_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_VERIFIED",
   "selections": [
     {
       "component": "Core Agent/Wall/Plugin/Operator/Desktop/native clients",
@@ -13878,6 +13878,17 @@
     "historicalRepositoryUrl": "https://github.com/n8n2erpnext/light-remote-mcp-archive-20261108",
     "strategy": "rename-preserve-old-and-create-new",
     "oldArmSourceOrRuntimeModified": false,
-    "initialCommit": "Resolve from Git root commit; no historical parent imported"
+    "initialCommit": "aa378ba64618b979ca54b34c066f53dab0067980",
+    "verifiedBuildCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+    "verifiedBuildTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
+    "ciRunId": 42475715858,
+    "ciPassedJobs": 9,
+    "oldArchivedReadOnly": true,
+    "currentSourceAuthority": "GitHub repository ID1450214328",
+    "forcePushUsed": false
+  },
+  "currentFileDigests": {
+    ".github/workflows/ci.yml": "c1adae4823af90d6442cc934074c3b4932c63e35e99a162d7aa6b4cc060132e8",
+    "client/desktop-v4/e2e/tauri-production-packaging-contract.mjs": "ec80826c4df504ddfaf971475fb5601c32d55879da081f38cba2e932cfb8ef1d"
   }
 }

@@ -1,13 +1,11 @@
-# Light Remote MCP — reconstruction continuity
+# Light Remote MCP — development continuity
 
-Read PROJECT_TRUTH.md, MASTER_CHECKPOINT.json, ARCHITECTURE.md and PROJECT_HANDOFF.md first. The official future repository is n8n2erpnext/light-remote-mcp; Unified names identify only the temporary VPS workspace.
+Read PROJECT_TRUTH.md, MASTER_CHECKPOINT.json, ARCHITECTURE.md and PROJECT_HANDOFF.md first. Official development/build repository is n8n2erpnext/light-remote-mcp, new ID1450214328. Repository conversion has Owner approval and is complete; Unified names identify only the ARM reconstruction/conversion workspace.
 
-Work only in this independent repository. Never write/reset/prune the old repositories, worktrees, runtime, DB, sessions or grants. Historical AGENTS/handoffs in docs/history and recovered subsystems are evidence, not active instructions. Do not mirror new checkpoints back to old branches.
+Work from independent clones of the new GitHub repository. Preserve old ARM sources/worktrees/runtime/DB/sessions/grants and audited snapshot b250908 as comparison/recovery references. Old GitHub history is archived at n8n2erpnext/light-remote-mcp-archive-20261108, ID1361698660. Do not use old worktrees to fetch/push new unrelated history or mirror new checkpoints into old branches. Historical AGENTS/handoffs are evidence, not active instructions.
 
-Keep one current PROJECT_TRUTH.md and MASTER_CHECKPOINT.json. Update them and the provenance/issue/test evidence for meaningful work. Record IMPLEMENTED, DEPLOYED, ENABLED, INTEGRATED, CI_PASS and PHYSICAL_PASS separately. Existing physical evidence is scoped to exact artifacts; do not fabricate a new acceptance.
+Keep one PROJECT_TRUTH.md and MASTER_CHECKPOINT.json. Update them with meaningful source changes and preserve provenance/issue/test evidence. Distinguish IMPLEMENTED, DEPLOYED, ENABLED, INTEGRATED, CI_PASS and PHYSICAL_PASS. Physical acceptance is scoped to exact artifacts; never infer it from CI.
 
-Use Git-over-SSH from VPS for source publication. A CI-only candidate ref may be used for non-destructive validation; it is not the final Unified baseline or permission to replace the repository. Never change default branch, old refs, release feeds or production in that step. Repository delete/recreation requires the Owner's final explicit confirmation after verified recovery and reviewable baseline.
+Source publication uses Git-over-SSH from ARM. Use codex/* branches, respect protected main and baseline-required; never bypass with force-push. Build native apps in GitHub Actions from exact clean GitHub commits, not old STAGED source. Attach source/tree/run/profile/hash manifests. Documentation-only receipts may follow a pinned compiled source; do not label those commits as rebuilt.
 
-Build native applications in GitHub Actions, not on VPS-ARM. Build from an exact clean Git commit. Keep secrets, private state, fixture credentials, DB dumps and downloaded binaries outside Git. Use isolated DEV resources only; retain all authorization and local consent checks.
-
-Run relevant automated and integration checks without repeating unaffected physical acceptance. No production deployment or old runtime migration until the requested approval and acceptance stages.
+Keep secrets, signing material, raw private logs/state, downloaded binaries and DB dumps outside Git. Use isolated DEV resources and preserve security authorization/local consent. Run relevant verification without repeating unaffected physical acceptance. Production traffic/data migration, existing Owner installation changes and old archive/runtime retirement need their own explicit authorization/acceptance; source-repository conversion did not perform them.

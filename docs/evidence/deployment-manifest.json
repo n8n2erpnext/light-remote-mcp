@@ -1,53 +1,79 @@
 {
-  "schemaVersion": 1,
-  "sourceCommit": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
-  "sourceTree": "d517bb7b10bb99af6db346eff4e1f53af6f416a9",
-  "projectVersion": "0.10.0-dev.1",
-  "apiContractVersion": "light-remote.api.v1",
-  "profile": "goldabv2-desktop-v4",
-  "candidateId": "lru-eb6b2e6eee-100808",
-  "candidateImage": "sha256:756e503b7ab6e8d4f1aa256c4ffad05dfe565d347dfda1dbdf9b4548186d176b",
-  "components": {
-    "agent": "0.10.0-dev.1",
-    "plugin": "0.10.0-dev.1",
-    "operator": "0.10.0-dev.1",
-    "wall": "0.10.0-dev.1",
-    "desktop": "0.10.0-dev.1"
-  },
-  "desktopArtifactId": 13613101863,
-  "desktopInstalledOnOwnerWindows": false,
-  "backendContainers": [
+  "verifiedAt": "2026-11-08T11:44:57.640790+00:00",
+  "repositoryId": 1450214328,
+  "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+  "sourceTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
+  "ciRunId": 42475715858,
+  "ciJobs": 9,
+  "ciPassedJobs": 9,
+  "artifactsVerifiedOnArm": [
     {
-      "name": "lru-eb6b2e6eee-100808-pg",
-      "running": true,
-      "image": "sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b",
-      "publishedHostPorts": []
+      "artifactId": 13615761284,
+      "name": "light-remote-desktop-v4-COMPLETE-windows-x64-c03b50f4328e07138f350532c31dfc8b260311ce",
+      "zipSha256": "4a61c5b84ae009e8409a8e3e29fd76358c103a7b94f4c9e9f2db9983aa46136b",
+      "zipBytes": 180450748,
+      "repositoryId": 1450214328,
+      "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+      "ciRunId": 42475715858,
+      "verified": true,
+      "verifiedOnArm": true,
+      "codeSigningVerified": false,
+      "physicalAcceptance": false,
+      "installerSha256": "23b746d2b820da1303fa1834c8e9f2d83e1bcad66a9c8d0580532ae60358b52f",
+      "installerBytes": 181022239
     },
     {
-      "name": "lru-eb6b2e6eee-100808-redis",
-      "running": true,
-      "image": "sha256:09160599abd229764c0fb44cb6be640294e1d360a54b19985ab4843dcf2d90f1",
-      "publishedHostPorts": []
-    },
-    {
-      "name": "lru-eb6b2e6eee-100808-app",
-      "running": true,
-      "image": "sha256:756e503b7ab6e8d4f1aa256c4ffad05dfe565d347dfda1dbdf9b4548186d176b",
-      "publishedHostPorts": []
+      "artifactId": 13615721175,
+      "name": "light-remote-mcp-core-c03b50f4328e07138f350532c31dfc8b260311ce",
+      "zipSha256": "b697b78978945c8f28245b5811a7d94d52cab359c56e56f8224b62e389f947f3",
+      "zipBytes": 2102,
+      "repositoryId": 1450214328,
+      "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+      "ciRunId": 42475715858,
+      "verified": true,
+      "verifiedOnArm": true,
+      "codeSigningVerified": false,
+      "physicalAcceptance": false,
+      "integrationResult": "PASS",
+      "integrationChecks": 21
     }
   ],
-  "networkInternal": true,
-  "publicHostPorts": [],
-  "schema": {
-    "coreThrough": 43,
-    "extensions": [
-      {
-        "id": "owner-authority.v1",
-        "sha256": "218ada24591311b9bd9fa492726a728190bb3f2a8053b6b4f8499e713d925f8d"
-      }
-    ]
+  "candidateId": "lru-c03b50f432-114436",
+  "candidateDirectory": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/runtime-from-github-c03b50f432",
+  "deploymentReceipt": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/runtime-from-github-c03b50f432/.unified/lru-c03b50f432-114436/deployment.json",
+  "integrationResult": "PASS",
+  "integrationChecks": 21,
+  "containers": [
+    {
+      "name": "lru-c03b50f432-114436-pg",
+      "imageId": "sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b",
+      "running": true,
+      "publishedPorts": []
+    },
+    {
+      "name": "lru-c03b50f432-114436-redis",
+      "imageId": "sha256:09160599abd229764c0fb44cb6be640294e1d360a54b19985ab4843dcf2d90f1",
+      "running": true,
+      "publishedPorts": []
+    },
+    {
+      "name": "lru-c03b50f432-114436-app",
+      "imageId": "sha256:fb919b4aaab54389e077758ec8c694be4b95c91899d0a6ff05c6bb1157e3d2bb",
+      "running": true,
+      "publishedPorts": []
+    }
+  ],
+  "internalNetwork": true,
+  "publishedHostPorts": [],
+  "actualDependencyVersions": {
+    "postgres": "17.11",
+    "redis": "Redis server v=8.8.0 sha=00000000:1 malloc=jemalloc-5.3.0 bits=64 build=b0edcdc3ecd73d0",
+    "node": "v22.23.2"
   },
-  "devChecks": 21,
-  "physicalAcceptance": false,
-  "verifiedAt": "2026-11-08T10:28:09.307114+00:00"
+  "oldSourceAndRuntimeUnchanged": true,
+  "auditedSnapshotUntouched": true,
+  "productionCutover": false,
+  "physicalOwnerAcceptance": "NOT_RUN",
+  "windowsInstalledOnOwnerMachine": false,
+  "diskFreeGiB": 5.71
 }

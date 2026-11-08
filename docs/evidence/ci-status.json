@@ -1,20 +1,83 @@
 {
-  "runId": 42468832737,
-  "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42468832737",
-  "sourceCommit": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
-  "sourceTree": "d517bb7b10bb99af6db346eff4e1f53af6f416a9",
+  "repository": "n8n2erpnext/light-remote-mcp",
+  "repositoryId": 1450214328,
+  "runId": 42475715858,
+  "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42475715858",
+  "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+  "sourceTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
   "conclusion": "success",
-  "jobs": 8,
-  "passedJobs": 8,
+  "jobs": 9,
+  "passedJobs": 9,
+  "jobResults": [
+    {
+      "id": 128716745501,
+      "name": "changes",
+      "conclusion": "success",
+      "started_at": "2026-11-08T11:27:02Z",
+      "completed_at": "2026-11-08T11:27:06Z"
+    },
+    {
+      "id": 128716745737,
+      "name": "truth",
+      "conclusion": "success",
+      "started_at": "2026-11-08T11:27:02Z",
+      "completed_at": "2026-11-08T11:27:06Z"
+    },
+    {
+      "id": 128716770362,
+      "name": "Core, contracts, PostgreSQL/Redis integration",
+      "conclusion": "success",
+      "started_at": "2026-11-08T11:27:08Z",
+      "completed_at": "2026-11-08T11:29:04Z"
+    },
+    {
+      "id": 128716770373,
+      "name": "Committed native dependency resolution",
+      "conclusion": "success",
+      "started_at": "2026-11-08T11:27:13Z",
+      "completed_at": "2026-11-08T11:27:22Z"
+    },
+    {
+      "id": 128716825463,
+      "name": "desktop / Web build, tests, isolated browser screenshots",
+      "conclusion": "success",
+      "started_at": "2026-11-08T11:27:24Z",
+      "completed_at": "2026-11-08T11:28:23Z"
+    },
+    {
+      "id": 128716825499,
+      "name": "windows / build-install-smoke",
+      "conclusion": "success",
+      "started_at": "2026-11-08T11:27:27Z",
+      "completed_at": "2026-11-08T11:37:42Z"
+    },
+    {
+      "id": 128717049190,
+      "name": "desktop / Unified Light Remote Desktop V4 / macos-latest",
+      "conclusion": "success",
+      "started_at": "2026-11-08T11:28:25Z",
+      "completed_at": "2026-11-08T11:34:35Z"
+    },
+    {
+      "id": 128717049205,
+      "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+      "conclusion": "success",
+      "started_at": "2026-11-08T11:28:25Z",
+      "completed_at": "2026-11-08T11:34:25Z"
+    },
+    {
+      "id": 128719179983,
+      "name": "baseline-required",
+      "conclusion": "success",
+      "started_at": "2026-11-08T11:37:44Z",
+      "completed_at": "2026-11-08T11:37:47Z"
+    }
+  ],
+  "windowsInstallUpdateRollbackUninstall": "PASS",
   "nodeTests": 270,
   "portableSourceInvocations": 69,
-  "armPlatformSkips": [
-    "Windows file lock",
-    "Windows Job Object",
-    "Windows process tree"
-  ],
-  "devIntegrationChecks": 21,
-  "windowsCiInstallUpdateRollbackUninstall": "PASS",
-  "physicalOwnerAcceptance": "NOT_RUN",
-  "nativeMacLinux": "locked source build/tests PASS; full installers NOT_BUILT"
+  "ciPrivateIntegrationChecks": 21,
+  "armGithubCloneIntegrationChecks": 21,
+  "nativeMacLinux": "locked source build/tests PASS; full installers NOT_BUILT",
+  "physicalOwnerAcceptance": "NOT_RUN"
 }

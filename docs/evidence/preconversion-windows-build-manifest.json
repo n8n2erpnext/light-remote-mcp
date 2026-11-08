@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "project": "light-remote-mcp",
+  "projectVersion": "0.10.0-dev.1",
+  "repository": "n8n2erpnext/light-remote-mcp",
+  "sourceCommit": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
+  "sourceTree": "d517bb7b10bb99af6db346eff4e1f53af6f416a9",
+  "buildTimestamp": "2026-11-08T10:03:50.953Z",
+  "ciRunId": "42468832737",
+  "ciRepository": "n8n2erpnext/light-remote-mcp",
+  "platform": "windows-x64",
+  "apiContractVersion": "light-remote.api.v1",
+  "featureProfile": "goldabv2-desktop-v4",
+  "componentVersions": {
+    "agent": "0.10.0-dev.1",
+    "plugin": "0.10.0-dev.1",
+    "operator": "0.10.0-dev.1",
+    "wall": "0.10.0-dev.1",
+    "desktop": "0.10.0-dev.1"
+  },
+  "schema": {
+    "coreThrough": 43,
+    "extensions": [
+      {
+        "id": "owner-authority.v1",
+        "sha256": "218ada24591311b9bd9fa492726a728190bb3f2a8053b6b4f8499e713d925f8d"
+      }
+    ]
+  },
+  "dependencyHashes": {
+    "package-lock.json": "6cbc79b1ae6381d8e6c6729437a8aa482bfde01265eaf54571addbb4e2d65a43",
+    "plugin-server/package-lock.json": "bc01965f01fd9e429747482ed039c2362db3609e229676f1a26011d5069fb4f7",
+    "client/desktop-v4/package-lock.json": "a4f20a624906510ff83bbe4d03942e0b61dae73b23bc2eeaee6dde801dd0d02f",
+    "client/desktop-v4/src-tauri/Cargo.lock": "6c6473241c54e352d8fb6ff53870d8062f752ec85ef18cfee0353a40604e18ca",
+    "platform-v2/sql/migrations.lock.json": "f72924348a8fd61b9f144ce160dcf9bab9c1770cab34f4f1cc12f779e7f4dbb2",
+    "config/endpoints.json": "9b4c90d1e9ab1b45df7f8cb9abe3044fff3206bd904f219af44a26238bf324b0"
+  },
+  "artifact": {
+    "name": "Light-Remote-MCP-Setup-x64.exe",
+    "bytes": 181030058,
+    "sha256": "2c2c7a8a94638a1dbbed378a289d562d53b696a1dcece6d6684f39ca5dc6e41e"
+  },
+  "assurances": {
+    "cleanGitSource": true,
+    "sourceSelection": "MIGRATION_PROVENANCE.json",
+    "codeSigningVerified": false,
+    "physicalAcceptance": false,
+    "productionRelease": false
+  }
+}

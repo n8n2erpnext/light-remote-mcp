@@ -1,17 +1,15 @@
 {
-  "id": 13613101863,
-  "name": "light-remote-desktop-v4-COMPLETE-windows-x64-eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
-  "bytes": 180458474,
-  "sha256": "5aef8c6071ddb36f8df888d223812e7a3bdf4f4f149cc49ee2a6812bdda0e76c",
+  "artifactId": 13615761284,
+  "name": "light-remote-desktop-v4-COMPLETE-windows-x64-c03b50f4328e07138f350532c31dfc8b260311ce",
+  "zipSha256": "4a61c5b84ae009e8409a8e3e29fd76358c103a7b94f4c9e9f2db9983aa46136b",
+  "zipBytes": 180450748,
+  "repositoryId": 1450214328,
+  "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+  "ciRunId": 42475715858,
   "verified": true,
-  "installerSha256": "2c2c7a8a94638a1dbbed378a289d562d53b696a1dcece6d6684f39ca5dc6e41e",
-  "sourceCommit": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
-  "sourceTree": "d517bb7b10bb99af6db346eff4e1f53af6f416a9",
-  "zipFiles": [
-    "Light-Remote-MCP-Setup-x64.exe",
-    "SHA256SUMS.txt",
-    "BUILD_MANIFEST.json",
-    "F16_OWNER_UAT_INTAKE.json"
-  ],
-  "path": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/recovery/ci-artifacts/13613101863.zip"
+  "verifiedOnArm": true,
+  "codeSigningVerified": false,
+  "physicalAcceptance": false,
+  "installerSha256": "23b746d2b820da1303fa1834c8e9f2d83e1bcad66a9c8d0580532ae60358b52f",
+  "installerBytes": 181022239
 }

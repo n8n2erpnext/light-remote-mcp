@@ -3,10 +3,10 @@
   "project": "light-remote-mcp",
   "projectVersion": "0.10.0-dev.1",
   "repository": "n8n2erpnext/light-remote-mcp",
-  "sourceCommit": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
-  "sourceTree": "d517bb7b10bb99af6db346eff4e1f53af6f416a9",
-  "buildTimestamp": "2026-11-08T10:03:50.953Z",
-  "ciRunId": "42468832737",
+  "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+  "sourceTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
+  "buildTimestamp": "2026-11-08T11:36:39.816Z",
+  "ciRunId": "42475715858",
   "ciRepository": "n8n2erpnext/light-remote-mcp",
   "platform": "windows-x64",
   "apiContractVersion": "light-remote.api.v1",
@@ -37,8 +37,8 @@
   },
   "artifact": {
     "name": "Light-Remote-MCP-Setup-x64.exe",
-    "bytes": 181030058,
-    "sha256": "2c2c7a8a94638a1dbbed378a289d562d53b696a1dcece6d6684f39ca5dc6e41e"
+    "bytes": 181022239,
+    "sha256": "23b746d2b820da1303fa1834c8e9f2d83e1bcad66a9c8d0580532ae60358b52f"
   },
   "assurances": {
     "cleanGitSource": true,
