@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T15:50:00.171Z",
+  "updatedAt": "2026-11-08T16:07:14.306Z",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -291,11 +291,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261108-release-asset-cache-cleanup",
-    "status": "DONE_LOCAL_CI_PENDING",
-    "summary": "Removed redundant 372 old GitHub Release asset blobs from Unified recovery after remote archived 421/421 SHA and size match; kept historical audit manifests.",
-    "verification": "421/421 archive metadata SHA256/size match; HTTP 206 download; 372 local blobs removed; df reclaimed 13.451 GiB; no runtime references found.",
-    "nextAction": "Commit and publish docs/handoff/checkpoint/Worklog on work, CI baseline-required PASS, fast-forward protected main.",
+    "taskId": "20261108-oneexe-p0-full-checkpoint",
+    "status": "BASELINE_CHECKPOINT_DONE_IMPLEMENTATION_IN_PROGRESS",
+    "summary": "Owner authorized implementation of the existing T12 plan; full exact pre-change source checkpoint/tag and independent Git restore verified on approved work branch.",
+    "verification": "Clean work c8d308c; annotated checkpoint tag pushed; full Git bundle restored and fsck PASS; no application/runtime/database changes.",
+    "nextAction": "Complete current Windows caller/host/updater contracts, then implement compatible updater and Rust primary host on work with atomic receipts.",
     "sourceDigest": "361b21e8ff2026fcc4876c175ba6602224b5ff8d786082ca0495e71967b36f0c",
     "sourceFileCount": 1614
   },
@@ -352,5 +352,36 @@
     "archiveUrl": "https://github.com/n8n2erpnext/light-remote-mcp-archive-20261108/releases",
     "noRuntimeOrSourceChanges": true,
     "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
+  },
+  "singlePrimaryWindowsExe": {
+    "status": "IN_PROGRESS_BASELINE_CHECKPOINT_COMPLETE",
+    "ownerImplementationAuthorized": true,
+    "target": "LightRemote.exe",
+    "merge": [
+      "GptOperator.Client.exe",
+      "desktop-v4/LightRemote.Desktop.exe"
+    ],
+    "nodeRemainsSeparate": true,
+    "rmUpdaterOtherHelpersRemainSeparate": true,
+    "preChangeCheckpoint": {
+      "baseCommit": "c8d308c82d17b5a4052163377d23f4514da6db02",
+      "baseTree": "4616c83adb7ba9af2eaebdfd0d0e4003d49155d4",
+      "tag": "checkpoint/20261108-before-lightremote-exe-c8d308c",
+      "tagPushed": true,
+      "gitBundleSha256": "003fe1165b7465b79e49c6f330eaf558cb7593bcb089eccf71757ce99f8d557d",
+      "independentRestoreFsck": "PASS"
+    },
+    "steps": {
+      "P0Checkpoint": "DONE",
+      "P0ContractInventory": "IN_PROGRESS",
+      "P1UpdaterCompatibility": "NOT_STARTED",
+      "P2NativeHost": "NOT_STARTED",
+      "P3DesktopActions": "NOT_STARTED",
+      "P4PackageSwitch": "NOT_STARTED",
+      "P5Acceptance": "NOT_RUN"
+    },
+    "newNativeBuild": "NOT_BUILT",
+    "physicalAcceptance": "NOT_RUN",
+    "runtimeChanged": false
   }
 }

@@ -90,3 +90,10 @@ This is the **only rolling project handoff**. Together with the single root `MAS
 - Verification: deletion target absent, 372/372 matched manifest before removal, no service reference detected, disk reclaimed `14,442,455,040 bytes (13.451 GiB)`; `df` now reports ~39 GB free / 69% used. The historical `VERIFICATION.json` PASS is a **pre-removal check**, not local presence after removal.
 - Next: publish atomic docs/checkpoint/handoff/Worklog receipt on existing `work` and require GitHub `baseline-required` PASS before fast-forwarding protected `main`. Keep only the one approved work branch. If old releases are needed, fetch the specific asset from archived GitHub repository.
 - Rollback: regenerate recovery objects by downloading corresponding archived GitHub Release assets according to the preserved manifest/digests; don't restore the 13.45 GiB cache without a concrete need.
+
+## Task Receipt: 20261108-oneexe-p0-full-checkpoint
+- Status: DONE_BASELINE / IN_PROGRESS_IMPLEMENTATION — Owner now authorizes implementing T12, rather than publishing its proposal only. Work stays on existing `work`; protected `main` remains stable.
+- Source: clean `c8d308c82d17b5a4052163377d23f4514da6db02`, tree `4616c83adb7ba9af2eaebdfd0d0e4003d49155d4`; annotated tag `checkpoint/20261108-before-lightremote-exe-c8d308c` pushed before changes. Merge only the two primary Windows EXEs into root LightRemote.exe; retain Node/RM/updater/helpers and identities.
+- Verification: full Git bundle SHA-256 `003fe1165b7465b79e49c6f330eaf558cb7593bcb089eccf71757ce99f8d557d`; independent restore/full fsck PASS. No new native build, physical acceptance, application/runtime/DB change yet. Existing baseline CI/physical claims are unchanged.
+- Next: inspect current headless/bridge/managed-process/update contracts, then implement updater compatibility and Rust host on work; keep intermediate receipts atomic and promote only verified source.
+- Rollback: tagged exact pre-change source and private bundle under approved Unified implementation/checkpoints; no old-runtime overwrite or database migration.

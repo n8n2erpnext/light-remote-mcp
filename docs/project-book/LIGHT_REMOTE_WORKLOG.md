@@ -91,3 +91,9 @@ Historical Gold/Windows chronologies remain in the old read-only archive; do not
 - All 421 remote GitHub Archive release assets matched metadata SHA-256 and byte size; real archived asset HTTP Range GET returned 206. No direct runtime refs to local objects were found.
 - Deleted precisely the 372 local blob files; retained small manifest and old verification reports plus explicit `LOCAL_OBJECTS_REMOVED.json` outside Git to prevent misreading verification as current file presence.
 - Freed `13.451 GiB` (14,442,455,040 bytes). Disk usage 80% → 69%, about 39 GB available. No source, active release, production service or alternate backups changed.
+
+## 2026-11-08 — primary Windows EXE implementation baseline
+
+Receipt: 20261108-oneexe-p0-full-checkpoint
+
+Owner authorized implementing T12. Full annotated tag `checkpoint/20261108-before-lightremote-exe-c8d308c` at c8d308c and independently restored Git bundle PASS. Only existing work branch is used; main remains stable. Baseline checkpoint DONE, caller inventory IN_PROGRESS; native consolidation build and physical acceptance NOT_RUN. Next: port compatible updater/host contracts without changing Node, RM, data identities or live runtime.
