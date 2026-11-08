@@ -103,7 +103,7 @@ fn load()->Result<Api,String>{
 fn call(args:&[String])->Result<(i32,Option<serde_json::Value>),String>{
     let api=API.get_or_init(load).as_ref().map_err(Clone::clone)?;
     let request=serde_json::to_vec(args).map_err(|_|"native_host_request_invalid")?;
-    if request.is_empty()||request.len()>128*1024{return Err("native_host_request_too_large".into());}
+    if request.is_empty()||request.len()>256*1024{return Err("native_host_request_too_large".into());}
     let mut response=std::ptr::null_mut();
     let status=unsafe{(api.run)(request.as_ptr(),request.len() as i32,&mut response)};
     let bytes=if response.is_null(){None}else{
@@ -129,7 +129,7 @@ pub(crate) fn action(action:&str)->Result<serde_json::Value,String>{
 pub(crate) fn dispatch()->Option<i32>{
     let raw:Vec<_>=std::env::args_os().skip(1).collect();
     let role=raw.first()?.to_str()?.to_ascii_lowercase();
-    if !["--agent-host","--managed-process","--self-test-output","--boot-evidence-self-test",
+    if !["--agent-host","--stop-agent-host","--managed-process","--self-test-output","--boot-evidence-self-test",
         "--wall-listener-self-test-output","--host-component-self-test-output","--desktop-bridge","--open-wall"].contains(&role.as_str()){return None;}
     let mut args=Vec::with_capacity(raw.len());
     for item in raw {

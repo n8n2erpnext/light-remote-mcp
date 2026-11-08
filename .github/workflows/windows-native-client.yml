@@ -779,6 +779,18 @@ jobs:
           foreach($required in @($agent,$rm)) { if (-not(Test-Path $required)) { throw "Same-installer A/B or RM missing: $required" } }
           Write-Host "windows-unified-stage=PASS v4=$bytes Agent_ABV2=PASS Local_Wall=in_agent RM=PASS"
           "WINDOWS_V4_DESKTOP=$target" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Verify legacy and primary updater layout compatibility
+        if: env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'dist/windows/updater/LightRemote.Updater.exe'
+          $result = Join-Path $PWD 'dist/windows/core-layout-self-test.json'
+          $p = Start-Process -FilePath $exe -ArgumentList @('--core-layout-self-test-output', ('"' + $result + '"')) -PassThru -Wait -WindowStyle Hidden
+          if ($p.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $result)) { throw 'Updater core layout compatibility proof failed' }
+          $report = Get-Content -LiteralPath $result -Raw | ConvertFrom-Json
+          if (-not $report.ok -or -not $report.versionRollback -or -not $report.fixedNamesOnly) { throw 'Updater layout contract failed' }
+          Write-Host 'windows-updater-dual-layout-version-rollback=PASS'
+
       - name: Prove in-process Windows host with one native core executable
         if: env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
         shell: pwsh

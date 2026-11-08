@@ -15,6 +15,7 @@
     <RootNamespace>LightRemote.InstallWatchdog</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\Shared\CoreLayout.cs" Link="CoreLayout.cs" />
     <Compile Include="..\Shared\CanonicalEndpoints.cs" Link="CanonicalEndpoints.cs" />
     <Compile Include="..\Shared\WallListenerOwnership.cs" Link="WallListenerOwnership.cs" />
     <Compile Include="..\Shared\LocalWallChallengeProof.cs" Link="LocalWallChallengeProof.cs" />

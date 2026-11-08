@@ -10,7 +10,7 @@
     <AssemblyName>LightRemote.WindowsHost</AssemblyName>
     <RootNamespace>GptOperator.Client</RootNamespace>
     <DefineConstants>$(DefineConstants);LIGHT_REMOTE_GOLDABV2_V4;LIGHT_REMOTE_EMBEDDED_CORE</DefineConstants>
-    <Version>0.10.0-dev.1</Version>
+    <Version>0.10.1-dev.1</Version>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <UseAppHost>false</UseAppHost>
     <SelfContained>false</SelfContained>
@@ -23,6 +23,7 @@
     <Compile Include="..\GptOperator.Client\**\*.cs"
              Exclude="..\GptOperator.Client\obj\**;..\GptOperator.Client\bin\**" />
     <Compile Include="EmbeddedHostExports.cs" />
+    <Compile Include="OwnedAgentHostStopper.cs" />
     <Compile Include="..\Shared\CanonicalEndpoints.cs" Link="CanonicalEndpoints.cs" />
     <Compile Include="..\Shared\WallListenerOwnership.cs" Link="WallListenerOwnership.cs" />
     <Compile Include="..\Shared\LocalWallChallengeProof.cs" Link="LocalWallChallengeProof.cs" />

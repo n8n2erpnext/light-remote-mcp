@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T16:49:58.190Z",
-  "version": "0.10.0-dev.1",
+  "updatedAt": "2026-11-08T17:09:18.527Z",
+  "version": "0.10.1-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
@@ -291,13 +291,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261108-oneexe-p1-inprocess-host-poc",
-    "status": "IMPLEMENTED_POC_NATIVE_CI_PENDING",
-    "summary": "Implement fixed-path in-process CLR component hosting, shared sanitized Desktop actions and headless worker dispatch; add native Windows fixture proof before package switch.",
-    "verification": "Three targeted source contracts PASS on Windows and ARM; PowerShell scripts parse PASS. Native compilation, private-runtime proof, WMI/stdio/Job Object/supervisor executable tests are CI_PENDING, not physical acceptance.",
-    "nextAction": "Run work baseline CI and inspect the new hosted-core Windows proof; then complete updater compatibility and primary installer/task layout without changing identities or public feeds.",
-    "sourceDigest": "86c083cb656b56db632110b9596cf75a3e502ef7339724e7d9f99cdc7f0415db",
-    "sourceFileCount": 1619
+    "taskId": "20261109-oneexe-p2-compatibility-helper",
+    "status": "COMPATIBILITY_IMPLEMENTED_CI_PENDING",
+    "summary": "Prepare dual-layout updater/watchdog and exact owned-agent stop before changing installer primary layout; version the compatibility bridge independently.",
+    "verification": "Previous native PoC CI42501889183 PASS9/9. Four targeted source/version checks PASS. New helper layout executable proof, AOT and owned-stop mode remain CI_PENDING. No Owner install/runtime changed.",
+    "nextAction": "Verify bridge CI, retain exact bridge installer/manifest, then switch primary installer/tasks to LightRemote.exe and prove upgrade/rollback from that bridge.",
+    "sourceDigest": "08714c0e811a1cb2d1f40ced8c8b57c523cc79b022279e4106db0db3aa1cbc6b",
+    "sourceFileCount": 1621
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -354,7 +354,7 @@
     "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
   },
   "singlePrimaryWindowsExe": {
-    "status": "IN_PROGRESS_NATIVE_HOST_POC_CI_PENDING",
+    "status": "IN_PROGRESS_COMPATIBILITY_HELPER_CI_PENDING",
     "ownerImplementationAuthorized": true,
     "target": "LightRemote.exe",
     "merge": [
@@ -374,16 +374,27 @@
     "steps": {
       "P0Checkpoint": "DONE",
       "P0ContractInventory": "DONE",
-      "P1UpdaterCompatibility": "NOT_STARTED",
-      "P2NativeHost": "POC_IMPLEMENTED_NATIVE_CI_PENDING",
-      "P3DesktopActions": "IN_PROCESS_ADAPTER_IMPLEMENTED_NATIVE_CI_PENDING",
+      "P1UpdaterCompatibility": "IMPLEMENTED_CI_PENDING",
+      "P2NativeHost": "POC_CI_PASS",
+      "P3DesktopActions": "IN_PROCESS_ADAPTER_CI_PASS",
       "P4PackageSwitch": "NOT_STARTED",
-      "P5Acceptance": "NOT_RUN"
+      "P5Acceptance": "NOT_RUN",
+      "P4Packaging": "NOT_STARTED"
     },
-    "newNativeBuild": "CI_PENDING",
+    "newNativeBuild": {
+      "sourceCommit": "9248b2925ad87d91ae86fb21d693240fbc8bae5d",
+      "ciRunId": 42501889183,
+      "result": "PASS_9_OF_9",
+      "proof": "Native one-core component, private runtime, WMI, stdio, managed Job Object and supervisor fixtures PASS; not Owner physical acceptance."
+    },
     "physicalAcceptance": "NOT_RUN",
     "runtimeChanged": false,
     "architectureUnderTest": "Tauri LightRemote.exe hosts a framework-dependent managed WindowsHost DLL in-process using private .NET frameworks; no second managed apphost/EXE.",
-    "pocScope": "Isolated one-executable stage proof only; current shipped installer layout remains two EXEs until updater/installer/task migration passes."
+    "pocScope": "Isolated one-executable stage proof only; current shipped installer layout remains two EXEs until updater/installer/task migration passes.",
+    "migrationSequence": {
+      "bridgeVersion": "0.10.1-dev.1",
+      "primaryVersion": "0.10.1-dev.2",
+      "policy": "Install and verify the dual-layout independent helper first. Never offer primary layout to an unverified old helper. Public feed remains HOLD."
+    }
   }
 }

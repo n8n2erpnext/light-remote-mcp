@@ -103,3 +103,9 @@ Owner authorized implementing T12. Full annotated tag `checkpoint/20261108-befor
 Receipt: 20261108-oneexe-p1-inprocess-host-poc
 
 Implemented a Tauri/Rust native hostfxr adapter and framework-dependent WindowsHost DLL reusing existing WMI, Job Object, supervisor and sanitized bridge logic. Private .NET frameworks are packaged for the prototype; no managed EXE is published. Three relevant source checks PASS. Native proof CI_PENDING; current installer remains the previous two-core layout. Next: actual native proof then updater/task/installer compatibility and switch.
+
+## 2026-11-09 — compatibility helper before primary layout migration
+
+Receipt: 20261109-oneexe-p2-compatibility-helper
+
+Native PoC source9248b29 has CI42501889183 PASS9/9. Implemented fixed-name dual-layout updater/watchdog resolver, version-aware rollback, owned Agent-only stop and background GUI preservation. Candidate0.10.1-dev.1 is the compatibility bridge, not the final layout. Four source/version regressions PASS; executable helper/stop checks CI_PENDING. Next: bridge CI then one-primary packaging and real install/upgrade/rollback CI fixtures.

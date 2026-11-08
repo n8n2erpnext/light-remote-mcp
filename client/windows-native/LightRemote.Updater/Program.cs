@@ -15,6 +15,13 @@ internal static class Program
             var restart=Array.IndexOf(args,"--restart-agent-only");if(restart>=0&&restart+2<args.Length&&string.Equals(args[restart+1],"--install-dir",StringComparison.OrdinalIgnoreCase))return await UpdateApplier.RestartAgentOnlyAsync(args[restart+2]);
             var verify=Array.IndexOf(args,"--verify-update-fixture");if(verify>=0&&verify+3<args.Length)return VerifyFixture(args[verify+1],args[verify+2],args[verify+3])?0:1;
             var self=Array.IndexOf(args,"--self-test-output");if(self>=0&&self+2<args.Length)return SelfTest(args[self+1],args[self+2])?0:1;
+            var layout=Array.IndexOf(args,"--core-layout-self-test-output");
+            if(layout>=0&&layout+1<args.Length)
+            {
+                var ok=CoreLayout.SelfTest();
+                File.WriteAllText(args[layout+1],new JsonObject{{"ok",ok},{"legacyLayout",CoreLayout.LegacyId},{"primaryLayout",CoreLayout.PrimaryId},{"fixedNamesOnly",true},{"versionRollback",true}}.ToJsonString());
+                return ok?0:1;
+            }
             var cacheSelf=Array.IndexOf(args,"--cache-self-test-output");if(cacheSelf>=0&&cacheSelf+1<args.Length)return await CacheSelfTestAsync(args[cacheSelf+1])?0:1;
             var profileSelf=Array.IndexOf(args,"--endpoint-profile-self-test-output");
             if(profileSelf>=0&&profileSelf+1<args.Length)return EndpointProfileSelfTest(args[profileSelf+1])?0:1;
@@ -113,6 +120,6 @@ internal static class Program
         finally{try{File.Delete(file);}catch{}}
     }
     private static bool VerifyFixture(string manifest,string signature,string output){try{UpdateClient.VerifySignedManifest(File.ReadAllBytes(manifest),File.ReadAllText(signature).Trim(),RecoveryPaths.UpdatePublicKey);File.WriteAllText(output,new JsonObject{{"ok",true},{"updateSignature","valid"},{"runtime","independent-updater"}}.ToJsonString());return true;}catch(Exception ex){File.WriteAllText(output,new JsonObject{{"ok",false},{"error",ex.Message}}.ToJsonString());return false;}}
-    private static bool SelfTest(string output,string installDir){try{var process=Environment.ProcessPath??"";var appExe=Path.Combine(installDir,"GptOperator.Client.exe");var ok=File.Exists(process)&&File.Exists(RecoveryPaths.UpdatePublicKey)&&Path.IsPathFullyQualified(installDir);var outside=!IsUnder(process,installDir);var result=new JsonObject{{"ok",ok},{"runtime","independent-updater"},{"helperVersion",RecoveryPaths.HelperVersion()},{"updater",process},{"app",appExe},{"updaterOutsideApp",outside}};File.WriteAllText(output,result.ToJsonString());return ok&&outside;}catch(Exception ex){File.WriteAllText(output,new JsonObject{{"ok",false},{"error",ex.Message}}.ToJsonString());return false;}}
+    private static bool SelfTest(string output,string installDir){try{var process=Environment.ProcessPath??"";var appExe=CoreLayout.ResolveCore(installDir);var ok=File.Exists(process)&&File.Exists(RecoveryPaths.UpdatePublicKey)&&Path.IsPathFullyQualified(installDir);var outside=!IsUnder(process,installDir);var result=new JsonObject{{"ok",ok},{"runtime","independent-updater"},{"helperVersion",RecoveryPaths.HelperVersion()},{"updater",process},{"app",appExe},{"updaterOutsideApp",outside},{"supportsPrimaryHostedLayout",true},{"coreLayoutContract",1}};File.WriteAllText(output,result.ToJsonString());return ok&&outside;}catch(Exception ex){File.WriteAllText(output,new JsonObject{{"ok",false},{"error",ex.Message}}.ToJsonString());return false;}}
     private static bool IsUnder(string file,string root){var f=Path.GetFullPath(file).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;var r=Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;return f.StartsWith(r,StringComparison.OrdinalIgnoreCase);}
 }

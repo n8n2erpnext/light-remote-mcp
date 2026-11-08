@@ -7,9 +7,9 @@
     <AssemblyName>LightRemote.Updater</AssemblyName>
     <RootNamespace>LightRemote.Updater</RootNamespace>
     <ApplicationIcon>..\GptOperator.Client\Assets\light-remote.ico</ApplicationIcon>
-    <Version>0.10.0-dev.1</Version>
-    <FileVersion>0.10.0.0</FileVersion>
-    <AssemblyVersion>0.10.0.0</AssemblyVersion>
+    <Version>0.10.1-dev.1</Version>
+    <FileVersion>0.10.1.0</FileVersion>
+    <AssemblyVersion>0.10.1.0</AssemblyVersion>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <PublishTrimmed>true</PublishTrimmed>
@@ -19,6 +19,7 @@
     <TrimMode>partial</TrimMode>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\Shared\CoreLayout.cs" Link="CoreLayout.cs" />
     <Compile Include="..\Shared\CanonicalEndpoints.cs" Link="CanonicalEndpoints.cs" />
     <Compile Include="..\Shared\WallListenerOwnership.cs" Link="WallListenerOwnership.cs" />
     <Compile Include="..\Shared\LocalWallChallengeProof.cs" Link="LocalWallChallengeProof.cs" />

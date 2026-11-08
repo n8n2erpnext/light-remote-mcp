@@ -74,3 +74,9 @@ Change this file when executable ownership, route/flag, IPC/transport, SQL or pa
 - [Native host adapter](../../client/desktop-v4/src-tauri/src/windows_host.rs): fixed installed paths and hostfxr ABI, twelve allowed Desktop actions and OS-only worker dispatch before Tauri/Owner initialization. No renderer-selected assembly/method/path.
 - [Managed component](../../client/windows-native/LightRemote.WindowsHost/LightRemote.WindowsHost.csproj) and [bounded exports](../../client/windows-native/LightRemote.WindowsHost/EmbeddedHostExports.cs): reuse existing host WMI/Job Objects/native profile; library has no standalone managed entry point. Native Tauri remains the window/tray and Owner-vault authority.
 - [Private runtime builder](../../client/windows-native/build-hosted-core.ps1) and [native proof](../../client/windows-native/test-hosted-core.ps1): a framework-dependent component resolves against private Microsoft frameworks, with executable fixture checks on hosted Windows CI. Current package switch and updater compatibility are pending.
+
+## Primary migration — compatibility boundaries
+
+- [CoreLayout](../../client/windows-native/Shared/CoreLayout.cs) is shared by updater and AOT installer watchdog. Installer metadata selects only fixed legacy/primary names for the compiled canonical product/profile; VERSION mismatch permits verified old-installer rollback selection, never an arbitrary JSON executable.
+- [OwnedAgentHostStopper](../../client/windows-native/LightRemote.WindowsHost/OwnedAgentHostStopper.cs) is an OS-only CLI role. Exact executable/argv/SID/creation-time checks constrain stop to AgentHost. It never kills by port or generic image name, never stops the GUI or a managed command wrapper.
+- Full updater quiesce includes exact installed core/legacy Desktop/Node paths. Agent-only restart remains separate. Native background GUI launches preserve an existing hidden window.

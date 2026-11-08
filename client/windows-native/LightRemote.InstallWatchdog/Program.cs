@@ -213,8 +213,8 @@ static class Program
             return 0;
         }
 
-        var app = Path.Combine(installRoot, "GptOperator.Client.exe");
-        if (File.Exists(app))
+        var app = CoreLayout.ResolveCore(installRoot);
+        if (app is not null)
         {
             try
             {

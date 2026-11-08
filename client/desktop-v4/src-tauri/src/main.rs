@@ -120,7 +120,14 @@ fn main() {
     if unified_tray::already_running() { return; }
     tauri::Builder::default()
         .manage(owner_login::OwnerRuntime::default())
-        .setup(|app| { unified_tray::attach(app)?; Ok(()) })
+        .setup(|app| {
+            unified_tray::attach(app)?;
+            if std::env::args_os().any(|a|a=="--background") {
+                use tauri::Manager;
+                if let Some(window)=app.get_webview_window("main") { let _=window.hide(); }
+            }
+            Ok(())
+        })
         .on_window_event(unified_tray::hide_on_close)
         .invoke_handler(tauri::generate_handler![
             open_local_wall, probe_local_wall,

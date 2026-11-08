@@ -46,13 +46,22 @@ internal static class UpdateApplier
     internal static async Task<int> RestartAgentOnlyAsync(string installDir)
     {
         RecoveryPaths.EnsureDirectories();
-        if(!Path.IsPathFullyQualified(installDir)||!File.Exists(Path.Combine(installDir,"GptOperator.Client.exe"))){Log("restart_agent_invalid_install");return 31;}
+        if(!Path.IsPathFullyQualified(installDir)||CoreLayout.ResolveCore(installDir) is null){Log("restart_agent_invalid_install");return 31;}
         Log($"restart_agent_begin helper={Environment.ProcessId}");
         try
         {
             await EndScheduledTaskAsync("LightRemoteDeviceAgent");
             var released=await WaitForWallStateAsync(false,TimeSpan.FromSeconds(12),installDir);
-            if(!released){Log("restart_agent_release_timeout");await StopInstalledRuntimeAsync(installDir);released=await WaitForWallStateAsync(false,TimeSpan.FromSeconds(8),installDir);}
+            if(!released)
+            {
+                Log("restart_agent_release_timeout");
+                if(CoreLayout.IsPrimary(installDir))
+                {
+                    if(!await CoreLayout.StopPrimaryAgentAsync(installDir)){Log("restart_agent_owned_stop_failed");return 32;}
+                }
+                else await StopInstalledRuntimeAsync(installDir,agentOnly:true);
+                released=await WaitForWallStateAsync(false,TimeSpan.FromSeconds(8),installDir);
+            }
             if(!released){EnsureInstalledTray(installDir);Log("restart_agent_release_failed");return 32;}
             for(var attempt=1;attempt<=5;attempt++)
             {
@@ -95,7 +104,7 @@ internal static class UpdateApplier
     }
     private static void EnsureInstalledTray(string installDir)
     {
-        try{var exe=Path.Combine(installDir,"GptOperator.Client.exe");if(!File.Exists(exe))return;Process.Start(new ProcessStartInfo(exe,"--background"){UseShellExecute=true})?.Dispose();Log("restart_agent_tray_ensure_requested");}
+        try{var exe=CoreLayout.ResolveGui(installDir);if(exe is null)return;Process.Start(new ProcessStartInfo(exe,"--background"){UseShellExecute=true})?.Dispose();Log("restart_agent_tray_ensure_requested");}
         catch(Exception ex){Log($"restart_agent_tray_ensure_failed {ex.GetType().Name}: {ex.Message}");}
     }
     private static async Task<int> RollbackAsync(string installDir,string currentVersion,string targetVersion,string code,string detail)
@@ -110,8 +119,8 @@ internal static class UpdateApplier
         if(await WaitForWallStateAsync(true,TimeSpan.FromSeconds(8),installDir)){Log("runtime_recovery_task_success");return true;}
         try
         {
-            var exe=Path.Combine(installDir,"GptOperator.Client.exe");
-            if(File.Exists(exe))
+            var exe=CoreLayout.ResolveCore(installDir);
+            if(exe is not null)
             {
                 var psi=new ProcessStartInfo(exe){UseShellExecute=false,CreateNoWindow=true};
                 psi.ArgumentList.Add("--agent-host");
@@ -126,16 +135,18 @@ internal static class UpdateApplier
     private static async Task StopBackgroundAgentTaskAsync(){try{await EndScheduledTaskAsync("LightRemoteDeviceAgent");await Task.Delay(350);Log("agent_task_stop");}catch(Exception ex){Log($"agent_task_stop_failed {ex.GetType().Name}: {ex.Message}");}}
     private static void TryRestartBackgroundAgentTask(){try{var psi=new ProcessStartInfo(Path.Combine(Environment.SystemDirectory,"schtasks.exe")){UseShellExecute=false,CreateNoWindow=true};psi.ArgumentList.Add("/Run");psi.ArgumentList.Add("/TN");psi.ArgumentList.Add("LightRemoteDeviceAgent");Process.Start(psi)?.Dispose();Log("agent_task_restart_requested");}catch(Exception ex){Log($"agent_task_restart_failed {ex.GetType().Name}: {ex.Message}");}}
     private static async Task WaitForParentAsync(int parentPid){if(parentPid<=0)return;try{using var parent=Process.GetProcessById(parentPid);using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(30));await parent.WaitForExitAsync(timeout.Token);}catch(ArgumentException){}catch(OperationCanceledException){Log("parent_wait_timeout");}}
-    private static async Task StopInstalledRuntimeAsync(string installDir)
+    private static async Task StopInstalledRuntimeAsync(string installDir,bool agentOnly=false)
     {
-        await EndScheduledTaskAsync("LightRemoteDeviceAgent");var targets=new[]{Path.GetFullPath(Path.Combine(installDir,"GptOperator.Client.exe")),Path.GetFullPath(Path.Combine(installDir,"runtime","node.exe"))};
+        await EndScheduledTaskAsync("LightRemoteDeviceAgent");var targets=agentOnly
+            ? new[]{Path.GetFullPath(Path.Combine(installDir,CoreLayout.LegacyName)),Path.GetFullPath(Path.Combine(installDir,"runtime","node.exe"))}
+            : CoreLayout.RuntimeFiles(installDir);
         foreach(var process in Process.GetProcesses()){try{var path=process.MainModule?.FileName;if(path is null||!targets.Any(target=>string.Equals(Path.GetFullPath(path),target,StringComparison.OrdinalIgnoreCase)))continue;Log($"stopping_runtime pid={process.Id} file={Path.GetFileName(path)}");process.Kill(entireProcessTree:false);using var stopTimeout=new CancellationTokenSource(TimeSpan.FromSeconds(5));try{await process.WaitForExitAsync(stopTimeout.Token);}catch(OperationCanceledException){Log($"stopping_runtime_timeout pid={process.Id} file={Path.GetFileName(path)}");}}catch{}finally{process.Dispose();}}
     }
     private static async Task EndScheduledTaskAsync(string taskName){try{var psi=new ProcessStartInfo(Path.Combine(Environment.SystemDirectory,"schtasks.exe")){UseShellExecute=false,CreateNoWindow=true};psi.ArgumentList.Add("/End");psi.ArgumentList.Add("/TN");psi.ArgumentList.Add(taskName);using var process=Process.Start(psi);if(process is not null)await WaitForExitOrKillAsync(process,TimeSpan.FromSeconds(10),"task_end");}catch{}}
     private static async Task<bool> TryInstallAndVerifyAsync(string installer,string installDir)
     {
         if(!File.Exists(installer))return false;int exitCode;try{var psi=new ProcessStartInfo(installer){UseShellExecute=false,CreateNoWindow=true};foreach(var arg in new[]{"/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CLOSEAPPLICATIONS",$"/DIR={installDir}"})psi.ArgumentList.Add(arg);using var process=Process.Start(psi);if(process is null)return false;if(!await WaitForExitOrKillAsync(process,TimeSpan.FromSeconds(120),"installer"))return false;exitCode=process.ExitCode;}catch(Exception ex){Log($"installer_start_failed {ex.GetType().Name}: {ex.Message}");return false;}if(exitCode!=0){Log($"installer_exit={exitCode}");return false;}
-        var installedExe=Path.Combine(installDir,"GptOperator.Client.exe");if(!File.Exists(installedExe))return false;var result=Path.Combine(RecoveryPaths.CacheDir,$"health-{Guid.NewGuid():N}.json");
+        var installedExe=CoreLayout.ResolveCore(installDir);if(installedExe is null)return false;var result=Path.Combine(RecoveryPaths.CacheDir,$"health-{Guid.NewGuid():N}.json");
         try{using var health=Process.Start(new ProcessStartInfo(installedExe){UseShellExecute=false,CreateNoWindow=true,ArgumentList={"--self-test-output",result}});if(health is null)return false;if(!await WaitForExitOrKillAsync(health,TimeSpan.FromSeconds(30),"health"))return false;if(health.ExitCode!=0||!File.Exists(result))return false;using var doc=JsonDocument.Parse(await File.ReadAllTextAsync(result));return doc.RootElement.TryGetProperty("ok",out var ok)&&ok.GetBoolean();}catch(Exception ex){Log($"health_check_failed {ex.GetType().Name}: {ex.Message}");return false;}finally{try{File.Delete(result);}catch{}}
     }
     private static async Task<bool> WaitForExitOrKillAsync(Process process,TimeSpan timeout,string phase){using var cts=new CancellationTokenSource(timeout);try{await process.WaitForExitAsync(cts.Token);return true;}catch(OperationCanceledException){Log($"{phase}_timeout seconds={(int)timeout.TotalSeconds}");try{if(!process.HasExited)process.Kill(entireProcessTree:true);}catch{}try{await process.WaitForExitAsync();}catch{}return false;}}
@@ -171,6 +182,6 @@ internal static class UpdateApplier
     }
     private static void CopyTree(string source,string destination){foreach(var dir in Directory.GetDirectories(source,"*",SearchOption.AllDirectories))Directory.CreateDirectory(Path.Combine(destination,Path.GetRelativePath(source,dir)));foreach(var file in Directory.GetFiles(source,"*",SearchOption.AllDirectories)){var dst=Path.Combine(destination,Path.GetRelativePath(source,file));Directory.CreateDirectory(Path.GetDirectoryName(dst)!);File.Copy(file,dst,true);}}
     private static async Task<bool> HelperSelfTestAsync(string exe,string installDir){var output=Path.Combine(RecoveryPaths.CacheDir,"helper-health-"+Guid.NewGuid().ToString("N")+".json");try{var psi=new ProcessStartInfo(exe){UseShellExecute=false,CreateNoWindow=true};psi.ArgumentList.Add("--self-test-output");psi.ArgumentList.Add(output);psi.ArgumentList.Add(installDir);using var p=Process.Start(psi);if(p is null||!await WaitForExitOrKillAsync(p,TimeSpan.FromSeconds(30),"helper_health")||p.ExitCode!=0||!File.Exists(output))return false;using var doc=JsonDocument.Parse(await File.ReadAllTextAsync(output));return doc.RootElement.TryGetProperty("ok",out var ok)&&ok.GetBoolean();}catch{return false;}finally{try{File.Delete(output);}catch{}}}
-    private static void StartInstalledClient(string installDir){TryRestartBackgroundAgentTask();var exe=Path.Combine(installDir,"GptOperator.Client.exe");if(!File.Exists(exe))return;try{Process.Start(new ProcessStartInfo(exe,"--background"){UseShellExecute=true});}catch{}}
+    private static void StartInstalledClient(string installDir){TryRestartBackgroundAgentTask();var exe=CoreLayout.ResolveGui(installDir);if(exe is null)return;try{Process.Start(new ProcessStartInfo(exe,"--background"){UseShellExecute=true});}catch{}}
     internal static void Log(string text){try{RecoveryPaths.EnsureDirectories();File.AppendAllText(RecoveryPaths.UpdateLog,$"{DateTimeOffset.UtcNow:o} {text}{Environment.NewLine}");}catch{}}
 }

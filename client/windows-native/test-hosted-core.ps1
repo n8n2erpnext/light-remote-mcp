@@ -118,6 +118,7 @@ setTimeout(()=>{
 },250);
 '@
 $hostProcess = $null
+$unrelatedWrapper = $null
 try {
     [IO.File]::WriteAllText($agent, $fixture, [Text.UTF8Encoding]::new($false))
     $start = [Diagnostics.ProcessStartInfo]::new($exe)
@@ -145,8 +146,16 @@ try {
             throw 'Native host lost helper/profile/native A-B/RM identity'
         }
     }
-    $hostProcess.Kill($false)
-    $hostProcess.WaitForExit(5000) | Out-Null
+    $other = [Diagnostics.ProcessStartInfo]::new($exe)
+    $other.UseShellExecute = $false
+    $other.CreateNoWindow = $true
+    foreach ($arg in @('--managed-process', $node, '-e', 'setInterval(()=>{},1000)')) { $other.ArgumentList.Add($arg) }
+    $unrelatedWrapper = [Diagnostics.Process]::Start($other)
+    Start-Sleep -Milliseconds 400
+    $stop = Invoke-Core @('--stop-agent-host')
+    if ($stop.Code -ne 0 -or -not $hostProcess.WaitForExit(5000)) { throw 'Owned Agent-only stop failed' }
+    if ($unrelatedWrapper.HasExited) { throw 'Agent-only stop killed another role of the same executable' }
+    $checks['agent-only-stop-preserves-other-native-core-role'] = 'PASS'
     Start-Sleep -Milliseconds 300
     foreach ($row in $attempts) {
         if (Get-Process -Id $row.pid -ErrorAction SilentlyContinue) { throw 'Daemon survived owned host termination' }
@@ -155,6 +164,10 @@ try {
     $checks['headless-supervisor-restart-profile-rm-native-ab'] = 'PASS'
     $checks['owned-host-exit-cleans-all-attempt-children'] = 'PASS'
 } finally {
+    if ($null -ne $unrelatedWrapper) {
+        if (-not $unrelatedWrapper.HasExited) { $unrelatedWrapper.Kill($true); $unrelatedWrapper.WaitForExit(5000) | Out-Null }
+        $unrelatedWrapper.Dispose()
+    }
     if ($null -ne $hostProcess) {
         if (-not $hostProcess.HasExited) { $hostProcess.Kill($true); $hostProcess.WaitForExit(5000) | Out-Null }
         $hostProcess.Dispose()

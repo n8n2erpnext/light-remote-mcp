@@ -1,6 +1,6 @@
 [package]
 name = "light-remote-desktop-v4-pilot"
-version = "0.10.0-dev.1"
+version = "0.10.1-dev.1"
 description = "Light Remote Desktop V4 unified Owner, UI and native Agent IPC shell"
 authors = ["Thai Duy Digital"]
 edition = "2021"

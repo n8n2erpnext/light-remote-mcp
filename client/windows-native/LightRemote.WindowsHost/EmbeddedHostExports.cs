@@ -9,7 +9,7 @@ namespace GptOperator.Client;
 // HTTP listener, renderer-selected path or Owner credential is involved.
 public static class EmbeddedHostExports
 {
-    private const int MaximumRequestBytes = 128 * 1024;
+    private const int MaximumRequestBytes = 256 * 1024;
     private const int MaximumResponseBytes = 8192;
 
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -30,6 +30,8 @@ public static class EmbeddedHostExports
                     return ManagedProcessEnvelope.Run(args.Skip(1).ToArray());
                 case "--agent-host" when args.Length == 1:
                     return AgentHost.Run();
+                case "--stop-agent-host" when args.Length == 1:
+                    return OwnedAgentHostStopper.Stop();
                 case "--boot-evidence-self-test" when args.Length == 2:
                     return WindowsBootEvidence.SelfTest(args[1]) ? 0 : 1;
                 case "--wall-listener-self-test-output" when args.Length == 2:

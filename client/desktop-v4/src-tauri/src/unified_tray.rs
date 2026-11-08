@@ -1,6 +1,6 @@
 //! One user-facing Windows product: this Tauri process owns both the main
-//! window and the native OS tray. The separate .NET binary is only a hidden,
-//! bounded Agent host and short-lived process bridge (never a second Tray).
+//! window and native OS tray. The primary layout calls its Windows managed
+//! component in-process; the legacy bridge remains for the compatibility build.
 use std::ffi::{c_void, OsStr};
 use std::os::windows::{ffi::OsStrExt, process::CommandExt};
 use std::path::PathBuf;
@@ -39,7 +39,8 @@ pub(crate) fn already_running() -> bool {
         let title:Vec<u16>=OsStr::new("Light Remote Desktop V4")
             .encode_wide().chain(std::iter::once(0)).collect();
         let window=unsafe{FindWindowW(std::ptr::null(),title.as_ptr())};
-        if !window.is_null(){unsafe{ShowWindow(window,9);SetForegroundWindow(window);}}
+        let background=std::env::args_os().any(|a|a=="--background");
+        if !window.is_null()&&!background{unsafe{ShowWindow(window,9);SetForegroundWindow(window);}}
         unsafe{CloseHandle(mutex);}
     }
     // The initial process owns its mutex handle until process termination.
