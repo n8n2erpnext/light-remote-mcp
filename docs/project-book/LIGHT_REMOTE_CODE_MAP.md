@@ -84,3 +84,7 @@ Change this file when executable ownership, route/flag, IPC/transport, SQL or pa
 ## Complete compatibility bridge recovery and installer layout guards
 
 The shared CoreLayout now cleans only the known obsolete LightRemote.exe/primary marker after verified legacy rollback; it never recursively deletes supporting/runtime/data directories. The AOT watchdog quiesces only exact installed core/legacy Desktop/Node paths before restoring a prior installer. Installer SinglePrimaryExe and task marker support are prepared but dormant for the bridge. WMI stop implementation uses explicit System.Management types.
+
+## Fix locatable WMI identity for owned Agent stop
+
+OwnedAgentHostStopper uses EnsureLocatable=true with its bounded projected WQL query. This retains the WMI object identity needed by GetOwnerSid; SID, exact executable/parsed argv and creation-time checks remain mandatory. Diagnostics expose phase/type only, never command lines, SID values, credentials or local state. The source installer guard now requires legacy core, new primary core, legacy Desktop and bundled Node exact paths.

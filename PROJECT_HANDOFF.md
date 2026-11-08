@@ -118,3 +118,10 @@ This is the **only rolling project handoff**. Together with the single root `MAS
 - Verification: CI42503527848: helper dual-layout executable fixture PASS, portable/core/browser/macOS/Linux PASS; Windows hosted proof failed compilation due ambiguous EnumerationOptions and WMI constructor binding, now explicitly qualified. Source regressions run before commit; full native bridge rebuild pending, not physical acceptance.
 - Next: Verify this compatibility bridge CI and retain its exact installer/hash; then switch candidate0.10.1-dev.2 primary package and prove real bridge upgrade, rollback and fresh/reinstall lifecycle.
 - Runtime: no existing ARM/Owner Windows install or public feed changed. Full checkpoint checkpoint/20261108-before-lightremote-exe-c8d308c remains the recovery reference.
+
+## Task Receipt: 20261109-oneexe-p2-wmi-owner-stop-proof
+- Status: BRIDGE_FIX_IMPLEMENTED_CI_PENDING. Retain WMI instance paths for exact SID-verified Agent stop and update the installer regression to require all four fixed quiesce paths.
+- Source: work after `7ef1d131b5ec30f194c0925240c79c95f9d148e0`, candidate0.10.1-dev.1; exact source digest is stamped atomically.
+- Verification: CI42504277501 compiled the managed component, passed native layout and prior worker fixtures, then failed Agent-only stop. Reproduced InvalidOperationException with a read-only WMI self-process query; EnsureLocatable=true resolves it and returns matching owner/file/creation evidence. Core source gate failed only on its obsolete two-path quiesce literal, now updated to four. Full bridge CI rerun pending. Local broad suite was not a clean native environment: spawn EPERM, missing dependencies and no staged helper; it is not claimed PASS.
+- Next: Verify bridge CI and archive its exact successful installer; then enable the primary layout and execute real fresh/reinstall/bridge upgrade/rollback proof.
+- Runtime: no existing ARM/Owner Windows install or public feed changed. Full checkpoint checkpoint/20261108-before-lightremote-exe-c8d308c remains the recovery reference.

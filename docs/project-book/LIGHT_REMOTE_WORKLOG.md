@@ -115,3 +115,9 @@ Native PoC source9248b29 has CI42501889183 PASS9/9. Implemented fixed-name dual-
 Receipt: 20261109-oneexe-p2-bridge-recovery-layout
 
 Prepare reversible fixed-name installer/task layout support, exact runtime quiesce and legacy rollback cleanup while keeping the bridge installer on its old two-core layout. Fix the WMI compile namespace caught by CI. CI42503527848: helper dual-layout executable fixture PASS, portable/core/browser/macOS/Linux PASS; Windows hosted proof failed compilation due ambiguous EnumerationOptions and WMI constructor binding, now explicitly qualified. Source regressions run before commit; full native bridge rebuild pending, not physical acceptance. Next: Verify this compatibility bridge CI and retain its exact installer/hash; then switch candidate0.10.1-dev.2 primary package and prove real bridge upgrade, rollback and fresh/reinstall lifecycle.
+
+## 2026-11-09 — Fix locatable WMI identity for owned Agent stop
+
+Receipt: 20261109-oneexe-p2-wmi-owner-stop-proof
+
+Retain WMI instance paths for exact SID-verified Agent stop and update the installer regression to require all four fixed quiesce paths. CI42504277501 compiled the managed component, passed native layout and prior worker fixtures, then failed Agent-only stop. Reproduced InvalidOperationException with a read-only WMI self-process query; EnsureLocatable=true resolves it and returns matching owner/file/creation evidence. Core source gate failed only on its obsolete two-path quiesce literal, now updated to four. Full bridge CI rerun pending. Local broad suite was not a clean native environment: spawn EPERM, missing dependencies and no staged helper; it is not claimed PASS. Next: Verify bridge CI and archive its exact successful installer; then enable the primary layout and execute real fresh/reinstall/bridge upgrade/rollback proof.

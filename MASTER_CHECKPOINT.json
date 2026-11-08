@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T17:18:08.406Z",
+  "updatedAt": "2026-11-08T17:32:14.979Z",
   "version": "0.10.1-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -291,12 +291,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-oneexe-p2-bridge-recovery-layout",
-    "status": "BRIDGE_IMPLEMENTED_NATIVE_CI_PENDING",
-    "summary": "Prepare reversible fixed-name installer/task layout support, exact runtime quiesce and legacy rollback cleanup while keeping the bridge installer on its old two-core layout. Fix the WMI compile namespace caught by CI.",
-    "verification": "CI42503527848: helper dual-layout executable fixture PASS, portable/core/browser/macOS/Linux PASS; Windows hosted proof failed compilation due ambiguous EnumerationOptions and WMI constructor binding, now explicitly qualified. Source regressions run before commit; full native bridge rebuild pending, not physical acceptance.",
-    "nextAction": "Verify this compatibility bridge CI and retain its exact installer/hash; then switch candidate0.10.1-dev.2 primary package and prove real bridge upgrade, rollback and fresh/reinstall lifecycle.",
-    "sourceDigest": "3abf6d1e869c6fbad1e18e800f32049626ec79060fb3745b020ff90520139a66",
+    "taskId": "20261109-oneexe-p2-wmi-owner-stop-proof",
+    "status": "BRIDGE_FIX_IMPLEMENTED_CI_PENDING",
+    "summary": "Retain WMI instance paths for exact SID-verified Agent stop and update the installer regression to require all four fixed quiesce paths.",
+    "verification": "CI42504277501 compiled the managed component, passed native layout and prior worker fixtures, then failed Agent-only stop. Reproduced InvalidOperationException with a read-only WMI self-process query; EnsureLocatable=true resolves it and returns matching owner/file/creation evidence. Core source gate failed only on its obsolete two-path quiesce literal, now updated to four. Full bridge CI rerun pending. Local broad suite was not a clean native environment: spawn EPERM, missing dependencies and no staged helper; it is not claimed PASS.",
+    "nextAction": "Verify bridge CI and archive its exact successful installer; then enable the primary layout and execute real fresh/reinstall/bridge upgrade/rollback proof.",
+    "sourceDigest": "f861f3097da9fadf178f81a276f6780ec06b6ff64d9a1f7f58d2fd4b477d5ea4",
     "sourceFileCount": 1621
   },
   "legacyFilesystemCleanup": {
@@ -354,7 +354,7 @@
     "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
   },
   "singlePrimaryWindowsExe": {
-    "status": "IN_PROGRESS_BRIDGE_RECOVERY_NATIVE_CI_PENDING",
+    "status": "IN_PROGRESS_BRIDGE_NATIVE_STOP_FIX_CI_PENDING",
     "ownerImplementationAuthorized": true,
     "target": "LightRemote.exe",
     "merge": [
@@ -374,7 +374,7 @@
     "steps": {
       "P0Checkpoint": "DONE",
       "P0ContractInventory": "DONE",
-      "P1UpdaterCompatibility": "IMPLEMENTED_BRIDGE_RECOVERY_CI_PENDING",
+      "P1UpdaterCompatibility": "BRIDGE_FIX_NATIVE_CI_PENDING",
       "P2NativeHost": "POC_CI_PASS",
       "P3DesktopActions": "IN_PROCESS_ADAPTER_CI_PASS",
       "P4PackageSwitch": "NOT_STARTED",
@@ -396,6 +396,7 @@
       "primaryVersion": "0.10.1-dev.2",
       "policy": "Install and verify the dual-layout independent helper first. Never offer primary layout to an unverified old helper. Public feed remains HOLD."
     },
-    "bridgeCompileCorrection": "Fully qualify System.Management.EnumerationOptions and typed ManagementScope/ObjectQuery. Helper layout native fixture already PASS, hosted role proof rerun pending."
+    "bridgeCompileCorrection": "Fully qualify System.Management.EnumerationOptions and typed ManagementScope/ObjectQuery. Helper layout native fixture already PASS, hosted role proof rerun pending.",
+    "wmiOwnerStopCorrection": "EnsureLocatable=true preserves __PATH/__RELPATH for GetOwnerSid after WQL projection. Read-only self-process SID/file/creation proof PASS; actual host stop remains native CI_PENDING."
   }
 }

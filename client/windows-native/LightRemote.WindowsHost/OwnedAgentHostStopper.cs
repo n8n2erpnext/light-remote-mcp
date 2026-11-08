@@ -32,6 +32,7 @@ internal static class OwnedAgentHostStopper
 
     internal static int Stop()
     {
+        var phase = "identity";
         try
         {
             var expected = Path.GetFullPath(AppPaths.CoreExecutable);
@@ -39,8 +40,9 @@ internal static class OwnedAgentHostStopper
             if (sid is null || !string.Equals(Path.GetFileName(expected), "LightRemote.exe", StringComparison.OrdinalIgnoreCase)) return 1;
             using var search = new ManagementObjectSearcher(new ManagementScope("root\\CIMV2"),
                 new ObjectQuery("SELECT ProcessId,ExecutablePath,CommandLine,CreationDate FROM Win32_Process WHERE Name='LightRemote.exe'"),
-                new System.Management.EnumerationOptions { ReturnImmediately = false, Timeout = TimeSpan.FromSeconds(4) });
+                new System.Management.EnumerationOptions { ReturnImmediately = false, EnsureLocatable = true, Timeout = TimeSpan.FromSeconds(4) });
             using var rows = search.Get();
+            var stopped = 0;
             foreach (ManagementObject row in rows)
             {
                 using (row)
@@ -50,23 +52,30 @@ internal static class OwnedAgentHostStopper
                         row["CommandLine"] is not string command || !IsHostCommand(command, expected)) continue;
                     var id = Convert.ToInt32(row["ProcessId"]);
                     if (id == Environment.ProcessId) continue;
+                    phase = "owner_sid";
                     using var owner = row.InvokeMethod("GetOwnerSid", null, new InvokeMethodOptions { Timeout = TimeSpan.FromSeconds(2) });
-                    if (owner is null || Convert.ToUInt32(owner["ReturnValue"]) != 0 || owner["Sid"] as string != sid) return 1;
+                    if (owner is null || Convert.ToUInt32(owner["ReturnValue"]) != 0 || owner["Sid"] as string != sid)
+                    { Console.Error.WriteLine("owned_agent_stop:owner_sid_rejected"); return 1; }
                     try
                     {
+                        phase = "creation_identity";
                         using var process = Process.GetProcessById(id);
                         // Guard PID reuse between WMI enumeration and opening the process.
                         var born = ManagementDateTimeConverter.ToDateTime((string)row["CreationDate"]).ToUniversalTime();
                         if (Math.Abs((process.StartTime.ToUniversalTime() - born).TotalMilliseconds) > 10 ||
-                            !string.Equals(process.MainModule?.FileName, expected, StringComparison.OrdinalIgnoreCase)) return 1;
+                            !string.Equals(process.MainModule?.FileName, expected, StringComparison.OrdinalIgnoreCase))
+                        { Console.Error.WriteLine("owned_agent_stop:creation_identity_rejected"); return 1; }
+                        phase = "terminate_verified_host";
                         process.Kill(entireProcessTree: false); // Closing this host closes its owned attempt Job Object.
-                        if (!process.WaitForExit(4000)) return 1;
+                        if (!process.WaitForExit(4000)) { Console.Error.WriteLine("owned_agent_stop:exit_timeout"); return 1; }
+                        stopped++;
                     }
                     catch (ArgumentException) { /* The verified host already exited. */ }
                 }
             }
+            Console.Error.WriteLine("owned_agent_stop:verified_hosts_stopped=" + stopped);
             return 0;
         }
-        catch { return 1; } // No unverified process-name or port fallback.
+        catch (Exception ex) { Console.Error.WriteLine("owned_agent_stop:" + phase + ":" + ex.GetType().Name); return 1; }
     }
 }

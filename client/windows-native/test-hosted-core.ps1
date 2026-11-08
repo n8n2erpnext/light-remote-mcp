@@ -153,7 +153,7 @@ try {
     $unrelatedWrapper = [Diagnostics.Process]::Start($other)
     Start-Sleep -Milliseconds 400
     $stop = Invoke-Core @('--stop-agent-host')
-    if ($stop.Code -ne 0 -or -not $hostProcess.WaitForExit(5000)) { throw 'Owned Agent-only stop failed' }
+    if ($stop.Code -ne 0 -or -not $hostProcess.WaitForExit(5000)) { throw "Owned Agent-only stop failed: code=$($stop.Code) phase=$($stop.Err)" }
     if ($unrelatedWrapper.HasExited) { throw 'Agent-only stop killed another role of the same executable' }
     $checks['agent-only-stop-preserves-other-native-core-role'] = 'PASS'
     Start-Sleep -Milliseconds 300
