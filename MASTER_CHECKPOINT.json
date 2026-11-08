@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T18:16:03.139Z",
+  "updatedAt": "2026-11-08T18:38:32.372Z",
   "version": "0.10.1-dev.2",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "PRIMARY_WINDOWS_EXE_CANDIDATE_FULL_CI_PENDING",
@@ -291,12 +291,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-oneexe-p3-primary-package-and-migration",
-    "status": "PRIMARY_LAYOUT_IMPLEMENTED_FULL_CI_PENDING",
-    "summary": "Switch the V4 complete installer to one root LightRemote.exe plus a private in-process WindowsHost component. Keep Node, RM V2 and independent recovery helpers separate. Add actual GUI/restart/fresh/reinstall/bridge upgrade/health-failure rollback/watchdog tests.",
-    "verification": "Compatibility bridge e997e14 passed CI42506546750 (9/9), including native component/private runtime/WMI/stdio/Job Objects/supervisor/owned-stop isolation, legacy real install/update/rollback/uninstall and core/backend/browser/macOS/Linux. Downloaded artifact13627977718 ZIP and inner installer SHA-256 match exact source BUILD_MANIFEST and sidecar. Primary YAML, all41 inline PowerShell scripts, new standalone scripts and relevant source/version checks PASS parsing/source scope. Full primary native compile/install/migration CI_PENDING; no physical Owner/account/vault/B acceptance. Bridge prerelease retention upload is independently verified before final acceptance; feeds remain HOLD.",
-    "nextAction": "Require work full CI PASS including actual primary GUI private CLR and hidden-window restart, real bridge upgrade/reinstall/cross-layout health-failure rollback/watchdog tests; verify installer/source/hash manifest, then promote the verified source under baseline-required.",
-    "sourceDigest": "71da410b67c2d599ab7a09c4c75f5b7d5a36a7be9860d043488aa0b8653ac2a6",
+    "taskId": "20261109-oneexe-p4-watchdog-recovery-proof",
+    "status": "PRIMARY_RUNTIME_PASS_FINAL_MIGRATION_CI_PENDING",
+    "summary": "Use observed failpoint/abort and actual native watchdog recovery as the postinstall-failure acceptance gate. Wait for watchdog completion before uninstall and preserve the original failure with recovery diagnostics. Report hosted-layout capability only for the compiled supported Windows profile.",
+    "verification": "CI42509136055: native primary stage/install, private CLR in GUI with global DOTNET_ROOT disabled, shortcut/autostart, hidden GUI singleton/restart, independent helper, normal broken-update rollback and uninstall PASS. Actual bridge→primary upgrade, reinstall, controlled legacy downgrade, injected runtimeconfig health-failure rollback and legacy GUI isolation also reached PASS; cross-layout rollback report confirms success. Last manual watchdog fixture assumed nonzero exit, but Inno logged the injected ssPostInstall exception and abort while returning zero; premature cleanup then masked the original assertion with an active-watchdog recovery-root error. The fixture now waits for actual restored version/task/Wall and rollback_restore_wall_healthy, retains isolation assertions and preserves root errors. Parser PASS; full native rerun pending, no physical Owner acceptance.",
+    "nextAction": "Require full primary CI PASS including native manual watchdog recovery and clean fixture uninstall; verify final installer/source/hash, then promote under baseline-required and reconcile the single checkpoint/handoff.",
+    "sourceDigest": "c744a74c12a5dd5235ea220e6cdfbcc157b550cb9f010c3e5301b9be7e1c3668",
     "sourceFileCount": 1626
   },
   "legacyFilesystemCleanup": {
@@ -354,7 +354,7 @@
     "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
   },
   "singlePrimaryWindowsExe": {
-    "status": "IN_PROGRESS_PRIMARY_LAYOUT_FULL_CI_PENDING",
+    "status": "IN_PROGRESS_PRIMARY_FINAL_WATCHDOG_PROOF_CI_PENDING",
     "ownerImplementationAuthorized": true,
     "target": "LightRemote.exe",
     "merge": [
@@ -379,11 +379,11 @@
       "P3DesktopActions": "CI_PASS_IN_PROCESS_ADAPTER",
       "P4PackageSwitch": "NOT_STARTED",
       "P5Acceptance": "NOT_RUN",
-      "P4Packaging": "IMPLEMENTED_FULL_NATIVE_CI_PENDING",
-      "P5Migration": "IMPLEMENTED_REAL_INSTALLER_CI_PENDING",
+      "P4Packaging": "NATIVE_PRIMARY_INSTALL_GUI_RESTART_CI_PASS",
+      "P5Migration": "REAL_HEALTH_ROLLBACK_PASS_MANUAL_WATCHDOG_RERUN_PENDING",
       "P6Promotion": "NOT_STARTED"
     },
-    "newNativeBuild": "PRIMARY_FULL_CI_PENDING",
+    "newNativeBuild": "FINAL_PRIMARY_NATIVE_RERUN_PENDING",
     "physicalAcceptance": "NOT_RUN",
     "runtimeChanged": false,
     "architectureUnderTest": "Tauri LightRemote.exe hosts a framework-dependent managed WindowsHost DLL in-process using private .NET frameworks; no second managed apphost/EXE.",
@@ -416,7 +416,15 @@
     },
     "candidateVersion": "0.10.1-dev.2",
     "physicalOwnerAcceptance": "NOT_RUN",
-    "publicFeedPromotion": "HOLD_NOT_CHANGED"
+    "publicFeedPromotion": "HOLD_NOT_CHANGED",
+    "lastNativeTrial": {
+      "sourceCommit": "727b8419e291b851d1ac43a3ce202b45c93024f7",
+      "ciRunId": 42509136055,
+      "primaryInstallGuiRestart": "PASS",
+      "realUpgradeReinstallAndHealthFailureRollback": "PASS",
+      "manualWatchdogFixture": "EXIT_CODE_ASSUMPTION_FAILED_CORRECTED",
+      "overallResult": "FAIL_NOT_RELEASED"
+    }
   },
   "activeDevelopmentWorkspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/single-primary-exe"
 }

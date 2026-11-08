@@ -36,6 +36,26 @@ if($bridgeManifest.sourceCommit -ne $config.sourceCommit -or $bridgeManifest.art
 $checks=[ordered]@{}
 $canaries=[ordered]@{}
 $fixtureVars=@{}
+$primaryFailure=$null
+
+function Save-MigrationProgress([string]$Stage){
+    [ordered]@{stage=$Stage;checks=$checks;sourceCommit=$env:GITHUB_SHA;ciRunId=$env:GITHUB_RUN_ID}|
+        ConvertTo-Json -Depth 10|Set-Content -LiteralPath (Join-Path $evidence 'migration-progress.json') -Encoding utf8NoBOM
+    Write-Host "PRIMARY_MIGRATION_STAGE=$Stage"
+}
+function Copy-RecoveryDiagnostics{
+    foreach($relative in @('logs/update.log','state/status.json','state/pending-report.json','state/transaction.json')){
+        $file=Join-Path $updaterRoot $relative
+        if(Test-Path -LiteralPath $file){Copy-Item -LiteralPath $file -Destination (Join-Path $evidence ('recovery-'+[IO.Path]::GetFileName($file))) -Force}
+    }
+    $txn=Join-Path $updaterRoot 'state/installer-txn'
+    if(Test-Path -LiteralPath $txn){
+        Get-ChildItem -LiteralPath $txn -Filter 'watchdog.log' -File -Recurse|ForEach-Object{
+            $name='watchdog-'+(Split-Path -Leaf (Split-Path -Parent $_.FullName))+'.log'
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $evidence $name) -Force
+        }
+    }
+}
 
 function Invoke-Owned([string]$File,[string[]]$Arguments,[int]$Timeout=180000){
     $psi=[Diagnostics.ProcessStartInfo]::new($File);$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true
@@ -169,6 +189,7 @@ try{
         throw 'Pinned bridge did not install the dual-layout independent helper'
     }
     $checks['verified-bridge-fresh-install-independent-helper']='PASS'
+    Save-MigrationProgress 'bridge-installed'
     $deviceLocal=Join-Path $env:LOCALAPPDATA 'LightRemoteGoldABV2/oneexe-ci-preservation'
     $stateDir=Join-Path $env:USERPROFILE '.config/gpt-operator-agent-goldabv2'
     $preserved=@((Join-Path $root 'config/oneexe-ci-custom.json'),
@@ -210,15 +231,18 @@ class UnsupportedHelper {
         Assert-Canaries
     }finally{Copy-Item -LiteralPath $backup -Destination $updater -Force}
     $checks['real-installer-incompatible-helper-blocks-before-core-stop']='PASS'
+    Save-MigrationProgress 'incompatible-helper-preflight'
 
     Apply-Package $PrimaryInstaller $config.version $version
     Wait-Healthy $version $true
     Assert-Canaries
     $checks['bridge-helper-installs-and-verifies-primary-layout']='PASS'
+    Save-MigrationProgress 'bridge-to-primary'
     Install-Package $PrimaryInstaller 'primary-reinstall'
     Wait-Healthy $version $true
     Assert-Canaries
     $checks['same-version-primary-reinstall-preserves-config-device-local-canaries']='PASS'
+    Save-MigrationProgress 'primary-reinstall'
 
     # Controlled valid downgrade establishes the real bridge again. This uses
     # the normal apply/health/helper transaction, not a fabricated directory.
@@ -226,6 +250,7 @@ class UnsupportedHelper {
     Wait-Healthy $config.version $false
     Assert-Canaries
     $checks['primary-to-legacy-real-installer-transaction']='PASS'
+    Save-MigrationProgress 'controlled-legacy-downgrade'
 
     # The CI-only wrapper invokes the exact real primary installer, lets its
     # watchdog observe commit, then removes the component runtimeconfig. A fresh
@@ -263,14 +288,29 @@ class BrokenInstalledComponent {
     $checks['real-primary-install-health-failure-restores-real-bridge-and-removes-new-exe']='PASS'
     Assert-LegacyGuiIsolation
     $checks['restored-legacy-gui-does-not-activate-leftover-hosted-component']='PASS'
+    Save-MigrationProgress 'real-health-failure-rollback-and-legacy-gui'
 
     if($FailpointInstaller){
+        Save-MigrationProgress 'manual-watchdog-failpoint-start'
         $failed=Invoke-Owned $FailpointInstaller @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',('/DIR='+$root),('/LOG='+(Join-Path $evidence 'installer-watchdog-failpoint.log')))
-        if($failed -eq 0){throw 'Installer watchdog failpoint did not fail'}
+        # Inno can return zero after a suppressed ssPostInstall exception.
+        # Prove the injected failure and independent watchdog recovery rather
+        # than treating the installer's process exit code as a commit receipt.
+        $failureLog=Get-Content -LiteralPath (Join-Path $evidence 'installer-watchdog-failpoint.log') -Raw
+        if($failureLog -notmatch 'Light Remote installer transaction self-test failpoint' -or
+           $failureLog -notmatch 'light-remote-install-transaction-abort-watchdog-armed'){
+            throw "Native installer failpoint was not observed: exit=$failed"
+        }
         Wait-Healthy $config.version $false
         Wait-WatchdogCompletion
+        Copy-RecoveryDiagnostics
+        $recovered=@(Get-ChildItem -LiteralPath $evidence -Filter 'watchdog-*.log' -File|Where-Object{
+            (Get-Content -LiteralPath $_.FullName -Raw) -match 'rollback_restore_wall_healthy'
+        })
+        if(-not $recovered){throw 'Native watchdog did not record verified rollback health'}
         Assert-Canaries
         $checks['manual-installer-postinstall-failure-watchdog-restores-bridge']='PASS'
+        Save-MigrationProgress 'manual-watchdog-recovered'
     }
 
     Apply-Package $PrimaryInstaller $config.version $version
@@ -283,14 +323,29 @@ class BrokenInstalledComponent {
         liveOwnerIdentityOrVaultAcceptance=$false;physicalOwnerAcceptance=$false}|
         ConvertTo-Json -Depth 10|Set-Content -LiteralPath (Join-Path $evidence 'migration-summary.json') -Encoding utf8NoBOM
     Write-Host 'WINDOWS_ONE_PRIMARY_REAL_INSTALL_UPGRADE_ROLLBACK=PASS'
+}catch{
+    $primaryFailure=$_
+    [ordered]@{result='FAIL';error=$_.Exception.Message;scriptStackTrace=$_.ScriptStackTrace;checks=$checks}|
+        ConvertTo-Json -Depth 10|Set-Content -LiteralPath (Join-Path $evidence 'migration-failure.json') -Encoding utf8NoBOM
+    try{Copy-RecoveryDiagnostics}catch{Write-Warning 'Could not capture all fixture recovery diagnostics'}
+    throw
 }finally{
-    Stop-Fixture
-    $unins=Join-Path $root 'unins000.exe'
-    if(Test-Path -LiteralPath $unins){
-        $exit=Invoke-Owned $unins @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') 60000
-        if($exit -ne 0){throw "Migration fixture uninstaller failed: $exit"}
+    $cleanupErrors=[Collections.Generic.List[string]]::new()
+    try{Wait-WatchdogCompletion;Copy-RecoveryDiagnostics}catch{$cleanupErrors.Add($_.Exception.Message)}
+    try{
+        Stop-Fixture
+        $unins=Join-Path $root 'unins000.exe'
+        if(Test-Path -LiteralPath $unins){
+            $exit=Invoke-Owned $unins @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') 60000
+            if($exit -ne 0){throw "Migration fixture uninstaller failed: $exit"}
+        }
+        foreach($file in $canaries.Keys){Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue}
+        if(Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue){throw 'Migration fixture left the Agent task installed'}
+        if(Test-Path -LiteralPath $updaterRoot){throw 'Migration fixture left its independent updater installed'}
+    }catch{$cleanupErrors.Add($_.Exception.Message)}
+    if($cleanupErrors.Count){
+        $cleanupErrors|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $evidence 'cleanup-errors.json') -Encoding utf8NoBOM
+        if($null -eq $primaryFailure){throw ('Migration fixture cleanup: '+($cleanupErrors -join '; '))}
+        Write-Warning ('Cleanup also failed: '+($cleanupErrors -join '; '))
     }
-    foreach($file in $canaries.Keys){Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue}
-    if(Get-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue){throw 'Migration fixture left the Agent task installed'}
-    if(Test-Path -LiteralPath $updaterRoot){throw 'Migration fixture left its independent updater installed'}
 }

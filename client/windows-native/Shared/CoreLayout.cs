@@ -12,6 +12,11 @@ internal static class CoreLayout
     internal const string LegacyId = "legacy-dotnet-v1";
     internal const string PrimaryName = "LightRemote.exe";
     internal const string LegacyName = "GptOperator.Client.exe";
+#if LIGHT_REMOTE_GOLDABV2_V4
+    internal const bool SupportsPrimaryLayout = true;
+#else
+    internal const bool SupportsPrimaryLayout = false;
+#endif
 
     internal static string? ResolveCore(string installDir)
     {
