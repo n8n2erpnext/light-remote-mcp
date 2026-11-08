@@ -19,8 +19,8 @@ Authority: new repository n8n2erpnext/light-remote-mcp (not the archived reposit
 
 ## Working rule
 
-**Official GitHub main → Full checkpoint tag → implement on main → targeted tests → reconcile the same Worklog/Code Map/Checkpoint.**
-Do not create ANY branch, even a temporary CI/PR branch, without the Owner's **explicit prior permission**. A protected-`main` rejection must be reported, not worked around with new branches or disabled checks. GitHub SSH remote: `git@github.com:n8n2erpnext/light-remote-mcp.git`, verified accessible on VPS-ARM (not dependent on GitHub connector write access). Do not modify the archived repository, ARM legacy worktrees, or running production.
+**Official GitHub `work` → Full checkpoint tag → implement on `work` with atomic docs → CI `baseline-required` → promote verified changes to protected `main`.**
+The Owner explicitly authorized this **single permanent `work` branch** on 2026-11-08. Do not create ANY other branch, even temporary CI/PR, without a new explicit Owner approval. A protected-`main` rejection must be reported, not worked around with new branches or disabled checks. GitHub SSH remote: `git@github.com:n8n2erpnext/light-remote-mcp.git`, verified accessible on VPS-ARM (not dependent on GitHub connector write access). Do not modify the archived repository, ARM legacy worktrees, or running production.
 
 **VPS-ARM directory rule:** new Light Remote development folders must remain beneath `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/`. Never create new sibling Light Remote directories in `/home/ubuntu/n8n2erpnext/`. See [Library Rules](LIBRARY_RULES.md).
 

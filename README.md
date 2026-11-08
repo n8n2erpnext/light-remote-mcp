@@ -18,9 +18,9 @@ GitHub read/write access for this project is already configured through **SSH on
 
 ### Owner-controlled branch policy (mandatory)
 
-- Work on the existing **`main`** branch only. **Never create a branch, temporary CI/PR branch, `codex/*` branch or branch-backed worktree without the Owner's explicit prior request or permission.** A failed push, a test failure or technical convenience does not authorize branching.
-- Before substantive development take a **full checkpoint** (including annotated tag), then continue on `main`. Maintain only `MASTER_CHECKPOINT.json` and the established Project Book/Worklog; use controlled revert/rollback to the checkpoint if changes fail, with separate DB/runtime recovery as needed.
-- `main` is protected by GitHub Actions `baseline-required`. **If direct push is rejected, preserve the local commit and report the block. Do not create a workaround branch, relax protection or force-push without prior Owner permission.**
+- **Owner-approved exception (2026-11-08): `work` is the single permanent development/CI branch**, created once from existing local `main` at commit `047c744`. Keep `main` as stable baseline. Continue feature development, task checkpointing and GitHub CI on `work`, then fast-forward the verified source to `main` under its existing required check. Do not delete/recreate `work` or invent more branches. **Any additional branch requires a fresh explicit Owner request/approval.**
+- Before substantive development take a **full checkpoint** (including annotated tag), then continue on `work`. Maintain only `MASTER_CHECKPOINT.json` and the established Project Book/Worklog; use controlled revert/rollback to the checkpoint if changes fail, with separate DB/runtime recovery as needed.
+- `main` is protected by `baseline-required`. This explicitly approved `work` branch runs the same CI. Only promote a verified commit from `work` to `main` after the required check PASS and without force-push. If GitHub rejects promotion, preserve work and report the specific block; do not create any additional branch or relax protection.
 - Historical VPS-ARM worktrees and `light-remote-mcp-archive-20261108` remain comparison/recovery references, never alternative current build sources.
 
 ### VPS-ARM workspace boundary — mandatory
@@ -75,3 +75,5 @@ Stage code, handoff and Worklog with `git add`. Set task receipt in `MASTER_CHEC
     git commit -m "Task summary"
 
 Local `.githooks/pre-commit` rejects missing/stale staged artifacts; **GitHub CI checks every commit**, not only final tree. Error states **YÊU CẦU BỔ SUNG CHECKPOINT + HANDOFF + DOCS (NẾU CÓ)**. No commit-code-first/commit-docs-later sequence. A local hook can technically be skipped, but CI remains authoritative on protected `main`. No new branches without Owner permission.
+
+**Approved development flow:** `work` → same-commit checkpoint/handoff/docs gate → CI `baseline-required` → verified promotion to protected `main`. The `work` branch remains active for future development, rather than being deleted after this one-time CI bootstrap.

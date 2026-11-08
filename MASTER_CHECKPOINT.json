@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T13:44:59.071Z",
+  "updatedAt": "2026-11-08T13:57:12.142Z",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -233,9 +233,13 @@
     "sshOrigin": "git@github.com:n8n2erpnext/light-remote-mcp.git",
     "sshVerifiedHost": "VPS-ARM",
     "sshVerifiedDate": "2026-11-08",
-    "branchPolicy": "main only; no new branches or branch-backed worktrees without explicit prior Owner permission",
+    "branchPolicy": "Owner approved exactly work as one persistent development/CI branch (2026-11-08); main protected stable baseline; all other branches require fresh explicit Owner approval",
     "protectedMainPolicy": "baseline-required; stop and report rejected push; no auto-branch or bypass",
-    "checkpointPolicy": "full checkpoint before substantive work; controlled rollback to verified checkpoint"
+    "checkpointPolicy": "full checkpoint before substantive work; controlled rollback to verified checkpoint",
+    "approvedWorkBranch": "work",
+    "approvedWorkBranchBase": "047c744c24becb58fafce80d336ccd4d674bdc34",
+    "promotionPolicy": "work CI baseline-required PASS then promote same verified source to main (fast-forward only; never force-push); retain work",
+    "ownerApprovedAt": "2026-11-08"
   },
   "workspaceGovernance": {
     "approvedParent": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108",
@@ -270,25 +274,25 @@
       "exact_next_action"
     ],
     "longTaskCadence": "checkpoint and rolling handoff at each meaningful completed step before the next step",
-    "workingBranch": "main",
-    "repositoryPublicationStatus": "LOCAL_ONLY / GITHUB_NOT_SYNCED — protected main requires baseline-required and no new branch is Owner-authorized",
-    "taskStatus": "ATOMIC_COMMIT_SYNC_LOCAL_VERIFIED_PENDING_PUBLICATION",
+    "workingBranch": "work",
+    "repositoryPublicationStatus": "WORK_BRANCH_CREATED_LOCAL / CI_NOT_RUN; main still at e96c0c5; no product runtime change",
+    "taskStatus": "WORK_BRANCH_BOOTSTRAP_LOCAL_PENDING_CI",
     "stableSourceBaseline": "c03b50f4328e07138f350532c31dfc8b260311ce",
     "preChangeCommit": "fd25174ac3e43a4e3ea6b3feed4ae0bf1b42587",
     "runtimeChanged": false,
-    "nextAction": "Do not create new branch; report main protection blocker if needed.",
+    "nextAction": "Publish work over VPS-ARM SSH; verify baseline-required and then fast-forward protected main if allowed.",
     "atomicCommitRule": "Every Git commit must stage MASTER_CHECKPOINT, PROJECT_HANDOFF, Worklog, generated docs status and applicable Code Map/API/build documentation; unique task receipt + staged-source blob digest.",
     "localGuard": ".githooks/pre-commit invokes deploy/unified/commit-sync-gate.mjs --staged",
     "ciGuard": ".github/workflows/ci.yml truth job checks each new commit via --range"
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261108-atomic-commit-sync-gate-v1",
-    "status": "DONE_LOCAL_PENDING_GITHUB",
-    "summary": "Atomic same-commit enforcement of source, checkpoint, rolling handoff, Worklog and relevant docs through pre-commit and CI per-commit range.",
-    "verification": "Node syntax PASS; five negative isolated-index cases blocked as required; positive staged gate and project truth/docs checks PASS; CI range test after commit.",
-    "nextAction": "Commit gate implementation on existing main. GitHub protected main requires baseline-required; do not create branch or bypass without Owner permission.",
-    "sourceDigest": "eaadc43644d5fc0ccb1fb98e473e241f4891f18aaa7d9e662d18ce2819095752",
+    "taskId": "20261108-work-branch-ci-bootstrap",
+    "status": "INTEGRATION_PENDING_CI",
+    "summary": "Create single Owner-approved permanent work development branch; CI on work, promote verified source to protected main without new branches.",
+    "verification": "Source and exact branch verified; local hook/docs checks and GitHub CI will run; no live CI success claimed before push.",
+    "nextAction": "Push work via VPS-ARM SSH, verify baseline-required CI, fast-forward main if permitted, preserve work as sole development branch.",
+    "sourceDigest": "663d84538f8c62467771876c35af8b85d01fbf8976a94a1bf2d0fbe8178da464",
     "sourceFileCount": 1614
   }
 }

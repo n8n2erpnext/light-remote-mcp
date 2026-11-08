@@ -2,7 +2,7 @@
 
 Status: current source-scoped synthesis
 Edition: 2026-11-08
-Source authority: new GitHub repository n8n2erpnext/light-remote-mcp, main
+Source authority: new GitHub repository n8n2erpnext/light-remote-mcp; main = stable baseline, Owner-authorized work = sole development branch (2026-11-08)
 Docs-integrated repository reference: 23f386ee7bcef6c5547eee8e7a7f0ccaab5a0227; verified documented migration de7eb226; verified built source c03b50f4328e07138f350532c31dfc8b260311ce
 Version: 0.10.0-dev.1; API: light-remote.api.v1; profile: goldabv2-desktop-v4
 
@@ -25,7 +25,7 @@ Owner native GUI physical acceptance against the candidate, positive local Agent
 
 ## How to maintain this project
 
-Official source and build authority is GitHub main, not old VPS-ARM STAGED directories. Capture a full checkpoint/tag **before** a significant change, develop on the same main where allowed, and keep [Worklog](LIGHT_REMOTE_WORKLOG.md), [Code Map](LIGHT_REMOTE_CODE_MAP.md) and [MASTER_CHECKPOINT.json](../../MASTER_CHECKPOINT.json) aligned. Only perform regression relevant to the changed boundary and a final integrated acceptance for a candidate. Never infer production release from a green CI job.
+Official source and build authority is the new GitHub repository: Owner-authorized `work` for development/CI, protected `main` for verified stable baseline; never old VPS-ARM STAGED directories. Capture a full checkpoint/tag **before** a significant change, develop on the same main where allowed, and keep [Worklog](LIGHT_REMOTE_WORKLOG.md), [Code Map](LIGHT_REMOTE_CODE_MAP.md) and [MASTER_CHECKPOINT.json](../../MASTER_CHECKPOINT.json) aligned. Only perform regression relevant to the changed boundary and a final integrated acceptance for a candidate. Never infer production release from a green CI job.
 
 ## Source navigation
 
