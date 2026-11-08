@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "light-remote-mcp",
   "repository": "n8n2erpnext/light-remote-mcp",
-  "version": "0.10.1-dev.1",
+  "version": "0.10.1-dev.2",
   "apiContractVersion": "light-remote.api.v1",
   "database": {
     "coreLock": "platform-v2/sql/migrations.lock.json",
@@ -26,6 +26,14 @@
     ]
   },
   "defaultBuildProfile": "goldabv2-desktop-v4",
+  "windowsCore": {
+    "layoutId": "lightremote-primary-hosted-v1",
+    "primaryExecutable": "LightRemote.exe",
+    "managedComponent": "windows-host/LightRemote.WindowsHost.dll",
+    "minimumHelperCoreLayoutContract": 1,
+    "migrationBridgePin": "config/windows-core-migration.json",
+    "separateComponents": ["runtime/node.exe", "realremote-v2/LightRemote.RM.exe", "independent updater/watchdog", "PTY/runtime tools"]
+  },
   "sourceCommitPolicy": "Resolve exact clean Git HEAD and tree at build; never a source directory name or STAGED pointer.",
   "productionRelease": false
 }

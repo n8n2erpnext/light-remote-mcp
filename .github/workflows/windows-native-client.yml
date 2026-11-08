@@ -815,6 +815,14 @@ jobs:
           name: light-remote-one-core-proof-${{ github.sha }}
           path: dist/windows/hosted-poc-evidence/
           if-no-files-found: warn
+      - name: Stage the proven single primary LightRemote.exe product
+        if: env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
+        shell: pwsh
+        run: |
+          & client/windows-native/stage-primary-core.ps1 -StageDir (Join-Path $PWD 'dist/windows/stage') -ProvenDir (Join-Path $PWD 'dist/windows/hosted-poc') -ProofFile (Join-Path $PWD 'dist/windows/hosted-poc-evidence/summary.json')
+          Copy-Item -LiteralPath 'dist/windows/stage/config/primary-executable-inventory.json' -Destination 'dist/windows/primary-executable-inventory.json'
+          "WINDOWS_V4_DESKTOP=$(Join-Path $PWD 'dist/windows/stage/LightRemote.exe')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Install Inno Setup
         shell: pwsh
         run: |
@@ -833,10 +841,11 @@ jobs:
           $version = (Get-Content VERSION -Raw).Trim()
           $defines=@("/DStageDir=$stage","/DOutputDir=$out","/DAppVersion=$version","/DWatchdogExe=$env:WINDOWS_INSTALL_WATCHDOG")
           if ($env:LIGHT_REMOTE_BUILD_PROFILE -eq 'goldabv2-desktop-v4') {
-            if (-not (Test-Path 'dist/windows/stage/desktop-v4/LightRemote.Desktop.exe')) {
-              throw 'Complete installer cannot be built without staged Desktop V4'
+            if (-not (Test-Path 'dist/windows/stage/LightRemote.exe') -or -not (Test-Path 'dist/windows/stage/windows-host/LightRemote.WindowsHost.dll')) {
+              throw 'Complete installer cannot be built without the proven primary native core/component'
             }
             $defines+= '/DUnifiedDesktopV4=1'
+            $defines+= '/DSinglePrimaryExe=1'
           }
           & $env:ISCC @defines client/windows-native/installer/GptOperator.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
@@ -845,6 +854,19 @@ jobs:
           $installerBytes=(Get-Item $installer).Length
           Write-Host "windows-size-installer-bytes=$installerBytes"
           "WINDOWS_INSTALLER=$installer" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build CI-only postinstall failure installer for native watchdog recovery
+        if: env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
+        shell: pwsh
+        run: |
+          $stage = (Resolve-Path 'dist/windows/stage').Path
+          $out = Join-Path $PWD 'dist/windows/ci-failpoint-installer'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $version = (Get-Content VERSION -Raw).Trim()
+          $defines = @("/DStageDir=$stage","/DOutputDir=$out","/DAppVersion=$version","/DWatchdogExe=$env:WINDOWS_INSTALL_WATCHDOG",'/DUnifiedDesktopV4=1','/DSinglePrimaryExe=1','/DInstallerTxnFailpoint=1')
+          & $env:ISCC @defines client/windows-native/installer/GptOperator.iss
+          if ($LASTEXITCODE -ne 0) { throw 'CI-only failpoint installer build failed' }
+          "WINDOWS_FAILPOINT_INSTALLER=$(Join-Path $out 'Light-Remote-MCP-Setup-x64.exe')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build compact web installer
         if: env.LIGHT_REMOTE_BUILD_PROFILE != 'goldabv2-desktop-v4'
@@ -862,6 +884,7 @@ jobs:
           "WINDOWS_COMPACT_INSTALLER=$compact" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Native WinForms Tray popup visual snapshots and bounds (DPI-safe)
+        if: env.LIGHT_REMOTE_BUILD_PROFILE != 'goldabv2-desktop-v4'
         shell: pwsh
         run: |
           $exe = Join-Path $PWD 'dist\windows\stage\GptOperator.Client.exe'
@@ -966,14 +989,16 @@ jobs:
           & $installedNode $installedNpmCli --version
           if ($LASTEXITCODE -ne 0) { throw 'Installed optional Codex npm bootstrap cannot execute' }
           Write-Host 'gold-codex-managed-npm-installed-roundtrip=PASS'
-          $exe = Join-Path $installDir 'GptOperator.Client.exe'
+          $coreName = if ($env:LIGHT_REMOTE_BUILD_PROFILE -eq 'goldabv2-desktop-v4') { 'LightRemote.exe' } else { 'GptOperator.Client.exe' }
+          $exe = Join-Path $installDir $coreName
           if (-not (Test-Path $exe)) { throw "installed client missing: $exe" }
           $rmv2Installed = Join-Path $installDir 'realremote-v2\LightRemote.RM.exe'
           if (-not (Test-Path $rmv2Installed)) { throw "installed RM V2 companion missing: $rmv2Installed" }
           if (Get-Process -Name 'LightRemote.RM' -ErrorAction SilentlyContinue) { throw 'installed RM V2 companion spawned while Core was idle' }
           Write-Host 'windows-rmv2-installed-idle-zero=PASS'
           if ($env:LIGHT_REMOTE_BUILD_PROFILE -eq 'goldabv2-desktop-v4') {
-            $desktop = Join-Path $installDir 'desktop-v4\LightRemote.Desktop.exe'
+            $desktop = Join-Path $installDir 'LightRemote.exe'
+            & client/windows-native/assert-primary-layout.ps1 -InstallRoot $installDir -EvidenceFile (Join-Path $PWD 'dist/windows/installed-primary-executable-inventory.json')
             $agentAbv2 = Join-Path $installDir 'agent\device-agent\desktop-abv2-native-ipc-v4.mjs'
             $wallSource = Join-Path $installDir 'agent\device-agent\local-wall.mjs'
             foreach ($component in @($desktop,$agentAbv2,$wallSource,$rmv2Installed,$installedNode,$exe)) {
@@ -1034,7 +1059,7 @@ jobs:
           if ($updateAction.Arguments -notmatch '--scheduled-update' -or $updateAction.Arguments -notmatch '--install-dir') { throw "updater task arguments invalid: $($updateAction.Arguments)" }
           if ([IO.Path]::GetFullPath($updaterExe).StartsWith([IO.Path]::GetFullPath($installDir), [StringComparison]::OrdinalIgnoreCase)) { throw 'updater executable lives inside replaceable app tree' }
           $agentAction = @($agentTask.Actions)[0]
-          if ([IO.Path]::GetFileName($agentAction.Execute) -ne 'GptOperator.Client.exe') { throw "agent task must use hidden native host, got $($agentAction.Execute)" }
+          if ([IO.Path]::GetFileName($agentAction.Execute) -ne $coreName) { throw "agent task must use the installed primary host, got $($agentAction.Execute)" }
           if ($agentAction.Arguments -notmatch '--agent-host') { throw "agent task missing --agent-host: $($agentAction.Arguments)" }
           if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port 5491 -InformationLevel Quiet)) { throw 'Local Wall 5491 not listening after install' }
           $runtimeNode = Join-Path $installDir 'runtime\node.exe'
@@ -1042,7 +1067,7 @@ jobs:
           if (-not $agentNodes) { throw 'hidden agent node process missing' }
           if ($agentNodes | Where-Object { $_.MainWindowHandle -ne 0 }) { throw 'agent node unexpectedly owns a visible console window' }
           if ($env:LIGHT_REMOTE_BUILD_PROFILE -eq 'goldabv2-desktop-v4') {
-            $desktop = Join-Path $installDir 'desktop-v4\LightRemote.Desktop.exe'
+            $desktop = Join-Path $installDir 'LightRemote.exe'
             $original = Start-Process -FilePath $desktop -PassThru
             Start-Sleep -Seconds 2
             $duplicate = Start-Process -FilePath $desktop -PassThru
@@ -1086,10 +1111,10 @@ jobs:
             Start-Sleep -Milliseconds 250
           } while ((Get-Date) -lt $taskStopDeadline)
           if ($agentTaskState -eq 'Running') { throw 'agent scheduled task did not stop for updater independence probe' }
-          Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-Process -Name 'GptOperator.Client','LightRemote','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
           $agentExitDeadline = (Get-Date).AddSeconds(10)
           do {
-            $runtimeStillRunning = @(Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } })
+            $runtimeStillRunning = @(Get-Process -Name 'GptOperator.Client','LightRemote','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $exe -or $_.Path -eq $runtimeNode } catch { $false } })
             if (-not $runtimeStillRunning) { break }
             Start-Sleep -Milliseconds 250
           } while ((Get-Date) -lt $agentExitDeadline)
@@ -1151,6 +1176,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'installed G3 process canary module syntax verification failed' }
           Write-Host 'windows-installed-g3-executor-probe=PASS'
           Write-Host 'windows-native-installed-selftest=PASS'
+
+      - name: Verify primary GUI survives Agent restart and background relaunch
+        if: env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          & client/windows-native/test-primary-installed.ps1 -InstallRoot $env:WINDOWS_INSTALL_DIR -UpdaterExe $env:WINDOWS_UPDATER -EvidenceDir (Join-Path $PWD 'dist/windows/primary-installed-evidence')
 
       - name: Independent updater staged helper promotion smoke
         shell: pwsh
@@ -1227,9 +1259,9 @@ jobs:
         run: |
           Stop-ScheduledTask -TaskName 'LightRemoteDeviceAgent' -ErrorAction SilentlyContinue
           if ($env:WINDOWS_INSTALL_DIR) {
-            $fullExe = Join-Path $env:WINDOWS_INSTALL_DIR 'GptOperator.Client.exe'
+            $fullExe = $env:WINDOWS_INSTALLED_EXE
             $fullNode = Join-Path $env:WINDOWS_INSTALL_DIR 'runtime\node.exe'
-            Get-Process -Name 'GptOperator.Client','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $fullExe -or $_.Path -eq $fullNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
+            Get-Process -Name 'GptOperator.Client','LightRemote','LightRemote.Desktop','node' -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -eq $fullExe -or $_.Path -eq $fullNode } catch { $false } } | Stop-Process -Force -ErrorAction SilentlyContinue
           }
           Get-Process -Name 'LightRemote.Updater','light-remote-update-helper' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           Unregister-ScheduledTask -TaskName 'GPTOperatorDeviceAgent' -Confirm:$false -ErrorAction SilentlyContinue
@@ -1248,6 +1280,27 @@ jobs:
           } else {
             Write-Host 'windows-native-installer-roundtrip=SKIP install-not-reached'
           }
+      - name: Real bridge upgrade, primary reinstall and cross-layout rollback
+        if: env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
+        timeout-minutes: 18
+        shell: pwsh
+        run: |
+          & client/windows-native/test-primary-migration.ps1 -PrimaryInstaller $env:WINDOWS_INSTALLER -BridgeConfig 'config/windows-core-migration.json' -EvidenceDir (Join-Path $PWD 'dist/windows/primary-migration-evidence') -FailpointInstaller $env:WINDOWS_FAILPOINT_INSTALLER
+
+      - name: Upload primary installed lifecycle and real migration evidence
+        if: always() && env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-one-primary-migration-proof-${{ github.sha }}
+          path: |
+            dist/windows/primary-executable-inventory.json
+            dist/windows/installed-primary-executable-inventory.json
+            dist/windows/primary-installed-evidence/*.json
+            dist/windows/primary-migration-evidence/*.json
+            dist/windows/primary-migration-evidence/*.log
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Install compact web client and verify runtime cache
         if: env.LIGHT_REMOTE_BUILD_PROFILE != 'goldabv2-desktop-v4'
         timeout-minutes: 10
@@ -1392,6 +1445,14 @@ jobs:
           if (-not (Test-Path $installer)) { throw 'Unified installer not found' }
           node deploy/unified/build-manifest.mjs --platform windows-x64 --artifact $installer --out dist/windows/installer/BUILD_MANIFEST.json
           if ($LASTEXITCODE -ne 0) { throw 'Unified build provenance failed' }
+          if ($env:LIGHT_REMOTE_BUILD_PROFILE -eq 'goldabv2-desktop-v4') {
+            $core = Get-Content -LiteralPath 'dist/windows/primary-executable-inventory.json' -Raw | ConvertFrom-Json
+            $migration = Get-Content -LiteralPath 'dist/windows/primary-migration-evidence/migration-summary.json' -Raw | ConvertFrom-Json
+            $lifecycle = Get-Content -LiteralPath 'dist/windows/primary-installed-evidence/installed-lifecycle.json' -Raw | ConvertFrom-Json
+            if ($core.result -ne 'PASS' -or $migration.result -ne 'PASS' -or $lifecycle.result -ne 'PASS') { throw 'Primary release lacks actual native lifecycle/migration proof' }
+            @{ schemaVersion = 1; sourceCommit = $env:GITHUB_SHA; ciRunId = $env:GITHUB_RUN_ID; version = (Get-Content VERSION -Raw).Trim(); layoutId = $core.layoutId; primaryExecutable = 'LightRemote.exe'; executables = $core.executables; stagedBytes = $core.observedInstallBytes; privateFrameworkBytes = $core.observedPrivateFrameworkBytes; frameworkVersions = $core.frameworkVersions; migration = $migration; installedLifecycle = $lifecycle; physicalOwnerAcceptance = $false; publicFeedPromoted = $false } |
+              ConvertTo-Json -Depth 20 | Set-Content -LiteralPath 'dist/windows/installer/PRIMARY_EXE_MANIFEST.json' -Encoding utf8NoBOM
+          }
       - name: Upload legacy Windows installers (non-V4 branches only)
         if: env.LIGHT_REMOTE_BUILD_PROFILE != 'goldabv2-desktop-v4'
         uses: actions/upload-artifact@v4
@@ -1414,5 +1475,6 @@ jobs:
             dist/windows/installer/SHA256SUMS.txt
             dist/windows/installer/BUILD_MANIFEST.json
             dist/windows/installer/F16_OWNER_UAT_INTAKE.json
+            dist/windows/installer/PRIMARY_EXE_MANIFEST.json
           if-no-files-found: error
           retention-days: 14

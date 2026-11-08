@@ -881,7 +881,11 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     internal static void OpenDesktopApp()
     {
+#if LIGHT_REMOTE_EMBEDDED_CORE
+        var exe = AppPaths.CoreExecutable;
+#else
         var exe = Path.Combine(AppPaths.Root, "desktop-v4", "LightRemote.Desktop.exe");
+#endif
         if (!File.Exists(exe))
         {
             ClientEvent("desktop_v4_missing");

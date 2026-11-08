@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T17:45:26.162Z",
-  "version": "0.10.1-dev.1",
+  "updatedAt": "2026-11-08T18:16:03.139Z",
+  "version": "0.10.1-dev.2",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
-  "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
+  "status": "PRIMARY_WINDOWS_EXE_CANDIDATE_FULL_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -291,13 +291,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-oneexe-p2-other-role-fixture-stdio",
-    "status": "BRIDGE_FIXTURE_CORRECTED_CI_PENDING",
-    "summary": "Give the unrelated managed-worker fixture real inherited stdio pipes and require its child readiness before testing Agent-only stop isolation.",
-    "verification": "CI42505457103 core/backend/browser/macOS/Linux PASS; Windows successfully compiled and passed owned Agent stop after EnsureLocatable, then the other-role assertion failed. The comparison worker had no redirected stdin/stdout/stderr and could fail its existing fail-closed handle contract before the stop call. The fixture now redirects all three, asserts readiness and verifies both wrapper and child survive. The isolation assertion remains required; native final bridge rerun pending.",
-    "nextAction": "Require final bridge full CI PASS, retain exact verified bridge installer, then run primary candidate packaging and real migration acceptance in hosted Windows.",
-    "sourceDigest": "5b30757323eb4cd79c576343a44fd78714625ad3b5a8b808e6b8018ec8884239",
-    "sourceFileCount": 1621
+    "taskId": "20261109-oneexe-p3-primary-package-and-migration",
+    "status": "PRIMARY_LAYOUT_IMPLEMENTED_FULL_CI_PENDING",
+    "summary": "Switch the V4 complete installer to one root LightRemote.exe plus a private in-process WindowsHost component. Keep Node, RM V2 and independent recovery helpers separate. Add actual GUI/restart/fresh/reinstall/bridge upgrade/health-failure rollback/watchdog tests.",
+    "verification": "Compatibility bridge e997e14 passed CI42506546750 (9/9), including native component/private runtime/WMI/stdio/Job Objects/supervisor/owned-stop isolation, legacy real install/update/rollback/uninstall and core/backend/browser/macOS/Linux. Downloaded artifact13627977718 ZIP and inner installer SHA-256 match exact source BUILD_MANIFEST and sidecar. Primary YAML, all41 inline PowerShell scripts, new standalone scripts and relevant source/version checks PASS parsing/source scope. Full primary native compile/install/migration CI_PENDING; no physical Owner/account/vault/B acceptance. Bridge prerelease retention upload is independently verified before final acceptance; feeds remain HOLD.",
+    "nextAction": "Require work full CI PASS including actual primary GUI private CLR and hidden-window restart, real bridge upgrade/reinstall/cross-layout health-failure rollback/watchdog tests; verify installer/source/hash manifest, then promote the verified source under baseline-required.",
+    "sourceDigest": "71da410b67c2d599ab7a09c4c75f5b7d5a36a7be9860d043488aa0b8653ac2a6",
+    "sourceFileCount": 1626
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -354,7 +354,7 @@
     "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
   },
   "singlePrimaryWindowsExe": {
-    "status": "IN_PROGRESS_FINAL_BRIDGE_FIXTURE_CI_PENDING",
+    "status": "IN_PROGRESS_PRIMARY_LAYOUT_FULL_CI_PENDING",
     "ownerImplementationAuthorized": true,
     "target": "LightRemote.exe",
     "merge": [
@@ -374,23 +374,20 @@
     "steps": {
       "P0Checkpoint": "DONE",
       "P0ContractInventory": "DONE",
-      "P1UpdaterCompatibility": "FINAL_BRIDGE_FIXTURE_CI_PENDING",
-      "P2NativeHost": "POC_CI_PASS",
-      "P3DesktopActions": "IN_PROCESS_ADAPTER_CI_PASS",
+      "P1UpdaterCompatibility": "CI_PASS_BRIDGE_E997E14",
+      "P2NativeHost": "CI_PASS_BRIDGE_HOSTED_PROOF",
+      "P3DesktopActions": "CI_PASS_IN_PROCESS_ADAPTER",
       "P4PackageSwitch": "NOT_STARTED",
       "P5Acceptance": "NOT_RUN",
-      "P4Packaging": "LAYOUT_GUARDS_IMPLEMENTED_NOT_SWITCHED"
+      "P4Packaging": "IMPLEMENTED_FULL_NATIVE_CI_PENDING",
+      "P5Migration": "IMPLEMENTED_REAL_INSTALLER_CI_PENDING",
+      "P6Promotion": "NOT_STARTED"
     },
-    "newNativeBuild": {
-      "sourceCommit": "9248b2925ad87d91ae86fb21d693240fbc8bae5d",
-      "ciRunId": 42501889183,
-      "result": "PASS_9_OF_9",
-      "proof": "Native one-core component, private runtime, WMI, stdio, managed Job Object and supervisor fixtures PASS; not Owner physical acceptance."
-    },
+    "newNativeBuild": "PRIMARY_FULL_CI_PENDING",
     "physicalAcceptance": "NOT_RUN",
     "runtimeChanged": false,
     "architectureUnderTest": "Tauri LightRemote.exe hosts a framework-dependent managed WindowsHost DLL in-process using private .NET frameworks; no second managed apphost/EXE.",
-    "pocScope": "Isolated one-executable stage proof only; current shipped installer layout remains two EXEs until updater/installer/task migration passes.",
+    "pocScope": "Primary package switch is now implemented for the official V4 complete installer, contingent on full native CI. Stable main and existing runtime are unchanged.",
     "migrationSequence": {
       "bridgeVersion": "0.10.1-dev.1",
       "primaryVersion": "0.10.1-dev.2",
@@ -399,6 +396,27 @@
     "bridgeCompileCorrection": "Fully qualify System.Management.EnumerationOptions and typed ManagementScope/ObjectQuery. Helper layout native fixture already PASS, hosted role proof rerun pending.",
     "wmiOwnerStopCorrection": "EnsureLocatable=true preserves __PATH/__RELPATH for GetOwnerSid after WQL projection. Read-only self-process SID/file/creation proof PASS; actual host stop remains native CI_PENDING.",
     "hostSelectionPolicy": "Exact LightRemote.exe filename activates hosted library. Legacy Desktop never chooses a component by DLL presence, so rollback remains bound to the restored legacy implementation.",
-    "ownedStopProof": "WMI owner validation and actual Agent-host termination passed in CI42505457103; unrelated-worker readiness was not established, so overall isolation is not yet PASS."
-  }
+    "ownedStopProof": "WMI owner validation and actual Agent-host termination passed in CI42505457103; unrelated-worker readiness was not established, so overall isolation is not yet PASS.",
+    "targetExecutable": "LightRemote.exe",
+    "architecture": "Tauri/Rust GUI and early CLI roles host a framework-dependent managed WindowsHost DLL in-process through fixed-path hostfxr, using private .NET8 frameworks. No second managed apphost or extracted core EXE.",
+    "compatibilityBridge": {
+      "schemaVersion": 1,
+      "version": "0.10.1-dev.1",
+      "sourceCommit": "e997e149d7494ef86eeb95da759bb324bf4b1b13",
+      "ciRunId": 42506546750,
+      "artifactId": 13627977718,
+      "releaseTag": "compatibility/windows-oneexe-0.10.1-dev.1",
+      "releaseUrl": "https://github.com/n8n2erpnext/light-remote-mcp/releases/tag/compatibility/windows-oneexe-0.10.1-dev.1",
+      "installerUrl": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/compatibility/windows-oneexe-0.10.1-dev.1/Light-Remote-MCP-Setup-x64.exe",
+      "installerSha256": "d909f6253b61b39d15fae08f586199c7f6c83ec160cccdd3c8eb841dfd6ca69c",
+      "installerBytes": 181022596,
+      "manifestUrl": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/compatibility/windows-oneexe-0.10.1-dev.1/BUILD_MANIFEST.json",
+      "manifestSha256": "ea1c2f8d49cf408e1bc7fbfc1d4877d3b15aba8dacfb565ef3daf9f13d945bd9",
+      "scope": "CI migration/recovery input; public product update feed remains HOLD."
+    },
+    "candidateVersion": "0.10.1-dev.2",
+    "physicalOwnerAcceptance": "NOT_RUN",
+    "publicFeedPromotion": "HOLD_NOT_CHANGED"
+  },
+  "activeDevelopmentWorkspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/single-primary-exe"
 }

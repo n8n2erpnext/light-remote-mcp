@@ -15,7 +15,7 @@ if(!/^[a-f0-9]{40}$/.test(commit)||drift){
  throw Error('build_clean_exact_commit_required');
 }
 const project=JSON.parse(fs.readFileSync(path.join(root,'project.manifest.json'),'utf8'));
-const lockPaths=['package-lock.json','plugin-server/package-lock.json','client/desktop-v4/package-lock.json','client/desktop-v4/src-tauri/Cargo.lock','platform-v2/sql/migrations.lock.json','config/endpoints.json'];
+const lockPaths=['package-lock.json','plugin-server/package-lock.json','client/desktop-v4/package-lock.json','client/desktop-v4/src-tauri/Cargo.lock','platform-v2/sql/migrations.lock.json','config/endpoints.json',...(fs.existsSync(path.join(root,'config/windows-core-migration.json'))?['config/windows-core-migration.json']:[])];
 const sha=async file=>{const h=crypto.createHash('sha256');for await(const chunk of fs.createReadStream(file))h.update(chunk);return h.digest('hex');};
 const dependencyHashes={};for(const p of lockPaths)dependencyHashes[p]=await sha(path.join(root,p));
 const artifact=options['--artifact']?path.resolve(options['--artifact']):null;
@@ -23,7 +23,7 @@ if(artifact&&(!fs.statSync(artifact).isFile()||fs.lstatSync(artifact).isSymbolic
 const manifest={schemaVersion:1,project:project.project,projectVersion:project.version,repository:project.repository,
  sourceCommit:commit,sourceTree:tree,buildTimestamp:new Date().toISOString(),ciRunId:process.env.GITHUB_RUN_ID||null,
  ciRepository:process.env.GITHUB_REPOSITORY||null,platform:options['--platform'],apiContractVersion:project.apiContractVersion,
- featureProfile:project.defaultBuildProfile,componentVersions:{agent:project.version,plugin:project.version,operator:project.version,wall:project.version,desktop:project.version},
+ featureProfile:project.defaultBuildProfile,windowsCore:options['--platform']==='windows-x64'?(project.windowsCore||null):null,componentVersions:{agent:project.version,plugin:project.version,operator:project.version,wall:project.version,desktop:project.version},
  schema:{coreThrough:project.database.coreThrough,extensions:project.database.extensions.map(x=>({id:x.id,sha256:x.sha256}))},dependencyHashes,
  artifact:artifact?{name:path.basename(artifact),bytes:fs.statSync(artifact).size,sha256:await sha(artifact)}:null,
  assurances:{cleanGitSource:true,sourceSelection:'MIGRATION_PROVENANCE.json',codeSigningVerified:false,physicalAcceptance:false,productionRelease:false}};

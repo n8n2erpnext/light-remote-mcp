@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "version": "0.10.1-dev.1",
+  "sourceCommit": "e997e149d7494ef86eeb95da759bb324bf4b1b13",
+  "ciRunId": 42506546750,
+  "artifactId": 13627977718,
+  "releaseTag": "compatibility/windows-oneexe-0.10.1-dev.1",
+  "releaseUrl": "https://github.com/n8n2erpnext/light-remote-mcp/releases/tag/compatibility/windows-oneexe-0.10.1-dev.1",
+  "installerUrl": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/compatibility/windows-oneexe-0.10.1-dev.1/Light-Remote-MCP-Setup-x64.exe",
+  "installerSha256": "d909f6253b61b39d15fae08f586199c7f6c83ec160cccdd3c8eb841dfd6ca69c",
+  "installerBytes": 181022596,
+  "manifestUrl": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/compatibility/windows-oneexe-0.10.1-dev.1/BUILD_MANIFEST.json",
+  "manifestSha256": "ea1c2f8d49cf408e1bc7fbfc1d4877d3b15aba8dacfb565ef3daf9f13d945bd9",
+  "scope": "CI migration/recovery input; public product update feed remains HOLD."
+}
