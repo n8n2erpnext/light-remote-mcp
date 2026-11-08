@@ -52,3 +52,26 @@ This directory rule is independent of the **no-new-branch-without-Owner-approval
 See [Project Handoff](PROJECT_HANDOFF.md), [Master Checkpoint](MASTER_CHECKPOINT.json) and [Worklog](docs/project-book/LIGHT_REMOTE_WORKLOG.md).
 
 See [Agent rules](AGENTS.md), [Project Book rules](docs/project-book/LIBRARY_RULES.md) and [Master Checkpoint](MASTER_CHECKPOINT.json).
+
+
+## Atomic commit gate — code, checkpoint, handoff and docs together
+
+**Every commit**, including documentation-only milestones, must contain changes to **all** of the following in the **same commit**:
+
+- `MASTER_CHECKPOINT.json` — current state and a new `commitSyncGate.taskId`, status, summary, verification, next action, and Git-staged source digest.
+- `PROJECT_HANDOFF.md` — append matching `## Task Receipt: <taskId>` with `Status:`, `Source:`, `Verification:`, `Next:` lines.
+- `docs/project-book/LIGHT_REMOTE_WORKLOG.md` — append `Receipt: <taskId>` and meaningful milestone.
+- `docs/project-book/PROJECT_TRUTH_STATUS.json` — regenerated from the checkpoint, staged alongside it.
+- **Relevant docs if source boundaries change**: Code Map for operator/plugin/agent/native/security/SQL changes; API Integration Matrix for API contract/endpoints; build/deployment documentation for installer/build changes.
+
+Stage code, handoff and Worklog with `git add`. Set task receipt in `MASTER_CHECKPOINT.json`, then run:
+
+    npm run stamp:checkpoint
+    npm run docs:refresh
+    git add MASTER_CHECKPOINT.json PROJECT_HANDOFF.md docs/project-book/ PROJECT_TRUTH.md
+    npm run check:truth
+    npm run check:docs
+    npm run check:commit-sync
+    git commit -m "Task summary"
+
+Local `.githooks/pre-commit` rejects missing/stale staged artifacts; **GitHub CI checks every commit**, not only final tree. Error states **YÊU CẦU BỔ SUNG CHECKPOINT + HANDOFF + DOCS (NẾU CÓ)**. No commit-code-first/commit-docs-later sequence. A local hook can technically be skipped, but CI remains authoritative on protected `main`. No new branches without Owner permission.

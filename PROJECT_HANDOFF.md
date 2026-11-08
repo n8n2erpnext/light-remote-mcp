@@ -34,3 +34,11 @@ This is the **only rolling project handoff**. Together with the single root `MAS
 - GIT: work carried out on existing `main`; pending governance commit will be local-only until GitHub accepts it. Earlier local commits `0c4cb98` and `fd25174` remain ahead of protected `origin/main`, not published.
 - BLOCKER: protected GitHub main requires `baseline-required` before direct push. No new branch is permitted without Owner approval.
 - NEXT: continue development from the canonical source and preserve/resolve the protected-main publication block without bypass. For every future task/subtask, update this file and the single checkpoint with exact results.
+
+
+## Task Receipt: 20261108-atomic-commit-sync-gate-v1
+- Status: DONE_LOCAL — atomic code/docs/Checkpoint/Handoff gate implemented and staged, pending publication on protected GitHub main.
+- Source: Existing main `f0e6581314178f8b0bcf85e43f44e35eeb7f946c` before this commit; post-change exact staged Git-blob source digest in `MASTER_CHECKPOINT.json`. Scope: `deploy/unified/commit-sync-gate.mjs`, `.githooks/pre-commit`, `.github/workflows/ci.yml`, `package.json` and canonical project governance documents.
+- Verification: local Node syntax, 5/5 isolated Git-index negative cases blocked correctly (checkpoint, handoff, Worklog, stale source digest, missing API Code Map), staged positive gate PASS, Project Truth/Docs PASS; CI per-commit range verification to follow commit; GitHub CI not yet run for this unpushed commit. No runtime, Agent, Wall, DB, production or physical Owner acceptance claims.
+- Next: keep protected-main publication limitation explicit. Do not create a workaround branch without Owner authorization. Every subsequent commit must contain one fresh matching task receipt, checkpoint, Worklog and required docs; CI must validate every new commit.
+- Rollback: `checkpoint/20261108-before-atomic-commit-gate` at `f0e6581`; revert with preserved history if the new policy is rejected.

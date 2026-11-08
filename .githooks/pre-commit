@@ -1,4 +1,6 @@
 #!/bin/sh
 set -eu
 node deploy/unified/check-truth.mjs --staged
+node deploy/unified/commit-sync-gate.mjs --staged
+node deploy/unified/project-book.mjs --check
 git diff --cached --check

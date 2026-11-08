@@ -57,3 +57,12 @@ Each new durable document records status, scope, concrete source paths, what is 
 Treat new-repository CI at c03b50f as verified scoped evidence only. 21 internal candidate checks and Windows CI do not establish Owner physical acceptance, Wall SSO live redemption, signed B execution, or production readiness. For a new release, validate exact commit, artifact hash and deployed runtime independently.
 
 Do not edit the old archived branch/worktrees or advance the existing production/old Owner device as part of documentation work.
+
+
+## Atomic same-commit gate — mandatory
+
+The per-task/step cadence is enforced at the **Git commit** boundary, not just at task completion. Every commit (including docs-only) stages checkpoint, rolling handoff, Worklog and generated Project Truth JSON **together**. Unique `commitSyncGate.taskId` must appear in *newly added* handoff and Worklog lines. Checkpoint records actual status, summary, verification and next action plus a Git-blob source digest computed from the staged index.
+
+**Code Map** is required in the same commit for changed Agent/Operator/Plugin/native/SQL executable boundaries; **API Integration Matrix** for API contract/endpoints; **Build and Deployment** for installer/build changes. Ordinary internal fixes without changed contracts do not need a separate per-feature document. Generated docs-status JSON remains synchronized with checkpoint.
+
+No code-first/docs-later commits. Verify using `npm run check:commit-sync`, `npm run check:docs`, `npm run check:truth`. Local `.githooks/pre-commit` and CI `truth` verify staging / each new commit. On failure, report **YÊU CẦU BỔ SUNG CHECKPOINT + HANDOFF + DOCS (NẾU CÓ)** and missing/unsynced paths. Commits before gate activation are historical and not rewritten. Do not create new branches without Owner permission.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T13:23:09.929085+00:00",
+  "updatedAt": "2026-11-08T13:44:59.071Z",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -272,10 +272,23 @@
     "longTaskCadence": "checkpoint and rolling handoff at each meaningful completed step before the next step",
     "workingBranch": "main",
     "repositoryPublicationStatus": "LOCAL_ONLY / GITHUB_NOT_SYNCED — protected main requires baseline-required and no new branch is Owner-authorized",
-    "taskStatus": "DOCUMENTATION_COMPLETED_PENDING_COMMIT_AND_GITHUB_SYNC",
+    "taskStatus": "ATOMIC_COMMIT_SYNC_LOCAL_VERIFIED_PENDING_PUBLICATION",
     "stableSourceBaseline": "c03b50f4328e07138f350532c31dfc8b260311ce",
     "preChangeCommit": "fd25174ac3e43a4e3ea6b3feed4ae0bf1b42587",
     "runtimeChanged": false,
-    "nextAction": "Commit documentation-only per-task/step continuity update on main; report protected-main sync blocker, do not create a new branch."
+    "nextAction": "Do not create new branch; report main protection blocker if needed.",
+    "atomicCommitRule": "Every Git commit must stage MASTER_CHECKPOINT, PROJECT_HANDOFF, Worklog, generated docs status and applicable Code Map/API/build documentation; unique task receipt + staged-source blob digest.",
+    "localGuard": ".githooks/pre-commit invokes deploy/unified/commit-sync-gate.mjs --staged",
+    "ciGuard": ".github/workflows/ci.yml truth job checks each new commit via --range"
+  },
+  "commitSyncGate": {
+    "schemaVersion": "light-remote.commit-sync.v1",
+    "taskId": "20261108-atomic-commit-sync-gate-v1",
+    "status": "DONE_LOCAL_PENDING_GITHUB",
+    "summary": "Atomic same-commit enforcement of source, checkpoint, rolling handoff, Worklog and relevant docs through pre-commit and CI per-commit range.",
+    "verification": "Node syntax PASS; five negative isolated-index cases blocked as required; positive staged gate and project truth/docs checks PASS; CI range test after commit.",
+    "nextAction": "Commit gate implementation on existing main. GitHub protected main requires baseline-required; do not create branch or bypass without Owner permission.",
+    "sourceDigest": "eaadc43644d5fc0ccb1fb98e473e241f4891f18aaa7d9e662d18ce2819095752",
+    "sourceFileCount": 1614
   }
 }

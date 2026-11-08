@@ -23,6 +23,8 @@
     "check:truth": "node deploy/unified/check-truth.mjs",
     "build:manifest": "node deploy/unified/build-manifest.mjs",
     "check:docs": "node deploy/unified/project-book.mjs --check",
-    "docs:refresh": "node deploy/unified/project-book.mjs --write"
+    "docs:refresh": "node deploy/unified/project-book.mjs --write",
+    "check:commit-sync": "node deploy/unified/commit-sync-gate.mjs --staged",
+    "stamp:checkpoint": "node deploy/unified/commit-sync-gate.mjs --stamp"
   }
 }

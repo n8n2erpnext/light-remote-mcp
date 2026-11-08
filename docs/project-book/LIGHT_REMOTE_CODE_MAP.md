@@ -25,6 +25,7 @@ Endpoint catalog: [config/endpoints.json](../../config/endpoints.json)
 | Remote execution/shared services | [native terminal](../../lib/native-terminal.mjs), [SCP file](../../lib/light-scp-file.mjs), [process supervisor](../../device-agent/process-supervisor.mjs) | PTY/job/file execution under active Agent authorization |
 | Persistence | [core SQL lock](../../platform-v2/sql/migrations.lock.json), [Owner extension SQL](../../platform-v2/sql/045_gold_single_owner_authority.sql), [project.manifest.json](../../project.manifest.json) | Explicit schema authority; 044 Pro Share remains deferred |
 | Deployment & tests | [DEV runner](../../deploy/unified/dev.py), [test runner](../../deploy/unified/test.mjs), [test plan](../../deploy/unified/test-plan.json), [build manifest](../../deploy/unified/build-manifest.mjs) | Isolated candidate, pinned source/artifact proofs |
+| Atomic commit gate | [commit-sync-gate.mjs](../../deploy/unified/commit-sync-gate.mjs), [pre-commit](../../.githooks/pre-commit), [CI truth](../../.github/workflows/ci.yml) | Reject code/docs commits lacking staged checkpoint, new handoff+Worklog receipt, exact Git source digest and affected docs; CI checks each new commit |
 | Project truth | [truth check](../../deploy/unified/check-truth.mjs), [master checkpoint](../../MASTER_CHECKPOINT.json), [project truth](../../PROJECT_TRUTH.md) | One unified truth, no legacy .light-remote checkpoint |
 
 ## Owner Desktop V4 path — source, not a live Lab guarantee

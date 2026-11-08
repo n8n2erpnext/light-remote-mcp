@@ -39,11 +39,26 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: npm run check:truth
       - run: npm run check:docs
+      - name: Enforce checkpoint + handoff + docs in each new commit
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="${PR_BASE:-${BEFORE:-}}"
+          if [[ -z "$BASE" || "$BASE" =~ ^0+$ ]]; then
+            BASE="$(git rev-parse HEAD^)"
+          fi
+          node deploy/unified/commit-sync-gate.mjs --range "$BASE" HEAD
   dependency-lock:
     name: Committed native dependency resolution
     needs: [changes, truth]
