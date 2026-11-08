@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T13:02:39.686763+00:00",
+  "updatedAt": "2026-11-08T13:18:39.417627+00:00",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
   "status": "CLEAN_REPOSITORY_CI_AND_SCOPED_ARM_INTEGRATION_PASS",
@@ -236,5 +236,14 @@
     "branchPolicy": "main only; no new branches or branch-backed worktrees without explicit prior Owner permission",
     "protectedMainPolicy": "baseline-required; stop and report rejected push; no auto-branch or bypass",
     "checkpointPolicy": "full checkpoint before substantive work; controlled rollback to verified checkpoint"
+  },
+  "workspaceGovernance": {
+    "approvedParent": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108",
+    "scope": "all new Light Remote development directories on VPS-ARM, including clones, builds, test, staging, cache, artifacts and scratch folders",
+    "forbidden": "new Light Remote directories directly under /home/ubuntu/n8n2erpnext or anywhere outside approvedParent",
+    "pathPolicy": "resolved canonical destination must stay within approvedParent; check symlinks and .. before creation",
+    "historical": "existing folders outside approvedParent are preserved for historical comparison and are not new-development destinations",
+    "exception": "stop and obtain explicit prior Owner permission if a directory would fall outside approvedParent",
+    "branchPolicy": "directory containment does not grant permission to create any branch"
   }
 }

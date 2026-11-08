@@ -28,6 +28,16 @@ Update MASTER_CHECKPOINT.json and PROJECT_TRUTH.md for meaningful source changes
 
 These commands check documentation structure only; they do not start services, use credentials, or pronounce production readiness. The existing source↔checkpoint check is retained; no extra HOLD workflow or per-file release gate is introduced.
 
+## VPS-ARM development-directory boundary — Owner rule
+
+All **new** Light Remote directories on VPS-ARM must be created beneath the single approved parent:
+
+`/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/`
+
+New development checkouts, builds, tests, staging, temporary data, artifacts, caches and recovery directories are included. Direct new children of `/home/ubuntu/n8n2erpnext/` (siblings of `light-remote-unified-20261108`) are strictly prohibited. This is not limited to the nested current checkout; creating new folders at the unified workspace root **is allowed**.
+
+Resolve the intended path and verify it cannot escape through symlinks or `..`. Existing historical folders outside the approved parent must remain untouched and cannot be reused for new development. Stop for an explicit Owner decision if the requested workspace falls outside. This rule also applies to Codex and other Agent tools; it does not authorize new Git branches.
+
 ## Library discipline
 
 Search canonical docs before writing; edit an existing owner file instead of creating overlapping truth. Use [Library Map](DOCUMENT_LIBRARY_MAP.md). Preserve historical paths unless consumers have been audited. The only new canonical governance shelf is docs/project-book; code and deployment evidence stay in their current locations.

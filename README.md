@@ -23,4 +23,20 @@ GitHub read/write access for this project is already configured through **SSH on
 - `main` is protected by GitHub Actions `baseline-required`. **If direct push is rejected, preserve the local commit and report the block. Do not create a workaround branch, relax protection or force-push without prior Owner permission.**
 - Historical VPS-ARM worktrees and `light-remote-mcp-archive-20261108` remain comparison/recovery references, never alternative current build sources.
 
+### VPS-ARM workspace boundary — mandatory
+
+**All new directories created for Light Remote development on VPS-ARM must be inside:**
+
+`/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/`
+
+This is the only approved **parent workspace**. New clones, worktrees (only if the Owner separately approves a branch), source checkouts, experiments, build directories, CI staging, caches, test fixtures, temporary project directories, recovery snapshots and development documentation directories must be created at or **under that parent**, never next to it.
+
+- **Allowed:** `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/my-new-project-dir/` or any deeper child path.
+- **Existing official checkout:** `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp/`.
+- **Forbidden:** `/home/ubuntu/n8n2erpnext/new-light-remote-folder/`, `/home/ubuntu/n8n2erpnext/light-remote-mcp-new/`, or any new Light Remote project directory outside the approved parent.
+- Before creating a directory, verify its intended canonical/resolved path lies under the approved parent; do not escape through `..` or symlinks. Do not use the existing repository archive, old sibling worktrees, or runtime trees as scratch space.
+- Pre-existing folders outside this parent are **historical references**, not permission to create more or change/delete them. If a necessary project directory cannot fit inside this parent, stop and ask the Owner before creating it elsewhere. No implicit exceptions for an Agent or Codex.
+
+This directory rule is independent of the **no-new-branch-without-Owner-approval** rule above.
+
 See [Agent rules](AGENTS.md), [Project Book rules](docs/project-book/LIBRARY_RULES.md) and [Master Checkpoint](MASTER_CHECKPOINT.json).

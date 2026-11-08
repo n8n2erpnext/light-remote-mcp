@@ -24,3 +24,9 @@ Historical Gold/Windows chronologies remain in the old read-only archive; do not
 - README/AGENTS record the verified GitHub SSH remote and identity on VPS-ARM; connector API 403 is not loss of Git-over-SSH access.
 - New branches (including CI/PR workaround branches) are prohibited without prior Owner approval; checkpoint-first, same-main development and controlled rollback are mandatory.
 - Documentation governance only; no Agent, Wall, runtime, schema, grants or production deployment changed.
+
+## 2026-11-08 — Owner scoped VPS-ARM workspace location
+
+- Recorded the Owner's strict workspace boundary: all newly created Light Remote development folders must be inside `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/`; creating new sibling Light Remote directories directly under `/home/ubuntu/n8n2erpnext/` is forbidden.
+- Applies to source, clones, builds, tests, staging, caches and artifacts, including Agent and Codex work. Canonical path/symlink checks required before creation. Preserve old outside-root directories as historical references; do not re-use them for active development.
+- This was documentation/governance only, without runtime or production changes.
