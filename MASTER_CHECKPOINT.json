@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-08T11:21:33.507456+00:00",
+  "updatedAt": "2026-11-08T11:25:41.928379+00:00",
   "version": "0.10.0-dev.1",
   "phase": "G_CLEAN_GITHUB_PUBLICATION",
-  "status": "CLEAN_REPOSITORY_CREATED_INITIAL_PUBLICATION_AND_CI_PENDING",
+  "status": "FRESH_REPOSITORY_CI_BRANCH_CONTRACT_CORRECTED_VALIDATION_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "GitHub n8n2erpnext/light-remote-mcp after first successful push; ARM preserved historical and audited snapshots remain comparison/recovery references",
@@ -60,7 +60,12 @@
       "physicalOwnerAcceptance": "NOT_RUN",
       "nativeMacLinux": "locked source build/tests PASS; full installers NOT_BUILT"
     },
-    "currentRepositoryCi": "PENDING: first push will run the complete baseline on the new repository ID"
+    "currentRepositoryCi": {
+      "firstRunId": 42475422042,
+      "sourceCommit": "aa378ba64618b979ca54b34c066f53dab0067980",
+      "failure": "Packaging source test expected old temporary reconstruction-validation branch prefix; new controller uses codex/**.",
+      "correction": "Update only the controller branch-policy assertion; keep all runtime and packaging security assertions."
+    }
   },
   "remaining": [
     "Owner acceptance/native end-to-end with the new backend; controlled candidate routing required before Windows UAT",

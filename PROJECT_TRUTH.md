@@ -11,3 +11,5 @@ The fresh initial GitHub commit must pass this repository's CI and artifact prov
 Known incomplete features and physical acceptance limits remain explicit in KNOWN_ISSUES.md and FEATURE_STATUS_MATRIX.md. Repository migration does not complete unfinished product work or merge the two primary Windows EXEs. No production switch or overwrite of old ARM directories is part of this conversion.
 
 MASTER_CHECKPOINT.json is the sole active checkpoint. Documents under docs/history are historical evidence. Source selection and archive recovery evidence are in MIGRATION_PROVENANCE.json and the private ARM recovery/conversion directories. Current state: clean repository created; initial source publication and fresh CI pending.
+
+Fresh-repository CI correction: the controller now triggers main and codex/**. The packaging contract still expected the temporary reconstruction-validation branch prefix and failed before native Desktop compilation; its branch expectation now matches the approved new repository policy. Product packaging/security checks and product source remain unchanged.
