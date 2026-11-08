@@ -67,3 +67,11 @@ Historical Gold/Windows chronologies remain in the old read-only archive; do not
 - Verified exact work source commit `4ad70f9541d86c074e6f4c8b37c05196beda6ed2` with CI [42487968019](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42487968019) `baseline-required=PASS` (truth, Core integration, Desktop Web, Windows full installer smoke, native macOS/Linux).
 - Protected main accepted a non-forced fast-forward to the same work commit. Four earlier local-only commits were thereby synchronized to official GitHub. No production, installed Owner app, Agent/Wall or database deployment changed.
 - This closing documentation receipt updates canonical checkpoint/handoff in one commit and has its own docs-scoped CI before final main synchronization.
+
+
+## 2026-11-08 — Old VPS-ARM source and backups cleaned after archiving
+
+- Receipt: 20261108-legacy-fs-cleanup-v1
+- GitHub old repository verified archived. From 73 old registered worktrees (12 dirty), preserved all local refs in Git bundle, six tracked diffs, 47 unique non-build untracked files and 503 historical handoff/evidence/config files in checked private snapshots under Unified, not in new Git.
+- Removed 27 historical source/backup/artifact locations, 503 individual handoff files, 24 dangling symlinks and two Gold UAT caches. Net `7.235 GiB` reclaimed (`5.43 to 12.66 GiB` free), no deletion errors.
+- Active Device Agent and release-sync timer were preserved. Old systemd service unit could not be edited on a read-only filesystem; two compatibility symlinks were retargeted to Unified source and staging. Existing failed release-sync service status not corrected. Other projects and live `/opt`/config/state remained untouched.

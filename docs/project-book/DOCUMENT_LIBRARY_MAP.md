@@ -18,7 +18,7 @@ Edition: 2026-11-08
 | docs/real-remote-v2/ | historical/technical | RM V2 background; verify current client native implementation |
 | docs/experiments/ | nonrelease | Experiments and hypotheses |
 | docs/history/ | explicitly archived | Pre-reconstruction AGENTS and policy references; never active instructions |
-| Original ARM worktrees and historical GitHub archive | external archive | Source and recovery comparison; no direct future builds |
+| Archived GitHub legacy repo and private legacy-preservation-20261108 folder under Unified | historical/recovery only | All old ARM worktrees were removed after bundling all local refs and uncommitted source; preservation files outside the new Git tree are not new build inputs |
 
 The document catalog indexes documentation outside docs/project-book and preserves exact source paths/sha256. It does not promote the content of an older document to current truth.
 

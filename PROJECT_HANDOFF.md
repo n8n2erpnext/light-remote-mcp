@@ -66,3 +66,11 @@ This is the **only rolling project handoff**. Together with the single root `MAS
 - Verification: Github CI `baseline-required` PASS, including truth/atomic checkpoint gate, Core PostgreSQL/Redis, Desktop Web, Windows installer/install/update/rollback/uninstall, macOS and Linux native source checks. This is CI evidence only; no new physical Owner or production acceptance claimed.
 - Next: keep `work` checked out for future tasks. Publish this docs-only final checkpoint/handoff receipt to work, verify its scoped CI, and fast-forward the docs-only commit to protected `main`; then continue features on work with full checkpoint before each task. No new branches.
 - Rollback: tagged pre-change baseline `checkpoint/20261108-before-atomic-commit-gate`; verified stable `4ad70f9541d8`. Revert later work commits instead of force-pushing; no old runtime/DB/Agent/Wall changes.
+
+
+## Task Receipt: 20261108-legacy-fs-cleanup-v1
+- Status: DONE_LOCAL_VERIFIED_CI_PENDING — owner-authorized historical Light Remote files outside Unified removed after preserving local-only Git history and uncommitted deltas.
+- Source: canonical `work` remains at pre-task `041bbb2b9b4816aaa539d87ae891ad62dc37e3c3`. Deleted 5 source paths (73 registered worktrees), 16 backup paths, 6 artifact paths, 503 old handoff/evidence files, 24 dangling symlinks and 2 Gold UAT generated caches. New source code not modified.
+- Verification: archived old GitHub repo verified; private Git bundle verify PASS, three SHA256 checks PASS, 47 untracked source files and six tracked changesets preserved. Recovered net `7.235 GiB` (`5.43 → 12.66 GiB` free). Device Agent and release-sync timer active, compatible symlinks point into Unified. Existing release-sync service failure remains and is not represented as PASS.
+- Next: publish this cleanup checkpoint/handoff/Worklog/docs as one atomic commit on `work`, run baseline-required CI, promote verified commit to protected `main`. Retain private archives off GitHub and continue all development under Unified only.
+- Rollback: `checkpoint/20261108-before-legacy-fs-cleanup` and the private old refs bundle, uncommitted source delta tar and historical handoff tar under Unified legacy-preservation-20261108.
