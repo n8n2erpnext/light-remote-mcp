@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-09T07:25:25.009Z",
+  "updatedAt": "2026-11-09T07:50:38.332Z",
   "version": "0.10.1-dev.3",
   "phase": "DESKTOP_BACKEND_API_ALIGNMENT",
-  "status": "REAL_SIGNED_B_BASELINE_PROVEN_EXTENDED_DEVICE_INTEGRATION_PENDING",
+  "status": "FINAL_ASYNC_CONTRACTS_IMPLEMENTED_EXACT_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -238,7 +238,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Run exact-source extended isolated backend acceptance and full CI. Correct any reproduced cross-layer failures, verify internal installer/manifests, then prepare coherent Lab runtime migration from the tested GitHub source while preserving existing state and rollback.",
+  "nextAction": "Require final exact-source full CI including explicit Start/native migration to PASS. Verify internal installer hashes, stage final GitHub source coherently in the already-backed-up internal Lab, validate backend API/health/state preservation and rollback, and close the single canonical checkpoint/handoff. No public Release or Owner installation change.",
   "receiptNote": "Current compiled source and verified CI artifact are pinned independently from this documentation-only receipt; public binary release awaits explicit Owner approval. No native rebuild or existing-runtime deployment is implied.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -329,12 +329,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-signed-b-real-backend-coverage",
-    "status": "P3_REAL_B_REPRODUCED_FIX_IMPLEMENTED_EXTENDED_CI_PENDING",
-    "summary": "Real coherent ARM disposable candidate proves MCP OAuth B issuance, signed Owner Wall approval, PostgreSQL durable grant and MCP attach; independent Account B also passes. Reproduced wrong B incorrectly returned as503. Preserve safe known rejection status/code at Wall and unknown transport outcome, with real HTTP regressions. Extend disposable CI acceptance to both B flows and real same-device native API/module/Memory/Codex/Settings. Initialize the missing private fixture MCP OAuth secret and explicitly enable native IPC in isolated DEV. Update two display-only source assertions to A/B while preserving all no-V1 authority checks.",
-    "verification": "ARM exact P2 source d4efc68 private candidate real backend21/21 PASS. Additional actual OAuth/MCP/Wall/PG roundtrip and independent Account B PASS; wrong B observed503 (reproduced presentation error). New safe mapping HTTP regression and unified one-app source checks PASS locally, readiness2/2 PASS. CI37 web112/112, production bundle and Linux/macOS native PASS; Core/Windows stopped at two obsolete A/B V2 text regex assertions, updated without removing no-V1 checks. Extended whole-backend/native integration remains pending on the new commit. No existing runtime or Owner installation changed.",
-    "nextAction": "Run exact-source extended isolated backend acceptance and full CI. Correct any reproduced cross-layer failures, verify internal installer/manifests, then prepare coherent Lab runtime migration from the tested GitHub source while preserving existing state and rollback.",
-    "sourceDigest": "1b1d68047ddb92c3c2c138dc457d63a60ff3c725e53232be9176a1c6788294ef",
+    "taskId": "20261109-desktop-final-async-and-display-contracts",
+    "status": "FINAL_ASYNC_AND_DISPLAY_FIXES_IMPLEMENTED_FULL_CI_PENDING",
+    "summary": "Prevent one-render old Owner inventory/activity disclosure by projecting pages against the current Owner/kind before effects; clear pending on signout. Add explicit idempotent native service-start/service-stop so a confirmed Start cannot toggle an independently started Agent off. Keep legacy service compatibility. Finish displayed A/B/Desktop naming in Portal, consent and MCP descriptions without changing protocol/profile/vault identities. Add UI race tests and installed Windows same-daemon Start acceptance.",
+    "verification": "New targeted UI14/14 and typecheck PASS (Owner first-render swap and delayed Start added); previous112 UI tests, 25 real coherent backend integration steps PASS. Native explicit Start is CI_PENDING. Source714 CI38 passed Core extended backend, web and Linux/macOS; Windows compiled/installed/restarted GUI successfully, then external GitHub bridge-manifest download returned504 before migration. Rerun attempt2 is running; no product assertion removed. A new isolated Lab source/dependency tree714 is prepared with private unit/key/DB backups and read-only schema43 preflight PASS; existing serving Lab unchanged.",
+    "nextAction": "Require final exact-source full CI including explicit Start/native migration to PASS. Verify internal installer hashes, stage final GitHub source coherently in the already-backed-up internal Lab, validate backend API/health/state preservation and rollback, and close the single canonical checkpoint/handoff. No public Release or Owner installation change.",
+    "sourceDigest": "d38ec7fe06b7677651fb334339325a070757772a7e80b81bad31e6b316640244",
     "sourceFileCount": 1638
   },
   "legacyFilesystemCleanup": {
@@ -545,7 +545,7 @@
     "publicFeed": "HOLD"
   },
   "desktopBackendIntegration": {
-    "status": "P3_EXTENDED_ACCEPTANCE_AND_WALL_ERROR_FIX_IMPLEMENTED",
+    "status": "FINAL_UI_RACE_AND_NATIVE_INTENT_CHECKS_PENDING_CI",
     "baseCommit": "521d04cc559e0e263390863ed1caaf8bf0205797",
     "preChangeTag": "checkpoint/20261109-before-desktop-backend-521d04c",
     "bundleSha256": "5f20de606764ca319b3bfd695c81dda0b08bacac6a3ac831bdc8405e222c2331",
@@ -568,7 +568,8 @@
       "P3CoherentBackendAndWallB": "NOT_STARTED",
       "P4InternalNativeIntegration": "NOT_STARTED",
       "P2DesktopUiBinding": "WEB112_PASS_NATIVE_MAC_LINUX_PASS_WINDOWS_GUARD_TEXT_FIXED",
-      "P3WallBAndBackend": "ACTUAL_BOTH_B_FLOWS_PASS_EXTENDED_NATIVE_CI_PENDING"
+      "P3WallBAndBackend": "COHERENT_ARM25_OF25_PASS",
+      "P4FinalAsyncAndNaming": "IMPLEMENTED_TARGETED_UI14_PASS_NATIVE_PENDING"
     },
     "wallBRegression": "REPORTED_NOT_YET_REPRODUCED",
     "runtimeChanged": false,
@@ -600,6 +601,16 @@
       "accountB": "PASS_REAL_INDEPENDENT_AGENT",
       "wrongB": "REPRODUCED503_SOURCE_FIX_PENDING_NEW_INTEGRATION"
     },
-    "existingLabRuntimeChanged": false
+    "existingLabRuntimeChanged": false,
+    "backend25Source": "714f61987dd68289704a870c9b91b6e9cf86b140",
+    "labPreparation": {
+      "source": "714f61987dd68289704a870c9b91b6e9cf86b140",
+      "status": "PREPARED_NOT_CUT_OVER",
+      "databaseSchema": 43,
+      "migrationRequired": false,
+      "dbArchiveSha256": "1197c17189af7704d733d12cb95255baccc83dd0bc566a2a232694e87aa9e2cb",
+      "archiveIndexVerified": true
+    },
+    "ci38InitialFailure": "External GitHub504 fetching pinned bridge BUILD_MANIFEST, before migration; approved rerun attempt2 in progress"
   }
 }

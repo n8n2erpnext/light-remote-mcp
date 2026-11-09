@@ -12,7 +12,7 @@ export function useOwnerInventory(kind:InventoryKind,accountId:string|null){
   const epoch=useRef(0),inFlight=useRef(false);
   useEffect(()=>{
     const current=++epoch.current;
-    setPages([]);setError(null);inFlight.current=false;
+    setPages([]);setError(null);setPending(false);inFlight.current=false;
     if(!accountId||!nativeOwnerInventoryAvailable())return;
     inFlight.current=true;setPending(true);
     void nativeOwnerInventoryPage(accountId,kind).then(reply=>{
@@ -24,7 +24,8 @@ export function useOwnerInventory(kind:InventoryKind,accountId:string|null){
     });
     return()=>{epoch.current++;inFlight.current=false;};
   },[accountId,kind]);
-  const last=pages.at(-1);
+  const currentPages=accountId&&pages.every(page=>page.accountId===accountId&&page.kind===kind)?pages:[];
+ const last=currentPages.at(-1);
   const loadMore=useCallback(async()=>{
     if(!accountId||!last||last.accountId!==accountId||last.kind!==kind||
        !last.coverage.hasMore||!last.coverage.nextCursor||inFlight.current)return;
@@ -54,11 +55,11 @@ export function useOwnerInventory(kind:InventoryKind,accountId:string|null){
     }
   },[accountId,kind,last,pages]);
   return {
-    pages,
-    rows:pages.reduce<Array<OwnerDevice|OwnerGrant>>((all,page)=>{all.push(...page.rows);return all;},[]),
+    pages:currentPages,
+    rows:currentPages.reduce<Array<OwnerDevice|OwnerGrant>>((all,page)=>{all.push(...page.rows);return all;},[]),
     total:last?.coverage.total??null,
     hasMore:last?.coverage.hasMore??false,
     pending,error,loadMore,
-    loaded:pages.reduce((sum,page)=>sum+page.rows.length,0)
+    loaded:currentPages.reduce((sum,page)=>sum+page.rows.length,0)
   };
 }

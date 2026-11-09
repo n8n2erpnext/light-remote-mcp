@@ -215,7 +215,7 @@ export function createDesktopOwnerAuthorization({
       '<meta name="viewport" content="width=device-width,initial-scale=1">',
       '<title>Authorize Light Remote Desktop</title></head>',
       '<body style="font:16px sans-serif;max-width:540px;margin:10vh auto;padding:2em">',
-      '<h1>Allow Light Remote Desktop V4?</h1>',
+      '<h1>Allow Light Remote Desktop?</h1>',
       '<p>Sign in to this device app with your verified Light Remote Owner account.</p>',
       '<p>Read-only account access. Agent A/B approval requires separate Owner consent.</p>',
       '<form method="POST" action="/account/desktop/v4/authorize">',

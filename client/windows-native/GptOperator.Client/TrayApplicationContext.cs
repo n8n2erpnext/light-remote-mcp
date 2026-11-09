@@ -1111,8 +1111,18 @@ internal sealed class TrayApplicationContext : ApplicationContext
                     break;
                 }
                 case "service":
+                case "service-start":
+                case "service-stop":
                 {
-                    var stop = WallPortListening();
+                    var online = WallPortListening();
+                    // Desktop sends the confirmed intent. A delayed Start
+                    // must never stop an Agent started by another screen.
+                    if (action == "service-start" && online)
+                    {
+                        response = new {ok=true,state="already_running"};
+                        break;
+                    }
+                    var stop = action == "service-stop" || (action == "service" && online);
                     var result = await Task.Run(() => stop ? StopAgentTaskVerified() : StartAgentTaskVerified());
                     response = new {ok=result.Ok,state=result.Ok?(stop?"stopped":"started"):"service_failed"};
                     break;

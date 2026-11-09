@@ -23,7 +23,7 @@ async function invoke(action:string):Promise<Reply> {
 }
 // OS-local host actions are fixed compiled verbs. They can start the Agent
 // even when its authenticated device API is currently offline.
-export function nativeShellAction(action:'status'|'service'|'restart'|'update'|'open-account'){
+export function nativeShellAction(action:'status'|'service'|'service-start'|'service-stop'|'restart'|'update'|'open-account'){
   return invoke(action);
 }
 export async function pollNativeLinkIntent():Promise<boolean> {

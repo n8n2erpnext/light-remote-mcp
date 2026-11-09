@@ -68,7 +68,7 @@ fn bridge_exe()->Result<PathBuf,String>{
     Ok(exe)
 }
 fn run_native(action:&str)->Result<serde_json::Value,String>{
-    const ACTIONS:&[&str]=&["status","preview","link","poll","disconnect","service","restart",
+    const ACTIONS:&[&str]=&["status","preview","link","poll","disconnect","service","service-start","service-stop","restart",
         "update","open-wall","open-account","open-fleet","open-activation"];
     if !ACTIONS.contains(&action){return Err("desktop_action_denied".into());}
     if crate::windows_host::required() {

@@ -38,3 +38,7 @@ The live Lab backend still runs mixed older rc49 Operator/Plugin/Wall sources. N
 ## Verify both real B approval flows and classify known Wall rejections
 
 P2 CI37 failed two source tests that still matched the old displayed A/B V2 label. Source assertions now match A/B and retain all no-legacy-V1 checks. The P2 real backend lacked a disposable OAuth secret because the original read-only suite never called MCP OAuth; initialization and full OAuth/B coverage were added. Wrong B503 was reproduced and classified at Wall. No claim of physical installed Owner Wall acceptance or live Lab cutover.
+
+## Preserve explicit Agent start intent and isolate Owner rows during rendering
+
+Fixed source: an Owner inventory/activity could briefly render previous Owner rows before useEffect cleared state; now filtered synchronously. Fixed source: a Desktop Start could toggle to Stop if another UI started the Agent during confirmation; explicit native desired-state verbs replace the Desktop toggle. Pinned compatibility bridge external download returned504 in CI38 attempt1; attempt2 pending. Physical Owner acceptance remains NOT_RUN.

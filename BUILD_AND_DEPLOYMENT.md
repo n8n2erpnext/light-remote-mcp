@@ -102,3 +102,7 @@ Candidate0.10.1-dev.3 remains internal-only. Native window title is Light Remote
 ## Verify both real B approval flows and classify known Wall rejections
 
 The disposable coherent backend is built only from a clean identified GitHub commit with private PG/Redis and no host ports. Extended acceptance now includes real OAuth MCP and native Agent IPC, not stubbed controllers. Synthetic private OAuth key material stays in .unified fixture state, never Git or reports. Internal-only Windows installer still needs full current-source CI and hash acceptance.
+
+## Preserve explicit Agent start intent and isolate Owner rows during rendering
+
+Final candidate remains0.10.1-dev.3 internal-only. Native installed lifecycle now includes explicit-start-is-idempotent-preserves-running-agent. CI38 initial Windows failure was GitHub504 while fetching the pinned compatibility manifest, after native build/fresh installation/GUI restart; it is not a proven migration failure. Only rerun success may accept it. Lab staging714 has exact Git source and same-lock ARM Node22 dependencies from the coherent candidate, private service/key/DB backups and read-only schema43 verification. Final source and CI must be staged/verified before cutover; no SQL migration was needed.

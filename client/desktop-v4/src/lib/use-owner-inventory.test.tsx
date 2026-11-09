@@ -1,5 +1,5 @@
 import {afterEach,describe,it,expect,vi} from 'vitest';
-import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {cleanup,fireEvent,render,renderHook,screen,waitFor} from '@testing-library/react';
 import {useOwnerInventory} from './use-owner-inventory';
 import {nativeOwnerInventoryPage} from './native-inventory';
 
@@ -24,6 +24,18 @@ function Inventory({accountId}:{accountId:string|null}){
   {state.hasMore&&<button onClick={()=>void state.loadMore()} disabled={state.pending}>Load more</button>}
  </div>;
 }
+
+it('never renders a previous Owner inventory during the first account-switch render',async()=>{
+ const observed:Array<{owner:string|null;ids:string[]}>=[];
+ vi.mocked(nativeOwnerInventoryPage).mockResolvedValueOnce(data('old',null,1)).mockReturnValue(new Promise(()=>{}));
+ const view=renderHook(({owner}:{owner:string|null})=>{
+  const value=useOwnerInventory('devices',owner);observed.push({owner,ids:value.rows.map(r=>r.deviceId)});return value;
+ },{initialProps:{owner:'owner' as string|null}});
+ await waitFor(()=>expect(view.result.current.loaded).toBe(1));
+ view.rerender({owner:'new-owner'});
+ expect(observed.filter(r=>r.owner==='new-owner').every(r=>r.ids.length===0)).toBe(true);
+ view.rerender({owner:null});expect(view.result.current.pending).toBe(false);
+});
 describe('Owner pages only append current valid cursor and never stale Owner state',()=>{
  it('fetches and appends two pages without overlapping the native invocation',async()=>{
   vi.mocked(nativeOwnerInventoryPage)

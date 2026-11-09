@@ -138,3 +138,7 @@ client/desktop-v4/src/lib/native-device.ts owns typed native projections and sta
 ## Verify both real B approval flows and classify known Wall rejections
 
 deploy/unified/dev-device-acceptance.mjs exercises real public MCP PKCE/client registration, synthetic Owner Wall login/CSRF, signed pending/approval, PG grant-backed MCP attach, independent Account B and private Agent IPC with module CAS/SQLite Memory/Codex/Settings. dev-acceptance invokes it before Owner refresh/revocation. dev.py initializes a private disposable OAuth secret and opts in native IPC. local-wall classifies safe B decisions; transport uncertainty never implies a failed or successful grant.
+
+## Preserve explicit Agent start intent and isolate Owner rows during rendering
+
+use-owner-inventory/use-owner-activity derive currently owned pages synchronously before rendering, in addition to async generation fences. NativeModuleScreens sends explicit confirmed Agent start/stop intent through DeviceLinkDialog, both fixed Rust allowlists and the in-process C# host. test-primary-installed.ps1 now proves repeated Start preserves the same actual running Node daemon and GUI. Portal consent/account HTML and MCP descriptions use the shared display naming.

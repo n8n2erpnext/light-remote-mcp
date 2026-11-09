@@ -237,8 +237,8 @@ export function NativeDeviceSettings({accountId}:{accountId:string|null}){
   void read();const timer=window.setInterval(()=>void read(),15000);
   return()=>{active=false;sequence.current++;window.clearInterval(timer);};
  },[windows,accountId]);
- const hostAction=async(action:'service'|'restart'|'update')=>{
-  const text=action==='service'?(shell?.online?'Stop the background Agent? Its sessions and work may be interrupted.':'Start the background Agent on this device?'):
+ const hostAction=async(action:'service-start'|'service-stop'|'restart'|'update')=>{
+  const text=action==='service-stop'?'Stop the background Agent? Its sessions and work may be interrupted.':action==='service-start'?'Start the background Agent on this device?':
    action==='restart'?'Restart the background Agent on this device?':'Ask the installed updater to check the configured internal update policy?';
   if(acting.current||!await ask(text))return;
   if(!mounted.current||owner.current!==accountId)return;
@@ -260,7 +260,7 @@ export function NativeDeviceSettings({accountId}:{accountId:string|null}){
     <div><span>Cloud</span><strong>{device?.cloudState||'Not verified'}</strong></div>
     <div><span>Installed Agent version</span><strong>{device?.version||'—'}</strong></div></div>
    <div className="feature-actions">
-    {windows&&<><Button disabled={!shell||shellBusy} onClick={()=>void hostAction('service')}>{shell?.online?'Stop Agent':'Start Agent'}</Button>
+    {windows&&<><Button disabled={!shell||shellBusy} onClick={()=>void hostAction(shell?.online?'service-stop':'service-start')}>{shell?.online?'Stop Agent':'Start Agent'}</Button>
      <Button disabled={shellBusy} onClick={()=>void hostAction('restart')}>Restart Agent</Button>
      <Button disabled={shellBusy} onClick={()=>void hostAction('update')}>Check update</Button></>}
     <Button disabled={!device||api.pending} onClick={()=>void ask(device?.cloudDesiredConnected?'Disconnect this device from Cloud? Active Agent access can be interrupted.':'Connect this enrolled device to Cloud?').then(async yes=>{

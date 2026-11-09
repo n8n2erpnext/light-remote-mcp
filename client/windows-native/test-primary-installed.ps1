@@ -67,13 +67,23 @@ try{
     if((Get-ScheduledTask 'LightRemoteDeviceAgent').State -ne 'Running'){throw 'Agent task did not recover after primary restart'}
     foreach($id in $before){if(Get-Process -Id $id -ErrorAction SilentlyContinue){throw 'Old daemon survived Agent restart'}}
     if((Invoke-WebRequest -UseBasicParsing 'http://127.0.0.1:5491/' -TimeoutSec 5).StatusCode -ne 200){throw 'Wall did not recover after primary restart'}
+    $currentDaemon=@(Get-CimInstance Win32_Process -Filter "Name='node.exe'"|Where-Object{$_.ExecutablePath -eq $node -and $_.CommandLine -match 'operator-agent\.mjs.*daemon'}|ForEach-Object{[int]$_.ProcessId})
+    $startPsi=[Diagnostics.ProcessStartInfo]::new($exe);$startPsi.UseShellExecute=$false;$startPsi.CreateNoWindow=$true;$startPsi.RedirectStandardOutput=$true
+    $startPsi.ArgumentList.Add('--desktop-bridge');$startPsi.ArgumentList.Add('service-start')
+    $explicitStart=[Diagnostics.Process]::Start($startPsi)
+    try{
+        if(-not $explicitStart.WaitForExit(20000)){throw 'Explicit Start request timed out'}
+        $startResult=$explicitStart.StandardOutput.ReadToEnd()|ConvertFrom-Json
+        if($explicitStart.ExitCode -ne 0 -or $startResult.ok -ne $true -or $startResult.state -ne 'already_running'){throw 'Explicit Start must retain an already running Agent'}
+    }finally{if(-not $explicitStart.HasExited){$explicitStart.Kill($true)};$explicitStart.Dispose()}
+    foreach($daemonId in $currentDaemon){if(-not (Get-Process -Id $daemonId -ErrorAction SilentlyContinue)){throw 'Explicit Start stopped or replaced the running Agent'}}
     $open=Start-Core @()
     try{if(-not $open.WaitForExit(10000)){throw 'Shortcut relaunch singleton did not return'}}finally{if(-not $open.HasExited){$open.Kill($true)};$open.Dispose()}
     if(-not [LRPrimaryWindow]::IsWindowVisible($window)){throw 'Shortcut relaunch did not restore the existing native window'}
     [ordered]@{result='PASS';sourceCommit=$env:GITHUB_SHA;ciRunId=$env:GITHUB_RUN_ID
         checks=@('one-primary-layout','same-native-exe-task','same-native-exe-autostart-shortcut','private-clr-loaded-in-gui-with-global-dotnet-disabled',
         'background-preserves-hidden-window','agent-only-restart-preserves-gui-and-hidden-state',
-        'old-daemon-exit-new-wall-health','shortcut-restores-existing-window')
+        'old-daemon-exit-new-wall-health','explicit-start-is-idempotent-preserves-running-agent','shortcut-restores-existing-window')
         physicalOwnerAcceptance=$false}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath (Join-Path $EvidenceDir 'installed-lifecycle.json') -Encoding utf8NoBOM
     Write-Host 'WINDOWS_PRIMARY_INSTALLED_GUI_AGENT_RESTART=PASS'
 }finally{

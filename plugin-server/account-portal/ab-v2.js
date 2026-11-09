@@ -1,4 +1,4 @@
-// Gold P2-I2h2d owner A/B V2 pending preview; optional Owner B approval (OFF by default).
+// Gold P2-I2h2d owner A/B pending preview; optional Owner B approval (OFF by default).
 // OFF by default: no visible UI unless both portal + Operator gates accept it.
 (() => {
  'use strict';
@@ -21,7 +21,7 @@
       'x-light-abv2-csrf':opts.csrf}:{} )},
    ...(opts.method==='POST'?{body:JSON.stringify(opts.body||{})}:{})});
   const j=await r.json().catch(()=>({}));
-  if(!r.ok)throw Object.assign(new Error(j.error||'A/B V2 unavailable'),{status:r.status});
+  if(!r.ok)throw Object.assign(new Error(j.error||'A/B unavailable'),{status:r.status});
   return j;
  }
  function item(tag,text,cls){

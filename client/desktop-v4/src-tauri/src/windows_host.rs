@@ -114,7 +114,7 @@ fn call(args:&[String])->Result<(i32,Option<serde_json::Value>),String>{
 }
 
 pub(crate) fn action(action:&str)->Result<serde_json::Value,String>{
-    if !["status","preview","link","poll","disconnect","service","restart","update","open-wall","open-account","open-fleet","open-activation"].contains(&action){
+    if !["status","preview","link","poll","disconnect","service","service-start","service-stop","restart","update","open-wall","open-account","open-fleet","open-activation"].contains(&action){
         return Err("desktop_action_denied".into());
     }
     let (status,json)=call(&["--desktop-bridge".into(),action.into()])?;

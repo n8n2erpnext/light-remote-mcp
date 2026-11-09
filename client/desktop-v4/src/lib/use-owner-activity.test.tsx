@@ -1,5 +1,5 @@
 import {afterEach,describe,it,expect,vi} from 'vitest';
-import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {cleanup,fireEvent,render,renderHook,screen,waitFor} from '@testing-library/react';
 import {useOwnerActivity} from './use-owner-activity';
 import {nativeOwnerActivityPage} from './native-activity';
 vi.mock('./native-activity',()=>({nativeOwnerActivityPage:vi.fn()}));
@@ -20,6 +20,18 @@ function Harness({owner}:{owner:string|null}){
   {a.hasMore&&<button disabled={a.pending} onClick={()=>void a.loadMore()}>More</button>}
  </div>;
 }
+
+it('does not expose old Owner rows in the render before account-change effects run',async()=>{
+ const observed:Array<{owner:string|null;count:number}>=[];
+ vi.mocked(nativeOwnerActivityPage).mockResolvedValueOnce(page('old',null,1)).mockReturnValue(new Promise(()=>{}));
+ const view=renderHook(({owner}:{owner:string|null})=>{
+  const value=useOwnerActivity('usage',owner);observed.push({owner,count:value.rows.length});return value;
+ },{initialProps:{owner:'owner' as string|null}});
+ await waitFor(()=>expect(view.result.current.loaded).toBe(1));
+ view.rerender({owner:'new-owner'});
+ expect(observed.filter(r=>r.owner==='new-owner').every(r=>r.count===0)).toBe(true);
+ view.rerender({owner:null});expect(view.result.current.pending).toBe(false);
+});
 describe('F15 same-Owner typed page state',()=>{
  it('appends only unique pages without overlapping native invokes',async()=>{
   vi.mocked(nativeOwnerActivityPage)

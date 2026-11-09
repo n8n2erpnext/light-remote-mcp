@@ -17,7 +17,7 @@ export function useOwnerActivity(kind:ActivityKind,accountId:string|null){
  },[accountId]);
  useEffect(()=>{
   const seq=++generation.current;
-  setPages([]);setError(null);inflight.current=false;
+  setPages([]);setError(null);setPending(false);inflight.current=false;
   if(!accountId||!nativeOwnerSnapshotAvailable())return;
   inflight.current=true;setPending(true);
   void nativeOwnerActivityPage(accountId,kind).then(result=>{
@@ -29,7 +29,8 @@ export function useOwnerActivity(kind:ActivityKind,accountId:string|null){
   });
   return()=>{generation.current++;inflight.current=false;};
  },[accountId,kind,refresh]);
- const last=pages.at(-1);
+ const currentPages=accountId&&pages.every(page=>page.accountId===accountId&&page.kind===kind)?pages:[];
+ const last=currentPages.at(-1);
  const loadMore=useCallback(async()=>{
   if(!accountId||!last||last.kind!==kind||last.accountId!==accountId||
      !last.coverage.hasMore||!last.coverage.nextCursor||inflight.current)return;
@@ -59,10 +60,10 @@ export function useOwnerActivity(kind:ActivityKind,accountId:string|null){
   }
  },[accountId,kind,last,pages]);
  return {
-  pages,rows:pages.reduce<Array<OwnerJob|OwnerSession|UsageDeviceRow>>((a,p)=>{
+  pages:currentPages,rows:currentPages.reduce<Array<OwnerJob|OwnerSession|UsageDeviceRow>>((a,p)=>{
    a.push(...p.rows);return a;
   },[]),
-  total:last?.coverage.total??null,loaded:pages.reduce((n,p)=>n+p.rows.length,0),
+  total:last?.coverage.total??null,loaded:currentPages.reduce((n,p)=>n+p.rows.length,0),
   hasMore:last?.coverage.hasMore??false,pending,error,loadMore
  };
 }

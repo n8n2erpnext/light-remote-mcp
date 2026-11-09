@@ -213,6 +213,32 @@
         "deviceId (null only for discovery)",
         "payload"
       ]
+    },
+    "windowsHost": {
+      "nativeCommand": "desktop_native_action",
+      "component": "client/windows-native/LightRemote.WindowsHost/EmbeddedHostExports.cs",
+      "transport": "Fixed in-process private CLR host, Windows only",
+      "authority": "Current OS user and compiled installation/profile boundary; no browser token, URL, path or arbitrary process. Agent remote rights remain independent.",
+      "operations": [
+        "status",
+        "preview",
+        "link",
+        "poll",
+        "disconnect",
+        "service",
+        "service-start",
+        "service-stop",
+        "restart",
+        "update",
+        "open-wall",
+        "open-account",
+        "open-fleet",
+        "open-activation"
+      ],
+      "request": [
+        "action (fixed compiled verb)"
+      ],
+      "response": "Bounded host acknowledgment; read actual state afterward. service-start is idempotent and cannot turn into stop; service-stop retains explicit stop intent. Legacy service toggle remains for compatibility."
     }
   }
 }

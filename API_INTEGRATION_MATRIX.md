@@ -36,3 +36,7 @@ desktop_owner_device_request now accepts expectedAccountId as a required rendere
 ## Verify both real B approval flows and classify known Wall rejections
 
 Wall /api/abv2/approve maps allowlisted abv2_b_invalid to400, attempt conflicts409, missing404 and rate429; otherwise retains validated4xx status with a generic safe error. Unknown failures remain503/outcome:unknown. No raw Operator/Redis response, key, token or private exception is forwarded. Both Wall and Account still require their independent authenticated Owner/CSRF/current attempt/connection/policy and durable grant gates.
+
+## Preserve explicit Agent start intent and isolate Owner rows during rendering
+
+Windows desktop_native_action adds two fixed compiled verbs service-start/service-stop, documented in contracts/api.v1.json.nativeTransports.windowsHost. A Start on an already running Agent is a successful no-op and cannot stop/restart it. Legacy service remains a compatibility toggle for old callers. No arbitrary executable/path or browser credential crosses this API. Display labels are A/B and Light Remote Desktop; technical v4/abv2 routes/IDs stay unchanged for compatibility.

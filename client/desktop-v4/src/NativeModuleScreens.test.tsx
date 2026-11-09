@@ -1,6 +1,6 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
-import {LongMemoryScreen,CodexBridgeScreen} from './NativeModuleScreens';
+import {LongMemoryScreen,CodexBridgeScreen,NativeDeviceSettings} from './NativeModuleScreens';
 
 const scopeId='123e4567-e89b-42d3-a456-426614174000';
 let enabled:boolean,revision:number,invoke:ReturnType<typeof vi.fn>;
@@ -24,6 +24,21 @@ beforeEach(()=>{
 });
 afterEach(()=>{cleanup();vi.unstubAllEnvs();delete (window as unknown as Record<string,unknown>).__TAURI_INTERNALS__;});
 describe('Desktop module controls backed by native Agent state',()=>{
+ it('keeps confirmed Start intent when host status changes while the dialog is open',async()=>{
+  vi.stubEnv('VITE_LR_V4_NATIVE_WINDOWS','1');
+  let online=false;
+  const agent=invoke as unknown as (command:string,args:{action:string;payload:Record<string,unknown>})=>Promise<unknown>;
+  invoke=vi.fn(async(command:string,args:{action:string;payload:Record<string,unknown>})=>{
+   if(command==='desktop_native_action')return {ok:true,wallOnline:online,state:'status'};
+   return agent(command,args);
+  });Object.assign(window,{__TAURI_INTERNALS__:{invoke}});
+  render(<NativeDeviceSettings accountId="owner"/>);
+  await waitFor(()=>expect((screen.getByRole('button',{name:'Start Agent'}) as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(screen.getByRole('button',{name:'Start Agent'}));online=true;
+  fireEvent.click(screen.getByRole('button',{name:'Confirm'}));
+  await waitFor(()=>expect(invoke.mock.calls.some(c=>c[0]==='desktop_native_action'&&c[1].action==='service-start')).toBe(true));
+  expect(invoke.mock.calls.some(c=>c[1].action==='service')).toBe(false);
+ });
  it('loads retained local work even when cloud sync is offline, and disables immediately through CAS',async()=>{
   render(<LongMemoryScreen accountId="owner"/>);
   await screen.findByText('Project receipt');
