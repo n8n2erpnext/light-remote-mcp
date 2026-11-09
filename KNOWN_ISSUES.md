@@ -22,3 +22,7 @@ DEV helper scope: status displays the last deployment receipt, not a liveness pr
 Repository conversion resolved: new ID1450214328, clean history, new CI9/9, verified GitHub-sourced ARM candidate and protected main. Old ID1361698660 is archived read-only because delete_repo scope was unavailable; old ARM sources/runtime remain untouched.
 
 Signed feed follow-up: preserved client beta manifest is legacy0.9.0-rc.47 with external asset URLs, not the new0.10.0 baseline. Fleet Wall0.9.0-rc.31 points to the old release URL under the reused repository name; the new repository has no historical release at that path. Preserve signed bytes and plan a controlled feed/release migration from legitimate signing material before public upgrades. No feed was promoted during this conversion.
+
+## Begin internal Desktop backend integration from verified source checkpoint
+
+Active task: confirmed deployed Lab backend is mixed0.9.0-rc.49 STAGED source while internal Desktop candidate is0.10.1-dev.2. The local-module UI is still placeholders and Tauri status transport is unbound. Wall B failure is reported and not yet reproduced; do not attribute it to the EXE merge without a real cross-layer test. Work proceeds on the single canonical source; no public release.

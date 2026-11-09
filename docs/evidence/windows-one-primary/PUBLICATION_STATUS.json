@@ -1,5 +1,5 @@
 {
-  "status": "NOT_PUBLISHED_AWAITING_EXPLICIT_OWNER_APPROVAL",
+  "status": "INTERNAL_TEST_ONLY_PUBLIC_BINARY_RELEASE_NOT_REQUESTED",
   "published": false,
   "tag": "windows/0.10.1-dev.2",
   "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
@@ -9,5 +9,6 @@
   "version": "0.10.1-dev.2",
   "installerSha256": "aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19",
   "feedPromotion": false,
-  "approvalReview": "Automatic approval review rejected public prerelease publication: repository/code work was authorized, but publicly downloadable binary publication was not explicitly authorized. Do not retry or use an indirect workaround without explicit Owner approval."
+  "approvalReview": "Automatic approval review rejected public prerelease publication: repository/code work was authorized, but publicly downloadable binary publication was not explicitly authorized. Do not retry or use an indirect workaround without explicit Owner approval.",
+  "ownerDecision": "2026-11-09: Installer is for internal testing only; do not publish a public binary release."
 }

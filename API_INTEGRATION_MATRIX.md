@@ -20,3 +20,7 @@ Contract version: `light-remote.api.v1`. Runtime header: `X-Light-Remote-API-Ver
 | Fleet/account/settings | Existing account/device routes | Accounts, entitlement, fleet registries | Existing cookie/native authority, no DEV bypass |
 
 The contract catalog covers critical V4 routes. Remaining legacy route families still need full machine-readable request/response schemas before an exhaustive OpenAPI claim is appropriate. No mutable cloud endpoint override or credential migration across products was introduced.
+
+## Begin internal Desktop backend integration from verified source checkpoint
+
+Current source declarations remain distinct from observed runtime. On2026-11-09 the public Lab used Operator t11-f16p02-owner-consent-preview-20261108 and Plugin t08-617-plugin-0f3c2ee1-STAGED, both0.9.0-rc.49. Operator lacks the source Desktop snapshot model, while native Owner auth/token flags differ Operator0/Plugin1. Desktop Long Memory/Codex controls have no native module provider, and renderer-relative status reads do not reach the authenticated local Agent. Next implementation must bind live Owner/account/device-scoped APIs and preserve A/B grant/CSRF/device-signature/consent checks; no fake ready state or unauthenticated fallback.

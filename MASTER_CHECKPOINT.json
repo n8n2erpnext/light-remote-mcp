@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-09T02:44:44.891Z",
+  "updatedAt": "2026-11-09T03:02:46.332Z",
   "version": "0.10.1-dev.2",
-  "phase": "WINDOWS_SINGLE_PRIMARY_CANDIDATE_COMPLETE",
-  "status": "CI30_VERIFIED_PRIMARY_ARTIFACT_COMPILED_SOURCE_ON_MAIN_PUBLIC_RELEASE_AWAITS_OWNER_APPROVAL",
+  "phase": "DESKTOP_BACKEND_API_ALIGNMENT",
+  "status": "DESKTOP_BACKEND_INTEGRATION_IN_PROGRESS",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -238,7 +238,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Obtain explicit Owner approval to publish the already-verified candidate installer and manifests as a publicly downloadable GitHub prerelease under windows/0.10.1-dev.2; then verify uploaded asset hashes without activating the product feed. Do not bypass the approval rejection. Continue development only on permanent work; physical Owner/account/vault/B acceptance and existing runtime migration remain separate future tasks.",
+  "nextAction": "Implement one verified native Desktop-to-local-Agent API using current Owner/account/device checks and existing module/controllers, wire actual Desktop reads and mutations with stale-response/CAS fences, then complete same-source backend candidate/real Wall B integration and internal Actions build. Keep technical credential/profile IDs compatible while removing version suffixes from displayed names.",
   "receiptNote": "Current compiled source and verified CI artifact are pinned independently from this documentation-only receipt; public binary release awaits explicit Owner approval. No native rebuild or existing-runtime deployment is implied.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -318,22 +318,22 @@
     "longTaskCadence": "checkpoint and rolling handoff at each meaningful completed step before the next step",
     "workingBranch": "work",
     "repositoryPublicationStatus": "Compiled source31f2339 is on protected main and permanent work; this atomic documentation/evidence receipt is published on work and requires its own baseline check before normal fast-forward.",
-    "taskStatus": "BUILD_CI_AND_ARTIFACT_VERIFIED_PUBLIC_BINARY_RELEASE_AWAITS_OWNER_APPROVAL",
+    "taskStatus": "DESKTOP_BACKEND_ALIGNMENT_IN_PROGRESS",
     "stableSourceBaseline": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
     "preChangeCommit": "c8d308c82d17b5a4052163377d23f4514da6db02",
     "runtimeChanged": false,
-    "nextAction": "Obtain explicit Owner approval to publish the already-verified candidate installer and manifests as a publicly downloadable GitHub prerelease under windows/0.10.1-dev.2; then verify uploaded asset hashes without activating the product feed. Do not bypass the approval rejection. Continue development only on permanent work; physical Owner/account/vault/B acceptance and existing runtime migration remain separate future tasks.",
+    "nextAction": "Implement one verified native Desktop-to-local-Agent API using current Owner/account/device checks and existing module/controllers, wire actual Desktop reads and mutations with stale-response/CAS fences, then complete same-source backend candidate/real Wall B integration and internal Actions build. Keep technical credential/profile IDs compatible while removing version suffixes from displayed names.",
     "atomicCommitRule": "Every Git commit must stage MASTER_CHECKPOINT, PROJECT_HANDOFF, Worklog, generated docs status and applicable Code Map/API/build documentation; unique task receipt + staged-source blob digest.",
     "localGuard": ".githooks/pre-commit invokes deploy/unified/commit-sync-gate.mjs --staged",
     "ciGuard": ".github/workflows/ci.yml truth job checks each new commit via --range"
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-oneexe-ci30-verified-candidate-closeout",
-    "status": "BUILD_AND_SOURCE_PROMOTION_DONE_PUBLIC_BINARY_RELEASE_AWAITS_APPROVAL",
-    "summary": "Single-primary LightRemote.exe candidate0.10.1-dev.2 is implemented, full exact-source CI30 PASS9/9, installer/manifests independently verified on ARM and locally; compiled source promoted to protected main without force or policy changes. Node/RM/private DLLs/recovery helpers remain supporting components. Public binary prerelease is not published: automatic approval review requires explicit Owner authorization.",
-    "verification": "Exact-source full CI30 PASS9/9: backend PostgreSQL/Redis integration, truth/lock, Windows primary package/install/GUI/private CLR/Agent restart isolation/real bridge upgrade/reinstall/forced health-failure rollback/native watchdog/uninstall, browser and native Mac/Linux source builds. Independently checked artifact ZIP digest, installer hash, embedded source/run/profile and all primary migration/lifecycle checks on ARM and after SSH transfer. Owner physical/account/vault/B acceptance NOT_RUN; signing trust, public feed promotion and existing runtime cutover are not claimed. No public binary release was created after the automatic approval rejection.",
-    "nextAction": "Obtain explicit Owner approval to publish the already-verified candidate installer and manifests as a publicly downloadable GitHub prerelease under windows/0.10.1-dev.2; then verify uploaded asset hashes without activating the product feed. Do not bypass the approval rejection. Continue development only on permanent work; physical Owner/account/vault/B acceptance and existing runtime migration remain separate future tasks.",
+    "taskId": "20261109-desktop-backend-contract-inventory",
+    "status": "IN_PROGRESS_RUNTIME_DRIFT_AND_UI_GAPS_CONFIRMED",
+    "summary": "Owner clarified internal-only test artifacts, with no public binary release. Start actual Desktop/backend/Agent feature integration, Wall B regression investigation and displayed A/B/Desktop naming cleanup on permanent work. Verified full pre-change checkpoint and independent Git restore before edits.",
+    "verification": "Baseline521d04c/tag checkpoint/20261109-before-desktop-backend-521d04c; bundle SHA2565f20de606764ca319b3bfd695c81dda0b08bacac6a3ac831bdc8405e222c2331, independent bare restore/fsck PASS. Read current README/AGENTS/Truth/checkpoint/map/handoff. Actual Windows installation reports0.10.1-dev.2 with root primary and neither old EXE. Source confirms Long Memory/Codex placeholder UI and same-origin /api/status fetch under Tauri. Actual ARM Lab Operator and Plugin serve separate STAGED0.9.0-rc.49 trees; Operator lacks desktop-v4-owner-snapshot.mjs and has Owner-auth/token flags0, Plugin has them1; no READ flag observed. This is confirmed deployment drift, not a conclusion that every backend source feature is absent. Wall B regression remains to reproduce, not marked fixed.",
+    "nextAction": "Implement one verified native Desktop-to-local-Agent API using current Owner/account/device checks and existing module/controllers, wire actual Desktop reads and mutations with stale-response/CAS fences, then complete same-source backend candidate/real Wall B integration and internal Actions build. Keep technical credential/profile IDs compatible while removing version suffixes from displayed names.",
     "sourceDigest": "8aabb7a028c7a031b59a46e6db3510ab9c68f1aee0715c44550528603dc06c2f",
     "sourceFileCount": 1627
   },
@@ -419,7 +419,7 @@
       "P5Acceptance": "AUTOMATED_CI30_PASS_PHYSICAL_OWNER_NOT_RUN",
       "P4Packaging": "CI30_PASS",
       "P5Migration": "CI30_PASS",
-      "P6Promotion": "COMPILED_SOURCE_MAIN_DONE_PUBLIC_BINARY_RELEASE_AWAITS_APPROVAL"
+      "P6Promotion": "COMPILED_SOURCE_MAIN_AND_INTERNAL_ARTIFACT_DONE_NO_PUBLIC_RELEASE_REQUESTED"
     },
     "newNativeBuild": "CI30_PASS_9_OF_9",
     "physicalAcceptance": "NOT_RUN",
@@ -480,7 +480,7 @@
       "restoreVerified": true
     },
     "publication": {
-      "status": "NOT_PUBLISHED_AWAITING_EXPLICIT_OWNER_APPROVAL",
+      "status": "INTERNAL_TEST_ONLY_PUBLIC_BINARY_RELEASE_NOT_REQUESTED",
       "published": false,
       "tag": "windows/0.10.1-dev.2",
       "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
@@ -490,7 +490,8 @@
       "version": "0.10.1-dev.2",
       "installerSha256": "aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19",
       "feedPromotion": false,
-      "approvalReview": "Automatic approval review rejected public prerelease publication: repository/code work was authorized, but publicly downloadable binary publication was not explicitly authorized. Do not retry or use an indirect workaround without explicit Owner approval."
+      "approvalReview": "Automatic approval review rejected public prerelease publication: repository/code work was authorized, but publicly downloadable binary publication was not explicitly authorized. Do not retry or use an indirect workaround without explicit Owner approval.",
+      "ownerDecision": "2026-11-09: Installer is for internal testing only; do not publish a public binary release."
     },
     "verifiedArtifact": {
       "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
@@ -537,5 +538,37 @@
       "runtimeChanged": false
     }
   },
-  "activeDevelopmentWorkspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/single-primary-exe"
+  "activeDevelopmentWorkspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/single-primary-exe",
+  "distributionPolicy": {
+    "audience": "INTERNAL_TEST_ONLY",
+    "publicBinaryPublication": "NOT_REQUESTED_DO_NOT_PUBLISH",
+    "publicFeed": "HOLD"
+  },
+  "desktopBackendIntegration": {
+    "status": "P0_CONTRACT_INVENTORY_COMPLETE_IMPLEMENTATION_NEXT",
+    "baseCommit": "521d04cc559e0e263390863ed1caaf8bf0205797",
+    "preChangeTag": "checkpoint/20261109-before-desktop-backend-521d04c",
+    "bundleSha256": "5f20de606764ca319b3bfd695c81dda0b08bacac6a3ac831bdc8405e222c2331",
+    "independentRestore": "PASS",
+    "scope": [
+      "Desktop/backend/local Agent functional parity and API binding",
+      "Wall B approval after one-primary merge",
+      "Display A/B instead of A/B V2 and Light Remote Desktop without V4",
+      "Internal testing only; preserve credential/state IDs and production runtime"
+    ],
+    "confirmedGaps": [
+      "Long Memory and Codex UI unbound placeholders",
+      "Tauri renderer same-origin /api/status does not reach authenticated local Agent",
+      "Running Lab Operator and Plugin are separate0.9.0-rc.49 STAGED trees; Operator has no Desktop snapshot module and Owner flags differ"
+    ],
+    "steps": {
+      "P0Inventory": "DONE",
+      "P1NativeDeviceApi": "IN_PROGRESS",
+      "P2DesktopBindings": "NOT_STARTED",
+      "P3CoherentBackendAndWallB": "NOT_STARTED",
+      "P4InternalNativeIntegration": "NOT_STARTED"
+    },
+    "wallBRegression": "REPORTED_NOT_YET_REPRODUCED",
+    "runtimeChanged": false
+  }
 }

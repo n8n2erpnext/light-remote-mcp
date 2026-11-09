@@ -118,3 +118,7 @@ Owner resumed after quota. deploy/unified/dev.py now waits for the final Postgre
 ## Verified one-primary candidate closeout — 2026-11-09
 
 Compiled source `31f23393aacb89b6d541cebb2cd0c2e1afa64538` passed full CI #30 and is on protected main. No new source boundary changed in this documentation receipt. The fixed-path in-process native/managed boundary, same-file OS roles, exact owned Agent stop, private runtime and independent update/recovery components are documented above. [Verified executable inventory](../evidence/windows-one-primary/PRIMARY_EXE_MANIFEST.json) and actual migration/lifecycle checks supersede historical pending prototype statuses. Existing serving runtime/Owner physical acceptance and public feed remain unchanged.
+
+## Begin internal Desktop backend integration from verified source checkpoint
+
+Owner clarified internal-only test artifacts, with no public binary release. Start actual Desktop/backend/Agent feature integration, Wall B regression investigation and displayed A/B/Desktop naming cleanup on permanent work. Verified full pre-change checkpoint and independent Git restore before edits. Known integration owners: client/desktop-v4/src/{App,FeatureScreens}.tsx; native owner_login.rs/owner_abv2.rs; device-agent/operator-agent.mjs and gold-wall-modules.mjs; plugin-server/desktop-owner-token-v4.mjs; operator-host/desktop-v4-owner-snapshot.mjs. Existing deployed Lab source drift is separate from these canonical source modules.

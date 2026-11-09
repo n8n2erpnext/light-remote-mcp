@@ -392,8 +392,8 @@
       "path": "docs/evidence/windows-one-primary/PUBLICATION_STATUS.json",
       "shelf": "evidence",
       "extension": "json",
-      "bytes": 854,
-      "sha256": "e388cffdfa78fccfc7dba5348360e8c852379024637c605ca0dc4935eaf2fd00",
+      "bytes": 976,
+      "sha256": "c362247dad7df00b5ca8bbe004d37501c1f75898a984d46f1d3a72a7fad9119a",
       "topLevelKeys": [
         "status",
         "published",
@@ -405,7 +405,8 @@
         "version",
         "installerSha256",
         "feedPromotion",
-        "approvalReview"
+        "approvalReview",
+        "ownerDecision"
       ]
     },
     {
