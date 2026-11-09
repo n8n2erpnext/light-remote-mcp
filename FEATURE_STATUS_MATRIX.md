@@ -44,3 +44,7 @@ Status is per layer. IMPLEMENTED does not imply DEPLOYED, ENABLED, INTEGRATED, C
 | macOS/Linux full packages | `client/ + deploy/` | historical build recipes/native source | UNKNOWN_NEW_PACKAGE | UNKNOWN_NEW_PACKAGE | exact-commit packaging |
 
 Current compiled candidate: CI #30 **9/9 PASS**, source `31f23393aacb89b6d541cebb2cd0c2e1afa64538`, run42549642811. See [exact-source acceptance](docs/evidence/windows-one-primary/CI_ACCEPTANCE.json) and [primary manifest](docs/evidence/windows-one-primary/PRIMARY_EXE_MANIFEST.json). Earlier ARM backend deployment/integration evidence remains scoped to c03b50f. Per-feature completeness, physical acceptance and restored prototype wiring remain separate; see KNOWN_ISSUES.md.
+
+## Rebuild Desktop as a user workspace and fix populated approval and monitor layouts
+
+All nine Desktop routes, Auth entry, linking, typed confirmation and browser consent: IMPLEMENTED_LOCAL_VERIFIED, native CI/artifact pending. Source/UI trust boundaries retain prior functional APIs. No new physical acceptance inferred from synthetic screenshot QA.

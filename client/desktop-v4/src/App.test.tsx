@@ -82,16 +82,15 @@ describe('Desktop fail-closed interaction', () => {
     const nav = screen.getByRole('navigation', { name: 'Main navigation' });
     expect(within(nav).getAllByRole('link')).toHaveLength(9);
     expect(within(nav).getByRole('link', { name: 'AI Access' }).getAttribute('aria-current')).toBe('page');
-    const approval = screen.getByRole('button', { name: 'Review owner requests' }) as HTMLButtonElement;
-    expect(approval.disabled).toBe(true);
-    expect(screen.getByText('No verified grants')).toBeTruthy();
-    expect(screen.getByText(/A\/B capability not verified/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Approve Agent' })).toBeNull();
+    expect(screen.getByText('Your approved agents are unavailable')).toBeTruthy();
+    expect(screen.getByText(/No verified A\/B approval channel/)).toBeTruthy();
   });
 
   it('keeps unauthenticated /api/status as unverified, not connected', async () => {
     renderPreview();
-    await screen.findByText('Device state not verified');
-    expect(screen.queryByText('Connected · verified local Agent')).toBeNull();
+    await screen.findByText('Connection unavailable');
+    expect(screen.queryByText('Connected')).toBeNull();
     const fetchMock = vi.mocked(fetch);
     expect(fetchMock).toHaveBeenCalledWith('/api/status', expect.objectContaining({
       credentials: 'same-origin', redirect: 'manual'
@@ -102,7 +101,7 @@ describe('Desktop fail-closed interaction', () => {
     renderPreview();
     const nav = screen.getByRole('navigation', { name: 'Main navigation' });
     fireEvent.click(within(nav).getByRole('link', { name: 'Settings' }));
-    expect(screen.getByRole('heading', { name: 'Settings & Permissions' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Settings' })).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: 'Dark' }));
     expect(document.documentElement.dataset.theme).toBe('dark');
     expect(window.localStorage.getItem('lr-v4-theme')).toBe('dark');
@@ -127,9 +126,9 @@ describe('Desktop fail-closed interaction', () => {
     renderPreview();
     const nav = screen.getByRole('navigation', { name: 'Main navigation' });
     fireEvent.click(within(nav).getByRole('link', { name: 'AI Access' }));
-    await screen.findByText('Connected · verified local Agent');
+    await screen.findByText('Connected');
     expect(screen.getByText('QA Windows 10')).toBeTruthy();
-    expect(screen.getByText('No verified grants')).toBeTruthy();
+    expect(screen.getByText('Your approved agents are unavailable')).toBeTruthy();
     expect(screen.queryByText(/FORBIDDEN/)).toBeNull();
   });
   it('labels a native locked Wall without claiming an authenticated Agent', async () => {
@@ -138,10 +137,10 @@ describe('Desktop fail-closed interaction', () => {
     Object.assign(window, { __TAURI_INTERNALS__: { invoke } });
     window.history.replaceState(null, '', '#/overview');
     renderPreview();
-    await screen.findByText('Wall reachable · Owner login required');
-    expect(screen.getByText('Wall responding · Owner login required')).toBeTruthy();
-    expect(screen.getByText('Device not verified')).toBeTruthy();
-    expect(screen.queryByText('Connected · verified local Agent')).toBeNull();
+    await screen.findByText('Sign in to Wall');
+    expect(screen.getByText('Your Wall is running. Sign in to finish connecting this PC.')).toBeTruthy();
+    expect(screen.getAllByText('Local device').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Connected')).toBeNull();
     expect(invoke).toHaveBeenCalledWith('probe_local_wall');
   });
 

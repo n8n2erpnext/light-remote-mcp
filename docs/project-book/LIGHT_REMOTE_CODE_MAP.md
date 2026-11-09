@@ -150,3 +150,7 @@ CI-only migration intake in client/windows-native/test-primary-migration.ps1 use
 ## Record verified internal Desktop backend candidate and coherent Lab deployment
 
 Current accepted2771f47 evidence is docs/evidence/desktop-backend/ACCEPTANCE.json plus exact BUILD_MANIFEST/PRIMARY_EXE_MANIFEST. Desktop native-device/NativeModuleScreens own real local actions; Owner typed page hooks synchronously filter current scope. Local Wall classifies known B rejections and preserves unknown outcomes. Current internal Lab Operator/Plugin are same-source; old enrolled Agent/Wall/supervisor/mTLS transport stay independent and retained.
+
+## Rebuild Desktop as a user workspace and fix populated approval and monitor layouts
+
+Desktop App.tsx retains native Owner/poller/action coordination, with synchronous current-Owner B/device display fences. WorkspaceShell.tsx owns shared navigation/header/account menu; WorkspaceViews.tsx owns Overview/AI Access/Settings presentation; components/ProductUi.tsx owns friendly badges/time/details. FeatureScreens.tsx provides filtered/bounded task/session/device/account views; NativeModuleScreens.tsx retains existing native actions and confirmations behind product controls. plugin-server/desktop-consent-page.mjs is presentation-only; desktop-auth-v4-server.mjs remains the security boundary. e2e/fixtures/user-experience.tsx is synthetic QA only and absent from the production entry/bundle.

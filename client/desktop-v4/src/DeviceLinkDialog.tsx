@@ -53,6 +53,12 @@ export function DeviceLinkDialog({onClose}:{onClose:()=>void}){
   const [message,setMessage]=useState('');
   const [now,setNow]=useState(Date.now());
   const pollBusy=useRef(false);
+  const panel=useRef<HTMLElement|null>(null);
+  useEffect(()=>{
+    const prior=document.activeElement as HTMLElement|null;
+    panel.current?.querySelector<HTMLElement>('button,input')?.focus();
+    return()=>{if(prior?.isConnected)prior.focus();};
+  },[]);
   // Parent snapshots/polling rerender often: onClose identity must never restart
   // native status/preview requests and erase the currently visible device code.
   const onCloseRef=useRef(onClose);onCloseRef.current=onClose;
@@ -100,7 +106,7 @@ export function DeviceLinkDialog({onClose}:{onClose:()=>void}){
     const answer=await invoke('link');
     if(answer.state==='disconnect_required'){
       setDevice(x=>({...x,connected:true}));
-      setMessage('Disconnect the active Cloud session before relinking. Existing Agent access is never transferred silently.');
+      setMessage('Disconnect this PC first, then review linking it to another account.');
     }else{
       const next=linkFrom(answer);
       if(next.state==='pending'){setLink(next);setConfirmRelink(false);}
@@ -115,7 +121,7 @@ export function DeviceLinkDialog({onClose}:{onClose:()=>void}){
     const result=await invoke('disconnect');
     if(result.ok===true){
       setDevice(x=>({...x,connected:false}));
-      setMessage('Cloud disconnected. The device may now be relinked without transferring sessions.');
+      setMessage('Disconnected. You can now review linking this PC to another account.');
     } else setMessage('Could not disconnect the current session. Check Local Wall.');
     setBusy(false);
   };
@@ -134,19 +140,25 @@ export function DeviceLinkDialog({onClose}:{onClose:()=>void}){
   };
   const fmt=(n:number)=>String(n).padStart(2,'0');
   return <div className="device-link-backdrop">
-    <section className="device-link-modal" role="dialog" aria-modal="true" aria-labelledby="device-link-title">
+    <section ref={panel} onKeyDown={e=>{
+      if(e.key!=='Tab')return;
+      const nodes=panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled)');
+      const first=nodes?.[0],last=nodes?.[nodes.length-1];
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}
+      if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
+    }} className="device-link-modal" role="dialog" aria-modal="true" aria-labelledby="device-link-title">
       <div className="device-link-heading">
-        <div><h2 id="device-link-title">Link / Relink this Windows PC</h2>
-          <p>One Light Remote app · current device only</p></div>
+        <div><h2 id="device-link-title">Link this PC</h2>
+          <p>Connect this computer to your Light Remote account</p></div>
         <Button type="button" variant="secondary" onClick={onClose}>Close</Button>
       </div>
       <p className="device-link-note">
         {device.shortId?'Short ID: '+device.shortId+' · ':''}
-        Link this device to your Owner account. Agent permissions still require separate Local Wall A/B approval.
+        Use your account to approve this PC. AI agents still need their own A/B approval.
       </p>
-      {!ready?<p role="status">Checking the local device enrollment…</p>
+      {!ready?<p role="status">Checking this PC…</p>
       :link.state==='pending'&&remaining>0?<>
-        <label htmlFor="device-link-code">One-time device code (selectable)</label>
+        <label htmlFor="device-link-code">Your one-time device code</label>
         <div className="device-link-code-row">
           <input id="device-link-code" value={link.code||''} type="text" readOnly
             spellCheck={false} onFocus={e=>e.currentTarget.select()} aria-label="Device code" />
@@ -156,15 +168,15 @@ export function DeviceLinkDialog({onClose}:{onClose:()=>void}){
           Expires in {fmt(Math.floor(remaining/60))}:{fmt(remaining%60)} · Waiting for account approval
         </p>
         <Button type="button" variant="primary" onClick={()=>{void open();}}>Open approval page</Button>
-        <p className="device-link-note">Closing this window does not discard the code. Open Link / Relink again from Tray to recover it.</p>
+        <p className="device-link-note">You can close this window and return to the same code from Link / Relink.</p>
       </>:device.connected?<>
-        <p role="status">This PC is currently connected to Cloud. Relink requires an intentional disconnect first.</p>
+        <p role="status">This PC is connected to an account. Disconnect it before linking it to another account.</p>
         <Button type="button" variant="secondary" disabled={busy} onClick={()=>{void disconnect();}}>
           Disconnect Cloud before relink
         </Button>
       </>:<>
-        <p>{device.enrolled?'This PC already has an enrollment. Its identity and local settings will be preserved until a new account approves the relink.':
-          'Request a new code to link this Windows PC to your Light Remote account.'}</p>
+        <p>{device.enrolled?'This PC is already linked. Review the change before linking it to a different account. Your local settings will be kept.':
+          'Get a device code, then approve this PC in your browser.'}</p>
         {device.enrolled&&!confirmRelink?(
           <Button type="button" disabled={busy} onClick={()=>setConfirmRelink(true)}>Review relink</Button>
         ):(

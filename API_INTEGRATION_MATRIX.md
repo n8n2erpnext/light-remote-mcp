@@ -44,3 +44,7 @@ Windows desktop_native_action adds two fixed compiled verbs service-start/servic
 ## Record verified internal Desktop backend candidate and coherent Lab deployment
 
 Current baseline2771f47/CI41: Desktop32-action native device API and14 fixed Windows host verbs are implemented and packaged. Internal Lab Operator+Plugin from that same commit enable current Owner session/snapshot/typed pages. Unauthenticated snapshot401, both signed B flows and wrong-B400 verified. Existing grant/policy/confirmation/CAS gates remain; read-only Owner cloud token is not an MCP grant. Physical Owner Windows acceptance remains NOT_RUN.
+
+## Rebuild Desktop as a user workspace and fix populated approval and monitor layouts
+
+No endpoint/method, schema version, native allowlist, Owner/device binding or OAuth scope change. Browser consent HTML moves into plugin-server/desktop-consent-page.mjs; desktop-auth-v4-server.mjs still owns Owner verification, one-time intent/CSRF, callback validation and exact CSP. User labels do not rename compatibility route/profile/vault identifiers.

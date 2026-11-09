@@ -1,5 +1,5 @@
 import {afterEach,expect,it,vi} from 'vitest';
-import {cleanup,render,screen} from '@testing-library/react';
+import {cleanup,render,screen,fireEvent} from '@testing-library/react';
 import type {OwnerSnapshot} from './lib/native-snapshot';
 vi.mock('./lib/use-owner-activity',()=>({
  useOwnerActivity:()=>({
@@ -33,6 +33,7 @@ it('H3 shows Redis TTL and terminal prune separately; never labels recovered ses
  expect(screen.getByText(/Redis snapshot TTL: 7 days/)).toBeTruthy();
  expect(screen.getByText(/Terminal sessions are pruned after 1 days/)).toBeTruthy();
  expect(screen.getByText(/Not an immutable audit archive/)).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'History'}));
  expect(screen.getByText('Retained')).toBeTruthy();
  expect(screen.queryByText(/Permanent audit/)).toBeNull();
 });

@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 258,
+    "total": 259,
     "markdown": 225,
-    "json": 33
+    "json": 34
   },
   "files": [
     {
@@ -133,6 +133,26 @@
         "primaryExecutable",
         "installedLifecycle",
         "migration"
+      ]
+    },
+    {
+      "path": "docs/evidence/desktop-user-experience/LOCAL_VERIFICATION.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 997,
+      "sha256": "9a0227f9780c596c2294037b37bbee501404e28018f9ec5b35d5095eb41c936f",
+      "topLevelKeys": [
+        "schemaVersion",
+        "candidateVersion",
+        "scope",
+        "react",
+        "consentAndToken",
+        "sourceAuthorityGuards",
+        "browser",
+        "nativeInstaller",
+        "physicalOwnerAcceptance",
+        "ownerInstallationChangedByCodex",
+        "publicReleaseOrFeed"
       ]
     },
     {

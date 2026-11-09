@@ -55,7 +55,7 @@ async function inspect(page, variant) {
       return { x: r.x, y: r.y, w: r.width, h: r.height, right: r.right, bottom: r.bottom };
     };
     const nav = Array.from(document.querySelectorAll('nav[aria-label="Main navigation"] a'));
-    const button = Array.from(document.querySelectorAll('button')).find(el => el.textContent?.trim() === 'Review owner requests');
+    const button = document.querySelector('.approval-request button[type=submit]');
     const grid = by('.approval-grid');
     const gridStyle = grid ? getComputedStyle(grid) : null;
     const approval = rect(by('.approval-card'));
@@ -69,7 +69,7 @@ async function inspect(page, variant) {
       navCount: nav.length,
       navLabels: nav.map(el => el.textContent?.trim()),
       settingsVisibleInDom: nav.some(el => el.textContent?.trim() === 'Settings'),
-      ownerActionDisabled: Boolean(button?.disabled),
+      ownerActionDisabled: !button || Boolean(button.disabled),
       theme: root.dataset.theme,
       mainHorizontalScroll: root.scrollWidth > innerWidth + 3,
       cardOverflow: overflowing,
@@ -80,7 +80,7 @@ async function inspect(page, variant) {
       footer: rect(by('.side-footer')),
       settings: rect(nav.at(-1)),
       primaryText: by('.approval-card h3')?.textContent?.trim(),
-      noVerifiedGrants: Boolean(Array.from(document.querySelectorAll('h3')).find(el => el.textContent?.trim() === 'No verified grants')),
+      noVerifiedGrants: Boolean(Array.from(document.querySelectorAll('h3')).find(el => el.textContent?.trim() === 'Your approved agents are unavailable')),
       statusSource: by('.verification-line')?.textContent?.trim()
     };
   }, { expectedColumns: variant.columns });
@@ -97,7 +97,7 @@ let browser;
 const results = [];
 try {
   await waitReady('http://127.0.0.1:4174/');
-  browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+  browser = await chromium.launch({ headless: true, ...(process.env.LR_PLAYWRIGHT_EXECUTABLE?{executablePath:process.env.LR_PLAYWRIGHT_EXECUTABLE}:{}), args: ['--no-sandbox'] });
   for (const variant of variants) {
     const context = await browser.newContext({ viewport: { width: variant.width, height: variant.height }, deviceScaleFactor: 1, colorScheme: variant.theme });
     const page = await context.newPage();
@@ -209,10 +209,10 @@ try {
         await document.fonts.ready;
         return {
           fontLoaded: Array.from(document.fonts).some(f => f.family === 'Light Remote Google Sans' && f.status === 'loaded'),
-          hasTable: Boolean(document.querySelector('.feature-table')),
+          hasTable: Boolean(document.querySelector('.feature-table,[aria-label="Long Memory scopes"]')),
           hasSourceBoundary: Boolean(document.querySelector('.feature-unavailable')),
           navCount: document.querySelectorAll('nav[aria-label="Main navigation"] a').length,
-          allFeatureButtonsDisabled: Array.from(document.querySelectorAll('.feature-dashboard button')).every(b => b.disabled),
+          allFeatureButtonsDisabled: Array.from(document.querySelectorAll('.feature-dashboard .lr-button')).every(b => b.disabled),
           gearIcon: Boolean(document.querySelector('nav a[href="#/settings"] svg.lucide-settings')),
           horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 3,
           theme: document.documentElement.dataset.theme,

@@ -11,6 +11,9 @@ assert.match(app,/startScopedReadPoller\(\{\s*intervalMs:20_000,[\s\S]*?task:\(\
 assert.match(app,/startScopedReadPoller\(\{\s*intervalMs:8000,[\s\S]*?task:nativeAbv2Pending/);
 assert.match(app,/const refreshAbv2=useCallback\(\(\)=>\{\s*if\(nativeAbv2Pilot\)abv2Poller\.current\?\.refreshNow\(\)/);
 assert.match(app,/if\(result\.state==='granted'\)refreshAbv2\(\)/);
+assert.match(app,/abv2Scope===nativeOwner\.accountId/);
+assert.match(app,/\[nativeAbv2Pilot,nativeOwner\.accountId\]/);
+assert.match(app,/const displayStatus:LoadState=nativeOwnerVerified/);
 assert.doesNotMatch(app,/window\.setInterval\(load,20_000\)|window\.setInterval\(refreshAbv2,8000\)/);
 assert.match(poller,/let inFlight=false;/);
 assert.match(poller,/let pending=false;/);

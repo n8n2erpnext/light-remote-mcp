@@ -1,7 +1,8 @@
 # Known issues and remaining verification
 
-Current source2771f47 / internal candidate0.10.1-dev.3: full CI41 PASS9/9, web115/115 and backend25/25. Earlier dated sections record historical task states; the current table and final checkpoint take precedence. Fixed: unbound native UI/status, fresh Memory schema, missing inventory ACL, unsafe async projections, ambiguous service toggle and wrong-B503. Desktop lists cap local Memory/Codex at100 with explicit partial coverage.
+Current work: internal Desktop UX candidate0.10.1-dev.4 is implemented and locally verified across all screens; full Actions/native installer and physical acceptance are pending. Old negative-margin B overlap, zero-padding populated tables, technical main-screen copy and unbounded initial task presentation have source fixes. The last stable compiled baseline is2771f47/dev.3/CI41. Owner reports its installed UI works; the new design has not been installed on their device.
 
+The table below retains backend/packaging evidence from that verified baseline until new CI/rollout receipts replace it. Local Memory/Codex reads still cap at100 with an explicit partial-data notice; Desktop task history initially renders10 loaded rows and can show/load more. Positive Wall browser SSO and full Mac/Linux packages remain separate backlog.
 
 | Item | Current evidence | Next action |
 |---|---|---|

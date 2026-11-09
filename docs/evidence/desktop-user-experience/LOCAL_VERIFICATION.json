@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "candidateVersion": "0.10.1-dev.4",
+  "scope": "LOCAL_SOURCE_VERIFICATION_SYNTHETIC_DATA_NOT_OWNER_PHYSICAL",
+  "react": {
+    "total": 121,
+    "passed": 121
+  },
+  "consentAndToken": {
+    "total": 36,
+    "passed": 36
+  },
+  "sourceAuthorityGuards": 5,
+  "browser": {
+    "entryAndUnavailableCases": 30,
+    "populatedCases": 132,
+    "dialogCases": 8,
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "cssWidths": [
+      390,
+      768,
+      853,
+      1024,
+      1280
+    ],
+    "deviceScaleFactors": [
+      1,
+      1.5
+    ],
+    "syntheticLoadedJobs": 120,
+    "syntheticRecentEvents": 187,
+    "initialRenderedTaskRows": 10,
+    "bInputButtonIntersection": false,
+    "overlapNegativeCalibration": "PASS",
+    "horizontalOverflow": false,
+    "minimumTableCellPaddingPx": 14,
+    "logoLoaded": true
+  },
+  "nativeInstaller": "CI_PENDING",
+  "physicalOwnerAcceptance": false,
+  "ownerInstallationChangedByCodex": false,
+  "publicReleaseOrFeed": false
+}

@@ -261,3 +261,14 @@ test('plugin server registers Desktop consent behind an exact default-OFF featur
   assert.ok(src.includes('registerDesktopOwnerV4Authorization(app,{'));
   assert.ok(!src.includes('DESKTOP_OWNER_AUTH_V4!=='));
 });
+
+
+test('Desktop consent presentation escapes all interpolated fields without scripts or external assets',async()=>{
+ const {desktopConsentPage}=await import('./desktop-consent-page.mjs');
+ const html=desktopConsentPage({csrf:'\"<script>injection</script>&',formAction:'/account/desktop/v4/authorize'});
+ assert.match(html,/name="csrf" value="&quot;&lt;script&gt;injection&lt;\/script&gt;&amp;"/);
+ assert.match(html,/<form method="POST" action="\/account\/desktop\/v4\/authorize">/);
+ assert.match(html,/name="decision" value="approve"/);
+ assert.match(html,/name="decision" value="deny"/);
+ assert.doesNotMatch(html,/<script[ >]|<link[^>]+href=|<img[^>]+src=/i);
+});

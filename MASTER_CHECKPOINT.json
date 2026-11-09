@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-09T12:54:36.079Z",
-  "version": "0.10.1-dev.3",
+  "updatedAt": "2026-11-09T13:46:16.853Z",
+  "version": "0.10.1-dev.4",
   "phase": "DESKTOP_BACKEND_INTERNAL_CANDIDATE_ACCEPTED",
-  "status": "DESKTOP_UX_RECONSTRUCTION_IN_PROGRESS",
+  "status": "DESKTOP_UX_IMPLEMENTED_LOCAL_VERIFIED_NATIVE_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -238,7 +238,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Implement task-oriented Desktop presentation across all routes/login/dialogs and consent; validate populated responsive/zoom layouts plus existing authority/async tests. Build an internal-only exact-source installer in Actions, verify hashes and promote only after baseline-required PASS.",
+  "nextAction": "Inspect exact-source full Actions CI, correct any regression without weakening checks, verify internal installer/manifests and screenshots, then update the internal Lab consent backend from this tested GitHub source while preserving all state/processes. Close canonical checkpoint/handoff and promote only after baseline-required PASS. No public release/feed.",
   "receiptNote": "Current compiled source and verified CI artifact are pinned independently from this documentation-only receipt; public binary release awaits explicit Owner approval. No native rebuild or existing-runtime deployment is implied.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -329,13 +329,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-desktop-ux-owner-feedback-inventory",
-    "status": "INVENTORY_DONE_IMPLEMENTATION_NEXT",
-    "summary": "Owner confirms the installed internal dev.3 Desktop works, then requests a user-facing redesign across every screen. Record all-screen scope, B input overlap and populated layout gaps before implementation. Verified full pre-change checkpoint and independent Git restore; no old runtime changed.",
-    "verification": "Read current README/AGENTS/truth/checkpoint/architecture/project book/code map/handoff. Source confirms negative approval-button margin and zero table-cell padding. User screenshots provide installed functional UI evidence only. Full checkpoint tag checkpoint/20261109-before-desktop-ux-467a48a, bundle SHA256 ab64da04c5c085c34d47168d75cfb82275a0aa9864dcfe6602fc3f0462aabcfd, independent bare restore/fsck PASS. Redesign and new artifact are NOT_IMPLEMENTED/NOT_BUILT at this milestone.",
-    "nextAction": "Implement task-oriented Desktop presentation across all routes/login/dialogs and consent; validate populated responsive/zoom layouts plus existing authority/async tests. Build an internal-only exact-source installer in Actions, verify hashes and promote only after baseline-required PASS.",
-    "sourceDigest": "1d58e19c21afae833c6b12d90b19a0d25508ed9f8bc2313af0cd5981ab3a3838",
-    "sourceFileCount": 1638
+    "taskId": "20261109-all-screen-desktop-user-experience",
+    "status": "IMPLEMENTED_LOCAL_VERIFIED_NATIVE_CI_PENDING",
+    "summary": "Rebuild all Desktop screens, login/link/confirm and browser consent as task-oriented user interfaces. Preserve native APIs/authority/CAS/confirmations. Fix B overlap and populated table spacing; put activity first, bound task rows to10, add filters and reveal IDs/raw events only in details. Reflect real Overview requests/work and hide false unavailable warnings under successful inventories. Scope B and device presentation synchronously to the current Owner.",
+    "verification": "Local React121/121, consent/token36/36 and five unchanged native/Owner/persistence source guards PASS. Production Vite/typecheck PASS. Browser30 entry/unavailable plus140 populated/dialog cases PASS across light/dark,390/768/853/1024/1280 widths and1/1.5DPR,120 synthetic jobs and187 events. B geometry never intersects; deliberate overlap is detected. Readable table padding and no page/card overflow. Actual narrow table-reader-label overflow was caught and fixed with a containing block. Native installer/Actions and Owner physical acceptance for dev.4 remain NOT_RUN.",
+    "nextAction": "Inspect exact-source full Actions CI, correct any regression without weakening checks, verify internal installer/manifests and screenshots, then update the internal Lab consent backend from this tested GitHub source while preserving all state/processes. Close canonical checkpoint/handoff and promote only after baseline-required PASS. No public release/feed.",
+    "sourceDigest": "98fd17c91f46f5be46e931427c46e25b1043d2e830ae260cb90f3af705d7134f",
+    "sourceFileCount": 1646
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -676,7 +676,7 @@
   },
   "runtimeChangeScope": "Internal Lab Operator and Plugin only migrated into a new exact-source runtime; old source trees unchanged. One initial PartOf-driven Wall stop was restored; final controlled cutover preserved Agent/supervisor/transport PIDs. No SQL migration or Owner Windows install change.",
   "desktopUserExperience": {
-    "status": "INVENTORY_DONE_IMPLEMENTATION_NEXT",
+    "status": "IMPLEMENTED_LOCAL_VERIFIED_NATIVE_CI_PENDING",
     "baseCommit": "467a48a44bea89f039fe17baa932aa6ab5e79a69",
     "preChangeTag": "checkpoint/20261109-before-desktop-ux-467a48a",
     "bundleSha256": "ab64da04c5c085c34d47168d75cfb82275a0aa9864dcfe6602fc3f0462aabcfd",
@@ -690,7 +690,20 @@
       "Raw IDs/events and repeated engineering trust text dominate every screen",
       "Visual QA currently uses empty unauthorized states"
     ],
-    "newArtifact": "NOT_BUILT",
-    "runtimeChanged": false
+    "newArtifact": "CI_PENDING",
+    "runtimeChanged": false,
+    "candidateVersion": "0.10.1-dev.4",
+    "steps": {
+      "P0Inventory": "DONE",
+      "P1AllScreens": "DONE_LOCAL",
+      "P2PopulatedBrowser": "PASS170",
+      "P3NativeActions": "NEXT",
+      "P4InternalArtifactAndConsentRollout": "NOT_STARTED"
+    },
+    "localEvidence": "docs/evidence/desktop-user-experience/LOCAL_VERIFICATION.json",
+    "reactTests": 121,
+    "consentTokenTests": 36,
+    "browserCases": 170,
+    "displayOwnerFences": "SYNCHRONOUS_CURRENT_OWNER_B_AND_DEVICE_PROJECTION"
   }
 }

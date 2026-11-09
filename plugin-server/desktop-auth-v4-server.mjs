@@ -4,6 +4,7 @@
  * Agent or log an app in; the native secure vault/session bridge is separate.
  */
 import crypto from 'node:crypto';
+import {desktopConsentPage} from './desktop-consent-page.mjs';
 import { callOperatorJson } from './operator-client.mjs';
 import {
   DESKTOP_OWNER_CLIENT_ID, DESKTOP_OWNER_RESOURCE, DESKTOP_OWNER_SCOPE,
@@ -210,20 +211,7 @@ export function createDesktopOwnerAuthorization({
     // following Chrome behavior for 303 after POST, not a wildcard localhost.
     const csp = "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' " +
       callbackOrigin + "; frame-ancestors 'none'; base-uri 'none'";
-    const html = [
-      '<!doctype html><html lang="en"><head><meta charset="utf-8">',
-      '<meta name="viewport" content="width=device-width,initial-scale=1">',
-      '<title>Authorize Light Remote Desktop</title></head>',
-      '<body style="font:16px sans-serif;max-width:540px;margin:10vh auto;padding:2em">',
-      '<h1>Allow Light Remote Desktop?</h1>',
-      '<p>Sign in to this device app with your verified Light Remote Owner account.</p>',
-      '<p>Read-only account access. Agent A/B approval requires separate Owner consent.</p>',
-      '<form method="POST" action="/account/desktop/v4/authorize">',
-      '<input type="hidden" name="csrf" value="',text(csrf),'">',
-      '<button type="submit" name="decision" value="approve">Continue to Desktop</button> ',
-      '<button type="submit" name="decision" value="deny">Cancel</button>',
-      '</form></body></html>'
-    ].join('');
+    const html=desktopConsentPage({csrf,formAction:'/account/desktop/v4/authorize'});
     return {html,csp};
   }
   async function getConsent(req,res) {

@@ -52,7 +52,7 @@ describe('Desktop Owner approval form to same-host native Agent boundary', () =>
     expect(submit.disabled).toBe(false);
     fireEvent.click(submit);
     expect(await screen.findByRole('status')).toHaveProperty('textContent',
-      'Approved by the enrolled Agent and Operator.');
+      'Agent approved. It can now connect to this device.');
     expect(invoke).toHaveBeenCalledTimes(1);
     expect(invoke).toHaveBeenCalledWith('desktop_owner_abv2_approve', {
       requestId: REQUEST.requestId,
@@ -101,8 +101,8 @@ describe('Desktop Owner approval form to same-host native Agent boundary', () =>
     });
     fireEvent.click(screen.getByRole('button', { name: 'Approve Agent' }));
     expect(await screen.findByRole('alert')).toHaveProperty('textContent',
-      'Approval unavailable or expired. Refresh the request and try again.');
-    expect(screen.queryByText('Approved by the enrolled Agent and Operator.')).toBeNull();
+      'The request could not be approved. Refresh and check the B code or request a new one.');
+    expect(screen.queryByText('Agent approved. It can now connect to this device.')).toBeNull();
     expect(invoke).toHaveBeenCalledTimes(1);
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
   });

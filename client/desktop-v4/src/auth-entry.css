@@ -1,15 +1,14 @@
-/* Desktop V4 account gate — Figma auth-entry 2026-11-03.
-   Existing frozen nine-route workspace and its sidebar are not reflowed. */
+/* Account entry uses the same product palette and responsive geometry as Desktop. */
 .auth-shell {
   display:grid; grid-template-columns:minmax(420px,44.5%) minmax(0,1fr);
   min-height:100vh; background:var(--app-bg); color:var(--ink);
 }
 .auth-brand-panel {
-  background:#e9eef7; border-right:1px solid var(--border);
+  background:var(--surface-inset); border-right:1px solid var(--border);
   padding:70px clamp(38px,6.4vw,95px) 44px;
   min-height:100vh; display:flex; flex-direction:column; gap:38px;
 }
-[data-theme="dark"] .auth-brand-panel { background:#101824; }
+[data-theme="dark"] .auth-brand-panel { background:var(--sidebar-bg); }
 .auth-brand-lockup { display:flex; align-items:center; gap:18px; min-height:56px; }
 .auth-brand-lockup img { width:53px;height:53px;object-fit:contain;flex:none; }
 .auth-brand-lockup span { display:flex;flex-direction:column;gap:6px; }
@@ -69,7 +68,7 @@
   .auth-brand-lockup img {width:36px;height:36px;}
   .auth-brand-lockup strong {font-size:16px;}
   .auth-brand-message,.auth-steps,.auth-brand-footnote {display:none;}
-  .auth-main {min-height:calc(100vh - 91px);padding:77px 17px 24px;justify-content:flex-start;}
+  .auth-main {min-height:calc(100vh - 91px);padding:32px 17px 24px;justify-content:flex-start;}
   .auth-card {padding:28px 23px 24px;border-radius:18px;}
 }
 @media(max-width:430px) {

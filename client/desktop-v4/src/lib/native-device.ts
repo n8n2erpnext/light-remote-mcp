@@ -134,11 +134,12 @@ export async function nativeDeviceRequest(action:DeviceAction,accountId:string,d
  }
 }
 export function deviceErrorMessage(reason:string){
+ if(reason==='not_checked')return 'Checking this PC’s connection…';
  if(/revision|changed_since|conflict/.test(reason))return 'State changed on another screen or device. Current state has been reloaded; review it before trying again.';
  if(/outcome_unknown|timeout/.test(reason))return 'The operation response was not confirmed. Refresh and verify the actual state before retrying.';
  if(/owner|binding|unavailable/.test(reason))return 'Cannot verify the local Agent for this Owner. Check the Agent and the matching internal test build, then refresh.';
  if(/module_disabled/.test(reason))return 'This module is disabled. Refresh its current state.';
- return reason.replaceAll('_',' ');
+ return 'This action could not be completed. Refresh and try again, or check connection details.';
 }
 export function useNativeDevice(section:DeviceSection,accountId:string|null){
  const [result,setResult]=useState<DeviceReply>(closed('not_checked'));

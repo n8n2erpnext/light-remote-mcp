@@ -19,14 +19,14 @@ describe('V4 Owner Login gate: UI preview vs feature-enabled native browser flow
     fireEvent.click(button);
     expect(begin).toHaveBeenCalledTimes(1);
     expect(begin.mock.calls[0]).toHaveLength(0);
-    expect(screen.getByText(/Agent A\/B access stays separate/)).toBeTruthy();
+    expect(screen.getByText(/Signing in does not give an AI agent access/)).toBeTruthy();
   });
   it('shows a waiting callback state and explicit cancel, without any Owner grant',()=>{
     const cancel=vi.fn();
     render(<AuthEntry allowDesignPreview={false} onPreviewWorkspace={()=>{}}
       nativePhase="browser_pending" onBrowserSignIn={()=>{}} onCancelSignIn={cancel} />);
     expect(screen.getByRole('heading',{name:'Awaiting secure sign-in'})).toBeTruthy();
-    expect(screen.getByText('Waiting for verified browser callback')).toBeTruthy();
+    expect(screen.getByText('Waiting for you to finish signing in')).toBeTruthy();
     fireEvent.click(screen.getByRole('button',{name:'Cancel sign-in'}));
     expect(cancel).toHaveBeenCalledTimes(1);
   });

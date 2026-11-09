@@ -52,7 +52,8 @@ describe('Desktop module controls backed by native Agent state',()=>{
  });
  it('requires the exact scope name before destructive local deletion',async()=>{
   render(<LongMemoryScreen accountId="owner"/>);await screen.findByText('Project receipt');
-  fireEvent.click(screen.getByRole('button',{name:'Delete locally'}));
+  fireEvent.click(screen.getByText('Manage project'));
+  fireEvent.click(screen.getByRole('button',{name:'Delete from this PC'}));
   const confirm=screen.getByRole('button',{name:'Confirm'}) as HTMLButtonElement;
   expect(confirm.disabled).toBe(true);
   fireEvent.change(screen.getByRole('textbox',{name:'Exact confirmation text'}),{target:{value:'Project receipt'}});
@@ -68,7 +69,8 @@ describe('Desktop module controls backed by native Agent state',()=>{
  });
  it('cancels a pending destructive confirmation when the verified Owner changes',async()=>{
   const view=render(<LongMemoryScreen accountId="owner"/>);await screen.findByText('Project receipt');
-  fireEvent.click(screen.getByRole('button',{name:'Delete locally'}));
+  fireEvent.click(screen.getByText('Manage project'));
+  fireEvent.click(screen.getByRole('button',{name:'Delete from this PC'}));
   view.rerender(<LongMemoryScreen accountId={null}/>);
   await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
   expect(invoke.mock.calls.some(c=>c[1].action==='memory.delete-local')).toBe(false);

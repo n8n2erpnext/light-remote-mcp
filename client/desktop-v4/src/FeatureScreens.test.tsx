@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { FeatureScreen, type FeatureRoute } from './FeatureScreens';
 
 afterEach(cleanup);
 const rows: Array<{ route: FeatureRoute; title: string; table: string }> = [
-  { route: 'sessions', title: 'AI SESSIONS', table: 'AI sessions' },
-  { route: 'live-monitor', title: 'JOB CONTROLLER', table: 'Agent jobs' },
-  { route: 'devices', title: 'DEVICES', table: 'Devices inventory' },
-  { route: 'long-memory', title: 'MEMORY LIBRARY', table: 'Long Memory scopes' },
-  { route: 'codex-bridge', title: 'CODEX TASKS', table: 'Codex tasks' },
-  { route: 'account', title: 'USAGE BY DEVICE', table: 'Usage by device' }
+  { route: 'sessions', title: 'Your AI sessions', table: 'AI sessions' },
+  { route: 'live-monitor', title: 'Task history', table: 'Agent jobs' },
+  { route: 'devices', title: 'Your devices', table: 'Devices inventory' },
+  { route: 'long-memory', title: 'Your memory library', table: 'Long Memory scopes' },
+  { route: 'codex-bridge', title: 'Your tasks', table: 'Codex tasks' },
+  { route: 'account', title: 'Usage by device', table: 'Usage by device' }
 ];
 
 describe('desktop V4 feature screen integrity', () => {
@@ -18,8 +18,8 @@ describe('desktop V4 feature screen integrity', () => {
       render(<FeatureScreen route={route} status={null} />);
       expect(screen.getByRole('heading', { name: title })).toBeTruthy();
       expect(screen.getByRole('region', { name: table })).toBeTruthy();
-      expect(screen.getByText('Verified source unavailable')).toBeTruthy();
-      expect(screen.getByText('Records not verified')).toBeTruthy();
+      expect(screen.queryByRole('button',{name:'Stop task'})).toBeNull();
+      expect(screen.queryByRole('button',{name:'Close session'})).toBeNull();
     });
   }
   it('locks all unverified interaction controls, not merely styling them inactive', () => {
@@ -33,7 +33,6 @@ describe('desktop V4 feature screen integrity', () => {
         expect(view.container.textContent).toContain('Windows Tray');
         expect(view.container.textContent).toContain('Link / Relink');
       } else {
-        expect(buttons.length).toBeGreaterThan(0);
         buttons.forEach(button => expect(button.disabled).toBe(true));
       }
       view.unmount();
@@ -60,9 +59,9 @@ describe('desktop V4 feature screen integrity', () => {
     render(<FeatureScreen route="account" status={null} snapshot={snapshot} />);
     expect(screen.getByText('owner@example.test')).toBeTruthy();
     expect(screen.getByText('Workstation')).toBeTruthy();
-    expect(screen.getAllByText('2026-11')).toHaveLength(2);
+    expect(screen.getByText(/Usage period: 2026-11/)).toBeTruthy();
     expect(screen.getByText('19')).toBeTruthy();
-    expect(screen.getByText('2.0')).toBeTruthy();
+    expect(screen.getByText('2.0 hours')).toBeTruthy();
   });
   it('renders only verified, sanitized Operator jobs and recent events',()=>{
     const snapshot={
@@ -80,8 +79,11 @@ describe('desktop V4 feature screen integrity', () => {
     expect(screen.getByRole('region',{name:'Live activity events'})).toBeTruthy();
     expect(screen.getByText('j-123')).toBeTruthy();
     expect(screen.getByText('job_started')).toBeTruthy();
-    expect(screen.getByText('Read only')).toBeTruthy();
-    expect(screen.getByText('Current in-memory job window')).toBeTruthy();
+    expect(screen.queryByRole('button',{name:'Stop task'})).toBeNull();
+    expect(screen.getByText('View only on this PC')).toBeTruthy();
+    expect(screen.getByText('job_started').closest('details')?.open).toBe(false);
+    expect(screen.getByText('Task started')).toBeTruthy();
+    expect(screen.getByText(/Current in-memory job window/)).toBeTruthy();
     expect(screen.getByText('≥1')).toBeTruthy();
     expect(screen.queryByText('Activity stream unverified')).toBeNull();
   });
@@ -105,7 +107,7 @@ describe('desktop V4 feature screen integrity', () => {
     };
     render(<FeatureScreen route="sessions" status={null} snapshot={snapshot}/>);
     expect(screen.getByText(/Showing 2 of 201 Owner sessions/)).toBeTruthy();
-    expect(screen.getByText('Verified session window — not complete history')).toBeTruthy();
+    expect(screen.getByText(/This is a recent session window/)).toBeTruthy();
     expect(screen.getByText('Live')).toBeTruthy();
   });
   it('a known local device connection must not be taken as job or owner authority', () => {
@@ -114,6 +116,6 @@ describe('desktop V4 feature screen integrity', () => {
     }} />);
     expect(screen.getAllByText('Connected').length).toBeGreaterThan(0);
     expect(screen.getByRole('region', { name: 'Agent jobs' })).toBeTruthy();
-    expect(screen.getByText('Records not verified')).toBeTruthy();
+    expect(screen.getByText('Waiting for your activity')).toBeTruthy();
   });
 });
