@@ -110,3 +110,7 @@ Primary migration proof now writes per-stage progress and captures only isolated
 ## Record Owner pause and exact running primary build handoff
 
 Owner pause receipt only: current executable implementation is work source1fb8335a21d0a6716df2322c8ed6f19265421421. Running CI42511023888 contains the final native migration/watchdog proof; inspect its actual result when Owner resumes. No executable boundary or runtime was changed by this documentation receipt.
+
+## Resume build28 and wait for final PostgreSQL TCP readiness
+
+Owner resumed after quota. deploy/unified/dev.py now waits for the final PostgreSQL loopback TCP listener rather than a default Unix socket, which can belong to the official image's temporary bootstrap postmaster. Initialization SQL still uses its existing local authentication and isolated resource labels; no production DB or Windows runtime changes. test_dev_readiness.py models bootstrap→shutdown→final startup and rejects the old premature-ready behavior; it also verifies bounded failure when final readiness never occurs. Core CI runs this regression before actual backend integration.

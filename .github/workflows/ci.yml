@@ -115,6 +115,8 @@ jobs:
         working-directory: plugin-server
       - name: Core unit and selected source regression tests
         run: npm test
+      - name: PostgreSQL bootstrap readiness regression
+        run: python3 -B -m unittest discover -s deploy/unified -p 'test_*.py'
       - name: Isolated actual backend and schema integration
         run: python3 deploy/unified/dev.py test
       - name: Record exact source manifest

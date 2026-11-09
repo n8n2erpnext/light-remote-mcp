@@ -23,6 +23,17 @@ def write(path, value, mode=0o600):
 
 def docker(*args, **kw): return run(['docker',*map(str,args)], **kw)
 
+def wait_for_postgres(name, attempts=60, interval=1):
+    # The official image first runs a Unix-socket-only bootstrap server and
+    # stops it before starting the real server. A default socket probe can
+    # accept that temporary server and race shutdown before the first SQL.
+    for attempt in range(attempts):
+        if docker('exec',name,'pg_isready','-h','127.0.0.1','-p','5432',
+                  '-U','postgres','-t','1',check=False).returncode==0:
+            return
+        if attempt+1<attempts:time.sleep(interval)
+    raise RuntimeError('fresh PostgreSQL final TCP server did not start')
+
 def inspect_owned(kind, name, ident):
     result=docker(kind,'inspect',name,check=False)
     if result.returncode: return False
@@ -90,10 +101,7 @@ def launch(args):
         common=['--label',LABEL+'='+ident,'--network',names['net'],'--restart','no','--log-opt','max-size=5m','--log-opt','max-file=2']
         docker('run','-d','--name',names['pg'],*common,'--memory','512m','-e','POSTGRES_PASSWORD_FILE=/run/secrets/postgres-password','-v',str(bootstrap/'postgres-password')+':/run/secrets/postgres-password:ro','-v',names['pgdata']+':/var/lib/postgresql/data',image('postgres'))
         docker('run','-d','--name',names['redis'],*common,'--memory','160m','-v',str(bootstrap/'redis.conf')+':/run/secrets/redis.conf:ro','-v',names['redisdata']+':/data',image('redis'),'redis-server','/run/secrets/redis.conf')
-        for _ in range(60):
-            if docker('exec',names['pg'],'pg_isready','-U','postgres',check=False).returncode==0:break
-            time.sleep(1)
-        else:raise RuntimeError('fresh PostgreSQL did not start')
+        wait_for_postgres(names['pg'])
         sql=f"CREATE ROLE lr_gold_app LOGIN PASSWORD '{apppw}';\nCREATE ROLE lr_gold_migrator LOGIN PASSWORD '{migratorpw}';\nCREATE DATABASE light_remote_gold_dev OWNER lr_gold_migrator;\nCOMMENT ON DATABASE light_remote_gold_dev IS 'lr-unified-fixture:{sha}';\n"
         docker('exec','-i',names['pg'],'psql','-v','ON_ERROR_STOP=1','-U','postgres',data=sql.encode())
         write(app/'pg-url',f'postgresql://lr_gold_app:{apppw}@{names["pg"]}:5432/light_remote_gold_dev')
