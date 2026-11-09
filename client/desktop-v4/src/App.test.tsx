@@ -28,7 +28,7 @@ function renderPreview() {
   return view;
 }
 
-describe('Desktop V4 fail-closed interaction', () => {
+describe('Desktop fail-closed interaction', () => {
 
   it('keeps appearance controls out of the Login gate while Settings owns them', () => {
     render(<App />);
@@ -85,13 +85,13 @@ describe('Desktop V4 fail-closed interaction', () => {
     const approval = screen.getByRole('button', { name: 'Review owner requests' }) as HTMLButtonElement;
     expect(approval.disabled).toBe(true);
     expect(screen.getByText('No verified grants')).toBeTruthy();
-    expect(screen.getByText(/A\/B V2 capability not verified/)).toBeTruthy();
+    expect(screen.getByText(/A\/B capability not verified/)).toBeTruthy();
   });
 
   it('keeps unauthenticated /api/status as unverified, not connected', async () => {
     renderPreview();
     await screen.findByText('Device state not verified');
-    expect(screen.queryByText('Connected · verified Local Wall')).toBeNull();
+    expect(screen.queryByText('Connected · verified local Agent')).toBeNull();
     const fetchMock = vi.mocked(fetch);
     expect(fetchMock).toHaveBeenCalledWith('/api/status', expect.objectContaining({
       credentials: 'same-origin', redirect: 'manual'
@@ -127,7 +127,7 @@ describe('Desktop V4 fail-closed interaction', () => {
     renderPreview();
     const nav = screen.getByRole('navigation', { name: 'Main navigation' });
     fireEvent.click(within(nav).getByRole('link', { name: 'AI Access' }));
-    await screen.findByText('Connected · verified Local Wall');
+    await screen.findByText('Connected · verified local Agent');
     expect(screen.getByText('QA Windows 10')).toBeTruthy();
     expect(screen.getByText('No verified grants')).toBeTruthy();
     expect(screen.queryByText(/FORBIDDEN/)).toBeNull();
@@ -141,7 +141,7 @@ describe('Desktop V4 fail-closed interaction', () => {
     await screen.findByText('Wall reachable · Owner login required');
     expect(screen.getByText('Wall responding · Owner login required')).toBeTruthy();
     expect(screen.getByText('Device not verified')).toBeTruthy();
-    expect(screen.queryByText('Connected · verified Local Wall')).toBeNull();
+    expect(screen.queryByText('Connected · verified local Agent')).toBeNull();
     expect(invoke).toHaveBeenCalledWith('probe_local_wall');
   });
 

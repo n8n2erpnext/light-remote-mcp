@@ -30,3 +30,7 @@ Active task: confirmed deployed Lab backend is mixed0.9.0-rc.49 STAGED source wh
 ## Implement verified native device API and fix Memory startup and Desktop ACL gaps
 
 Fixed in source: first read of Memory usage after enabling could fail with no such table lm_scopes; native inventory pagination command was missing from explicit Tauri ACL. Targeted SQLite/socket/contract tests PASS; native CI and actual Desktop binding are still pending, and Wall B regression remains unresolved until real cross-layer testing.
+
+## Connect Desktop controls to the verified Agent API and unify displayed names
+
+The live Lab backend still runs mixed older rc49 Operator/Plugin/Wall sources. No deployment/physical acceptance is inferred from the new UI. Full signed Wall B roundtrip and final coherent internal backend candidate are pending. Local Memory/Codex listings currently expose100 rows with explicit partial coverage; additional records remain accessible through Wall.

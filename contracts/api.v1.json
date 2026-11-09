@@ -165,6 +165,8 @@
       "authority": "Current native Owner bearer verified against canonical issuer, exact enrolled account/device checked before dispatch and after response; credentials never enter React. Each mutation retains existing confirmation, CAS and signed device channel policy. No remote execution granted by login.",
       "operations": [
         "device.read",
+        "device.connect",
+        "device.disconnect",
         "memory.read",
         "codex.read",
         "settings.read",
@@ -204,7 +206,13 @@
       ],
       "response": "Bounded allowlisted local state or acknowledged operation; unknown outcome never retried automatically.",
       "featureFlag": "LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4",
-      "sourceStatus": "IMPLEMENTED_CI_PENDING_UI_BINDING_NEXT"
+      "sourceStatus": "IMPLEMENTED_UI_BOUND_CANDIDATE_NOT_DEPLOYED",
+      "nativeArguments": [
+        "action",
+        "expectedAccountId (current verified Owner; checked before effects)",
+        "deviceId (null only for discovery)",
+        "payload"
+      ]
     }
   }
 }

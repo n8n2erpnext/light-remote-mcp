@@ -118,3 +118,7 @@ Implemented the current Owner/account/device-bound native Agent API and explicit
 ## Include native device API in Agent package and preserve scoped Owner fence checks
 
 Fix the P1 Agent package import closure: explicitly include both new native device API modules in client/core-files.json. Keep the original F14 Owner verification regression scoped to F14 and independently require the new device command to verify Owner before/after with an exact device for writes. CI35/42556313669 at c6d5735: Node units and web/native macOS PASS; full Core source suite and Windows pre-build crypto/package smoke FAIL because the two new static Agent imports were missing from the explicit packaging manifest. The old verification source assertion also counted the new command as part of F14. Both targeted source regressions now PASS locally; no authority assertion removed or production bypass. New full CI pending; P1 Windows native packaging is not yet PASS.
+
+## Connect Desktop controls to the verified Agent API and unify displayed names
+
+Desktop now uses authenticated same-device native Agent state and controls, not renderer-relative /api/status in Tauri. P1 exact-source CI36 PASS9/9; P2 new UI tests112/112 and production web build PASS. This is source implementation, not deployed backend alignment or Owner physical acceptance. Current live ARM Lab still serves disparate rc49 trees; signed Wall B end-to-end verification and coherent internal backend are next. Internal artifacts only.

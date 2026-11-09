@@ -1,8 +1,8 @@
-// Native Local Wall A/B V2 approval UI, shared by Windows/macOS/Linux.
+// Native Local Wall A/B approval UI, shared by Windows/macOS/Linux.
  // Only rendered after authenticated local Owner; never generates A/B.
 // Signed Operator preview; human B + authenticated Owner mandatory. Outside the isolated Lab, an independent Owner consent is additionally required.
 export const wallAbV2PreviewFragment = `
-<section id="abV2OwnerPreview" class="card ab2-shell" aria-label="A/B V2 Agent approval">
+<section id="abV2OwnerPreview" class="card ab2-shell" aria-label="A/B Agent approval">
  <style>
  /* Use the SAME native .wrap / .card / .btn / .primary tokens as V1 Wall.
     Only layout utilities are scoped here; no second blue theme or overlay. */
@@ -41,7 +41,7 @@ export const wallAbV2PreviewFragment = `
  @media(max-width:540px){.ab2-shell .ab2-grid{grid-template-columns:1fr}.ab2-shell .ab2-badge{font-size:12px}}
  </style>
  <div class="ab2-head">
-  <div><div class="ab2-kicker">A/B V2 · Device authorization</div>
+  <div><div class="ab2-kicker">A/B · Device authorization</div>
    <h2>Agent access requests</h2>
    <div class="ab2-muted">Review requests for this device before granting access.</div></div>
   <span class="ab2-badge">Up to 24 hours</span>
@@ -54,7 +54,7 @@ export const wallAbV2PreviewFragment = `
 </div>
  </div>
  <div id="abV2PreviewItems"></div>
- <p class="ab2-muted ab2-footnote">A/B V2 requests expire after 5 minutes. Each approval applies only to the requesting Agent.
+ <p class="ab2-muted ab2-footnote">A/B requests expire after 5 minutes. Each approval applies only to the requesting Agent.
   Approve by entering the Agent B code on this authenticated Local Wall or in Account. Each grant is scoped to the requesting Agent.</p>
 </section>
 <script>
@@ -93,7 +93,7 @@ export const wallAbV2PreviewFragment = `
      }
      // Never fall back to an unsigned or legacy V1 approval page.
      host.hidden=false;items.replaceChildren();pending=[];renderedKeys='';
-     state.textContent='Signed A/B V2 requests unavailable';
+     state.textContent='Signed A/B requests unavailable';
      status.textContent=resp.status===401||resp.status===403
       ?'Owner sign-in or permission was rejected. Sign in and Refresh.'
       :'Cannot verify signed requests. Check connection and Refresh.';
@@ -278,7 +278,7 @@ export const wallAbV2PreviewFragment = `
     if(activeApproval)activeApproval.invalidated=true;
     status.textContent=approvalInFlight
      ?'Signed request feed failed during approval; outcome not submitted. Refresh before retrying.'
-     :'Signed A/B V2 request feed unavailable';
+     :'Signed A/B request feed unavailable';
   }finally{refreshInFlight=false;refresh.disabled=false;}
  }
  refresh.addEventListener('click',load);

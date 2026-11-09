@@ -9,6 +9,12 @@ export function useOwnerActivity(kind:ActivityKind,accountId:string|null){
  const [pending,setPending]=useState(false);
  const [error,setError]=useState<string|null>(null);
  const generation=useRef(0),inflight=useRef(false);
+ const [refresh,setRefresh]=useState(0);
+ useEffect(()=>{
+  const update=(event:Event)=>{if((event as CustomEvent<{accountId:string}>).detail?.accountId===accountId)setRefresh(x=>x+1);};
+  document.addEventListener('lightremote:device-change',update);
+  return()=>document.removeEventListener('lightremote:device-change',update);
+ },[accountId]);
  useEffect(()=>{
   const seq=++generation.current;
   setPages([]);setError(null);inflight.current=false;
@@ -22,7 +28,7 @@ export function useOwnerActivity(kind:ActivityKind,accountId:string|null){
    if(generation.current===seq){inflight.current=false;setPending(false);}
   });
   return()=>{generation.current++;inflight.current=false;};
- },[accountId,kind]);
+ },[accountId,kind,refresh]);
  const last=pages.at(-1);
  const loadMore=useCallback(async()=>{
   if(!accountId||!last||last.kind!==kind||last.accountId!==accountId||

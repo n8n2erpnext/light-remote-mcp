@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import {LongMemoryScreen,CodexBridgeScreen,useDeviceConfirmation} from './NativeModuleScreens';
+import {useNativeDevice} from './lib/native-device';
 import {
   Activity, Clock3, Database, HardDrive, KeyRound, LockKeyhole,
   Monitor, Search, Server, ShieldAlert, TerminalSquare, Users, WifiOff,
@@ -64,6 +66,7 @@ function timestamp(value:number|null) {
   return value===null?'—':new Date(value).toLocaleString();
 }
 function Sessions({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAccountId:string|null}) {
+  const local=useNativeDevice('device.read',ownerAccountId),{ask,dialog}=useDeviceConfirmation(ownerAccountId);
   const activity=useOwnerActivity('sessions',snapshot?ownerAccountId:null);
   const paged=Boolean(snapshot&&ownerAccountId&&activity.pages.length>0);
   const retention=paged?activity.pages[0]?.coverage.retention:undefined;
@@ -95,7 +98,10 @@ function Sessions({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAc
             <td>{row.name||row.agentId||'Agent'}<small className="muted"> {row.sessionId}</small></td>
             <td>{snapshot.devices.find(d=>d.deviceId===row.deviceId)?.name||row.deviceId}</td>
             <td>{timestamp(row.expiresAt)}</td><td>{row.state}</td>
-            <td>Owner close API not connected</td>
+            <td>{local.reply?.deviceId===row.deviceId&&row.agentId&&['active','hold'].includes(row.state)?
+              <Button disabled={local.pending} onClick={()=>void ask(`Close this device's session for ${row.name||row.agentId}?`).then(async yes=>{
+                if(yes)await local.run('sessions.close',{sessionId:row.sessionId,agentId:row.agentId,confirmed:true});
+              })}>Close session</Button>:<span className="muted">{['active','hold'].includes(row.state)?'Local device control required':'Closed / expired'}</span>}</td>
           </tr>):<tr><td colSpan={5}>No sessions in verified Owner registry</td></tr>}</tbody>
         </table>
       </div>:<FeatureTable label="AI sessions" columns={['Agent / nickname','Device','Lease','State','Action']}
@@ -105,16 +111,18 @@ function Sessions({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAc
       <ShieldAlert size={18} aria-hidden="true" />
       <div><strong>Verified session window — not complete history</strong>
         <p>{paged?'Showing '+activity.loaded+' of '+activity.total+(activity.pages[0]?.coverage.source==='redis_retained_session_window'?' Redis-backed retained':' current in-memory')+' Owner sessions.':
-          'Showing '+coverage?.returned+' of '+coverage?.total+' Owner sessions; loading verified page.'} Not an immutable audit archive. Owner close actions are not connected.</p>
+          'Showing '+coverage?.returned+' of '+coverage?.total+' Owner sessions; loading verified page.'} Not an immutable audit archive. Close actions apply to this verified local device.</p>
         {retention&&<p>Redis snapshot TTL: {Math.round(retention.snapshotTtlSeconds/86400)} days (renewed on writes). Terminal sessions are pruned after {Math.round(retention.terminalPruneAfterMs/86400000)} days from closure or expiry. Older entries may no longer exist.</p>}
         {paged&&activity.hasMore&&<Button disabled={activity.pending} onClick={()=>void activity.loadMore()}>
           {activity.pending?'Loading…':'Load more sessions'}</Button>}</div>
     </div>}
     {activity.error&&<p role="alert">{activity.error}</p>}
+    {local.message&&<p role="status">{local.message}</p>}{dialog}
     {!snapshot&&<SourceUnavailable description="Owner session listing unavailable. No session query or mutation was authorized." />}
   </div>;
 }
 function LiveMonitor({ status,snapshot,ownerAccountId }: { status: SnapshotResult | null; snapshot:OwnerSnapshot|null;ownerAccountId:string|null }) {
+  const local=useNativeDevice('device.read',ownerAccountId),{ask,dialog}=useDeviceConfirmation(ownerAccountId);
   const v = status?.state === 'ready' ? status.device : null;
   const connection = v?.connection === 'connected' ? 'Connected'
     : v?.connection === 'disconnected' ? 'Disconnected' : '—';
@@ -147,7 +155,7 @@ function LiveMonitor({ status,snapshot,ownerAccountId }: { status: SnapshotResul
       <Card>
         <CardHeading description="Executor availability must come from the local Agent">EXECUTOR STATUS</CardHeading>
         <div className="feature-pairs">
-          <div><span>Executor ready</span><strong>—</strong></div>
+          <div><span>Executor ready</span><strong>{local.view?.device?.executorReady===true?'Ready':local.view?.device?.executorReady===false?'Not ready':'—'}</strong></div>
           <div><span>Connection</span><strong>{connection}</strong></div>
           <div><span>Last Owner-scoped event</span><strong>{snapshot&&events.length?timestamp(events[events.length-1]?.at??null):'—'}</strong></div>
         </div>
@@ -159,11 +167,15 @@ function LiveMonitor({ status,snapshot,ownerAccountId }: { status: SnapshotResul
         <table><thead><tr><th>Job</th><th>Device</th><th>Status</th><th>Started</th><th>Action</th></tr></thead>
           <tbody>{rows.length?rows.map(j=><tr key={j.jobId}>
             <td>{j.jobId}</td><td>{snapshot.devices.find(d=>d.deviceId===j.deviceId)?.name||j.deviceId}</td>
-            <td>{j.state}</td><td>{timestamp(j.startedAt)}</td><td>Read only</td>
+            <td>{j.state}</td><td>{timestamp(j.startedAt)}</td><td>{local.reply?.deviceId===j.deviceId&&['running','queued','dispatching'].includes(j.state)?
+              <Button disabled={local.pending} onClick={()=>void ask(`Request cancellation of job ${j.jobId} on this device? Stop requested is not a terminal state.`).then(async yes=>{
+                if(yes)await local.run('jobs.cancel',{jobId:j.jobId,confirmed:true});
+              })}>Cancel job</Button>:'Read only'}</td>
           </tr>):<tr><td colSpan={5}>No jobs in current Owner registry</td></tr>}</tbody>
         </table></div>:<FeatureTable label="Agent jobs" columns={['Job', 'Device', 'Status', 'Started', 'Action']}
         description="Job cancellation is unavailable until a signed execution controller is connected. Stop-requested is not a terminal state." />}
     </Card>
+    {local.message&&<p role="status">{local.message}</p>}{dialog}
     {snapshot&&(jobWindowIncomplete||paged)&&<div className="feature-unavailable" role="status">
       <ShieldAlert size={18} aria-hidden="true" />
       <div><strong>{paged&&activity.pages[0]?.coverage.source==='postgresql_owner_job_history'?'PostgreSQL Owner job history':'Current in-memory job window'}</strong>
@@ -213,70 +225,7 @@ function Devices({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAcc
       </div>}
       {!snapshot&&inventory.error&&<p role="alert">{inventory.error}</p>}
     </Card>
-    <SourceUnavailable description="This screen is Owner inventory, not a device mutation panel. To link this Windows PC, open the Light Remote system tray icon → Link / Relink (disconnect from Local Wall first if connected). Approval opens in your browser. GoldABV2 V4 has a separate device profile and does not reuse Gold production enrollment." />
-  </div>;
-}
-function LongMemory() {
-  return <div className="screen-content feature-dashboard">
-    <div className="feature-kpi-grid">
-      <UnknownKpi label="MODULE STATE" hint="Module lifecycle not bound" icon={Database} />
-      <UnknownKpi label="MEMORY HOME" hint="Local Home not verified" icon={Server} />
-      <UnknownKpi label="TOTAL STORAGE" hint="No validated storage measurement" icon={HardDrive} />
-    </div>
-    <div className="feature-split">
-      <Card>
-        <CardHeading description="Auto, Follow Project or Manual — selected by the actual Agent">SYNC CONFIGURATION</CardHeading>
-        <div className="feature-form-row">
-          <label htmlFor="memory-sync-mode">Sync Mode</label>
-          <select id="memory-sync-mode" disabled defaultValue="unknown">
-            <option value="unknown">Not verified</option>
-          </select>
-        </div>
-        <div className="feature-pairs">
-          <div><span>Memory Home</span><strong>—</strong></div>
-          <div><span>Last sync</span><strong>—</strong></div>
-        </div>
-        <DisabledControl>Change Memory Home</DisabledControl>
-      </Card>
-      <Card>
-        <CardHeading description="Explicit device checkbox and replication status">REPLICA DEVICES</CardHeading>
-        <EmptyPanel title="Replica list unavailable">The Home and Replica controls stay disabled without trusted module/device state.</EmptyPanel>
-      </Card>
-    </div>
-    <Card>
-      <CardHeading description="Local scopes, archive, deletion and storage receipts">MEMORY LIBRARY</CardHeading>
-      <FeatureTable label="Long Memory scopes" columns={['Scope', 'Storage', 'Updated', 'Sync', 'Action']}
-        description="Archive and device/account-wide deletion must be confirmed against exact signed scope; no collection has been loaded." />
-    </Card>
-    <SourceUnavailable description="Long Memory status is not inferred from device connectivity. No archive, sync or deletion action can run." />
-  </div>;
-}
-function CodexBridge() {
-  return <div className="screen-content feature-dashboard">
-    <div className="feature-split">
-      <Card>
-        <CardHeading description="Optional per-device module state">CODEX BRIDGE</CardHeading>
-        <div className="feature-status-hero"><TerminalSquare size={27} aria-hidden="true" />
-          <div><strong>Module state unverified</strong><p>No Codex process or observer is started by this UI.</p></div></div>
-        <DisabledControl>Enable Codex Bridge</DisabledControl>
-      </Card>
-      <Card>
-        <CardHeading description="Locally installed Codex executable and consent">RUNTIME STATUS</CardHeading>
-        <div className="feature-pairs">
-          <div><span>Codex binary</span><strong>—</strong></div>
-          <div><span>Observer</span><strong>—</strong></div>
-          <div><span>Last task</span><strong>—</strong></div>
-        </div>
-        <DisabledControl>Check runtime</DisabledControl>
-      </Card>
-    </div>
-    <Card>
-      <CardHeading description="Create, edit, approve and delete only with exact scope">CODEX TASKS</CardHeading>
-      <FilterBar label="Search verified Codex tasks" action="Create task" />
-      <FeatureTable label="Codex tasks" columns={['Task', 'Device', 'History', 'State', 'Action']}
-        description="No tasks have been fetched. Delete / stop / edit require the native module authority and confirmation." />
-    </Card>
-    <SourceUnavailable description="The bridge is optional and this pilot has no process authority or task provider." />
+    <SourceUnavailable description="This screen is Owner inventory, not a device mutation panel. To link this Windows PC, open the Light Remote system tray icon → Link / Relink (disconnect from Local Wall first if connected). Approval opens in your browser. This internal test profile keeps its own enrollment." />
   </div>;
 }
 function Account({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAccountId:string|null}) {
@@ -306,7 +255,7 @@ function Account({snapshot,ownerAccountId}:{snapshot:OwnerSnapshot|null;ownerAcc
         value={snapshot?String(snapshot.usage.toolCallsThisMonth??'—'):'—'} />
       <UnknownKpi label="DEVICES IN ACCOUNT" hint="Verified Owner inventory" icon={Monitor}
         value={snapshot?String(snapshot.coverage?.devices?.total??snapshot.devices.length):'—'} />
-      <UnknownKpi label="CURRENT BILLING PERIOD" hint="Billing dates not bound" icon={Clock3} />
+      <UnknownKpi label="CURRENT BILLING PERIOD" hint="Verified usage month" icon={Clock3} value={snapshot?.usage.month||'—'} />
     </div>
     <Card><CardHeading description="Server-issued monthly usage by Owner device">USAGE BY DEVICE</CardHeading>
       {snapshot?<div className="feature-table feature-table-scroll" role="region" aria-label="Usage by device">
@@ -336,8 +285,8 @@ export function FeatureScreen({ route, status, snapshot,ownerAccountId=null }: {
     case 'sessions': return <Sessions snapshot={snapshot??null} ownerAccountId={ownerAccountId} />;
     case 'live-monitor': return <LiveMonitor status={status} snapshot={snapshot??null} ownerAccountId={ownerAccountId} />;
     case 'devices': return <Devices snapshot={snapshot??null} ownerAccountId={ownerAccountId} />;
-    case 'long-memory': return <LongMemory />;
-    case 'codex-bridge': return <CodexBridge />;
+    case 'long-memory': return <LongMemoryScreen accountId={ownerAccountId} />;
+    case 'codex-bridge': return <CodexBridgeScreen accountId={ownerAccountId} />;
     case 'account': return <Account snapshot={snapshot??null} ownerAccountId={ownerAccountId} />;
   }
 }

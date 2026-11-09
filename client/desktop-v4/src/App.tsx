@@ -5,11 +5,13 @@ import {
   ShieldAlert, ExternalLink, ScrollText, type LucideIcon
 } from 'lucide-react';
 import { FeatureScreen } from './FeatureScreens';
+import {NativeDeviceSettings} from './NativeModuleScreens';
 import {DeviceLinkDialog,nativeLinkAvailable,pollNativeLinkIntent} from './DeviceLinkDialog';
 import { Button } from './components/ui/button';
 import { Card, CardHeading } from './components/ui/card';
 import { navRoutes, parseRoute, routeHref, type RouteKey } from './lib/routes';
-import { readLocalWallStatus, type SnapshotResult } from './lib/status';
+import { readLocalWallStatus,projectLocalStatus, type SnapshotResult } from './lib/status';
+import {useNativeDevice} from './lib/native-device';
 import { readLocalLogState, type LocalLogResult } from './lib/local-logs';
 import { nativeOpenWallAvailable, openLocalWall, type WallView } from './lib/open-wall';
 import { probeNativeLocalWall, type NativeWallProbe } from './lib/native-wall-probe';
@@ -83,9 +85,9 @@ function StatusLine({ status, wallProbe }: { status: LoadState; wallProbe: Nativ
     return (
       <span className="verification-line" role="status">
         <span className={'status-dot status-' + state} aria-hidden="true" />
-        {state === 'connected' ? 'Connected · verified Local Wall'
-          : state === 'disconnected' ? 'Disconnected · verified Local Wall'
-          : 'Local Wall responded · connection unverified'}
+        {state === 'connected' ? 'Connected · verified local Agent'
+          : state === 'disconnected' ? 'Disconnected · verified local Agent'
+          : 'Agent responded · connection not established'}
       </span>
     );
   }
@@ -144,8 +146,8 @@ function DataBoundaryNotice({ status }: { status: LoadState }) {
     <div className="data-boundary">
       <div className="data-boundary-title"><ShieldAlert size={17} aria-hidden="true" /> VERIFIED DATA ONLY</div>
       <span>{status.result?.state === 'ready'
-        ? 'Only the read-only Local Wall device snapshot is bound. Owner grants and quotas require separate signed APIs.'
-        : 'Local Wall data is unavailable or unauthenticated. No device, session, grant or usage values have been inferred.'}</span>
+        ? 'Device actions apply to this PC. Account inventory and A/B grants keep their own verified scope.'
+        : 'The local Agent is not verified. Start or update this device’s Agent, then refresh.'}</span>
     </div>
   );
 }
@@ -203,7 +205,7 @@ function PendingApprovals({native,refresh,approving,onApprove}:{
       <CardHeading description="Live same-device Agent · current Owner session">PENDING APPROVALS</CardHeading>
       {native.state==='ready'?<>
         <div className="approval-surface">
-          <h3>{native.pending.length===0?'No pending A/B V2 requests':native.pending.length+' verified request(s)'}</h3>
+          <h3>{native.pending.length===0?'No pending A/B requests':native.pending.length+' verified request(s)'}</h3>
           <p>Device: {native.shortId||native.deviceId}. Approvals require the B code and current Owner authority.</p>
           <Button variant="secondary" onClick={refresh}>Refresh pending requests</Button>
           {!native.ownerApproveEnabled&&<p role="alert">Agent approvals are disabled by the backend policy.</p>}
@@ -213,15 +215,15 @@ function PendingApprovals({native,refresh,approving,onApprove}:{
             consentRequired={native.ownerConsentRequired}
             approving={approving} onApprove={onApprove} />)}
       </>:<div className="approval-surface">
-        <h3>Local GoldABV2 Agent not available</h3>
-        <p>Owner is logged in, but the same-device enrolled Agent has not exposed its A/B V2 native channel. This application will not use another machine's Wall or the older Gold client.</p>
+        <h3>Local Agent not available</h3>
+        <p>Owner is logged in, but the same-device enrolled Agent has not exposed its A/B native channel. This application will not use another machine's Wall or the older Gold client.</p>
         <Button variant="secondary" onClick={refresh}>Retry Agent connection</Button>
       </div>}
     </Card>;
   }
   return (
     <Card className="approval-card">
-      <CardHeading description="Owner-verified A/B V2 requests">PENDING APPROVALS</CardHeading>
+      <CardHeading description="Owner-verified A/B requests">PENDING APPROVALS</CardHeading>
       <div className="approval-surface">
         <h3>Approval requests not verified</h3>
         <p>The Owner request list is unavailable until signed Agent discovery and authorization are verified.</p>
@@ -247,7 +249,7 @@ function AuthorizationPolicy({native}:{native:NativeAbv2Status|null}) {
         <p>Grant: 24 hours per Agent</p>
         <p className="caution"><span className="caution-dot" />{native?.state==='ready'
           ?native.ownerApproveEnabled?'Signed Owner/Agent approval is available':'Operator has disabled A/B approval'
-          :'A/B V2 capability not verified — approval unavailable'}</p>
+          :'A/B capability not verified — approval unavailable'}</p>
       </div>
     </Card>
   );
@@ -342,7 +344,7 @@ function Overview({ status, navigate, wallProbe, abv2, snapshot }: {
       </div>
       <div className="overview-main">
         <Card>
-          <CardHeading description="Owner approval · A/B V2">AI ACCESS</CardHeading>
+          <CardHeading description="Owner approval · A/B">AI ACCESS</CardHeading>
           <div className="inset">
             <h3>Waiting for a signed request</h3>
             <p>B code and Owner consent required. Short ID alone never authorizes an Agent.</p>
@@ -374,22 +376,24 @@ function Overview({ status, navigate, wallProbe, abv2, snapshot }: {
   );
 }
 
-function SettingsPage({ theme, choose, status, openWall, canOpenWall }: {
+function SettingsPage({ theme, choose, status, openWall, canOpenWall,accountId }: {
   theme: ThemePreference;
   choose: (theme: ThemePreference) => void;
   status: LoadState;
   openWall: (view: WallView) => void;
   canOpenWall: boolean;
+  accountId:string|null;
 }) {
   const [logs, setLogs] = useState<LocalLogResult>({ state: 'unavailable', reason: 'not_checked' });
   const [refreshLog, setRefreshLog] = useState(0);
   useEffect(() => {
+    if(accountId)return;
     const controller = new AbortController();
     void readLocalLogState(fetch, controller.signal).then(data => {
       if (!controller.signal.aborted) setLogs(data);
     });
     return () => controller.abort();
-  }, [refreshLog]);
+  }, [refreshLog,accountId]);
   const toMiB = (bytes: number) => (bytes / 1048576).toFixed(1) + ' MiB';
   return (
     <div className="screen-content settings-layout">
@@ -415,14 +419,15 @@ function SettingsPage({ theme, choose, status, openWall, canOpenWall }: {
             )}
           </fieldset>
         </Card>
-        <Card>
+        {accountId&&<NativeDeviceSettings accountId={accountId} />}
+        {!accountId&&<Card>
           <CardHeading description="Capabilities are checked by the authorized native host">
             DEVICE &amp; OS PERMISSIONS
           </CardHeading>
           <p className="muted">Allowed filesystem roots require Admin approval. OS accessibility and screen recording permissions are separate platform gates.</p>
           <p className="muted">Denied / unsupported / Owner required are distinct states.</p>
-        </Card>
-        <Card className="activity-logs-card">
+        </Card>}
+        {!accountId&&<Card className="activity-logs-card">
           <CardHeading description="Device-local working history · bounded RAM and mandatory disk rotation">ACTIVITY LOGS</CardHeading>
           {logs.state === 'ready' ? (
             <div className="log-summary" role="status">
@@ -450,7 +455,7 @@ function SettingsPage({ theme, choose, status, openWall, canOpenWall }: {
             Disk: Compact 48 MiB · Standard 200 MiB (default) · Extended 300 MiB.
             All presets rotate automatically. Clean Log requires authenticated Owner confirmation in Wall.</p>
           {!canOpenWall && <p className="muted">Open Wall is available in the native Desktop app; no local browser launch is performed from this web preview.</p>}
-        </Card>
+        </Card>}
         <DataBoundaryNotice status={status} />
       </div>
     </div>
@@ -486,9 +491,11 @@ export function App() {
   const { theme, choose } = useTheme();
   const nativeLoginAvailable = NATIVE_OWNER_CANDIDATE && nativeOwnerAvailable();
   const nativeOwnerVerified = nativeLoginAvailable && nativeOwner.phase === 'verified';
+  const localDevice=useNativeDevice('device.read',nativeOwnerVerified?nativeOwner.accountId:null);
   const nativeAbv2Pilot=!UI_DESIGN_PREVIEW&&nativeOwnerVerified&&nativeAbv2Available();
   const [abv2,setAbv2]=useState<NativeAbv2Status>({state:'unavailable',reason:'not_checked'});
   const [ownerData,setOwnerData]=useState<SnapshotView>({state:'unavailable',reason:'not_checked'});
+  const ownerDataPoller=useRef<ScopedReadPoller|null>(null);
   const snapshot=ownerData.state==='ready' && nativeOwnerVerified &&
     ownerData.accountId===nativeOwner.accountId?ownerData:null;
   useEffect(()=>{
@@ -505,9 +512,18 @@ export function App() {
       healthy:(view)=>view.state==='ready',
       unavailable:():SnapshotView=>({state:'unavailable',reason:'owner_api_unavailable'})
     });
-    return ()=>poller.stop();
+    ownerDataPoller.current=poller;
+    return ()=>{poller.stop();if(ownerDataPoller.current===poller)ownerDataPoller.current=null;};
   },[nativeOwnerVerified,nativeOwner.accountId]);
   const [abv2Approving,setAbv2Approving]=useState(false);
+  useEffect(()=>{
+    const changed=(event:Event)=>{
+      if((event as CustomEvent<{accountId:string}>).detail?.accountId===nativeOwner.accountId)
+        ownerDataPoller.current?.refreshNow();
+    };
+    document.addEventListener('lightremote:device-change',changed);
+    return()=>document.removeEventListener('lightremote:device-change',changed);
+  },[nativeOwner.accountId]);
   const abv2Poller=useRef<ScopedReadPoller|null>(null);
   const refreshAbv2=useCallback(()=>{
     if(nativeAbv2Pilot)abv2Poller.current?.refreshNow();
@@ -608,6 +624,13 @@ export function App() {
       setStatus({ phase: 'settled', result: null });
       return;
     }
+    if(nativeOwnerVerified){
+      const device=localDevice.view?.device;
+      setStatus({phase:localDevice.reason==='not_checked'?'loading':'settled',
+        result:device?projectLocalStatus({ok:true,local:device},localDevice.view?.asOf??Date.now()):
+          {state:'unavailable',reason:localDevice.reason||'desktop_device_unavailable'}});
+      return;
+    }
     const controller = new AbortController();
     let live = true;
     setStatus({ phase: 'loading', result: null });
@@ -615,7 +638,7 @@ export function App() {
       if (live) setStatus({ phase: 'settled', result });
     });
     return () => { live = false; controller.abort(); };
-  }, [reload, workspaceUnlocked]);
+  }, [reload, workspaceUnlocked,nativeOwnerVerified,localDevice.view,localDevice.reason]);
 
   useEffect(() => {
     if (!workspaceUnlocked || !nativeOpenWallAvailable()) return;
@@ -691,19 +714,19 @@ export function App() {
             <Button variant="ghost" size="icon" aria-label="Open Settings" onClick={() => navigate('settings')}>
               <Settings size={19} aria-hidden="true" />
             </Button>
-            <Button variant="ghost" size="icon" aria-label="Refresh verified Local Wall status"
+            <Button variant="ghost" size="icon" aria-label="Refresh verified local Agent status"
               title="Refresh read-only Local Wall device state"
-              onClick={() => setReload(i => i + 1)} disabled={status.phase === 'loading'}>
+              onClick={() => {setReload(i => i + 1);ownerDataPoller.current?.refreshNow();refreshAbv2();document.dispatchEvent(new Event('lightremote:refresh'));}} disabled={status.phase === 'loading'}>
               <RefreshCcw size={18} aria-hidden="true" />
             </Button>
-            <span className="preview-pill"><span className="status-dot" aria-hidden="true" />{inDesignPreview ? 'DESIGN PREVIEW · NOT SIGNED IN' : 'OWNER VERIFIED · WALL UNVERIFIED'}</span>
+            <span className="preview-pill"><span className="status-dot" aria-hidden="true" />{inDesignPreview ? 'DESIGN PREVIEW · NOT SIGNED IN' : localDevice.available?'OWNER VERIFIED · LOCAL AGENT VERIFIED':'OWNER VERIFIED · AGENT UNAVAILABLE'}</span>
           </div>
         </header>
         {wallOpenError && <div className="open-wall-error" role="alert">{wallOpenError}</div>}
         {nativeWallSsoPilot && nativeOwnerVerified && route==='overview' && !inDesignPreview && (
           <section className="owner-wall-sso-review" aria-labelledby="owner-wall-sso-title">
             <h2 id="owner-wall-sso-title">Sign in to Local Wall</h2>
-            <p>On this device, open Wall and select <strong>Sign in with Desktop V4</strong>. Generate a verification code in that browser tab, then enter it here. This never approves Agent A/B access.</p>
+            <p>On this device, open Wall and select <strong>Sign in with Desktop</strong>. Generate a verification code in that browser tab, then enter it here. This never approves Agent A/B access.</p>
             <form onSubmit={approveBrowserWallCode}>
               <label htmlFor="owner-wall-sso-code">Wall verification code</label>
               <input id="owner-wall-sso-code" value={wallSsoCode}
@@ -720,11 +743,11 @@ export function App() {
         )}
         {route === 'overview' ? <Overview status={status} navigate={navigate} wallProbe={wallProbe} abv2={nativeAbv2Pilot?abv2:null} snapshot={snapshot} />
           : route === 'ai-access' ? <AiAccess status={status} native={nativeAbv2Pilot?abv2:null} snapshot={snapshot} ownerAccountId={nativeOwnerVerified?nativeOwner.accountId:null} refresh={refreshAbv2} approving={abv2Approving} onApprove={approveAbv2} />
-            : route === 'settings' ? <SettingsPage theme={theme} choose={choose} status={status} openWall={requestOpenWall} canOpenWall={canOpenWall} />
+            : route === 'settings' ? <SettingsPage theme={theme} choose={choose} status={status} openWall={requestOpenWall} canOpenWall={canOpenWall} accountId={nativeOwnerVerified?nativeOwner.accountId:null} />
               : <FeatureScreen route={route} status={status.result} snapshot={snapshot} ownerAccountId={nativeOwnerVerified?nativeOwner.accountId:null} />}
         <footer className="page-footer">
           <CircleHelp size={14} aria-hidden="true" />
-          {inDesignPreview ? 'Desktop V4 UI preview · not authenticated · no Owner grants or Agent mutations' : 'Desktop Owner verified - Local Wall and Agent A/B authorization remain separate'}
+          {inDesignPreview ? 'Desktop UI preview · not authenticated · no Owner grants or Agent mutations' : 'Desktop Owner verified - Local Wall and Agent A/B authorization remain separate'}
         </footer>
       </main>
       {showDeviceLink&&nativeLinkAvailable()&&<DeviceLinkDialog onClose={closeDeviceLink} />}

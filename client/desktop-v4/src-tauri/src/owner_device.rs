@@ -5,7 +5,7 @@ use std::time::Duration;
 const PIPE:&str=r"\\.\pipe\light-remote-desktop-v4-device";
 const SOCKET:&str="desktop-device.sock";
 pub(crate) const ACTIONS:&[&str]=&[
- "device.read","memory.read","codex.read","settings.read","module.configure",
+ "device.read","device.connect","device.disconnect","memory.read","codex.read","settings.read","module.configure",
  "memory.create","memory.capture","memory.archive","memory.restore","memory.delete-local",
  "memory.delete-account","memory.sync-policy","memory.sync-manual",
  "codex.task-create","codex.task-edit","codex.task-state","codex.task-delete",
@@ -70,6 +70,19 @@ pub(crate) fn exchange(request:&Value)->Result<Value,String>{
  if bytes.len()>262144||bytes.last()!=Some(&b'\n'){return Err(deny());}
  let response:Value=serde_json::from_slice(&bytes[..bytes.len()-1]).map_err(|_|deny())?;
  project(request,response)
+}
+pub(crate) fn open_codex_verification(result:&Value)->Result<(),String>{
+ let raw=result.get("view").and_then(|v|v.get("verificationUrl")).and_then(Value::as_str)
+  .ok_or("desktop_codex_login_url_invalid")?;
+ let url=url::Url::parse(raw).map_err(|_|"desktop_codex_login_url_invalid")?;
+ if url.scheme()!="https"||!matches!(url.host_str(),Some("auth.openai.com"|"chatgpt.com"|"login.openai.com"))||
+  !url.username().is_empty()||url.password().is_some()||url.port().is_some()||raw.len()>1000{
+  return Err("desktop_codex_login_url_invalid".into());
+ }
+ #[cfg(windows)] let opened=std::process::Command::new("rundll32.exe").args(["url.dll,FileProtocolHandler",raw]).spawn();
+ #[cfg(target_os="macos")] let opened=std::process::Command::new("open").arg(raw).spawn();
+ #[cfg(not(any(windows,target_os="macos")))] let opened=std::process::Command::new("xdg-open").arg(raw).spawn();
+ opened.map(|_|()).map_err(|_|"desktop_browser_unavailable".into())
 }
 #[cfg(test)] mod tests{
  use super::*;

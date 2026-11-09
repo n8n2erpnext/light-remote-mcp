@@ -130,3 +130,7 @@ Native command owner_login.rs::desktop_owner_device_request and owner_device.rs 
 ## Include native device API in Agent package and preserve scoped Owner fence checks
 
 client/core-files.json is the explicit distributed Agent import closure. It now includes desktop-device-native-ipc.mjs and desktop-device-api.mjs. These were implemented in c6d5735 but CI correctly rejected the incomplete package; no installed/runtime change occurred. Owner source check now separately verifies F14 and the added device command, each with HTTPS Owner verification plus generation fences.
+
+## Connect Desktop controls to the verified Agent API and unify displayed names
+
+client/desktop-v4/src/lib/native-device.ts owns typed native projections and stale/backpressure fences; NativeModuleScreens.tsx owns real Memory/Codex/Settings interactions and typed destructive confirmation. FeatureScreens binds exact local session/job controls, App supplies native status and scoped Owner refresh. owner_login checks expectedAccountId before owner_device exchange. Tray title is Light Remote Desktop with V4-title compatibility fallback; identifiers/paths/routes remain stable.

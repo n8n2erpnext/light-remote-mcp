@@ -37,7 +37,7 @@ export function projectLocalStatus(payload: unknown, now = Date.now()): Snapshot
   const desired = local.cloudDesiredConnected;
   let connection: ConnectionLabel = 'unknown';
   if (desired === true && cloudState === 'connected') connection = 'connected';
-  if (desired === false && cloudState === 'disconnected') connection = 'disconnected';
+  if (desired === false && (cloudState === 'disconnected' || cloudState === 'dormant')) connection = 'disconnected';
 
   return {
     state: 'ready',

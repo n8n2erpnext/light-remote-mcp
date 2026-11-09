@@ -94,3 +94,7 @@ Development candidate0.10.1-dev.3 adds native device API without changing primar
 ## Include native device API in Agent package and preserve scoped Owner fence checks
 
 Fix the P1 Agent package import closure: explicitly include both new native device API modules in client/core-files.json. Keep the original F14 Owner verification regression scoped to F14 and independently require the new device command to verify Owner before/after with an exact device for writes. CI35 is a failed development trial, not a releasable internal installer. Exact-source native rerun remains required before acceptance.
+
+## Connect Desktop controls to the verified Agent API and unify displayed names
+
+Candidate0.10.1-dev.3 remains internal-only. Native window title is Light Remote Desktop; the old title remains only a compatibility single-instance lookup. No executable/profile/path/vault rename or update feed activation accompanies the display-name change. P1 package/native CI36 PASS9/9; P2 rebuilt native candidate must pass its own full CI before artifact acceptance.

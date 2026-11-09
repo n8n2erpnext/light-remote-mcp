@@ -1664,13 +1664,15 @@ async function daemon(args){
           return {deviceName:current.enrollment?.displayName||os.hostname(),
             cloudDesiredConnected:cloudDesired(current),cloudState:current.cloud?.state||'dormant',
             version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,
-            localPolicyProfile:current.policy?.localProfile||null,
+            executorReady:executorReadiness(),
+            localPolicyProfile:current.policy?.localProfile||((current.policy?.deniedCapabilities||[]).length?'custom':'full'),
             policyRevision:current.policy?.serverPolicyRevision||0,
             effectiveCapabilities:current.effectiveCapabilities||[],deniedCapabilities:current.policy?.deniedCapabilities||[]};
         },
         getSyncDevices:()=>memoryAccountDevices(hub),getSyncPolicy:input=>memoryAccountSyncPolicy(hub,input),
         getAccountDelete:input=>memoryAccountDeleteChannel(hub,input),
         closeSession:input=>closeWallSession(hub,input),cancelJob:id=>cancelWallJob(hub,id),
+        connect:()=>connectCloud({hub,silent:true}),disconnect:()=>disconnectCloud({hub,silent:true,requireAck:true}),
         getLogStatus:()=>localWall.nativeActivityLogs('state'),
         logControl:(action,input)=>localWall.nativeActivityLogs(action,input)});
       desktopDeviceIpc=await startDesktopDeviceIpc({enabled:true,readEnrollment:nativeEnrollment,

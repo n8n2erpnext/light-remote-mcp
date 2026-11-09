@@ -850,9 +850,10 @@ pub(crate) async fn desktop_owner_inventory_page(
 // the Agent retains each controller's explicit confirmation/CAS/policy checks.
 #[tauri::command]
 pub(crate) async fn desktop_owner_device_request(
-    state:State<'_,OwnerRuntime>,action:String,device_id:Option<String>,payload:Value
+    state:State<'_,OwnerRuntime>,action:String,expected_account_id:String,device_id:Option<String>,payload:Value
 ) -> Result<Value,String> {
     if !crate::owner_device::ACTIONS.contains(&action.as_str())||!payload.is_object()||
+       !crate::owner_device::valid_id(&expected_account_id)||
        (action!="device.read"&&device_id.is_none())||
        device_id.as_deref().is_some_and(|s|!crate::owner_device::valid_id(s))||
        serde_json::to_vec(&payload).map_err(|_|"desktop_payload_invalid")?.len()>30000 {
@@ -861,6 +862,8 @@ pub(crate) async fn desktop_owner_device_request(
     let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
     let snap=runtime.wall_snapshot_after_verification().await
         .map_err(|_|"desktop_owner_required")?;
+    if snap.account!=expected_account_id{return Err("desktop_owner_changed".into());}
+    let opens_codex=action=="codex.login";
     let account=snap.account.clone();
     let access=snap.access.clone();
     let result=tauri::async_runtime::spawn_blocking(move||{
@@ -871,6 +874,7 @@ pub(crate) async fn desktop_owner_device_request(
     if !runtime.wall_snapshot_current_after_verification(&snap).await{
         return Err("desktop_device_outcome_unknown".into());
     }
+    if opens_codex{crate::owner_device::open_codex_verification(&result)?;}
     Ok(result)
 }
 

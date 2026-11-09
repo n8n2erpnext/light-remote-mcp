@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-09T03:31:38.258Z",
+  "updatedAt": "2026-11-09T07:11:48.348Z",
   "version": "0.10.1-dev.3",
   "phase": "DESKTOP_BACKEND_API_ALIGNMENT",
-  "status": "DESKTOP_DEVICE_API_PACKAGE_FIX_CI_PENDING",
+  "status": "DESKTOP_UI_API_BOUND_BACKEND_INTEGRATION_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -238,7 +238,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Continue Desktop provider/control wiring and displayed A/B/Desktop naming cleanup while exact-source CI validates package closure. Then run real signed Wall B/coherent backend integration and verify the final internal-only installer; no public Release/feed.",
+  "nextAction": "Validate exact P2 CI while adding a real signed Wall B and native device API integration flow against a coherent disposable backend. Correct reproduced faults, then verify a final internal-only exact-source Windows installer and prepare same-source ARM deployment without touching historical sources or Owner installation.",
   "receiptNote": "Current compiled source and verified CI artifact are pinned independently from this documentation-only receipt; public binary release awaits explicit Owner approval. No native rebuild or existing-runtime deployment is implied.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -329,13 +329,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-desktop-device-api-package-closure",
-    "status": "P1_PACKAGE_CLOSURE_FIXED_FULL_CI_PENDING",
-    "summary": "Fix the P1 Agent package import closure: explicitly include both new native device API modules in client/core-files.json. Keep the original F14 Owner verification regression scoped to F14 and independently require the new device command to verify Owner before/after with an exact device for writes.",
-    "verification": "CI35/42556313669 at c6d5735: Node units and web/native macOS PASS; full Core source suite and Windows pre-build crypto/package smoke FAIL because the two new static Agent imports were missing from the explicit packaging manifest. The old verification source assertion also counted the new command as part of F14. Both targeted source regressions now PASS locally; no authority assertion removed or production bypass. New full CI pending; P1 Windows native packaging is not yet PASS.",
-    "nextAction": "Continue Desktop provider/control wiring and displayed A/B/Desktop naming cleanup while exact-source CI validates package closure. Then run real signed Wall B/coherent backend integration and verify the final internal-only installer; no public Release/feed.",
-    "sourceDigest": "00e3b48d0b1aaad66ab76b37dbc870d323352e86766b380e26359e7438c83194",
-    "sourceFileCount": 1633
+    "taskId": "20261109-desktop-live-device-ui-binding",
+    "status": "P2_IMPLEMENTED_UI_TESTS_PASS_FULL_CI_PENDING",
+    "summary": "Replace static Memory/Codex shells and native relative URL reads with the current Owner/account/device-bound Agent API. Wire immediate CAS module toggles, actual Memory scopes/storage/sync/lifecycle, Codex tasks/runtime/login/delegation/observer, local session/job control and Settings/Cloud/logs. Display A/B and Light Remote Desktop; preserve technical profile/route/vault/mutex identities and old-window compatibility fallback.",
+    "verification": "P1 exact source ccf79679 CI36/42556894256 PASS9/9, including Windows installed lifecycle, full backend and Linux/macOS native. New P2 React suite PASS112/112 (11 new regressions for Owner swap, stale confirmations, read backpressure, unconfirmed writes, real module controls and typed destructive confirmation). Production Vite build/typecheck PASS; targeted real SQLite/native operation contract and Owner verification source checks PASS. No credentials in React; exact expectedAccountId checked natively before effects. Final new native compilation/packaging/real signed Wall B/coherent ARM backend remain pending.",
+    "nextAction": "Validate exact P2 CI while adding a real signed Wall B and native device API integration flow against a coherent disposable backend. Correct reproduced faults, then verify a final internal-only exact-source Windows installer and prepare same-source ARM deployment without touching historical sources or Owner installation.",
+    "sourceDigest": "616aa8039ed2925c6027ebfc35dc816eb330e5a49f2a2a0d6e84a422dc350333",
+    "sourceFileCount": 1637
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -545,7 +545,7 @@
     "publicFeed": "HOLD"
   },
   "desktopBackendIntegration": {
-    "status": "P1_PACKAGE_CLOSURE_FIXED_P2_UI_NEXT",
+    "status": "P2_UI_IMPLEMENTED_P3_SIGNED_B_AND_COHERENT_BACKEND_NEXT",
     "baseCommit": "521d04cc559e0e263390863ed1caaf8bf0205797",
     "preChangeTag": "checkpoint/20261109-before-desktop-backend-521d04c",
     "bundleSha256": "5f20de606764ca319b3bfd695c81dda0b08bacac6a3ac831bdc8405e222c2331",
@@ -563,15 +563,17 @@
     ],
     "steps": {
       "P0Inventory": "DONE",
-      "P1NativeDeviceApi": "TARGETED_TESTS_PASS_PACKAGE_IMPORT_FIX_CI_PENDING",
+      "P1NativeDeviceApi": "CI36_PASS9_OF9",
       "P2DesktopBindings": "NEXT",
       "P3CoherentBackendAndWallB": "NOT_STARTED",
-      "P4InternalNativeIntegration": "NOT_STARTED"
+      "P4InternalNativeIntegration": "NOT_STARTED",
+      "P2DesktopUiBinding": "IMPLEMENTED_WEB_TESTS_PASS_NATIVE_CI_PENDING",
+      "P3WallBAndBackend": "PENDING"
     },
     "wallBRegression": "REPORTED_NOT_YET_REPRODUCED",
     "runtimeChanged": false,
     "candidateVersion": "0.10.1-dev.3",
-    "nativeApi": "IMPLEMENTED_TARGETED_NODE_TESTS_PASS_NATIVE_CI_PENDING",
+    "nativeApi": "P1_CI36_PASS9_OF9_P2_NATIVE_EXTENSION_PENDING",
     "confirmedFixes": [
       "Fresh Memory usage initializes lm_scopes schema",
       "Explicit Tauri ACL now permits registered inventory pagination command"
@@ -582,6 +584,14 @@
       "overall": "FAIL_PACKAGE_IMPORT_CLOSURE_AND_F14_SOURCE_SCOPE",
       "macNative": "PASS",
       "windowsNative": "BLOCKED_AT_PREBUILD_PACKAGE_GUARD"
-    }
+    },
+    "p1VerifiedSource": "ccf79679a6305aca4ff839960da69fc2f7dc2269",
+    "p1VerifiedCi": 42556894256,
+    "displayNames": [
+      "A/B",
+      "Light Remote Desktop"
+    ],
+    "physicalOwnerAcceptance": "NOT_RUN",
+    "publicBinaryRelease": "FORBIDDEN_INTERNAL_ONLY"
   }
 }

@@ -36,9 +36,14 @@ pub(crate) fn already_running() -> bool {
     if mutex.is_null(){return false;}
     let existing=unsafe{GetLastError()}==183;
     if existing {
-        let title:Vec<u16>=OsStr::new("Light Remote Desktop V4")
-            .encode_wide().chain(std::iter::once(0)).collect();
-        let window=unsafe{FindWindowW(std::ptr::null(),title.as_ptr())};
+        // Retain the previous title only as a compatibility-bridge fallback.
+        // The mutex identity stays unchanged across the display-name upgrade.
+        let mut window=std::ptr::null_mut();
+        for name in ["Light Remote Desktop","Light Remote Desktop V4"] {
+            let title:Vec<u16>=OsStr::new(name).encode_wide().chain(std::iter::once(0)).collect();
+            window=unsafe{FindWindowW(std::ptr::null(),title.as_ptr())};
+            if !window.is_null(){break;}
+        }
         let background=std::env::args_os().any(|a|a=="--background");
         if !window.is_null()&&!background{unsafe{ShowWindow(window,9);SetForegroundWindow(window);}}
         unsafe{CloseHandle(mutex);}

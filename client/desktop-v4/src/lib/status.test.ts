@@ -34,6 +34,14 @@ describe('owner-safe status projection', () => {
     expect(JSON.stringify(data)).not.toMatch(/NO|DO_NOT_EXPOSE/);
   });
 
+  it('recognizes the enrolled Agent dormant state only when disconnection was requested', () => {
+    const local = { cloudState: 'dormant', cloudDesiredConnected: false };
+    const result = projectLocalStatus({ok:true,local});
+    if(result.state==='ready')expect(result.device.connection).toBe('disconnected');
+    const pending = projectLocalStatus({ok:true,local:{...local,cloudDesiredConnected:true}});
+    if(pending.state==='ready')expect(pending.device.connection).toBe('unknown');
+  });
+
   it('rejects HTML login redirects and handles an unauthenticated Wall', async () => {
     const html = vi.fn().mockResolvedValue(new Response('<html></html>', {
       status: 200, headers: { 'content-type': 'text/html' }

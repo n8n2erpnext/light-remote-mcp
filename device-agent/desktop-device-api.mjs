@@ -13,7 +13,7 @@ function exact(input,keys,optional=[]){
 function confirm(input){if(input.confirmed!==true)throw fail('desktop_owner_confirmation_required',403);}
 const flagsView=f=>({longMemory:f.longMemory===true,codexBridge:f.codexBridge===true,revision:number(f.revision)});
 export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSyncPolicy,
- getAccountDelete,closeSession,cancelJob,getLogStatus,logControl}={}){
+ getAccountDelete,closeSession,cancelJob,getLogStatus,logControl,connect,disconnect}={}){
  if(!modules||typeof localStatus!=='function')throw fail('desktop_dependencies_missing',503);
  let syncInFlight=null,operation=null;
  const syncView=()=>{
@@ -37,6 +37,7 @@ export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSy
   const s=localStatus();
   return {deviceName:text(s.deviceName,120),cloudDesiredConnected:s.cloudDesiredConnected===true,
    cloudState:text(s.cloudState,40),version:text(s.version,40),platform:text(s.platformAdapter,40),
+   executorReady:typeof s.executorReady==='boolean'?s.executorReady:null,
    policy:{profile:text(s.localPolicyProfile,40),revision:number(s.policyRevision),
     effectiveCapabilities:(s.effectiveCapabilities||[]).filter(x=>typeof x==='string').slice(0,100),
     deniedCapabilities:(s.deniedCapabilities||[]).filter(x=>typeof x==='string').slice(0,100)}};
@@ -51,6 +52,7 @@ export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSy
    const byId=new Map(active.map(s=>[s.scopeId,s]));
    return {...base,memory:{localFileBytes:number(usage.localFileBytes),liveBytes:number(usage.localDatabaseLiveBytes),
     checkpointBytes:number(usage.checkpointBodyBytes),lastConfirmedSyncAt:number(usage.lastConfirmedSyncAt),
+    coverage:{returned:Math.min(100,(usage.scopes||[]).length),total:(usage.scopes||[]).length},
     scopes:(usage.scopes||[]).slice(0,100).map(s=>({scopeId:s.scopeId,displayName:text(s.displayName),
      homeDeviceId:s.homeDeviceId,status:s.status,tombstoned:s.tombstoned===true,captureMode:s.captureMode,
      revision:number(byId.get(s.scopeId)?.revision),checkpoints:number(s.checkpoints),bytes:number(s.checkpointBodyBytes),
@@ -59,11 +61,11 @@ export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSy
   if(action==='codex.read'){
    if(!modulesView.codexBridge)return {...base,codex:null};
    const observer=modules.observer(),runtime=modules.managedCodexStatus();
-   return {...base,codex:{tasks:observer.tasks.slice(0,100).map(t=>({id:t.id,title:text(t.title),state:t.state,
+   return {...base,codex:{coverage:{returned:Math.min(100,observer.tasks.length),total:observer.tasks.length},tasks:observer.tasks.slice(0,100).map(t=>({id:t.id,title:text(t.title),state:t.state,
     createdAt:number(t.createdAt),changedAt:number(t.changedAt)})),recommendation:observer.recommendation,
     runtime:{state:runtime.state,installed:runtime.installed===true,externalAvailable:runtime.externalAvailable===true,
      installing:runtime.installing===true,lastError:text(runtime.lastError,160)},
-    operation,delegations:modules.supervisorList().map(d=>({taskId:d.taskId,state:d.state,decision:d.decision,
+    operation,delegations:modules.supervisorList().slice(0,100).map(d=>({taskId:d.taskId,state:d.state,decision:d.decision,
      maxRounds:d.maxRounds,rounds:d.rounds,updatedAt:d.updatedAt}))}};
   }
   if(action==='settings.read'){
@@ -205,6 +207,12 @@ export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSy
    exact(payload,['jobId','confirmed']);confirm(payload);
    if(!uuid(payload.jobId)||!cancelJob)throw fail('desktop_payload_invalid');
    const result=await cancelJob(payload.jobId);return {state:text(result?.state,40)||'stop_requested'};
+  }
+  if(action==='device.connect'||action==='device.disconnect'){
+   exact(payload,['confirmed']);confirm(payload);
+   const operation=action==='device.connect'?connect:disconnect;
+   if(!operation)throw fail('desktop_connection_unavailable',503);
+   await operation();return {requested:true}; // display the subsequent actual Agent state
   }
   if(action==='logs.configure'){
    exact(payload,['preset']);

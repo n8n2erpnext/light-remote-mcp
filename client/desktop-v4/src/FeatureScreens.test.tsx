@@ -60,7 +60,7 @@ describe('desktop V4 feature screen integrity', () => {
     render(<FeatureScreen route="account" status={null} snapshot={snapshot} />);
     expect(screen.getByText('owner@example.test')).toBeTruthy();
     expect(screen.getByText('Workstation')).toBeTruthy();
-    expect(screen.getByText('2026-11')).toBeTruthy();
+    expect(screen.getAllByText('2026-11')).toHaveLength(2);
     expect(screen.getByText('19')).toBeTruthy();
     expect(screen.getByText('2.0')).toBeTruthy();
   });

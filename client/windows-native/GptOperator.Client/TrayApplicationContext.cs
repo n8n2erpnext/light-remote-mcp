@@ -889,7 +889,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         if (!File.Exists(exe))
         {
             ClientEvent("desktop_v4_missing");
-            MessageBox.Show("Light Remote Desktop V4 is not installed in this package.",
+            MessageBox.Show("Light Remote Desktop is not installed in this package.",
                 "Light Remote", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }

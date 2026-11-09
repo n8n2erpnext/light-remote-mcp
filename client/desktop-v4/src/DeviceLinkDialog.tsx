@@ -21,6 +21,11 @@ async function invoke(action:string):Promise<Reply> {
   try {return rec(await (window as Host).__TAURI_INTERNALS__!.invoke!('desktop_native_action',{action}));}
   catch{return {ok:false,state:'agent_unavailable'};}
 }
+// OS-local host actions are fixed compiled verbs. They can start the Agent
+// even when its authenticated device API is currently offline.
+export function nativeShellAction(action:'status'|'service'|'restart'|'update'|'open-account'){
+  return invoke(action);
+}
 export async function pollNativeLinkIntent():Promise<boolean> {
   if(!nativeLinkAvailable())return false;
   try{return (await (window as Host).__TAURI_INTERNALS__!.invoke!('desktop_link_ui_intent'))===true;}
