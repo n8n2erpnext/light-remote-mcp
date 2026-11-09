@@ -40,9 +40,17 @@ assert.equal(after.length,2,'F14 native read must close before existing approval
 const baseline=sections[0]+after[1];
 assert.equal((baseline.match(/wall_snapshot_after_verification\(\)\.await/g)||[]).length,5);
 assert.equal((baseline.match(/wall_snapshot_current_after_verification\(&snap\)\.await/g)||[]).length,6);
-assert.equal((after[0].match(/wall_snapshot_after_verification\(\)\.await/g)||[]).length,1);
-assert.equal((after[0].match(/wall_snapshot_current_after_verification\(&snap\)\.await/g)||[]).length,1);
-assert.match(after[0],/verify_owner_session\(&access,&account\)/);
+// Keep the original F14 read checks unchanged in scope; the new device API
+// is a separate command and must independently retain both verification fences.
+const added=after[0].split('// Account/device-bound local application API.');
+assert.equal(added.length,2,'Native device API must have an explicit boundary');
+for(const section of added){
+ assert.equal((section.match(/wall_snapshot_after_verification\(\)\.await/g)||[]).length,1);
+ assert.equal((section.match(/wall_snapshot_current_after_verification\(&snap\)\.await/g)||[]).length,1);
+ assert.match(section,/verify_owner_session\(&access,&account\)/);
+}
+assert.match(added[1],/owner_device::exchange/);
+assert.match(added[1],/action!="device.read"&&device_id.is_none\(\)/);
 for(const test of [
  't11_f10_verify_inflight_bounded_wait_accepts_same_owner_only_after_https_success',
  't11_f10_mid_read_verify_success_preserves_old_generation_projection',

@@ -192,3 +192,10 @@ This is the **only rolling project handoff**. Together with the single root `MAS
 - Runtime: Source implementation only; existing ARM Lab/production and installed Owner Windows runtime, credentials, grants and sessions unchanged. Candidate artifacts remain internal-only.
 
 All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority checks. Initial ARM fixture run exceeded AF_UNIX pathname length because the mandatory workspace root plus temporary prefixes was too long. Only fixture prefixes/parent names and private TMPDIR under the approved root were shortened; production endpoint/102-byte guard and all authority checks remain unchanged.
+
+## Task Receipt: 20261109-desktop-device-api-package-closure
+- Status: P1_PACKAGE_CLOSURE_FIXED_FULL_CI_PENDING. Fix the P1 Agent package import closure: explicitly include both new native device API modules in client/core-files.json. Keep the original F14 Owner verification regression scoped to F14 and independently require the new device command to verify Owner before/after with an exact device for writes.
+- Source: permanent work after `c6d57355a3b4836467ba160ebb88b770a02118f4`; exact staged source digest stamped in this same commit.
+- Verification: CI35/42556313669 at c6d5735: Node units and web/native macOS PASS; full Core source suite and Windows pre-build crypto/package smoke FAIL because the two new static Agent imports were missing from the explicit packaging manifest. The old verification source assertion also counted the new command as part of F14. Both targeted source regressions now PASS locally; no authority assertion removed or production bypass. New full CI pending; P1 Windows native packaging is not yet PASS.
+- Next: Continue Desktop provider/control wiring and displayed A/B/Desktop naming cleanup while exact-source CI validates package closure. Then run real signed Wall B/coherent backend integration and verify the final internal-only installer; no public Release/feed.
+- Runtime: Source/package declaration only; installed Owner app and existing ARM serving runtime unchanged. Internal testing only.

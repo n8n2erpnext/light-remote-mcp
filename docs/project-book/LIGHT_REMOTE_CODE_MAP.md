@@ -126,3 +126,7 @@ Owner clarified internal-only test artifacts, with no public binary release. Sta
 ## Implement verified native device API and fix Memory startup and Desktop ACL gaps
 
 Native command owner_login.rs::desktop_owner_device_request and owner_device.rs resolve only a fixed same-user Agent endpoint. Agent listener desktop-device-native-ipc.mjs verifies current Native Owner and enrolled account/device, and desktop-device-api.mjs projects bounded views/reuses existing controllers. Main/build/permissions explicitly list the command and inventory pagination. local-wall.mjs exposes private in-process activity log control only, with no new unauthenticated HTTP route. Memory usage initializes scoped schema independently of list/create ordering. Node regression tests use disposable real SQLite/socket resources. UI bindings and native CI remain pending.
+
+## Include native device API in Agent package and preserve scoped Owner fence checks
+
+client/core-files.json is the explicit distributed Agent import closure. It now includes desktop-device-native-ipc.mjs and desktop-device-api.mjs. These were implemented in c6d5735 but CI correctly rejected the incomplete package; no installed/runtime change occurred. Owner source check now separately verifies F14 and the added device command, each with HTTPS Owner verification plus generation fences.

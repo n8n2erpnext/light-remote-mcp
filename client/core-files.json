@@ -190,8 +190,20 @@
       "destination": "config/endpoints.json"
     },
     {
+      "source": "contracts/api.v1.json",
+      "destination": "contracts/api.v1.json"
+    },
+    {
       "source": "device-agent/desktop-abv2-native-ipc-v4.mjs",
       "destination": "device-agent/desktop-abv2-native-ipc-v4.mjs"
+    },
+    {
+      "source": "device-agent/desktop-device-api.mjs",
+      "destination": "device-agent/desktop-device-api.mjs"
+    },
+    {
+      "source": "device-agent/desktop-device-native-ipc.mjs",
+      "destination": "device-agent/desktop-device-native-ipc.mjs"
     },
     {
       "source": "device-agent/desktop-wall-sso-browser-bootstrap-v4.mjs",
@@ -394,6 +406,10 @@
       "destination": "lib/activity-ring.mjs"
     },
     {
+      "source": "lib/api-contract.mjs",
+      "destination": "lib/api-contract.mjs"
+    },
+    {
       "source": "lib/brand.mjs",
       "destination": "lib/brand.mjs"
     },
@@ -532,14 +548,6 @@
     {
       "source": "project.manifest.json",
       "destination": "project.manifest.json"
-    },
-    {
-      "source": "contracts/api.v1.json",
-      "destination": "contracts/api.v1.json"
-    },
-    {
-      "source": "lib/api-contract.mjs",
-      "destination": "lib/api-contract.mjs"
     }
   ]
 }

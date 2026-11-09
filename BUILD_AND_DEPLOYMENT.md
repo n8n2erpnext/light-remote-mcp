@@ -90,3 +90,7 @@ Owner clarified internal-test-only installers; no public GitHub binary release o
 ## Implement verified native device API and fix Memory startup and Desktop ACL gaps
 
 Development candidate0.10.1-dev.3 adds native device API without changing primary layout, credential/profile/resource IDs, dependency package versions or the verified compatibility bridge pin. Every native build remains exact clean GitHub source in Actions. No public Release/feed requested. Existing installed/runtime source remains unchanged until separately tested integration work.
+
+## Include native device API in Agent package and preserve scoped Owner fence checks
+
+Fix the P1 Agent package import closure: explicitly include both new native device API modules in client/core-files.json. Keep the original F14 Owner verification regression scoped to F14 and independently require the new device command to verify Owner before/after with an exact device for writes. CI35 is a failed development trial, not a releasable internal installer. Exact-source native rerun remains required before acceptance.
