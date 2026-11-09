@@ -26,3 +26,7 @@ Signed feed follow-up: preserved client beta manifest is legacy0.9.0-rc.47 with 
 ## Begin internal Desktop backend integration from verified source checkpoint
 
 Active task: confirmed deployed Lab backend is mixed0.9.0-rc.49 STAGED source while internal Desktop candidate is0.10.1-dev.2. The local-module UI is still placeholders and Tauri status transport is unbound. Wall B failure is reported and not yet reproduced; do not attribute it to the EXE merge without a real cross-layer test. Work proceeds on the single canonical source; no public release.
+
+## Implement verified native device API and fix Memory startup and Desktop ACL gaps
+
+Fixed in source: first read of Memory usage after enabling could fail with no such table lm_scopes; native inventory pagination command was missing from explicit Tauri ACL. Targeted SQLite/socket/contract tests PASS; native CI and actual Desktop binding are still pending, and Wall B regression remains unresolved until real cross-layer testing.

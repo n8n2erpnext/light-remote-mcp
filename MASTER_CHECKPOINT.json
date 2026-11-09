@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-09T03:02:46.332Z",
-  "version": "0.10.1-dev.2",
+  "updatedAt": "2026-11-09T03:25:13.912Z",
+  "version": "0.10.1-dev.3",
   "phase": "DESKTOP_BACKEND_API_ALIGNMENT",
-  "status": "DESKTOP_BACKEND_INTEGRATION_IN_PROGRESS",
+  "status": "DESKTOP_NATIVE_DEVICE_API_IMPLEMENTED_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -238,7 +238,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Implement one verified native Desktop-to-local-Agent API using current Owner/account/device checks and existing module/controllers, wire actual Desktop reads and mutations with stale-response/CAS fences, then complete same-source backend candidate/real Wall B integration and internal Actions build. Keep technical credential/profile IDs compatible while removing version suffixes from displayed names.",
+  "nextAction": "Inspect the exact work CI, fix any source/native regressions without weakening authority guards, wire the Desktop native device provider and actual feature controls, standardize displayed A/B/Desktop names, then complete real signed Wall B plus same-source internal backend integration before final internal installer verification.",
   "receiptNote": "Current compiled source and verified CI artifact are pinned independently from this documentation-only receipt; public binary release awaits explicit Owner approval. No native rebuild or existing-runtime deployment is implied.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -318,24 +318,24 @@
     "longTaskCadence": "checkpoint and rolling handoff at each meaningful completed step before the next step",
     "workingBranch": "work",
     "repositoryPublicationStatus": "Compiled source31f2339 is on protected main and permanent work; this atomic documentation/evidence receipt is published on work and requires its own baseline check before normal fast-forward.",
-    "taskStatus": "DESKTOP_BACKEND_ALIGNMENT_IN_PROGRESS",
+    "taskStatus": "DESKTOP_NATIVE_DEVICE_API_IMPLEMENTED_CI_PENDING",
     "stableSourceBaseline": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
     "preChangeCommit": "c8d308c82d17b5a4052163377d23f4514da6db02",
     "runtimeChanged": false,
-    "nextAction": "Implement one verified native Desktop-to-local-Agent API using current Owner/account/device checks and existing module/controllers, wire actual Desktop reads and mutations with stale-response/CAS fences, then complete same-source backend candidate/real Wall B integration and internal Actions build. Keep technical credential/profile IDs compatible while removing version suffixes from displayed names.",
+    "nextAction": "Inspect the exact work CI, fix any source/native regressions without weakening authority guards, wire the Desktop native device provider and actual feature controls, standardize displayed A/B/Desktop names, then complete real signed Wall B plus same-source internal backend integration before final internal installer verification.",
     "atomicCommitRule": "Every Git commit must stage MASTER_CHECKPOINT, PROJECT_HANDOFF, Worklog, generated docs status and applicable Code Map/API/build documentation; unique task receipt + staged-source blob digest.",
     "localGuard": ".githooks/pre-commit invokes deploy/unified/commit-sync-gate.mjs --staged",
     "ciGuard": ".github/workflows/ci.yml truth job checks each new commit via --range"
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-desktop-backend-contract-inventory",
-    "status": "IN_PROGRESS_RUNTIME_DRIFT_AND_UI_GAPS_CONFIRMED",
-    "summary": "Owner clarified internal-only test artifacts, with no public binary release. Start actual Desktop/backend/Agent feature integration, Wall B regression investigation and displayed A/B/Desktop naming cleanup on permanent work. Verified full pre-change checkpoint and independent Git restore before edits.",
-    "verification": "Baseline521d04c/tag checkpoint/20261109-before-desktop-backend-521d04c; bundle SHA2565f20de606764ca319b3bfd695c81dda0b08bacac6a3ac831bdc8405e222c2331, independent bare restore/fsck PASS. Read current README/AGENTS/Truth/checkpoint/map/handoff. Actual Windows installation reports0.10.1-dev.2 with root primary and neither old EXE. Source confirms Long Memory/Codex placeholder UI and same-origin /api/status fetch under Tauri. Actual ARM Lab Operator and Plugin serve separate STAGED0.9.0-rc.49 trees; Operator lacks desktop-v4-owner-snapshot.mjs and has Owner-auth/token flags0, Plugin has them1; no READ flag observed. This is confirmed deployment drift, not a conclusion that every backend source feature is absent. Wall B regression remains to reproduce, not marked fixed.",
-    "nextAction": "Implement one verified native Desktop-to-local-Agent API using current Owner/account/device checks and existing module/controllers, wire actual Desktop reads and mutations with stale-response/CAS fences, then complete same-source backend candidate/real Wall B integration and internal Actions build. Keep technical credential/profile IDs compatible while removing version suffixes from displayed names.",
-    "sourceDigest": "8aabb7a028c7a031b59a46e6db3510ab9c68f1aee0715c44550528603dc06c2f",
-    "sourceFileCount": 1627
+    "taskId": "20261109-desktop-native-device-api-foundation",
+    "status": "P1_IMPLEMENTED_TARGETED_TESTS_PASS_NATIVE_CI_PENDING",
+    "summary": "Implemented the current Owner/account/device-bound native Agent API and explicit Tauri command/ACL for real local device/module/Memory/sync/Codex/session/job/log controllers. Corrected missing inventory-page ACL and fresh Memory usage schema initialization. Candidate version0.10.1-dev.3, internal testing only; Desktop provider/UI binding and coherent Lab rollout are next.",
+    "verification": "Seven focused tests PASS locally across real SQLite and OS-private socket: modules OFF create no DB, module CAS preserves the other flag and data, immediate first Memory usage works, archive/restore persist, task edits/deletes reject stale versions, native dispatch denies wrong Owner/account/device/extra fields and identity rotation, sync changes recheck identity after async roster, native command ACL covers pagination, and operation contract matches native allowlist. The initial real SQLite test reproduced no such table lm_scopes; source fix initializes scoped schema before usage. Node syntax PASS. Native Rust/build and full regression are CI_PENDING, not inferred PASS. No physical Owner acceptance, serving runtime change or public binary publication. All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority checks. Initial ARM fixture run exceeded AF_UNIX pathname length because the mandatory workspace root plus temporary prefixes was too long. Only fixture prefixes/parent names and private TMPDIR under the approved root were shortened; production endpoint/102-byte guard and all authority checks remain unchanged.",
+    "nextAction": "Inspect the exact work CI, fix any source/native regressions without weakening authority guards, wire the Desktop native device provider and actual feature controls, standardize displayed A/B/Desktop names, then complete real signed Wall B plus same-source internal backend integration before final internal installer verification.",
+    "sourceDigest": "6744c8cb9b5d7283dc7e3e25be5b5808df07adb7577b3ec0e81faa301a685d83",
+    "sourceFileCount": 1633
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -545,7 +545,7 @@
     "publicFeed": "HOLD"
   },
   "desktopBackendIntegration": {
-    "status": "P0_CONTRACT_INVENTORY_COMPLETE_IMPLEMENTATION_NEXT",
+    "status": "P1_API_IMPLEMENTED_P2_UI_NEXT",
     "baseCommit": "521d04cc559e0e263390863ed1caaf8bf0205797",
     "preChangeTag": "checkpoint/20261109-before-desktop-backend-521d04c",
     "bundleSha256": "5f20de606764ca319b3bfd695c81dda0b08bacac6a3ac831bdc8405e222c2331",
@@ -563,12 +563,18 @@
     ],
     "steps": {
       "P0Inventory": "DONE",
-      "P1NativeDeviceApi": "IN_PROGRESS",
-      "P2DesktopBindings": "NOT_STARTED",
+      "P1NativeDeviceApi": "IMPLEMENTED_TARGETED_TESTS_PASS_NATIVE_CI_PENDING",
+      "P2DesktopBindings": "NEXT",
       "P3CoherentBackendAndWallB": "NOT_STARTED",
       "P4InternalNativeIntegration": "NOT_STARTED"
     },
     "wallBRegression": "REPORTED_NOT_YET_REPRODUCED",
-    "runtimeChanged": false
+    "runtimeChanged": false,
+    "candidateVersion": "0.10.1-dev.3",
+    "nativeApi": "IMPLEMENTED_TARGETED_NODE_TESTS_PASS_NATIVE_CI_PENDING",
+    "confirmedFixes": [
+      "Fresh Memory usage initializes lm_scopes schema",
+      "Explicit Tauri ACL now permits registered inventory pagination command"
+    ]
   }
 }

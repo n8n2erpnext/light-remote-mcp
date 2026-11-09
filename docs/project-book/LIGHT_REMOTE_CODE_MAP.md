@@ -122,3 +122,7 @@ Compiled source `31f23393aacb89b6d541cebb2cd0c2e1afa64538` passed full CI #30 an
 ## Begin internal Desktop backend integration from verified source checkpoint
 
 Owner clarified internal-only test artifacts, with no public binary release. Start actual Desktop/backend/Agent feature integration, Wall B regression investigation and displayed A/B/Desktop naming cleanup on permanent work. Verified full pre-change checkpoint and independent Git restore before edits. Known integration owners: client/desktop-v4/src/{App,FeatureScreens}.tsx; native owner_login.rs/owner_abv2.rs; device-agent/operator-agent.mjs and gold-wall-modules.mjs; plugin-server/desktop-owner-token-v4.mjs; operator-host/desktop-v4-owner-snapshot.mjs. Existing deployed Lab source drift is separate from these canonical source modules.
+
+## Implement verified native device API and fix Memory startup and Desktop ACL gaps
+
+Native command owner_login.rs::desktop_owner_device_request and owner_device.rs resolve only a fixed same-user Agent endpoint. Agent listener desktop-device-native-ipc.mjs verifies current Native Owner and enrolled account/device, and desktop-device-api.mjs projects bounded views/reuses existing controllers. Main/build/permissions explicitly list the command and inventory pagination. local-wall.mjs exposes private in-process activity log control only, with no new unauthenticated HTTP route. Memory usage initializes scoped schema independently of list/create ordering. Node regression tests use disposable real SQLite/socket resources. UI bindings and native CI remain pending.

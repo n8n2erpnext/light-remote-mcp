@@ -3348,5 +3348,15 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
     const access=url.pathname.match(/^\/api\/access\/(pa_[A-Za-z0-9_-]{20,80})\/(approve|deny)$/);if(req.method==='POST'&&access){if(!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});const data=await body(req);const fn=access[2]==='approve'?accessApprove:accessDeny;if(typeof fn!=='function')return json(res,501,{ok:false,error:'access_control_unavailable'});const value=await fn(access[1],data||{});statusCache?.invalidate();return json(res,200,{ok:true,authorization:value});}
     return json(res,404,{ok:false,error:'not_found'});
   }catch(error){const code=String(error?.message||'local_wall_error');console.error(JSON.stringify({event:'local_wall_request_error',method:String(req.method||''),route:new URL(req.url||'/','http://local.wall').pathname,error:code.slice(0,240),headersSent:res.headersSent}));if(res.headersSent||res.writableEnded){if(!res.writableEnded)res.destroy();return;}return json(res,Number(error?.status)||400,{ok:false,error:code});}});
-  ensureActivityPump();server.listen(Number(port),host);return{server,host,port:Number(port),url:`http://${host}:${Number(port)}/`,desktopSsoBootstrap,close:()=>{shutdownActivityPump();return new Promise(resolve=>server.close(()=>resolve()));}};
+  ensureActivityPump();server.listen(Number(port),host);return{server,host,port:Number(port),url:`http://${host}:${Number(port)}/`,desktopSsoBootstrap,
+  // Private in-process entrypoint. Only the native Owner IPC calls this after
+  // current account/device verification; no new unauthenticated HTTP route.
+  nativeActivityLogs:async(action,input={})=>{
+    const store=localActivityStore(await getLocalStatus());
+    if(!store)throw Object.assign(Error('desktop_log_unavailable'),{status:503});
+    if(action==='state')return store.stat();
+    if(action==='configure'&&['compact','standard','extended'].includes(input.preset))return store.setPreset(input.preset);
+    if(action==='clean'&&input.confirmText==='CLEAN ACTIVITY LOGS')return store.clean();
+    throw Object.assign(Error('desktop_log_action_denied'),{status:403});
+  },close:()=>{shutdownActivityPump();return new Promise(resolve=>server.close(()=>resolve()));}};
 }

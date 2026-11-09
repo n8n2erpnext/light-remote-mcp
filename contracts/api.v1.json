@@ -156,5 +156,55 @@
     "A route in source is not DEPLOYED/ENABLED.",
     "A source/CI PASS is not PHYSICAL_PASS.",
     "Snapshot TTL/historyMs are not an immutable audit archive."
-  ]
+  ],
+  "nativeTransports": {
+    "desktopDevice": {
+      "nativeCommand": "desktop_owner_device_request",
+      "component": "device-agent/desktop-device-api.mjs",
+      "transport": "OS-private same-user pipe / Unix socket",
+      "authority": "Current native Owner bearer verified against canonical issuer, exact enrolled account/device checked before dispatch and after response; credentials never enter React. Each mutation retains existing confirmation, CAS and signed device channel policy. No remote execution granted by login.",
+      "operations": [
+        "device.read",
+        "memory.read",
+        "codex.read",
+        "settings.read",
+        "module.configure",
+        "memory.create",
+        "memory.capture",
+        "memory.archive",
+        "memory.restore",
+        "memory.delete-local",
+        "memory.delete-account",
+        "memory.sync-policy",
+        "memory.sync-manual",
+        "codex.task-create",
+        "codex.task-edit",
+        "codex.task-state",
+        "codex.task-delete",
+        "codex.runtime-install",
+        "codex.runtime-remove",
+        "codex.login",
+        "codex.login-cancel",
+        "codex.logout",
+        "codex.account",
+        "codex.observe",
+        "codex.delegate",
+        "codex.pause",
+        "sessions.close",
+        "jobs.cancel",
+        "logs.configure",
+        "logs.clean"
+      ],
+      "request": [
+        "action",
+        "access (native only)",
+        "accountId (native only)",
+        "deviceId",
+        "payload"
+      ],
+      "response": "Bounded allowlisted local state or acknowledged operation; unknown outcome never retried automatically.",
+      "featureFlag": "LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4",
+      "sourceStatus": "IMPLEMENTED_CI_PENDING_UI_BINDING_NEXT"
+    }
+  }
 }

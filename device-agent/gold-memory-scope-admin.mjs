@@ -5,7 +5,7 @@
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import {appendGoldScopedCheckpoint,goldScopedExport} from './gold-memory-scope.mjs';
+import {appendGoldScopedCheckpoint,goldScopedExport,prepareGoldMemoryV2} from './gold-memory-scope.mjs';
 const fail=(code,status=409)=>Object.assign(new Error(code),{status});
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ZERO='0'.repeat(64);
@@ -168,6 +168,9 @@ export function memoryScopeAccountDeleteGate(){
   throw fail('memory_scope_account_delete_requires_signed_tombstone_offline_delivery_and_acks',501);
 }
 export function memoryLocalUsage(db,{accountId,filePath}={}){
+  // Usage is a valid first request immediately after enabling Memory. Do not
+  // depend on a prior scopes/list request having created the scoped schema.
+  prepareGoldMemoryV2(db);
   ensureMemoryScopeLifecycle(db);
   const scopeRows=db.prepare(`SELECT s.scope_id AS scopeId,s.display_name AS displayName,
     s.capture_mode AS captureMode,s.home_device_id AS homeDeviceId,s.status,

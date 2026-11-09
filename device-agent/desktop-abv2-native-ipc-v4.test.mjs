@@ -42,8 +42,8 @@ test('default disabled creates no listener',async()=>{
  await service.close();
 });
 test('ABV2 native pending/Approve verifies Owner, enrollment and returns no secrets',async(t)=>{
- const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-v4-abv2-'));
- const parent=path.join(tmp,'.light-remote');
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'ab-'));
+ const parent=path.join(tmp,'.p');
  fs.mkdirSync(parent,{mode:0o700});
  const socketPath=process.platform==='win32'?ABV2_NATIVE_WIN_PIPE_V4:
    path.join(parent,'desktop-v4-abv2.sock');
@@ -85,8 +85,8 @@ test('ABV2 native pending/Approve verifies Owner, enrollment and returns no secr
  assert.ok(checks>=4);
 });
 test('revoked enrollment blocks native request before Owner check',async(t)=>{
- const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'lr-v4-abv2-revoked-'));
- const parent=path.join(tmp,'.light-remote');
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'ar-'));
+ const parent=path.join(tmp,'.p');
  fs.mkdirSync(parent,{mode:0o700});
  let verified=false;
  const service=await startDesktopAbv2NativeAgentIpcV4({

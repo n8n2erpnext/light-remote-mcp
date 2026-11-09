@@ -16,6 +16,8 @@ mod owner_login;
 mod owner_wall_ticket;
 #[cfg(feature = "desktop-owner-login")]
 mod owner_abv2;
+#[cfg(feature = "desktop-owner-login")]
+mod owner_device;
 
 #[cfg(all(feature = "desktop-owner-login", target_os = "windows"))]
 mod unified_tray;
@@ -138,6 +140,7 @@ fn main() {
             owner_login::desktop_owner_abv2_approve,
             owner_login::desktop_owner_snapshot,
             owner_login::desktop_owner_inventory_page,
+            owner_login::desktop_owner_device_request,
             unified_tray::desktop_native_action,
             unified_tray::desktop_link_ui_intent
         ])
@@ -159,7 +162,8 @@ fn main() {
             owner_login::desktop_owner_abv2_pending,
             owner_login::desktop_owner_abv2_approve,
             owner_login::desktop_owner_snapshot,
-            owner_login::desktop_owner_inventory_page
+            owner_login::desktop_owner_inventory_page,
+            owner_login::desktop_owner_device_request
         ])
         .run(tauri::generate_context!())
         .expect("Light Remote V4 Owner Login candidate startup failed");

@@ -1800,7 +1800,7 @@ dependencies = [
 
 [[package]]
 name = "light-remote-desktop-v4-pilot"
-version = "0.10.1-dev.2"
+version = "0.10.1-dev.3"
 dependencies = [
  "base64 0.22.1",
  "keyring",

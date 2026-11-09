@@ -16,6 +16,8 @@ import { invalidateCommandExistenceCache } from './platform-adapters/shared.mjs'
 import { startLocalWall } from './local-wall.mjs';
 import {createLocalWallInstanceProof} from './local-wall-instance-proof.mjs';
 import { startDesktopAbv2NativeAgentIpcV4 } from './desktop-abv2-native-ipc-v4.mjs';
+import {startDesktopDeviceIpc} from './desktop-device-native-ipc.mjs';
+import {createDesktopDeviceApi} from './desktop-device-api.mjs';
 import {assertNotificationOwnerEmail} from './wall-account-notifications.mjs';
 import {createGoldWallModules} from './gold-wall-modules.mjs';
 import { filesystemVolumeInventory } from './filesystem-volume-inventory.mjs';
@@ -1550,13 +1552,13 @@ async function daemon(args){
   const waitMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_CHANNEL_WAIT_MS)||8000,15000));
   const dormantPollMs=Math.max(1000,Math.min(Number(process.env.OPERATOR_AGENT_DORMANT_CHECK_MS)||2000,30000));
   const commandHeartbeatMs=Math.max(2000,Math.min(Number(process.env.OPERATOR_AGENT_COMMAND_HEARTBEAT_MS)||5000,15000));
-  let stopped=false,wake=null,failures=0,localWall=null,desktopAbv2Ipc=null,fleetTimer=null,fleetReconciling=false,codexSupervisorTimer=null;
+  let stopped=false,wake=null,failures=0,localWall=null,desktopAbv2Ipc=null,desktopDeviceIpc=null,fleetTimer=null,fleetReconciling=false,codexSupervisorTimer=null;
   const fleetManager=new FleetComponentManager(),fleetSupervisor=new FleetComponentSupervisor({manager:fleetManager,stateProvider:()=>readState(),requestIntent:async current=>{const local=await localFleetStatus();const response=await channelRequest(current,hub,'fleet-intent',{agentVersion:VERSION,moduleVersion:fleetManager.current()?.version||null,fleetHealthy:local.healthy===true,fleetPort:local.port});return response.fleet;},env:{OPERATOR_AGENT_STATE:STATE_FILE,OPERATOR_AGENT_IDENTITY_FILE:EXTERNAL_IDENTITY_FILE,OPERATOR_AGENT_WALL_AUTH_FILE:LOCAL_WALL_AUTH_FILE,OPERATOR_AGENT_HUB_URL:hub,OPERATOR_FLEET_WALL_HOST:FLEET_WALL_HOST,OPERATOR_FLEET_WALL_PORT:String(FLEET_WALL_PORT),OPERATOR_FLEET_WALL_PUBLIC_URL:FLEET_WALL_PUBLIC_URL},emit:event=>console.log(JSON.stringify(event))});
   EXECUTOR_PROBE.start();
   // Do not start a signed command channel with an unprobed new Agent.
   await EXECUTOR_PROBE.check();
   if(EXECUTOR_PROBE.status().ready===null)await EXECUTOR_PROBE.check();
-  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(typeof goldMemoryFlushTimer!=='undefined')clearInterval(goldMemoryFlushTimer);if(typeof goldPeerPollTimer!=='undefined')clearInterval(goldPeerPollTimer);if(wake)wake();if(codexSupervisorTimer)clearInterval(codexSupervisorTimer);if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{desktopAbv2Ipc?.close().catch(()=>{});}catch{}try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+  const stop=()=>{if(stopped)return;EXECUTOR_PROBE.stop();NATIVE_PROCESSES.close();NATIVE_TERMINALS.close();stopped=true;if(typeof goldMemoryFlushTimer!=='undefined')clearInterval(goldMemoryFlushTimer);if(typeof goldPeerPollTimer!=='undefined')clearInterval(goldPeerPollTimer);if(wake)wake();if(codexSupervisorTimer)clearInterval(codexSupervisorTimer);if(fleetTimer){clearInterval(fleetTimer);fleetTimer=null;}fleetSupervisor.close().catch(()=>{});try{desktopAbv2Ipc?.close().catch(()=>{});}catch{}try{desktopDeviceIpc?.close().catch(()=>{});}catch{}try{localWall?.server.close();}catch{}};process.on('SIGTERM',stop);process.on('SIGINT',stop);
   const wait=ms=>new Promise(resolve=>{const timer=setTimeout(()=>{wake=null;resolve();},ms);wake=()=>{clearTimeout(timer);wake=null;resolve();};});
   if(!fs.existsSync(LOCAL_WALL_AUTH_FILE))writeAccountOnlyWallAuthConfig(LOCAL_WALL_AUTH_FILE,{username:'account'});
   const wallAuth=loadLocalWallAuth(LOCAL_WALL_AUTH_FILE,{required:!['127.0.0.1','::1','localhost'].includes(String(LOCAL_WALL_HOST))});
@@ -1654,6 +1656,28 @@ async function daemon(args){
       console.log(JSON.stringify({event:'desktop_abv2_native_ready',transport:'os-private'}));
     }catch{
       console.log(JSON.stringify({event:'desktop_abv2_native_unavailable'}));
+    }
+    try{
+      const api=createDesktopDeviceApi({modules:GOLD_WALL_MODULES,
+        localStatus:()=>{
+          const current=readState()||{};
+          return {deviceName:current.enrollment?.displayName||os.hostname(),
+            cloudDesiredConnected:cloudDesired(current),cloudState:current.cloud?.state||'dormant',
+            version:VERSION,platformAdapter:PLATFORM_ADAPTER.id,
+            localPolicyProfile:current.policy?.localProfile||null,
+            policyRevision:current.policy?.serverPolicyRevision||0,
+            effectiveCapabilities:current.effectiveCapabilities||[],deniedCapabilities:current.policy?.deniedCapabilities||[]};
+        },
+        getSyncDevices:()=>memoryAccountDevices(hub),getSyncPolicy:input=>memoryAccountSyncPolicy(hub,input),
+        getAccountDelete:input=>memoryAccountDeleteChannel(hub,input),
+        closeSession:input=>closeWallSession(hub,input),cancelJob:id=>cancelWallJob(hub,id),
+        getLogStatus:()=>localWall.nativeActivityLogs('state'),
+        logControl:(action,input)=>localWall.nativeActivityLogs(action,input)});
+      desktopDeviceIpc=await startDesktopDeviceIpc({enabled:true,readEnrollment:nativeEnrollment,
+        verifyOwner:nativeOwner,dispatch:api.dispatch});
+      console.log(JSON.stringify({event:'desktop_device_native_ready',transport:'os-private'}));
+    }catch{
+      console.log(JSON.stringify({event:'desktop_device_native_unavailable'}));
     }
   }
 

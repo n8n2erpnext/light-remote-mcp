@@ -845,6 +845,35 @@ pub(crate) async fn desktop_owner_inventory_page(
     Ok(result)
 }
 
+// Account/device-bound local application API. Owner access remains inside
+// Rust and the same-user Agent. Writes require the exact displayed device;
+// the Agent retains each controller's explicit confirmation/CAS/policy checks.
+#[tauri::command]
+pub(crate) async fn desktop_owner_device_request(
+    state:State<'_,OwnerRuntime>,action:String,device_id:Option<String>,payload:Value
+) -> Result<Value,String> {
+    if !crate::owner_device::ACTIONS.contains(&action.as_str())||!payload.is_object()||
+       (action!="device.read"&&device_id.is_none())||
+       device_id.as_deref().is_some_and(|s|!crate::owner_device::valid_id(s))||
+       serde_json::to_vec(&payload).map_err(|_|"desktop_payload_invalid")?.len()>30000 {
+        return Err("desktop_payload_invalid".into());
+    }
+    let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
+    let snap=runtime.wall_snapshot_after_verification().await
+        .map_err(|_|"desktop_owner_required")?;
+    let account=snap.account.clone();
+    let access=snap.access.clone();
+    let result=tauri::async_runtime::spawn_blocking(move||{
+        if !verify_owner_session(&access,&account){return Err("desktop_owner_required".into());}
+        crate::owner_device::exchange(&json!({"action":action,"access":access,
+            "accountId":account,"deviceId":device_id,"payload":payload}))
+    }).await.map_err(|_|"desktop_device_outcome_unknown".to_string())??;
+    if !runtime.wall_snapshot_current_after_verification(&snap).await{
+        return Err("desktop_device_outcome_unknown".into());
+    }
+    Ok(result)
+}
+
 // T05: Real owner-bound pending A/B V2 and B approval via OS-local Agent.
 // The native Owner bearer is sent ONLY to its local Agent's private socket;
 // React receives just a sanitized pending row set and approval result.

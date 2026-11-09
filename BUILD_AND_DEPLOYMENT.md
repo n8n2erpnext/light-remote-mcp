@@ -86,3 +86,7 @@ Build28 / CI42511023888 source1fb8335 passed the complete Windows job12882399055
 ## Begin internal Desktop backend integration from verified source checkpoint
 
 Owner clarified internal-test-only installers; no public GitHub binary release or signed-feed activation is requested. This task will build from one exact clean official GitHub commit and verify App/backend contracts in isolated integration before any controlled internal Lab runtime change. Preserve current sessions, account/device identities and recovery artifacts.
+
+## Implement verified native device API and fix Memory startup and Desktop ACL gaps
+
+Development candidate0.10.1-dev.3 adds native device API without changing primary layout, credential/profile/resource IDs, dependency package versions or the verified compatibility bridge pin. Every native build remains exact clean GitHub source in Actions. No public Release/feed requested. Existing installed/runtime source remains unchanged until separately tested integration work.
