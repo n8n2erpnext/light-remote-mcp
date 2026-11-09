@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-09T07:11:48.348Z",
+  "updatedAt": "2026-11-09T07:25:25.009Z",
   "version": "0.10.1-dev.3",
   "phase": "DESKTOP_BACKEND_API_ALIGNMENT",
-  "status": "DESKTOP_UI_API_BOUND_BACKEND_INTEGRATION_PENDING",
+  "status": "REAL_SIGNED_B_BASELINE_PROVEN_EXTENDED_DEVICE_INTEGRATION_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -238,7 +238,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Validate exact P2 CI while adding a real signed Wall B and native device API integration flow against a coherent disposable backend. Correct reproduced faults, then verify a final internal-only exact-source Windows installer and prepare same-source ARM deployment without touching historical sources or Owner installation.",
+  "nextAction": "Run exact-source extended isolated backend acceptance and full CI. Correct any reproduced cross-layer failures, verify internal installer/manifests, then prepare coherent Lab runtime migration from the tested GitHub source while preserving existing state and rollback.",
   "receiptNote": "Current compiled source and verified CI artifact are pinned independently from this documentation-only receipt; public binary release awaits explicit Owner approval. No native rebuild or existing-runtime deployment is implied.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -329,13 +329,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-desktop-live-device-ui-binding",
-    "status": "P2_IMPLEMENTED_UI_TESTS_PASS_FULL_CI_PENDING",
-    "summary": "Replace static Memory/Codex shells and native relative URL reads with the current Owner/account/device-bound Agent API. Wire immediate CAS module toggles, actual Memory scopes/storage/sync/lifecycle, Codex tasks/runtime/login/delegation/observer, local session/job control and Settings/Cloud/logs. Display A/B and Light Remote Desktop; preserve technical profile/route/vault/mutex identities and old-window compatibility fallback.",
-    "verification": "P1 exact source ccf79679 CI36/42556894256 PASS9/9, including Windows installed lifecycle, full backend and Linux/macOS native. New P2 React suite PASS112/112 (11 new regressions for Owner swap, stale confirmations, read backpressure, unconfirmed writes, real module controls and typed destructive confirmation). Production Vite build/typecheck PASS; targeted real SQLite/native operation contract and Owner verification source checks PASS. No credentials in React; exact expectedAccountId checked natively before effects. Final new native compilation/packaging/real signed Wall B/coherent ARM backend remain pending.",
-    "nextAction": "Validate exact P2 CI while adding a real signed Wall B and native device API integration flow against a coherent disposable backend. Correct reproduced faults, then verify a final internal-only exact-source Windows installer and prepare same-source ARM deployment without touching historical sources or Owner installation.",
-    "sourceDigest": "616aa8039ed2925c6027ebfc35dc816eb330e5a49f2a2a0d6e84a422dc350333",
-    "sourceFileCount": 1637
+    "taskId": "20261109-signed-b-real-backend-coverage",
+    "status": "P3_REAL_B_REPRODUCED_FIX_IMPLEMENTED_EXTENDED_CI_PENDING",
+    "summary": "Real coherent ARM disposable candidate proves MCP OAuth B issuance, signed Owner Wall approval, PostgreSQL durable grant and MCP attach; independent Account B also passes. Reproduced wrong B incorrectly returned as503. Preserve safe known rejection status/code at Wall and unknown transport outcome, with real HTTP regressions. Extend disposable CI acceptance to both B flows and real same-device native API/module/Memory/Codex/Settings. Initialize the missing private fixture MCP OAuth secret and explicitly enable native IPC in isolated DEV. Update two display-only source assertions to A/B while preserving all no-V1 authority checks.",
+    "verification": "ARM exact P2 source d4efc68 private candidate real backend21/21 PASS. Additional actual OAuth/MCP/Wall/PG roundtrip and independent Account B PASS; wrong B observed503 (reproduced presentation error). New safe mapping HTTP regression and unified one-app source checks PASS locally, readiness2/2 PASS. CI37 web112/112, production bundle and Linux/macOS native PASS; Core/Windows stopped at two obsolete A/B V2 text regex assertions, updated without removing no-V1 checks. Extended whole-backend/native integration remains pending on the new commit. No existing runtime or Owner installation changed.",
+    "nextAction": "Run exact-source extended isolated backend acceptance and full CI. Correct any reproduced cross-layer failures, verify internal installer/manifests, then prepare coherent Lab runtime migration from the tested GitHub source while preserving existing state and rollback.",
+    "sourceDigest": "1b1d68047ddb92c3c2c138dc457d63a60ff3c725e53232be9176a1c6788294ef",
+    "sourceFileCount": 1638
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -545,7 +545,7 @@
     "publicFeed": "HOLD"
   },
   "desktopBackendIntegration": {
-    "status": "P2_UI_IMPLEMENTED_P3_SIGNED_B_AND_COHERENT_BACKEND_NEXT",
+    "status": "P3_EXTENDED_ACCEPTANCE_AND_WALL_ERROR_FIX_IMPLEMENTED",
     "baseCommit": "521d04cc559e0e263390863ed1caaf8bf0205797",
     "preChangeTag": "checkpoint/20261109-before-desktop-backend-521d04c",
     "bundleSha256": "5f20de606764ca319b3bfd695c81dda0b08bacac6a3ac831bdc8405e222c2331",
@@ -567,8 +567,8 @@
       "P2DesktopBindings": "NEXT",
       "P3CoherentBackendAndWallB": "NOT_STARTED",
       "P4InternalNativeIntegration": "NOT_STARTED",
-      "P2DesktopUiBinding": "IMPLEMENTED_WEB_TESTS_PASS_NATIVE_CI_PENDING",
-      "P3WallBAndBackend": "PENDING"
+      "P2DesktopUiBinding": "WEB112_PASS_NATIVE_MAC_LINUX_PASS_WINDOWS_GUARD_TEXT_FIXED",
+      "P3WallBAndBackend": "ACTUAL_BOTH_B_FLOWS_PASS_EXTENDED_NATIVE_CI_PENDING"
     },
     "wallBRegression": "REPORTED_NOT_YET_REPRODUCED",
     "runtimeChanged": false,
@@ -592,6 +592,14 @@
       "Light Remote Desktop"
     ],
     "physicalOwnerAcceptance": "NOT_RUN",
-    "publicBinaryRelease": "FORBIDDEN_INTERNAL_ONLY"
+    "publicBinaryRelease": "FORBIDDEN_INTERNAL_ONLY",
+    "realBProof": {
+      "source": "d4efc68c54a74f170af3f72467e8215f95e309b6",
+      "candidate": "lru-d4efc68c54-071413",
+      "wallB": "PASS_REAL_OAUTH_SIGNED_CHANNEL_PG_MCP",
+      "accountB": "PASS_REAL_INDEPENDENT_AGENT",
+      "wrongB": "REPRODUCED503_SOURCE_FIX_PENDING_NEW_INTEGRATION"
+    },
+    "existingLabRuntimeChanged": false
   }
 }

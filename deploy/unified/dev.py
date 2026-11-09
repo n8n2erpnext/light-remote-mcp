@@ -133,6 +133,7 @@ def launch(args):
           'LR_GOLD_AB_V2_HELPER_TARGET_QUERY':'1','LR_GOLD_AB_V2_HELPER_POLL_ATTACH':'1','LR_GOLD_AB_V2_WALL_PENDING_PREVIEW':'1',
           'LR_GOLD_ABV2_LAB_DISABLE_LEGACY_V1':'1','LR_GOLD_ABV2_LAB_SIGNED_WALL_B_ONLY':'1',
           'LR_GOLD_AB_V2_WALL_OWNER_CONSENT':'1','LR_GOLD_AB_V2_WALL_SIGNED_APPROVE':'1',
+          'LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4':'1',
           'LR_GOLD_ABV2_DESKTOP_OWNER_AUTH_V4':'1','LR_GOLD_ABV2_DESKTOP_TOKEN_V4':'1','LR_GOLD_ABV2_DESKTOP_READ_V4':'1',
           'LR_GOLD_ABV2_DESKTOP_WALL_SSO_V4':'1','LR_GOLD_ABV2_DESKTOP_WALL_SSO_OPERATOR_V4':'1','LR_GOLD_ABV2_DESKTOP_WALL_SSO_ISSUER_V4':'1',
           'LR_GOLD_ABV2_DESKTOP_WALL_SSO_MTLS_EDGE_V4':'1','LR_GOLD_ABV2_DESKTOP_WALL_SSO_MTLS_PORT_V4':'5496',
@@ -144,6 +145,7 @@ def launch(args):
         write(app/'runtime-env.json',flags)
         for name in ['ab-key','abv2-seal-key','abv2-helper-key']:
             (app/name).write_bytes(secrets.token_bytes(32));(app/name).chmod(0o600)
+        write(app/'plugin-oauth-secret',secrets.token_urlsafe(48))
         write(app/'fixture-credentials.json',{'owner':{'email':'owner@unified.invalid','password':secrets.token_urlsafe(32)},'foreign':{'email':'foreign@unified.invalid','password':secrets.token_urlsafe(32)}})
         uid=str(os.getuid())+':'+str(os.getgid())
         helper=['run','--rm','--label',LABEL+'='+ident,'--network',names['net'],'--user',uid,'--cap-drop','ALL','--security-opt','no-new-privileges','-v',str(app)+':/state','-v',str(bootstrap)+':/bootstrap:ro']

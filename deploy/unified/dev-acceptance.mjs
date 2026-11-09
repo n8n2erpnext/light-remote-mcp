@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {apiPath,API_CONTRACT_VERSION} from '../../lib/api-contract.mjs';
 import {DESKTOP_OWNER_CLIENT_ID,DESKTOP_OWNER_RESOURCE,DESKTOP_OWNER_SCOPE} from '../../plugin-server/desktop-auth-v4-contract.mjs';
+import {verifyDeviceFlows} from './dev-device-acceptance.mjs';
 
 const env=JSON.parse(fs.readFileSync('/state/runtime-env.json','utf8'));
 if(env.LR_UNIFIED_DISPOSABLE_DEV!=='1')throw Error('disposable_dev_required');
@@ -99,6 +100,9 @@ try{
  const other=await request(apiPath('ownerAuthorize')+'?'+q,{headers:{cookie:foreign}});assert.equal(other.status,303);assert.ok(other.headers.location?.startsWith('/account/login?next='));assert.ok(!new URL(other.headers.location,origin).searchParams.has('code'));record('foreign non-Owner redirected to login without Owner code',{statusCode:other.status});
  const sso=await request(apiPath('ownerWallTicket'),{method:'POST',body:{device_id:'unified-nonexistent'},headers:native(tokens.access_token)});assert.equal(sso.status,403,'SSO enabled but unknown target denied');assert.equal(sso.json.error,'desktop_wall_sso_issue_denied');record('real mTLS SSO route denies unknown target',{statusCode:sso.status});
  const ticket=await request(apiPath('ownerWallTicket'),{method:'POST',body:{device_id:deviceId},headers:native(tokens.access_token)});assert.equal(ticket.status,200,'real enrolled device SSO ticket');assert.match(ticket.json.ticket,/^[A-Za-z0-9_-]{43}$/);record('real mTLS SSO issuer accepts current Owner and enrolled device',{statusCode:200});
+ await verifyDeviceFlows({request,cookie,tokens,deviceId,credentials,record});
+ report.notVerified=report.notVerified.filter(x=>x!=='Live signed B approval and remote command on new candidate');
+ report.notVerified.push('Remote command dispatch on new candidate');
  const fresh=await request(apiPath('ownerRefresh'),{method:'POST',body:{refresh_token:tokens.refresh_token}});assert.equal(fresh.status,200);assert.notEqual(fresh.json.refresh_token,tokens.refresh_token);record('native refresh token rotates atomically',{statusCode:200});
  const logout=await request(apiPath('ownerLogout'),{method:'POST',body:{},headers:native(fresh.json.access_token)});assert.equal(logout.status,200);
  const revoked=await request(apiPath('ownerSession'),{headers:native(fresh.json.access_token)});assert.equal(revoked.status,401);

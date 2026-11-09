@@ -134,3 +134,7 @@ client/core-files.json is the explicit distributed Agent import closure. It now 
 ## Connect Desktop controls to the verified Agent API and unify displayed names
 
 client/desktop-v4/src/lib/native-device.ts owns typed native projections and stale/backpressure fences; NativeModuleScreens.tsx owns real Memory/Codex/Settings interactions and typed destructive confirmation. FeatureScreens binds exact local session/job controls, App supplies native status and scoped Owner refresh. owner_login checks expectedAccountId before owner_device exchange. Tray title is Light Remote Desktop with V4-title compatibility fallback; identifiers/paths/routes remain stable.
+
+## Verify both real B approval flows and classify known Wall rejections
+
+deploy/unified/dev-device-acceptance.mjs exercises real public MCP PKCE/client registration, synthetic Owner Wall login/CSRF, signed pending/approval, PG grant-backed MCP attach, independent Account B and private Agent IPC with module CAS/SQLite Memory/Codex/Settings. dev-acceptance invokes it before Owner refresh/revocation. dev.py initializes a private disposable OAuth secret and opts in native IPC. local-wall classifies safe B decisions; transport uncertainty never implies a failed or successful grant.

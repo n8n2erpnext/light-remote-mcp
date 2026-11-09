@@ -72,5 +72,5 @@ assert.match(wall,/serverMode==='legacy_allowed'/);
 assert.match(wall,/base\.slice\(0,legacyStart\)\+/);
 assert.match(wall,/v2CsrfScript/);
 assert.match(wall,/serverMode==='legacy_allowed'\?base/);
-assert.match(preview,/Signed A\/B V2 requests unavailable/);
+assert.match(preview,/Signed A\/B requests unavailable/);
 console.log('GOLDABV2_UNIFIED_ONE_APP_LIFECYCLE_AND_SIGNED_WALL_PASS');

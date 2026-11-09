@@ -122,3 +122,7 @@ Fix the P1 Agent package import closure: explicitly include both new native devi
 ## Connect Desktop controls to the verified Agent API and unify displayed names
 
 Desktop now uses authenticated same-device native Agent state and controls, not renderer-relative /api/status in Tauri. P1 exact-source CI36 PASS9/9; P2 new UI tests112/112 and production web build PASS. This is source implementation, not deployed backend alignment or Owner physical acceptance. Current live ARM Lab still serves disparate rc49 trees; signed Wall B end-to-end verification and coherent internal backend are next. Internal artifacts only.
+
+## Verify both real B approval flows and classify known Wall rejections
+
+Exact d4efc68 coherent disposable ARM backend21 checks PASS; additional real MCP OAuth issuance -> signed Agent Wall B -> PG durable grant -> MCP attach PASS, and independent Account B PASS. Therefore EXE consolidation alone is not proven to break B. Wrong B was reproduced as503; safe source classification now returns known decisions and retains unknown-outcome behavior for transport errors. The existing mixed rc49 Lab remains unchanged. Extended CI now exercises the native device API against real backend authentication too.

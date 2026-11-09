@@ -32,3 +32,7 @@ Added native transport desktopDevice in contracts/api.v1.json: desktop_owner_dev
 ## Connect Desktop controls to the verified Agent API and unify displayed names
 
 desktop_owner_device_request now accepts expectedAccountId as a required renderer generation/binding hint; native current Owner must match before effects. The 32-action allowlist includes explicit confirmed device.connect/device.disconnect via existing signed channel. Memory/Codex expose bounded real local coverage (100 rows, explicit partial notice); account sync is independently verified and unavailable cloud does not hide local scopes. Session close/job cancel apply only to exact local device and retain signed controller policy. Native Codex login opens only a validated HTTPS OpenAI verification URL; JS gets a one-time user code, never tokens.
+
+## Verify both real B approval flows and classify known Wall rejections
+
+Wall /api/abv2/approve maps allowlisted abv2_b_invalid to400, attempt conflicts409, missing404 and rate429; otherwise retains validated4xx status with a generic safe error. Unknown failures remain503/outcome:unknown. No raw Operator/Redis response, key, token or private exception is forwarded. Both Wall and Account still require their independent authenticated Owner/CSRF/current attempt/connection/policy and durable grant gates.

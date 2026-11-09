@@ -2501,6 +2501,18 @@ function approvePage(brandSvg,csrf=''){return `<!doctype html><html lang="en"><h
 const wallCsrf=${JSON.stringify(csrf)},code=document.getElementById('code'),msg=document.getElementById('msg'),decision=document.getElementById('decision'),request=document.getElementById('request');let current=null;function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}async function lookup(){msg.className='muted';msg.textContent='Checking…';decision.style.display='none';current=null;const r=await fetch('/api/approve?code='+encodeURIComponent(code.value),{cache:'no-store'}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error==='approval_code_not_found'?'No pending request matches this code.':(j.error||'Unable to check code.');return;}current=j.request;msg.textContent='';request.innerHTML='<b>'+esc(current.label||'ChatGPT')+'</b> requests access to <b>'+esc(current.deviceName||'this device')+'</b><br><span class="muted">Agent '+esc(current.agentId||'')+' · code '+esc(current.userCode||'')+'</span>';decision.style.display='block';}async function decide(kind){if(!current)return;const r=await fetch('/api/approve',{method:'POST',headers:{'content-type':'application/json','x-light-remote-csrf':wallCsrf},body:JSON.stringify({code:code.value,decision:kind})}),j=await r.json();if(!r.ok||!j.ok){msg.className='error';msg.textContent=j.error||'Request failed.';return;}decision.style.display='none';msg.className='ok';msg.textContent=kind==='approve'?'Access approved':'Access denied';setTimeout(()=>location.href='/',900);}document.getElementById('lookup').onclick=lookup;document.getElementById('approve').onclick=()=>decide('approve');document.getElementById('deny').onclick=()=>decide('deny');code.addEventListener('keydown',e=>{if(e.key==='Enter')lookup();});const q=new URLSearchParams(location.search).get('code');if(q){code.value=q;lookup();}
 </script></body></html>`;}
 
+function wallAbV2Failure(error,preview=false){
+  // Forward only known decisions, never a raw channel/Redis response or a
+  // credential-bearing exception. Transport/unknown errors remain unknown.
+  const code=String(error?.message||'').replace(/^ERR /,'');
+  const known={abv2_b_invalid:400,abv2_b_format_invalid:400,abv2_attempt_changed:409,
+    abv2_b_locked:409,abv2_not_found:404,abv2_issue_rate_limited:429,
+    abv2_wall_owner_email_mismatch:403,abv2_signed_attempt_or_consent_denied:409};
+  const status=(Object.hasOwn(known,code)?known[code]:null)||([400,401,403,404,409,429].includes(Number(error?.status))?Number(error.status):503);
+  return {status,body:{ok:false,error:Object.hasOwn(known,code)?code:
+    preview?'abv2_wall_preview_unavailable':status===503?'abv2_wall_approval_unavailable':'abv2_wall_approval_rejected',
+    ...(status===503?{outcome:'unknown'}:{})}};
+}
 export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1',port=5491,brandSvgPath,fontPath=null,cascadiaMonoFontPath=DEFAULT_CASCADIA_MONO_FONT,cascadiaCodeFontPath=DEFAULT_CASCADIA_CODE_FONT,auth={enabled:false},accountAuthenticate,desktopWallSso=null,getLocalStatus,getLocalPolicyStatus,getRemoteStatus,getRemoteActivity,activityLogRoot=null,cancelRemoteJob,getPendingAccess,getAccountNotifications,getAbV2Pending,getAbV2Approve,getClientAnnouncements,getMemoryAccountDevices,getMemoryAccountInvites,getMemoryAccountSyncPolicy,getMemoryAccountDelete,getLocalTerminals,readLocalTerminal,getLocalProcesses,stopLocalProcess,connect,disconnect,setGrace,setPermissions,setFilesystemRoots,getFilesystemVolumes,ownerApprovePermissions,rescanCapabilities,beginEnrollment,pollEnrollment,pairingCode,ownerProofCode,accessApprove,accessDeny,closeSession,requestUpdate}={}){
 
   if(!isAllowedLocalWallBindHost(host)) throw new Error('local_wall_bind_host_not_private');
@@ -2834,8 +2846,7 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
           shortId:/^[0-9A-HJKMNP-TV-Z]{6}$/.test(String(response.shortId||''))?response.shortId:null,
           pending:response.pending});
       }catch(error){
-        return json(res,Number(error?.status)===404?404:503,
-          {ok:false,error:'abv2_wall_preview_unavailable'});
+        const failure=wallAbV2Failure(error,true);return json(res,failure.status,failure.body);
       }
     }
     // V2 owner B mutation: independent of legacy /api/approve.
@@ -2883,8 +2894,7 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
         return json(res,200,{ok:true,state:'granted',
           requestId:approved.requestId,agentId:approved.agentId,
           expiresAt:approved.expiresAt,absoluteExpiresAt:approved.absoluteExpiresAt});
-      }catch(error){return json(res,Number(error?.status)===404?404:503,
-        {ok:false,error:'abv2_wall_approval_unavailable'});}
+      }catch(error){const failure=wallAbV2Failure(error);return json(res,failure.status,failure.body);}
     }
     if(req.method==='GET'&&url.pathname==='/api/account-notifications'){
       if(!auth?.enabled||!auth.identity(req))

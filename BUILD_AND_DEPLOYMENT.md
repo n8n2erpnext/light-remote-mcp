@@ -98,3 +98,7 @@ Fix the P1 Agent package import closure: explicitly include both new native devi
 ## Connect Desktop controls to the verified Agent API and unify displayed names
 
 Candidate0.10.1-dev.3 remains internal-only. Native window title is Light Remote Desktop; the old title remains only a compatibility single-instance lookup. No executable/profile/path/vault rename or update feed activation accompanies the display-name change. P1 package/native CI36 PASS9/9; P2 rebuilt native candidate must pass its own full CI before artifact acceptance.
+
+## Verify both real B approval flows and classify known Wall rejections
+
+The disposable coherent backend is built only from a clean identified GitHub commit with private PG/Redis and no host ports. Extended acceptance now includes real OAuth MCP and native Agent IPC, not stubbed controllers. Synthetic private OAuth key material stays in .unified fixture state, never Git or reports. Internal-only Windows installer still needs full current-source CI and hash acceptance.

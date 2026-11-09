@@ -69,7 +69,7 @@ const auth={
  csrfForRequest:()=> 'fixture-csrf',verifyRequestCsrf:(req,token)=>
   token==='fixture-csrf'&&req.headers['x-light-remote-csrf']==='fixture-csrf'
 };
-let calls=0,approvals=0,wall,approvalEnabled=true,pairingMode='legacy_allowed';
+let calls=0,approvals=0,wall,approvalEnabled=true,pairingMode='legacy_allowed',approvalFailure=null;
 let signedConsentRequired=true,expectedConsent='a'.repeat(32);
 try{
  wall=startLocalWall({host:'127.0.0.1',port:0,auth,
@@ -80,6 +80,7 @@ try{
    return {ok:true,ownerApproveEnabled:approvalEnabled,
     ownerConsentRequired:signedConsentRequired,pending:preview.pending};
   },getAbV2Approve:async data=>{
+   if(approvalFailure)throw approvalFailure;
    approvals++;
    assert.deepEqual(data,{wallUsername:'owner@example.invalid',
     requestId,expectedAttempt:1,bCode:'ABCD-2345',
@@ -178,6 +179,21 @@ try{
  assert.equal(localBOnly.status,200);
  assert.equal((await localBOnly.json()).state,'granted');
  assert.equal(approvals,3);
+ // Known B/policy decisions keep their status; arbitrary upstream material
+ // remains an unknown outcome and never enters authenticated browser JSON.
+ for(const [failure,status,code] of [
+  [Error('abv2_b_invalid'),400,'abv2_b_invalid'],
+  [Object.assign(Error('upstream_private_context'),{status:403}),403,'abv2_wall_approval_rejected'],
+  [Object.assign(Error('upstream_private_context'),{status:429}),429,'abv2_wall_approval_rejected'],
+  [Error('secret_token_never_return'),503,'abv2_wall_approval_unavailable']
+ ]){
+  approvalFailure=failure;
+  const rejected=await post('owner','fixture-csrf',{requestId,expectedAttempt:1,bCode:'ABCD-2345'});
+  assert.equal(rejected.status,status);const response=await rejected.json();assert.equal(response.error,code);
+  assert.equal(JSON.stringify(response).includes(failure.message),code===failure.message);
+  if(status===503)assert.equal(response.outcome,'unknown');
+ }
+ approvalFailure=null;
  assert.equal((await (await fetch(url+'/api/abv2/pending',{headers:{'x-test-owner':'owner'}})).json()).ownerConsentRequired,false);
  signedConsentRequired=undefined;
  assert.equal((await fetch(url+'/api/abv2/pending',{headers:{'x-test-owner':'owner'}})).status,503,

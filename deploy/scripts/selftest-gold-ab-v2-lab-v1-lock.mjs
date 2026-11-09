@@ -58,10 +58,10 @@ try{
   'GoldABV2 must not emit V1 markup or legacy approval script');
  assert.match(approve,/id="abV2OwnerPreview" class="card ab2-shell"/);
  assert.doesNotMatch(approve,/id="abV2OwnerPreview" hidden/,'V2-only Lab should not conceal its signed approval surface');
- assert.match(approve,/Signed A\/B V2 requests unavailable/,'unavailable preview must not downgrade to legacy V1');
+ assert.match(approve,/Signed A\/B requests unavailable/,'unavailable preview must not downgrade to legacy V1');
  assert.doesNotMatch(approve,/this Windows device/);
  assert.doesNotMatch(approve,/\.wrap>\.card\{display:none!important\}/);
- assert.match(approve,/A\/B V2 · Device authorization/);
+ assert.match(approve,/A\/B · Device authorization/);
  assert.match(approve,/title="Wall"/);
  assert.match(approve,/id="wallSidebar"/);
  assert.doesNotMatch(approve,/href="\/">Back to Wall<\/a>/);

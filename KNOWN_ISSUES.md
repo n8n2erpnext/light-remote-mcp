@@ -34,3 +34,7 @@ Fixed in source: first read of Memory usage after enabling could fail with no su
 ## Connect Desktop controls to the verified Agent API and unify displayed names
 
 The live Lab backend still runs mixed older rc49 Operator/Plugin/Wall sources. No deployment/physical acceptance is inferred from the new UI. Full signed Wall B roundtrip and final coherent internal backend candidate are pending. Local Memory/Codex listings currently expose100 rows with explicit partial coverage; additional records remain accessible through Wall.
+
+## Verify both real B approval flows and classify known Wall rejections
+
+P2 CI37 failed two source tests that still matched the old displayed A/B V2 label. Source assertions now match A/B and retain all no-legacy-V1 checks. The P2 real backend lacked a disposable OAuth secret because the original read-only suite never called MCP OAuth; initialization and full OAuth/B coverage were added. Wrong B503 was reproduced and classified at Wall. No claim of physical installed Owner Wall acceptance or live Lab cutover.

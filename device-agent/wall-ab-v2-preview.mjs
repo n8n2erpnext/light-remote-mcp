@@ -249,6 +249,8 @@ export const wallAbV2PreviewFragment = `
         throw Error('Owner login, CSRF, consent or device permission denied. Reauthenticate and Refresh.');
        if(result.status===400)
         throw Error('Invalid B code or Owner consent. Review the current request.');
+       if(result.status===429)
+        throw Error('Too many approval attempts. Wait before entering B again.');
        throw Error('Operator approval result unavailable. Outcome unknown; Refresh and verify before retrying.');
       }
       if(outcome.state!=='granted')
