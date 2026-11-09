@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 257 (224 Markdown, 33 JSON).
+Documents: 258 (225 Markdown, 33 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -239,6 +239,7 @@ Documents: 257 (224 Markdown, 33 JSON).
 | optimization | [docs/optimization/RDC_GOLD_WINDOWS_BUILD_486_ACCEPTED_BASELINE_20261023.md](../optimization/RDC_GOLD_WINDOWS_BUILD_486_ACCEPTED_BASELINE_20261023.md) | Light Remote Gold Windows: owner-tested build #486 regression baseline | d810042e4e14619aa0d1baf57f3d7d52d7bb2f305d7a1335141c49aa9a5be378 |
 | optimization | [docs/optimization/RDC_GOLD_WINDOWS_WALL_LOADING_STALL_RCA_20261023.md](../optimization/RDC_GOLD_WINDOWS_WALL_LOADING_STALL_RCA_20261023.md) | Gold Windows Local Wall stall after Remove/re-link — 2026-10-23 | 7a63f327b11d9f8b5efd65c58c7a11e3d8b8d2bed235231e4ac6383615bc0a5a |
 | optimization | [docs/optimization/RDC_LIGHT_REMOTE_GOLD_MASTER_PLAN.md](../optimization/RDC_LIGHT_REMOTE_GOLD_MASTER_PLAN.md) | RDC → Light Remote Gold: reliability optimization master plan | bcf1e46371d57eb1e00f304780fbd29ac48a7137fb5d263f70aefd17ba31dbb6 |
+| plans | [docs/plans/desktop-user-experience/README.md](../plans/desktop-user-experience/README.md) | Desktop user experience reconstruction | 2fe4928a903a2e3634cc86aa5cec9dc10bbfd5c871324e832842a356ac2dc779 |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json) | schemaVersion, status, dateLocal, timezone, repository, scope, requestedTarget, currentGithubHea | cccd37f78676a45a4605c91cbe37ac46b647e24024d9bef663a90d3abcdfbc4d |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md) | T12-PLAN — Gộp hai Windows core thành LightRemote.exe | 8803418d5f846a3568be08128a70e21a53ccee6e7d2083a41dcd005c2e8bd237 |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_SINGLE_CORE_EXE_BUILD_REVIEW_20261107.md](../plans/windows-single-primary-exe/LIGHT_REMOTE_SINGLE_CORE_EXE_BUILD_REVIEW_20261107.md) | T11 — Windows build: hợp nhất executable chính | 7b73c419d2302a21ad01c278d8696640fd144b7346a1135242aa1c64c620f1c3 |

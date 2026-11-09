@@ -3,8 +3,8 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 257,
-    "markdown": 224,
+    "total": 258,
+    "markdown": 225,
     "json": 33
   },
   "files": [
@@ -2142,6 +2142,14 @@
       "bytes": 13180,
       "sha256": "bcf1e46371d57eb1e00f304780fbd29ac48a7137fb5d263f70aefd17ba31dbb6",
       "title": "RDC → Light Remote Gold: reliability optimization master plan"
+    },
+    {
+      "path": "docs/plans/desktop-user-experience/README.md",
+      "shelf": "plans",
+      "extension": "md",
+      "bytes": 3811,
+      "sha256": "2fe4928a903a2e3634cc86aa5cec9dc10bbfd5c871324e832842a356ac2dc779",
+      "title": "Desktop user experience reconstruction"
     },
     {
       "path": "docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json",

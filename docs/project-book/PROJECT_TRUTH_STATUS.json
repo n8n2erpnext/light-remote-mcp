@@ -14,7 +14,7 @@
   "officialRepositoryId": 1450214328,
   "verifiedBuiltSourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
   "verifiedBuiltSourceTree": "18d53e536239e4cb414e75aae7d012972a4a90bc",
-  "checkpointUpdatedAt": "2026-11-09T08:47:22.463Z",
+  "checkpointUpdatedAt": "2026-11-09T12:54:36.079Z",
   "migrationPhase": "DESKTOP_BACKEND_INTERNAL_CANDIDATE_ACCEPTED",
   "ci": {
     "status": "success",
