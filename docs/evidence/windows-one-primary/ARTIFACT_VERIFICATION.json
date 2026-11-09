@@ -1,0 +1,10 @@
+{
+  "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+  "ciRunId": 42549642811,
+  "artifactId": 13645690974,
+  "artifactZipSha256": "988f6fc189987dbeeeeaa2f309b3026d4f6d3ee85648aaf68dfc02e53dab5110",
+  "installerSha256": "aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19",
+  "installerBytes": 167112400,
+  "projectVersion": "0.10.1-dev.2",
+  "result": "VERIFIED_NOT_PHYSICAL_ACCEPTANCE"
+}

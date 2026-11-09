@@ -10,7 +10,7 @@
 | Extensions | Existing GoldABV2 LM0.3 retained and integrity/manual-staging source contract PASS; separate legacy LM0.2 restored | Verify real Chrome/current Wall compatibility; do not enable legacy product bindings as GoldABV2 |
 | RC50/Guest | Missing portability/prototype source recovered; Guest native wiring incomplete | Keep Guest044 deferred; do not simulate readiness with SQL-only ledger changes |
 | Mac/Linux packages | Locked native source builds/tests PASS | Full current installers still NOT_BUILT |
-| Windows two primary EXEs | C# host plus Tauri UI retained to preserve current behavior | Single LightRemote.exe is a later product architecture task; Node/RM/updater may remain separate |
+| Windows primary candidate physical acceptance | One LightRemote.exe implemented; CI #30 actual install/GUI/Agent restart/bridge upgrade/reinstall/rollback/watchdog/uninstall PASS | Focused isolated Owner/account/vault/B acceptance remains NOT_RUN; old helper installations take the pinned bridge first |
 | Endpoint/schema catalog | Critical V4 catalog/version/handler wiring exists; legacy schemas and some authorize/SSO/Wall route constants remain | Finish full catalog coverage; do not promise every URL/path can already change from JSON alone |
 | Runtime drift/data migration | Lab43+Owner, UAT42 without Owner; Lab source stages mixed | New runtime/data migration plan after acceptance; no overwrite of old paths/databases |
 | Windows current process inventory | WMI process read denied; binary file identity and historical artifact available | Keep runtime provenance UNKNOWN where unsupported; no privilege bypass |

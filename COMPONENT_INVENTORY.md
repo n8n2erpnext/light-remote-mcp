@@ -6,7 +6,7 @@
 | Plugin, account portal, Owner PKCE/token/SSO edge | `plugin-server/` | Desktop eb9a6487; real private Operator bridge |
 | Operator, accounts, fleet, device and session APIs | `operator-host/` | Desktop eb9a6487; native PG/Redis authority |
 | Desktop V4 web and Tauri native | `client/desktop-v4/` | eb9a6487 includes the physically accepted 4dddf511 implementation |
-| Windows C# host, tray, IPC, updater | `client/windows-native/` and native projects under `client/` | Current source preserved; locked native installer CI PASS; physical acceptance pending |
+| Windows primary GUI/tray, managed host/IPC and independent updater | `client/desktop-v4/`, `client/windows-native/` and native projects under `client/` | One LightRemote.exe hosts WindowsHost DLL/private frameworks in-process; exact-source CI #30 native install/migration/recovery PASS; physical Owner acceptance NOT_RUN |
 | RM V2 Windows/macOS/Linux helpers | `client/windows-native/GptOperator.RealRemoteV2/`, platform native projects | Latest selected pacing/click/cursor/lease fixes retained; older copies not overlaid |
 | Long Memory/device-local sync | Agent/Operator/Plugin memory modules | Selected current implementation and source regressions |
 | Project Continuity | `device-agent/project-continuity-*.mjs` and related modules | 834d4984; standalone opt-in; Windows DACL not physically verified |

@@ -1,4 +1,10 @@
-# Báo cáo hoàn tất chuyển repo
+# Báo cáo LightRemote.exe và baseline hiện tại
+
+Cập nhật 2026-11-09: candidate **0.10.1-dev.2** đã gộp hai app chính thành **LightRemote.exe**. Source build `31f23393aacb89b6d541cebb2cd0c2e1afa64538`, [CI #30: 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811), [artifact bộ cài](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811/artifacts/13645690974). SHA-256 bộ cài: `aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19`. Native GUI/tray chạy trong file chính; mã Windows hiện hữu được nạp trong tiến trình qua WindowsHost DLL/private .NET8. Node/RM V2/updater/watchdog và các công cụ hỗ trợ vẫn tách riêng theo yêu cầu. Public binary release chưa đăng: automatic review yêu cầu Owner cho phép rõ trước khi đưa bộ cài thành link tải công khai.
+
+CI Windows đã chạy cài mới, GUI/private CLR, shortcut/autostart, restart Agent giữ GUI ẩn, bridge upgrade/reinstall, lỗi health thật để rollback về bố cục cũ, watchdog khôi phục sau lỗi installer và gỡ cài đặt. PostgreSQL/Redis integration cũng PASS sau khi sửa race chờ server PostgreSQL cuối cùng. Source build đã fast-forward lên main qua required check, không force-push. Máy Owner/runtime ARM/feed công khai chưa thay đổi; nghiệm thu vật lý Owner/account/vault/B vẫn NOT_RUN. Máy đang dùng helper cũ cần qua compatibility bridge được pin trong config/windows-core-migration.json trước khi nâng lên primary.
+
+Phần dưới là kết quả chuyển repo và runtime candidate **c03b50f** trước đây, giữ nguyên phạm vi lịch sử; không phải bằng chứng đã triển khai build mới lên ARM.
 
 Repo chính thức: https://github.com/n8n2erpnext/light-remote-mcp — **ID mới 1450214328**, lịch sử mới bắt đầu từ aa378ba, không mang nhánh/tag/parent cũ. Bản code đã kiểm toán được xuất độc lập; kể từ push đầu tiên GitHub mới là nguồn phát triển và build.
 
@@ -14,4 +20,4 @@ Source/runtime ARM cũ và snapshot kiểm toán b250908 giữ nguyên làm mố
 
 main đã bắt buộc baseline-required, cấm force-push/xoá, áp dụng cả admin. CI mới không cần secrets; không nhập automation triển khai cũ. Chưa chuyển traffic, reset DB, đổi app đang cài hoặc phát hành update.
 
-Còn thiếu: nghiệm thu native Windows với backend mới; local SSO; B-command mới; hook/DACL Continuity; prototype/Guest; package Mac/Linux đầy đủ; toàn bộ endpoint/schema; gộp hai EXE. Feed beta cũ được giữ nguyên chữ ký, riêng Fleet Wall còn URL release lịch sử cần migration có kiểm soát trước lần nâng cấp công khai. Chi tiết và thứ tự làm tiếp nằm trong KNOWN_ISSUES.md và ROADMAP.md.
+Còn thiếu: nghiệm thu native Windows với backend mới; local SSO; B-command mới; hook/DACL Continuity; prototype/Guest; package Mac/Linux đầy đủ; toàn bộ endpoint/schema; nghiệm thu vật lý candidate một EXE chính. Feed beta cũ được giữ nguyên chữ ký, riêng Fleet Wall còn URL release lịch sử cần migration có kiểm soát trước lần nâng cấp công khai. Chi tiết và thứ tự làm tiếp nằm trong KNOWN_ISSUES.md và ROADMAP.md.

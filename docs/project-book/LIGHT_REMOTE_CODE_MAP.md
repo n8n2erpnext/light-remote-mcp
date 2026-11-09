@@ -60,7 +60,7 @@ Other route families exist; this table intentionally documents the relevant V4 c
 ## Source status and regression boundaries
 
 - Implemented: source modules above exist in the unified repository.
-- Build/CI proven: source c03b50f, [CI summary](../../PROJECT_TRUTH.md) and [evidence](../evidence/ci-status.json).
+- Current Windows candidate/build and backend CI: source31f2339, full CI #30 PASS; [CI acceptance](../evidence/windows-one-primary/CI_ACCEPTANCE.json) and [primary manifest](../evidence/windows-one-primary/PRIMARY_EXE_MANIFEST.json). Earlier c03b50f evidence remains scoped to its own artifact/deployment.
 - Isolated DEV integrated: [21-check receipt](../evidence/dev-integration.json) for candidate at c03b50f.
 - Unknown/not complete: new-backend Owner physical UAT, full Agent/browser SSO, live signed B-command, full public release/feed; see [Known Issues](../../KNOWN_ISSUES.md).
 - Historical physical Windows proof 4dddf511 belongs to the **old** artifact; do not transfer it to the new build.
@@ -73,7 +73,7 @@ Change this file when executable ownership, route/flag, IPC/transport, SQL or pa
 
 - [Native host adapter](../../client/desktop-v4/src-tauri/src/windows_host.rs): fixed installed paths and hostfxr ABI, twelve allowed Desktop actions and OS-only worker dispatch before Tauri/Owner initialization. No renderer-selected assembly/method/path.
 - [Managed component](../../client/windows-native/LightRemote.WindowsHost/LightRemote.WindowsHost.csproj) and [bounded exports](../../client/windows-native/LightRemote.WindowsHost/EmbeddedHostExports.cs): reuse existing host WMI/Job Objects/native profile; library has no standalone managed entry point. Native Tauri remains the window/tray and Owner-vault authority.
-- [Private runtime builder](../../client/windows-native/build-hosted-core.ps1) and [native proof](../../client/windows-native/test-hosted-core.ps1): a framework-dependent component resolves against private Microsoft frameworks, with executable fixture checks on hosted Windows CI. Current package switch and updater compatibility are pending.
+- [Private runtime builder](../../client/windows-native/build-hosted-core.ps1) and [native proof](../../client/windows-native/test-hosted-core.ps1): a framework-dependent component resolves against private Microsoft frameworks, with executable fixture checks on hosted Windows CI. This was the initial proof boundary; the final one-primary package and real updater compatibility now PASS in CI #30.
 
 ## Primary migration — compatibility boundaries
 
@@ -114,3 +114,7 @@ Owner pause receipt only: current executable implementation is work source1fb833
 ## Resume build28 and wait for final PostgreSQL TCP readiness
 
 Owner resumed after quota. deploy/unified/dev.py now waits for the final PostgreSQL loopback TCP listener rather than a default Unix socket, which can belong to the official image's temporary bootstrap postmaster. Initialization SQL still uses its existing local authentication and isolated resource labels; no production DB or Windows runtime changes. test_dev_readiness.py models bootstrap→shutdown→final startup and rejects the old premature-ready behavior; it also verifies bounded failure when final readiness never occurs. Core CI runs this regression before actual backend integration.
+
+## Verified one-primary candidate closeout — 2026-11-09
+
+Compiled source `31f23393aacb89b6d541cebb2cd0c2e1afa64538` passed full CI #30 and is on protected main. No new source boundary changed in this documentation receipt. The fixed-path in-process native/managed boundary, same-file OS roles, exact owned Agent stop, private runtime and independent update/recovery components are documented above. [Verified executable inventory](../evidence/windows-one-primary/PRIMARY_EXE_MANIFEST.json) and actual migration/lifecycle checks supersede historical pending prototype statuses. Existing serving runtime/Owner physical acceptance and public feed remain unchanged.

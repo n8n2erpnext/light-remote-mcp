@@ -188,11 +188,11 @@
       "source": "client/ + deploy/",
       "backend": "signed update/helper flow",
       "historicalEvidence": "historical/source",
-      "remaining": "new CI installer + physical rollback",
+      "remaining": "physical Owner rollback and controlled signed-feed migration; existing helpers require the pinned compatibility bridge",
       "layers": {
         "implementation": "IMPLEMENTED",
         "dev": "SEE_REMAINING",
-        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "nativeCI": "CI30_PASS: real bridge upgrade/reinstall, forced health-failure rollback, native watchdog recovery and uninstall",
         "newPhysical": "NOT_RUN"
       }
     },
@@ -381,13 +381,13 @@
     {
       "feature": "Windows tray/Open Wall/update status",
       "source": "client/",
-      "backend": "C# host + Tauri launch/environment",
+      "backend": "one Tauri/Rust LightRemote.exe with in-process managed WindowsHost",
       "historicalEvidence": "historical installed artifact",
-      "remaining": "new package/physical",
+      "remaining": "focused physical Owner/account/vault/B acceptance",
       "layers": {
         "implementation": "IMPLEMENTED",
         "dev": "SEE_REMAINING",
-        "nativeCI": "PROFILE_CI_PASS; coverage scoped in regression baseline",
+        "nativeCI": "CI30_PASS: actual GUI/private CLR, shortcuts/autostart, hidden GUI singleton and Agent-only restart",
         "newPhysical": "NOT_RUN"
       }
     },
@@ -466,6 +466,19 @@
         "implementation": "UNKNOWN_NEW_PACKAGE",
         "dev": "SEE_REMAINING",
         "nativeCI": "NOT_IN_ACTIVE_PROFILE_OR_FULL_PACKAGE",
+        "newPhysical": "NOT_RUN"
+      }
+    },
+    {
+      "feature": "Single primary Windows executable",
+      "source": "client/desktop-v4/src-tauri/src/windows_host.rs + client/windows-native/LightRemote.WindowsHost/",
+      "backend": "fixed-path in-process hostfxr; private frameworks; Node/RM/helpers separate",
+      "historicalEvidence": "compiled source 31f23393aacb89b6d541cebb2cd0c2e1afa64538, CI 42549642811",
+      "remaining": "physical Owner acceptance; public feed HOLD; no existing runtime cutover",
+      "layers": {
+        "implementation": "IMPLEMENTED",
+        "dev": "SCOPED_API_PASS_SEPARATE_FROM_GUI",
+        "nativeCI": "CI30_PASS: one primary file, actual install/GUI/restart/upgrade/reinstall/rollback/watchdog/uninstall",
         "newPhysical": "NOT_RUN"
       }
     }

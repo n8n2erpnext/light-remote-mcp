@@ -1,5 +1,16 @@
 # Build and deployment
 
+## Current Windows primary candidate — 2026-11-09
+
+Version **0.10.1-dev.2**, source `31f23393aacb89b6d541cebb2cd0c2e1afa64538`, full [CI #30 PASS9/9](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811). The [verified CI artifact](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811/artifacts/13645690974) contains one primary `LightRemote.exe`; neither `GptOperator.Client.exe` nor `desktop-v4/LightRemote.Desktop.exe` is in the final stage/installed primary layout. Node, RM V2, private framework DLLs and independent recovery/update/PTY tools remain separate. Public binary prerelease publication is NOT_PUBLISHED_AWAITING_EXPLICIT_OWNER_APPROVAL: automatic review rejected that external disclosure because it was not explicitly authorized. Keep the verified artifact and source tag; do not retry through another channel without approval. Public feed remains HOLD; no automatic upgrade or existing runtime deployment occurred.
+
+Installer SHA-256 `aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19`; artifact ZIP SHA-256 `988f6fc189987dbeeeeaa2f309b3026d4f6d3ee85648aaf68dfc02e53dab5110`; artifact ID13645690974. Exact executable inventory, staged/runtime sizes, real migration/lifecycle checks and source/run identity: [PRIMARY_EXE_MANIFEST](docs/evidence/windows-one-primary/PRIMARY_EXE_MANIFEST.json), [BUILD_MANIFEST](docs/evidence/windows-one-primary/BUILD_MANIFEST.json), [artifact verification](docs/evidence/windows-one-primary/ARTIFACT_VERIFICATION.json), [CI acceptance](docs/evidence/windows-one-primary/CI_ACCEPTANCE.json).
+
+Fresh candidate installations bootstrap the packaged helper. An existing incompatible helper is rejected before stopping/replacing Core; install the pinned compatibility bridge0.10.1-dev.1 first, verify helper contract1, then primary0.10.1-dev.2. The [migration pin](config/windows-core-migration.json) identifies the exact recovery installer/manifest hashes. Do not redirect a signed product feed by editing these CI/recovery inputs. Physical Owner/account/vault/B acceptance is NOT_RUN; code-signing trust is not established by SHA-256. No Owner Windows installation, serving ARM runtime or production traffic was changed.
+
+Historical entries below describe the stage reached at each receipt; the current summary above supersedes their former pending/paused status. Documentation receipts after the compiled source do not rebuild or rename that installer.
+
+
 One entrypoint: `.github/workflows/ci.yml`. Reusable Desktop QA and full Windows build/installer workflows share the exact checkout SHA and `goldabv2-desktop-v4` profile. Old branch-triggered workflows are historical recipes only. No automatic production publishing or update feed activation exists in this baseline.
 
 Portable verification: Node 22, `npm ci --ignore-scripts` at root/Plugin, `npm test`, `npm run check:truth`. Desktop web: `npm ci` and `npm test` / `npm run build` under `client/desktop-v4`. Native Windows builds use CI's .NET/Rust toolchain, not old VPS stages. Windows keeps the complete Agent, tray, RM V2, updater, rollback, install/uninstall staging checks.

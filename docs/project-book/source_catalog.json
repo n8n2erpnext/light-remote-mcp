@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 249,
+    "total": 254,
     "markdown": 224,
-    "json": 25
+    "json": 30
   },
   "files": [
     {
@@ -306,6 +306,106 @@
         "platform",
         "apiContractVersion",
         "featureProfile"
+      ]
+    },
+    {
+      "path": "docs/evidence/windows-one-primary/ARTIFACT_VERIFICATION.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 415,
+      "sha256": "fb79772b2f3ad0769862647d1b1e6ec6dec96dc341307fdc96e552b9464166fa",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactZipSha256",
+        "installerSha256",
+        "installerBytes",
+        "projectVersion",
+        "result"
+      ]
+    },
+    {
+      "path": "docs/evidence/windows-one-primary/BUILD_MANIFEST.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2495,
+      "sha256": "2ef8feba6e929ad3f02ffe39e938b0544e9cbf0cd8c0d8a3fa8fdb84221e9b50",
+      "topLevelKeys": [
+        "schemaVersion",
+        "project",
+        "projectVersion",
+        "repository",
+        "sourceCommit",
+        "sourceTree",
+        "buildTimestamp",
+        "ciRunId",
+        "ciRepository",
+        "platform",
+        "apiContractVersion",
+        "featureProfile"
+      ]
+    },
+    {
+      "path": "docs/evidence/windows-one-primary/CI_ACCEPTANCE.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 402,
+      "sha256": "dcab4b094ce795f466b1833975396d1b8a35847fc8e94916695ec8dbcd275ba2",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "runNumber",
+        "attempt",
+        "scope",
+        "result",
+        "ciUrl",
+        "allJobs",
+        "successfulJobs",
+        "requiredCheck",
+        "mainProtectionUnchanged",
+        "physicalOwnerAcceptance"
+      ]
+    },
+    {
+      "path": "docs/evidence/windows-one-primary/PRIMARY_EXE_MANIFEST.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3924,
+      "sha256": "28eca9a1bfd5fa86c16ed6066476cc0b5d5a444ee47d8057d6f13a166994dd36",
+      "topLevelKeys": [
+        "physicalOwnerAcceptance",
+        "primaryExecutable",
+        "stagedBytes",
+        "version",
+        "sourceCommit",
+        "executables",
+        "layoutId",
+        "frameworkVersions",
+        "installedLifecycle",
+        "privateFrameworkBytes",
+        "ciRunId",
+        "publicFeedPromoted"
+      ]
+    },
+    {
+      "path": "docs/evidence/windows-one-primary/PUBLICATION_STATUS.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 854,
+      "sha256": "e388cffdfa78fccfc7dba5348360e8c852379024637c605ca0dc4935eaf2fd00",
+      "topLevelKeys": [
+        "status",
+        "published",
+        "tag",
+        "sourceCommit",
+        "ciRunId",
+        "artifactUrl",
+        "proposedReleaseUrl",
+        "version",
+        "installerSha256",
+        "feedPromotion",
+        "approvalReview"
       ]
     },
     {
@@ -2041,8 +2141,8 @@
       "path": "docs/plans/windows-single-primary-exe/README.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 1874,
-      "sha256": "b2236b56138a2f9e30ce0efe5153ef500dc96e146f84b249f9154816bf024a3f",
+      "bytes": 2435,
+      "sha256": "2261d0265dd77dad716e7895f08f39f776aa4607e63e27ec4a38d0e01363b134",
       "title": "Handoff gộp hai Windows app chính thành LightRemote.exe"
     },
     {

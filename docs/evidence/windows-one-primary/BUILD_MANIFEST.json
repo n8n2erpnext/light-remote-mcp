@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "project": "light-remote-mcp",
+  "projectVersion": "0.10.1-dev.2",
+  "repository": "n8n2erpnext/light-remote-mcp",
+  "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+  "sourceTree": "4dc6fa959f9bdd77d24eac9a5a7123f0f6cc2215",
+  "buildTimestamp": "2026-11-09T02:28:49.175Z",
+  "ciRunId": "42549642811",
+  "ciRepository": "n8n2erpnext/light-remote-mcp",
+  "platform": "windows-x64",
+  "apiContractVersion": "light-remote.api.v1",
+  "featureProfile": "goldabv2-desktop-v4",
+  "windowsCore": {
+    "layoutId": "lightremote-primary-hosted-v1",
+    "primaryExecutable": "LightRemote.exe",
+    "managedComponent": "windows-host/LightRemote.WindowsHost.dll",
+    "minimumHelperCoreLayoutContract": 1,
+    "migrationBridgePin": "config/windows-core-migration.json",
+    "separateComponents": [
+      "runtime/node.exe",
+      "realremote-v2/LightRemote.RM.exe",
+      "independent updater/watchdog",
+      "PTY/runtime tools"
+    ]
+  },
+  "componentVersions": {
+    "agent": "0.10.1-dev.2",
+    "plugin": "0.10.1-dev.2",
+    "operator": "0.10.1-dev.2",
+    "wall": "0.10.1-dev.2",
+    "desktop": "0.10.1-dev.2"
+  },
+  "schema": {
+    "coreThrough": 43,
+    "extensions": [
+      {
+        "id": "owner-authority.v1",
+        "sha256": "218ada24591311b9bd9fa492726a728190bb3f2a8053b6b4f8499e713d925f8d"
+      }
+    ]
+  },
+  "dependencyHashes": {
+    "package-lock.json": "5d8e0cc43d29ba868c9611005292fb49e2f9d7ea663d06450db7ee827d164491",
+    "plugin-server/package-lock.json": "fb0f26a387416d73a7e8f01d4e79e7be373538e44f0c89ab377bcd1e5f8d6921",
+    "client/desktop-v4/package-lock.json": "c7b9dd359c227525aa6447421322802788712f03c942b65eafc858676a72f013",
+    "client/desktop-v4/src-tauri/Cargo.lock": "c15546c130ddb15fbab506fa6a24cbd7934f3e3d7a1a1d9bb5cfe70b60e17a86",
+    "platform-v2/sql/migrations.lock.json": "f72924348a8fd61b9f144ce160dcf9bab9c1770cab34f4f1cc12f779e7f4dbb2",
+    "config/endpoints.json": "9b4c90d1e9ab1b45df7f8cb9abe3044fff3206bd904f219af44a26238bf324b0",
+    "config/windows-core-migration.json": "523e9b04c073c8ce131d118909fc0306a6fd86a18e886745cd60ceee6750e6a9"
+  },
+  "artifact": {
+    "name": "Light-Remote-MCP-Setup-x64.exe",
+    "bytes": 167112400,
+    "sha256": "aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19"
+  },
+  "assurances": {
+    "cleanGitSource": true,
+    "sourceSelection": "MIGRATION_PROVENANCE.json",
+    "codeSigningVerified": false,
+    "physicalAcceptance": false,
+    "productionRelease": false
+  }
+}

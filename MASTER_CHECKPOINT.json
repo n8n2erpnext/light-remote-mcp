@@ -1,15 +1,15 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-09T02:12:30.845Z",
+  "updatedAt": "2026-11-09T02:44:44.891Z",
   "version": "0.10.1-dev.2",
-  "phase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
-  "status": "RESUMED_PRIMARY_WINDOWS_PASS_BACKEND_CI_FIX_PENDING",
+  "phase": "WINDOWS_SINGLE_PRIMARY_CANDIDATE_COMPLETE",
+  "status": "CI30_VERIFIED_PRIMARY_ARTIFACT_COMPILED_SOURCE_ON_MAIN_PUBLIC_RELEASE_AWAITS_OWNER_APPROVAL",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
-  "baselineSourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
-  "baselineSourceTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
-  "validationBranch": null,
+  "baselineSourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+  "baselineSourceTree": "4dc6fa959f9bdd77d24eac9a5a7123f0f6cc2215",
+  "validationBranch": "work",
   "apiContractVersion": "light-remote.api.v1",
   "featureProfile": "goldabv2-desktop-v4",
   "recovery": {
@@ -24,20 +24,23 @@
   },
   "evidence": {
     "windows": {
-      "artifactId": 13615761284,
-      "name": "light-remote-desktop-v4-COMPLETE-windows-x64-c03b50f4328e07138f350532c31dfc8b260311ce",
-      "zipSha256": "4a61c5b84ae009e8409a8e3e29fd76358c103a7b94f4c9e9f2db9983aa46136b",
-      "zipBytes": 180450748,
+      "artifactId": 13645690974,
+      "name": "light-remote-desktop-v4-COMPLETE-windows-x64-31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+      "zipSha256": "988f6fc189987dbeeeeaa2f309b3026d4f6d3ee85648aaf68dfc02e53dab5110",
+      "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+      "ciRunId": 42549642811,
       "repositoryId": 1450214328,
-      "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
-      "ciRunId": 42475715858,
       "verified": true,
       "verifiedOnArm": true,
+      "verificationScope": "Independent ZIP/installer/source/run/profile checks on ARM and after local SSH transfer; native test scope in primary manifest. Public binary release not published.",
       "codeSigningVerified": false,
       "physicalAcceptance": false,
-      "installerSha256": "23b746d2b820da1303fa1834c8e9f2d83e1bcad66a9c8d0580532ae60358b52f",
-      "installerBytes": 181022239,
-      "manifest": "docs/evidence/windows-build-manifest.json"
+      "installerSha256": "aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19",
+      "installerBytes": 167112400,
+      "manifest": "docs/evidence/windows-one-primary/BUILD_MANIFEST.json",
+      "primaryManifest": "docs/evidence/windows-one-primary/PRIMARY_EXE_MANIFEST.json",
+      "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811/artifacts/13645690974",
+      "publicBinaryPublication": "NOT_PUBLISHED_AWAITING_EXPLICIT_OWNER_APPROVAL"
     },
     "dev": {
       "candidateId": "lru-c03b50f432-114436",
@@ -73,85 +76,120 @@
     "currentRepositoryCi": {
       "repository": "n8n2erpnext/light-remote-mcp",
       "repositoryId": 1450214328,
-      "runId": 42475715858,
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42475715858",
-      "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
-      "sourceTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
+      "runId": 42549642811,
+      "runNumber": 30,
+      "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811",
+      "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+      "sourceTree": "4dc6fa959f9bdd77d24eac9a5a7123f0f6cc2215",
       "conclusion": "success",
       "jobs": 9,
       "passedJobs": 9,
-      "jobResults": [
-        {
-          "id": 128716745501,
-          "name": "changes",
-          "conclusion": "success",
-          "started_at": "2026-11-08T11:27:02Z",
-          "completed_at": "2026-11-08T11:27:06Z"
-        },
-        {
-          "id": 128716745737,
-          "name": "truth",
-          "conclusion": "success",
-          "started_at": "2026-11-08T11:27:02Z",
-          "completed_at": "2026-11-08T11:27:06Z"
-        },
-        {
-          "id": 128716770362,
-          "name": "Core, contracts, PostgreSQL/Redis integration",
-          "conclusion": "success",
-          "started_at": "2026-11-08T11:27:08Z",
-          "completed_at": "2026-11-08T11:29:04Z"
-        },
-        {
-          "id": 128716770373,
-          "name": "Committed native dependency resolution",
-          "conclusion": "success",
-          "started_at": "2026-11-08T11:27:13Z",
-          "completed_at": "2026-11-08T11:27:22Z"
-        },
-        {
-          "id": 128716825463,
-          "name": "desktop / Web build, tests, isolated browser screenshots",
-          "conclusion": "success",
-          "started_at": "2026-11-08T11:27:24Z",
-          "completed_at": "2026-11-08T11:28:23Z"
-        },
-        {
-          "id": 128716825499,
-          "name": "windows / build-install-smoke",
-          "conclusion": "success",
-          "started_at": "2026-11-08T11:27:27Z",
-          "completed_at": "2026-11-08T11:37:42Z"
-        },
-        {
-          "id": 128717049190,
-          "name": "desktop / Unified Light Remote Desktop V4 / macos-latest",
-          "conclusion": "success",
-          "started_at": "2026-11-08T11:28:25Z",
-          "completed_at": "2026-11-08T11:34:35Z"
-        },
-        {
-          "id": 128717049205,
-          "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
-          "conclusion": "success",
-          "started_at": "2026-11-08T11:28:25Z",
-          "completed_at": "2026-11-08T11:34:25Z"
-        },
-        {
-          "id": 128719179983,
-          "name": "baseline-required",
-          "conclusion": "success",
-          "started_at": "2026-11-08T11:37:44Z",
-          "completed_at": "2026-11-08T11:37:47Z"
-        }
-      ],
       "windowsInstallUpdateRollbackUninstall": "PASS",
-      "nodeTests": 270,
-      "portableSourceInvocations": 69,
-      "ciPrivateIntegrationChecks": 21,
-      "armGithubCloneIntegrationChecks": 21,
+      "singlePrimaryWindowsExecutable": "PASS",
       "nativeMacLinux": "locked source build/tests PASS; full installers NOT_BUILT",
-      "physicalOwnerAcceptance": "NOT_RUN"
+      "physicalOwnerAcceptance": "NOT_RUN",
+      "evidence": "docs/evidence/windows-one-primary/CI_ACCEPTANCE.json"
+    },
+    "reconstructionBaseline": {
+      "windows": {
+        "artifactId": 13615761284,
+        "name": "light-remote-desktop-v4-COMPLETE-windows-x64-c03b50f4328e07138f350532c31dfc8b260311ce",
+        "zipSha256": "4a61c5b84ae009e8409a8e3e29fd76358c103a7b94f4c9e9f2db9983aa46136b",
+        "zipBytes": 180450748,
+        "repositoryId": 1450214328,
+        "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+        "ciRunId": 42475715858,
+        "verified": true,
+        "verifiedOnArm": true,
+        "codeSigningVerified": false,
+        "physicalAcceptance": false,
+        "installerSha256": "23b746d2b820da1303fa1834c8e9f2d83e1bcad66a9c8d0580532ae60358b52f",
+        "installerBytes": 181022239,
+        "manifest": "docs/evidence/windows-build-manifest.json"
+      },
+      "currentRepositoryCi": {
+        "repository": "n8n2erpnext/light-remote-mcp",
+        "repositoryId": 1450214328,
+        "runId": 42475715858,
+        "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42475715858",
+        "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+        "sourceTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
+        "conclusion": "success",
+        "jobs": 9,
+        "passedJobs": 9,
+        "jobResults": [
+          {
+            "id": 128716745501,
+            "name": "changes",
+            "conclusion": "success",
+            "started_at": "2026-11-08T11:27:02Z",
+            "completed_at": "2026-11-08T11:27:06Z"
+          },
+          {
+            "id": 128716745737,
+            "name": "truth",
+            "conclusion": "success",
+            "started_at": "2026-11-08T11:27:02Z",
+            "completed_at": "2026-11-08T11:27:06Z"
+          },
+          {
+            "id": 128716770362,
+            "name": "Core, contracts, PostgreSQL/Redis integration",
+            "conclusion": "success",
+            "started_at": "2026-11-08T11:27:08Z",
+            "completed_at": "2026-11-08T11:29:04Z"
+          },
+          {
+            "id": 128716770373,
+            "name": "Committed native dependency resolution",
+            "conclusion": "success",
+            "started_at": "2026-11-08T11:27:13Z",
+            "completed_at": "2026-11-08T11:27:22Z"
+          },
+          {
+            "id": 128716825463,
+            "name": "desktop / Web build, tests, isolated browser screenshots",
+            "conclusion": "success",
+            "started_at": "2026-11-08T11:27:24Z",
+            "completed_at": "2026-11-08T11:28:23Z"
+          },
+          {
+            "id": 128716825499,
+            "name": "windows / build-install-smoke",
+            "conclusion": "success",
+            "started_at": "2026-11-08T11:27:27Z",
+            "completed_at": "2026-11-08T11:37:42Z"
+          },
+          {
+            "id": 128717049190,
+            "name": "desktop / Unified Light Remote Desktop V4 / macos-latest",
+            "conclusion": "success",
+            "started_at": "2026-11-08T11:28:25Z",
+            "completed_at": "2026-11-08T11:34:35Z"
+          },
+          {
+            "id": 128717049205,
+            "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+            "conclusion": "success",
+            "started_at": "2026-11-08T11:28:25Z",
+            "completed_at": "2026-11-08T11:34:25Z"
+          },
+          {
+            "id": 128719179983,
+            "name": "baseline-required",
+            "conclusion": "success",
+            "started_at": "2026-11-08T11:37:44Z",
+            "completed_at": "2026-11-08T11:37:47Z"
+          }
+        ],
+        "windowsInstallUpdateRollbackUninstall": "PASS",
+        "nodeTests": 270,
+        "portableSourceInvocations": 69,
+        "ciPrivateIntegrationChecks": 21,
+        "armGithubCloneIntegrationChecks": 21,
+        "nativeMacLinux": "locked source build/tests PASS; full installers NOT_BUILT",
+        "physicalOwnerAcceptance": "NOT_RUN"
+      }
     }
   },
   "remaining": [
@@ -160,9 +198,9 @@
     "Live signed B/command on new candidate not yet exercised",
     "Continuity modern Wall/core hook and old-history-dependent packaging test unresolved",
     "Legacy LM extension/RC50 prototypes not active; full Mac/Linux packages not rebuilt",
-    "Single primary Windows EXE remains future product work",
     "Full endpoint/schema catalog coverage and remaining server route constants",
-    "Signed legacy beta/feed migration before a new public release; historical Fleet Wall URL targets the old repository name"
+    "Signed legacy beta/feed migration before a new public release; historical Fleet Wall URL targets the old repository name",
+    "Physical Owner/account/vault/B acceptance of one-primary candidate0.10.1-dev.2 NOT_RUN; use pinned compatibility bridge before upgrading incompatible old helpers"
   ],
   "repositoryReplacement": {
     "ownerConfirmed": true,
@@ -200,8 +238,8 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Continue development from the new GitHub repository. Prepare controlled new-backend transport and one focused native Windows acceptance; finish remaining SSO/B integration and signed-feed migration without overwriting old runtime.",
-  "receiptNote": "Documentation/evidence-only commits may follow the immutable build source commit; native inputs remain pinned.",
+  "nextAction": "Obtain explicit Owner approval to publish the already-verified candidate installer and manifests as a publicly downloadable GitHub prerelease under windows/0.10.1-dev.2; then verify uploaded asset hashes without activating the product feed. Do not bypass the approval rejection. Continue development only on permanent work; physical Owner/account/vault/B acceptance and existing runtime migration remain separate future tasks.",
+  "receiptNote": "Current compiled source and verified CI artifact are pinned independently from this documentation-only receipt; public binary release awaits explicit Owner approval. No native rebuild or existing-runtime deployment is implied.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
   "repositoryId": 1450214328,
@@ -210,10 +248,10 @@
       "target": "LightRemote.exe",
       "handoff": "docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md",
       "coverage": "docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json",
-      "status": "HANDOFF_PUBLISHED_IMPLEMENTATION_NOT_STARTED",
+      "status": "IMPLEMENTED_CI30_PASS_PUBLIC_BINARY_RELEASE_AWAITS_OWNER_APPROVAL",
       "nodeRemainsSeparate": true,
       "rmUpdaterOtherHelpersRemainSeparate": true,
-      "nativeBuild": "NOT_BUILT",
+      "nativeBuild": "CI30_PASS_9_OF_9",
       "physicalAcceptance": "NOT_RUN"
     }
   },
@@ -226,8 +264,8 @@
     "activeCheckpoint": "MASTER_CHECKPOINT.json",
     "legacyCheckpointRestored": false,
     "preChangeTag": "checkpoint/20261108-before-project-book",
-    "sourceReferenceHead": "de7eb2264d88546ecea00991730e596ee42768d3",
-    "scope": "documentation-governance-only; no runtime or binary change"
+    "sourceReferenceHead": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+    "scope": "Current primary candidate source/CI/artifact evidence and documentation consistency; public binary release awaits Owner approval, no existing runtime cutover."
   },
   "gitGovernance": {
     "sshOrigin": "git@github.com:n8n2erpnext/light-remote-mcp.git",
@@ -240,8 +278,8 @@
     "approvedWorkBranchBase": "047c744c24becb58fafce80d336ccd4d674bdc34",
     "promotionPolicy": "work CI baseline-required PASS then promote same verified source to main (fast-forward only; never force-push); retain work",
     "ownerApprovedAt": "2026-11-08",
-    "promotedVerifiedCommit": "4ad70f9541d86c074e6f4c8b37c05196beda6ed2",
-    "promotedFullCiRunId": 42487968019,
+    "promotedVerifiedCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+    "promotedFullCiRunId": 42549642811,
     "promotedFullCiConclusion": "success",
     "workBranchRetained": true
   },
@@ -279,24 +317,24 @@
     ],
     "longTaskCadence": "checkpoint and rolling handoff at each meaningful completed step before the next step",
     "workingBranch": "work",
-    "repositoryPublicationStatus": "Local cleanup done; docs/checkpoint/handoff commit pending publication on work; main baseline currently 120b48b",
-    "taskStatus": "RELEASE_RECOVERY_OBJECT_CACHE_REMOVED_LOCAL_CI_PENDING",
-    "stableSourceBaseline": "c03b50f4328e07138f350532c31dfc8b260311ce",
-    "preChangeCommit": "fd25174ac3e43a4e3ea6b3feed4ae0bf1b42587",
+    "repositoryPublicationStatus": "Compiled source31f2339 is on protected main and permanent work; this atomic documentation/evidence receipt is published on work and requires its own baseline check before normal fast-forward.",
+    "taskStatus": "BUILD_CI_AND_ARTIFACT_VERIFIED_PUBLIC_BINARY_RELEASE_AWAITS_OWNER_APPROVAL",
+    "stableSourceBaseline": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+    "preChangeCommit": "c8d308c82d17b5a4052163377d23f4514da6db02",
     "runtimeChanged": false,
-    "nextAction": "Atomic docs/checkpoint/handoff commit on work, CI baseline-required PASS, then fast-forward main; preserve old manifest outside Git.",
+    "nextAction": "Obtain explicit Owner approval to publish the already-verified candidate installer and manifests as a publicly downloadable GitHub prerelease under windows/0.10.1-dev.2; then verify uploaded asset hashes without activating the product feed. Do not bypass the approval rejection. Continue development only on permanent work; physical Owner/account/vault/B acceptance and existing runtime migration remain separate future tasks.",
     "atomicCommitRule": "Every Git commit must stage MASTER_CHECKPOINT, PROJECT_HANDOFF, Worklog, generated docs status and applicable Code Map/API/build documentation; unique task receipt + staged-source blob digest.",
     "localGuard": ".githooks/pre-commit invokes deploy/unified/commit-sync-gate.mjs --staged",
     "ciGuard": ".github/workflows/ci.yml truth job checks each new commit via --range"
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-oneexe-resume-build28-pg-readiness",
-    "status": "RESUMED_WINDOWS_NATIVE_PASS_BACKEND_READINESS_FIX_CI_PENDING",
-    "summary": "Owner resumed the task after quota recovery. Build28 passed all Windows primary package, GUI, migration/rollback/watchdog and uninstall steps; its remaining failure was the isolated backend fixture accepting PostgreSQL's temporary Unix-socket bootstrap server. Wait for the final TCP listener before initialization SQL and add a startup-stage regression.",
-    "verification": "Build28 / CI42511023888 source1fb8335: Windows job128823990554 PASS through all native/install/migration/watchdog/intake/manifest/upload steps; desktop web/macOS/Linux, lock, truth and all70 selected source groups PASS. Backend psql raced bootstrap shutdown and saw missing Unix socket. Official PostgreSQL17 image entrypoint confirms bootstrap is socket-only and stops before the final server. Two readiness tests PASS locally, and the startup-stage test demonstrably rejects the old Unix-only behavior. ARM unit regression runs before commit; new full exact-source CI pending. No Owner physical/account/vault/B acceptance or production changes.",
-    "nextAction": "Run the new work full CI from the corrected source; require backend/schema integration and all native gates PASS. Verify exact final installer/BUILD_MANIFEST/PRIMARY_EXE_MANIFEST hashes and proof, then promote only verified source to main under baseline-required.",
-    "sourceDigest": "c66506d57aa63a6e319c2ec57d820e8b52c924d415bcbaa5b849a000043e5c9e",
+    "taskId": "20261109-oneexe-ci30-verified-candidate-closeout",
+    "status": "BUILD_AND_SOURCE_PROMOTION_DONE_PUBLIC_BINARY_RELEASE_AWAITS_APPROVAL",
+    "summary": "Single-primary LightRemote.exe candidate0.10.1-dev.2 is implemented, full exact-source CI30 PASS9/9, installer/manifests independently verified on ARM and locally; compiled source promoted to protected main without force or policy changes. Node/RM/private DLLs/recovery helpers remain supporting components. Public binary prerelease is not published: automatic approval review requires explicit Owner authorization.",
+    "verification": "Exact-source full CI30 PASS9/9: backend PostgreSQL/Redis integration, truth/lock, Windows primary package/install/GUI/private CLR/Agent restart isolation/real bridge upgrade/reinstall/forced health-failure rollback/native watchdog/uninstall, browser and native Mac/Linux source builds. Independently checked artifact ZIP digest, installer hash, embedded source/run/profile and all primary migration/lifecycle checks on ARM and after SSH transfer. Owner physical/account/vault/B acceptance NOT_RUN; signing trust, public feed promotion and existing runtime cutover are not claimed. No public binary release was created after the automatic approval rejection.",
+    "nextAction": "Obtain explicit Owner approval to publish the already-verified candidate installer and manifests as a publicly downloadable GitHub prerelease under windows/0.10.1-dev.2; then verify uploaded asset hashes without activating the product feed. Do not bypass the approval rejection. Continue development only on permanent work; physical Owner/account/vault/B acceptance and existing runtime migration remain separate future tasks.",
+    "sourceDigest": "8aabb7a028c7a031b59a46e6db3510ab9c68f1aee0715c44550528603dc06c2f",
     "sourceFileCount": 1627
   },
   "legacyFilesystemCleanup": {
@@ -354,7 +392,7 @@
     "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
   },
   "singlePrimaryWindowsExe": {
-    "status": "RESUMED_WINDOWS_NATIVE_PASS_BACKEND_CI_PENDING",
+    "status": "IMPLEMENTED_CI30_PASS_ARTIFACT_VERIFIED_COMPILED_SOURCE_ON_MAIN_PUBLIC_RELEASE_AWAITS_APPROVAL",
     "ownerImplementationAuthorized": true,
     "target": "LightRemote.exe",
     "merge": [
@@ -377,26 +415,26 @@
       "P1UpdaterCompatibility": "CI_PASS_BRIDGE_E997E14",
       "P2NativeHost": "CI_PASS_BRIDGE_HOSTED_PROOF",
       "P3DesktopActions": "CI_PASS_IN_PROCESS_ADAPTER",
-      "P4PackageSwitch": "WINDOWS_CI_PASS_BUILD28",
-      "P5Acceptance": "AUTOMATED_WINDOWS_CI_PASS_PHYSICAL_OWNER_NOT_RUN",
-      "P4Packaging": "WINDOWS_CI_PASS_BUILD28",
-      "P5Migration": "WINDOWS_CI_PASS_BUILD28",
-      "P6Promotion": "NOT_STARTED"
+      "P4PackageSwitch": "CI30_PASS",
+      "P5Acceptance": "AUTOMATED_CI30_PASS_PHYSICAL_OWNER_NOT_RUN",
+      "P4Packaging": "CI30_PASS",
+      "P5Migration": "CI30_PASS",
+      "P6Promotion": "COMPILED_SOURCE_MAIN_DONE_PUBLIC_BINARY_RELEASE_AWAITS_APPROVAL"
     },
-    "newNativeBuild": "WINDOWS_BUILD28_PASS_NEW_FULL_SOURCE_CI_PENDING",
+    "newNativeBuild": "CI30_PASS_9_OF_9",
     "physicalAcceptance": "NOT_RUN",
     "runtimeChanged": false,
     "architectureUnderTest": "Tauri LightRemote.exe hosts a framework-dependent managed WindowsHost DLL in-process using private .NET frameworks; no second managed apphost/EXE.",
-    "pocScope": "Primary package switch is now implemented for the official V4 complete installer, contingent on full native CI. Stable main and existing runtime are unchanged.",
+    "pocScope": "Completed full candidate package and native migration lifecycle; no longer a PoC-only layout.",
     "migrationSequence": {
       "bridgeVersion": "0.10.1-dev.1",
       "primaryVersion": "0.10.1-dev.2",
       "policy": "Install and verify the dual-layout independent helper first. Never offer primary layout to an unverified old helper. Public feed remains HOLD."
     },
-    "bridgeCompileCorrection": "Fully qualify System.Management.EnumerationOptions and typed ManagementScope/ObjectQuery. Helper layout native fixture already PASS, hosted role proof rerun pending.",
-    "wmiOwnerStopCorrection": "EnsureLocatable=true preserves __PATH/__RELPATH for GetOwnerSid after WQL projection. Read-only self-process SID/file/creation proof PASS; actual host stop remains native CI_PENDING.",
+    "bridgeCompileCorrection": "Resolved; final compatibility bridgee997e14 passed full CI26 and is pinned by installer/manifest SHA-256.",
+    "wmiOwnerStopCorrection": "EnsureLocatable=true preserved projected WMI identity; actual exact-path/argv/SID/creation-time owned stop and unrelated-role survival PASS in final native CI.",
     "hostSelectionPolicy": "Exact LightRemote.exe filename activates hosted library. Legacy Desktop never chooses a component by DLL presence, so rollback remains bound to the restored legacy implementation.",
-    "ownedStopProof": "WMI owner validation and actual Agent-host termination passed in CI42505457103; unrelated-worker readiness was not established, so overall isolation is not yet PASS.",
+    "ownedStopProof": "CI30 actual owned Agent stop plus unrelated worker/child survival and installed hidden GUI restart isolation PASS.",
     "targetExecutable": "LightRemote.exe",
     "architecture": "Tauri/Rust GUI and early CLI roles host a framework-dependent managed WindowsHost DLL in-process through fixed-path hostfxr, using private .NET8 frameworks. No second managed apphost or extracted core EXE.",
     "compatibilityBridge": {
@@ -440,6 +478,63 @@
       "tag": "checkpoint/20261109-resume-oneexe-40eac10",
       "bundleSha256": "e538eeb615e3a0b3322ffd964b553e62b972310d7fafcb99f3316984ee7d9437",
       "restoreVerified": true
+    },
+    "publication": {
+      "status": "NOT_PUBLISHED_AWAITING_EXPLICIT_OWNER_APPROVAL",
+      "published": false,
+      "tag": "windows/0.10.1-dev.2",
+      "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+      "ciRunId": 42549642811,
+      "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811/artifacts/13645690974",
+      "proposedReleaseUrl": "https://github.com/n8n2erpnext/light-remote-mcp/releases/tag/windows/0.10.1-dev.2",
+      "version": "0.10.1-dev.2",
+      "installerSha256": "aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19",
+      "feedPromotion": false,
+      "approvalReview": "Automatic approval review rejected public prerelease publication: repository/code work was authorized, but publicly downloadable binary publication was not explicitly authorized. Do not retry or use an indirect workaround without explicit Owner approval."
+    },
+    "verifiedArtifact": {
+      "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+      "ciRunId": 42549642811,
+      "artifactId": 13645690974,
+      "artifactZipSha256": "988f6fc189987dbeeeeaa2f309b3026d4f6d3ee85648aaf68dfc02e53dab5110",
+      "installerSha256": "aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19",
+      "installerBytes": 167112400,
+      "projectVersion": "0.10.1-dev.2",
+      "result": "VERIFIED_NOT_PHYSICAL_ACCEPTANCE"
+    },
+    "lastFullCi": {
+      "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+      "ciRunId": 42549642811,
+      "runNumber": 30,
+      "attempt": 1,
+      "scope": "full",
+      "result": "PASS",
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811",
+      "allJobs": 9,
+      "successfulJobs": 9,
+      "requiredCheck": "baseline-required",
+      "mainProtectionUnchanged": true,
+      "physicalOwnerAcceptance": false
+    },
+    "compiledSourcePromotion": {
+      "mainBefore": "c8d308c82d17b5a4052163377d23f4514da6db02",
+      "mainAfter": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+      "ciEvidence": {
+        "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+        "ciRunId": 42549642811,
+        "runNumber": 30,
+        "attempt": 1,
+        "scope": "full",
+        "result": "PASS",
+        "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811",
+        "allJobs": 9,
+        "successfulJobs": 9,
+        "requiredCheck": "baseline-required",
+        "mainProtectionUnchanged": true,
+        "physicalOwnerAcceptance": false
+      },
+      "method": "normal-fast-forward-SSH-no-force",
+      "runtimeChanged": false
     }
   },
   "activeDevelopmentWorkspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/single-primary-exe"

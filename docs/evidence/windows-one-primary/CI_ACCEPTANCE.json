@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+  "ciRunId": 42549642811,
+  "runNumber": 30,
+  "attempt": 1,
+  "scope": "full",
+  "result": "PASS",
+  "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811",
+  "allJobs": 9,
+  "successfulJobs": 9,
+  "requiredCheck": "baseline-required",
+  "mainProtectionUnchanged": true,
+  "physicalOwnerAcceptance": false
+}

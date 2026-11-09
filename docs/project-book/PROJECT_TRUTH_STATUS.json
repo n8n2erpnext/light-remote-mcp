@@ -12,14 +12,14 @@
   "apiContractVersion": "light-remote.api.v1",
   "profile": "goldabv2-desktop-v4",
   "officialRepositoryId": 1450214328,
-  "verifiedBuiltSourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
-  "verifiedBuiltSourceTree": "fa9d78b1d8e835259b4fe77ac414b2ab92175a00",
-  "checkpointUpdatedAt": "2026-11-09T02:12:30.845Z",
-  "migrationPhase": "G_CLEAN_GITHUB_BASELINE_COMPLETE",
+  "verifiedBuiltSourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+  "verifiedBuiltSourceTree": "4dc6fa959f9bdd77d24eac9a5a7123f0f6cc2215",
+  "checkpointUpdatedAt": "2026-11-09T02:44:44.891Z",
+  "migrationPhase": "WINDOWS_SINGLE_PRIMARY_CANDIDATE_COMPLETE",
   "ci": {
     "status": "success",
-    "runId": 42475715858,
-    "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+    "runId": 42549642811,
+    "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
     "passedJobs": 9,
     "totalJobs": 9
   },
@@ -30,9 +30,9 @@
     "evidence": "docs/evidence/dev-integration.json"
   },
   "windows": {
-    "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
-    "artifactId": 13615761284,
-    "sha256": "23b746d2b820da1303fa1834c8e9f2d83e1bcad66a9c8d0580532ae60358b52f",
+    "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+    "artifactId": 13645690974,
+    "sha256": "aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19",
     "physicalOwnerAcceptance": "NOT_RUN"
   },
   "sourcePresenceDoesNotProveDeployment": true,
@@ -43,9 +43,9 @@
     "Live signed B/command on new candidate not yet exercised",
     "Continuity modern Wall/core hook and old-history-dependent packaging test unresolved",
     "Legacy LM extension/RC50 prototypes not active; full Mac/Linux packages not rebuilt",
-    "Single primary Windows EXE remains future product work",
     "Full endpoint/schema catalog coverage and remaining server route constants",
-    "Signed legacy beta/feed migration before a new public release; historical Fleet Wall URL targets the old repository name"
+    "Signed legacy beta/feed migration before a new public release; historical Fleet Wall URL targets the old repository name",
+    "Physical Owner/account/vault/B acceptance of one-primary candidate0.10.1-dev.2 NOT_RUN; use pinned compatibility bridge before upgrading incompatible old helpers"
   ],
   "historicalRefsOnly": {
     "oldRepository": "n8n2erpnext/light-remote-mcp-archive-20261108",

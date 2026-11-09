@@ -1,6 +1,8 @@
 # Light Remote MCP
 
-Fresh development repository, ID1450214328. Primary executable candidate **0.10.1-dev.2**, profile goldabv2-desktop-v4. Verified build `c03b50f`: [CI9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42475715858) and21/21 isolated ARM integration checks from a new GitHub clone.
+Fresh development repository, ID1450214328. Windows candidate **0.10.1-dev.2**, profile **goldabv2-desktop-v4**, has one primary **LightRemote.exe**. Exact compiled source `31f23393aacb89b6d541cebb2cd0c2e1afa64538` passed [full CI #30: 9/9](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811). Node, RM V2, private .NET DLLs and independent update/recovery helpers remain supporting components.
+
+[Verified CI artifact](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811/artifacts/13645690974) · [Primary manifest and checks](docs/evidence/windows-one-primary/PRIMARY_EXE_MANIFEST.json). Installer SHA-256: `aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19`. The candidate has not been published as a publicly downloadable GitHub Release; that step awaits explicit Owner approval. Existing incompatible helpers must first take the [pinned compatibility bridge](config/windows-core-migration.json); fresh installations can use the primary candidate directly. No existing Owner installation or production update feed was changed.
 
 Start with [Project Truth](PROJECT_TRUTH.md), [Master Checkpoint](MASTER_CHECKPOINT.json), [Handoff](PROJECT_HANDOFF.md), [Owner report](OWNER_REPORT.vi.md), [Feature Status](FEATURE_STATUS_MATRIX.md), and [Build/Deployment](BUILD_AND_DEPLOYMENT.md). [Historical repository](https://github.com/n8n2erpnext/light-remote-mcp-archive-20261108) and old ARM sources are preserved reference archives. New builds come from identified commits in this repository.
 
@@ -32,7 +34,7 @@ GitHub read/write access for this project is already configured through **SSH on
 This is the only approved **parent workspace**. New clones, worktrees (only if the Owner separately approves a branch), source checkouts, experiments, build directories, CI staging, caches, test fixtures, temporary project directories, recovery snapshots and development documentation directories must be created at or **under that parent**, never next to it.
 
 - **Allowed:** `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/my-new-project-dir/` or any deeper child path.
-- **Existing official checkout:** `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp/`.
+- **Current development checkout:** `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/single-primary-exe/`, permanent branch `work`. The original conversion/publication checkout is a historical source reference.
 - **Forbidden:** `/home/ubuntu/n8n2erpnext/new-light-remote-folder/`, `/home/ubuntu/n8n2erpnext/light-remote-mcp-new/`, or any new Light Remote project directory outside the approved parent.
 - Before creating a directory, verify its intended canonical/resolved path lies under the approved parent; do not escape through `..` or symlinks. Do not use the existing repository archive, old sibling worktrees, or runtime trees as scratch space.
 - Pre-existing folders outside this parent are **historical references**, not permission to create more or change/delete them. If a necessary project directory cannot fit inside this parent, stop and ask the Owner before creating it elsewhere. No implicit exceptions for an Agent or Codex.

@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 249 (224 Markdown, 25 JSON).
+Documents: 254 (224 Markdown, 30 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -30,6 +30,11 @@ Documents: 249 (224 Markdown, 25 JSON).
 | evidence | [docs/evidence/runtime-source-comparison.json](../evidence/runtime-source-comparison.json) |  | 6e06831f60deff0905ec9c0e54cd7c0e8e24b1de3e5a6e5b0c9d5fbca01f1759 |
 | evidence | [docs/evidence/windows-artifact-verification.json](../evidence/windows-artifact-verification.json) | artifactId, name, zipSha256, zipBytes, repositoryId, sourceCommit, ciRunId, verified, verifiedOn | 2f546e90951ad16efde6690412b9216ec9cd74155d1a699b9f85579f1a1f1f81 |
 | evidence | [docs/evidence/windows-build-manifest.json](../evidence/windows-build-manifest.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | 4c879edf3ceae517f0c31a41ab5eaa8dfc938753308d8d1431cb999fbf17c983 |
+| evidence | [docs/evidence/windows-one-primary/ARTIFACT_VERIFICATION.json](../evidence/windows-one-primary/ARTIFACT_VERIFICATION.json) | sourceCommit, ciRunId, artifactId, artifactZipSha256, installerSha256, installerBytes, projectVe | fb79772b2f3ad0769862647d1b1e6ec6dec96dc341307fdc96e552b9464166fa |
+| evidence | [docs/evidence/windows-one-primary/BUILD_MANIFEST.json](../evidence/windows-one-primary/BUILD_MANIFEST.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | 2ef8feba6e929ad3f02ffe39e938b0544e9cbf0cd8c0d8a3fa8fdb84221e9b50 |
+| evidence | [docs/evidence/windows-one-primary/CI_ACCEPTANCE.json](../evidence/windows-one-primary/CI_ACCEPTANCE.json) | sourceCommit, ciRunId, runNumber, attempt, scope, result, ciUrl, allJobs, successfulJobs, requir | dcab4b094ce795f466b1833975396d1b8a35847fc8e94916695ec8dbcd275ba2 |
+| evidence | [docs/evidence/windows-one-primary/PRIMARY_EXE_MANIFEST.json](../evidence/windows-one-primary/PRIMARY_EXE_MANIFEST.json) | physicalOwnerAcceptance, primaryExecutable, stagedBytes, version, sourceCommit, executables, lay | 28eca9a1bfd5fa86c16ed6066476cc0b5d5a444ee47d8057d6f13a166994dd36 |
+| evidence | [docs/evidence/windows-one-primary/PUBLICATION_STATUS.json](../evidence/windows-one-primary/PUBLICATION_STATUS.json) | status, published, tag, sourceCommit, ciRunId, artifactUrl, proposedReleaseUrl, version, install | e388cffdfa78fccfc7dba5348360e8c852379024637c605ca0dc4935eaf2fd00 |
 | experiments | [docs/experiments/MACOS_RMV2_SCP.md](../experiments/MACOS_RMV2_SCP.md) | Experimental macOS Real Remote V2 + SCP | 7d359ca6e591a66b160a540e09a6b4606255e631a3b7cb1edb98a4b4b898a8c4 |
 | gold | [docs/gold/CODEX_CHATGPT_PLUS_NATIVE_WALL_20261024.md](../gold/CODEX_CHATGPT_PLUS_NATIVE_WALL_20261024.md) | Gold native Codex Bridge - Sign in with ChatGPT (Plus plan) | a135b2862c4bf9bfbbb9a63d4eb759772e65c1b7c33245fda9dda96447efa451 |
 | gold | [docs/gold/GOLD_ACCOUNT_SCOPE_DELETE_ENGINEERING_20261026.md](../gold/GOLD_ACCOUNT_SCOPE_DELETE_ENGINEERING_20261026.md) | Gold account-wide scoped Memory deletion (2026-10-26) | 3e5c1b9cca29606f688b6faabd1eba56945799b5db2e40b764187284777e03d6 |
@@ -235,7 +240,7 @@ Documents: 249 (224 Markdown, 25 JSON).
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md) | T12-PLAN — Gộp hai Windows core thành LightRemote.exe | 8803418d5f846a3568be08128a70e21a53ccee6e7d2083a41dcd005c2e8bd237 |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_SINGLE_CORE_EXE_BUILD_REVIEW_20261107.md](../plans/windows-single-primary-exe/LIGHT_REMOTE_SINGLE_CORE_EXE_BUILD_REVIEW_20261107.md) | T11 — Windows build: hợp nhất executable chính | 7b73c419d2302a21ad01c278d8696640fd144b7346a1135242aa1c64c620f1c3 |
 | plans | [docs/plans/windows-single-primary-exe/PUBLICATION.json](../plans/windows-single-primary-exe/PUBLICATION.json) | publishedAt, repositoryId, repository, sourceDocumentDate, baseCommitAtPublication, originalFile | 2f181acec3324a1cce868c6ff217af58d78ad1b495507886a0a7551a60c0c160 |
-| plans | [docs/plans/windows-single-primary-exe/README.md](../plans/windows-single-primary-exe/README.md) | Handoff gộp hai Windows app chính thành LightRemote.exe | b2236b56138a2f9e30ce0efe5153ef500dc96e146f84b249f9154816bf024a3f |
+| plans | [docs/plans/windows-single-primary-exe/README.md](../plans/windows-single-primary-exe/README.md) | Handoff gộp hai Windows app chính thành LightRemote.exe | 2261d0265dd77dad716e7895f08f39f776aa4607e63e27ec4a38d0e01363b134 |
 | README.md | [docs/README.md](../README.md) | Light Remote Documentation Library — Unified Edition | c063231fa218c52e34de0df7f3ac592236854e7791a1abfa667fa64136a6f43f |
 | real-remote-v2 | [docs/real-remote-v2/README.md](../real-remote-v2/README.md) | Real Remote V2 - Golden Rebuild | b8dc9e50b1dd7f5c7af69ca6bcc93395d8499c7ff9d5d044a004c5a4805d948e |
 | releases | [docs/releases/GOLD_AB_AGENT_CLIENT_PG_FIX_20261019.md](../releases/GOLD_AB_AGENT_CLIENT_PG_FIX_20261019.md) | Gold A/B pairing PostgreSQL persistence hotfix — 2026-10-19 | 8b581b7b86558a1c33df66d60b0d05cc25a98d04cdc8a99cd601e44b4edcbfba |
