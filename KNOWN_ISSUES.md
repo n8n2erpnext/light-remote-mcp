@@ -1,12 +1,12 @@
 # Known issues and remaining verification
 
-Current work: internal Desktop UX candidate0.10.1-dev.4 is implemented and locally verified across all screens; full Actions/native installer and physical acceptance are pending. Old negative-margin B overlap, zero-padding populated tables, technical main-screen copy and unbounded initial task presentation have source fixes. The last stable compiled baseline is2771f47/dev.3/CI41. Owner reports its installed UI works; the new design has not been installed on their device.
+Current compiled source947a117/internal candidate0.10.1-dev.4: full CI45 PASS9/9, React121, consent/token36, browser170 and real private backend25 PASS. Internal Lab Operator/Plugin/consent deployed from the same source with unchanged data and independent processes. B overlap, table spacing and technical main-screen presentation now have verified source/renderer fixes across all screens. Owner physical acceptance of this UX remains pending; prior dev.3 was reported functional only.
 
-The table below retains backend/packaging evidence from that verified baseline until new CI/rollout receipts replace it. Local Memory/Codex reads still cap at100 with an explicit partial-data notice; Desktop task history initially renders10 loaded rows and can show/load more. Positive Wall browser SSO and full Mac/Linux packages remain separate backlog.
+Local Memory/Codex reads still cap at100 with a visible partial notice. Task/session history is bounded and pageable, not an immutable audit archive. Account reads follow scoped polling; do not infer new grants or optimistic success from local UI state. Earlier dated sections are historical.
 
 | Item | Current evidence | Next action |
 |---|---|---|
-| Native end-to-end/new backend | source2771f47 CI41 native/install/migration PASS; real backend25 PASS; internal Lab Operator/Plugin deployed | Owner physical authenticated GUI acceptance remains NOT_RUN |
+| Native end-to-end/new backend | source947a117 CI45 native/install/migration PASS; real backend25 PASS; internal Lab Operator/Plugin deployed | Owner reports prior dev.3 functional UI; dev.4 physical acceptance pending |
 | Candidate exposure/profile | internal Lab now serves same tested Operator/Plugin commit; disposable candidates remain private | install exact internal artifact; do not publish binaries/feed |
 | Wall SSO local integration | Backend mTLS issue positive/negative PASS; local Agent/browser bootstrap production wiring unfinished; UI SSO candidate remains disabled | Finish real native/Agent/Wall wiring with live family and device signature checks |
 | New signed B/remote command | real Wall and Account B -> PG/MCP attach PASS; wrong B400 verified | physical new-artifact B and remote command acceptance remain separate |
@@ -14,9 +14,9 @@ The table below retains backend/packaging evidence from that verified baseline u
 | Extensions | Existing GoldABV2 LM0.3 retained and integrity/manual-staging source contract PASS; separate legacy LM0.2 restored | Verify real Chrome/current Wall compatibility; do not enable legacy product bindings as GoldABV2 |
 | RC50/Guest | Missing portability/prototype source recovered; Guest native wiring incomplete | Keep Guest044 deferred; do not simulate readiness with SQL-only ledger changes |
 | Mac/Linux packages | Locked native source builds/tests PASS | Full current installers still NOT_BUILT |
-| Windows primary candidate physical acceptance | source2771f47/CI41 full installed lifecycle, explicit Start, bridge/reinstall/rollback/watchdog/uninstall PASS | Owner physical/account/vault/B NOT_RUN; incompatible old helpers take pinned bridge first |
+| Windows primary candidate physical acceptance | source947a117/CI45 full installed lifecycle, explicit Start, bridge/reinstall/rollback/watchdog/uninstall PASS | dev.4 Owner physical/account/vault/B pending; incompatible old helpers take pinned bridge first |
 | Endpoint/schema catalog | Critical V4 catalog/version/handler wiring exists; legacy schemas and some authorize/SSO/Wall route constants remain | Finish full catalog coverage; do not promise every URL/path can already change from JSON alone |
-| Runtime drift/data migration | internal Lab Operator+Plugin aligned to2771f47 and Desktop read enabled; DB43+Owner preserved, no SQL migration | independent old Agent/supervisor/transport retained; production UAT/direct untouched |
+| Runtime drift/data migration | internal Lab Operator+Plugin aligned to947a117 and Desktop read enabled; DB43+Owner preserved, no SQL migration | independent old Agent/supervisor/transport retained; production UAT/direct untouched |
 | Windows current process inventory | WMI process read denied; binary file identity and historical artifact available | Keep runtime provenance UNKNOWN where unsupported; no privilege bypass |
 
 Resolved: stale Owner Cargo.lock made previous native builds resolve dependencies outside the committed graph. Reviewed lock committed; --locked and strict post-build source provenance PASS in final CI. Actual original Wall wrapping/module-state/B fixes were inherited from tested T11 source; reconstruction did not change the Owner's installed app or old server.

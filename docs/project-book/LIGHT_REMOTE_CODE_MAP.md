@@ -1,9 +1,9 @@
 # Light Remote MCP — Unified Code Map
 
 Status: canonical source navigation, not runtime deployment proof
-Edition: 2026-11-08
-Codebase: fresh n8n2erpnext/light-remote-mcp main, 0.10.0-dev.1
-Verified reference: de7eb2264d88546ecea00991730e596ee42768d3 (documentation baseline)
+Edition: 2026-11-09
+Codebase: n8n2erpnext/light-remote-mcp; compiled0.10.1-dev.4/source947a117, CI45 PASS; same-source internal Lab
+Historical documentation foundation: de7eb2264d88546ecea00991730e596ee42768d3
 API contract: [light-remote.api.v1](../../contracts/api.v1.json)
 Endpoint catalog: [config/endpoints.json](../../config/endpoints.json)
 
@@ -60,9 +60,9 @@ Other route families exist; this table intentionally documents the relevant V4 c
 ## Source status and regression boundaries
 
 - Implemented: source modules above exist in the unified repository.
-- Current Windows candidate/build and backend CI: source31f2339, full CI #30 PASS; [CI acceptance](../evidence/windows-one-primary/CI_ACCEPTANCE.json) and [primary manifest](../evidence/windows-one-primary/PRIMARY_EXE_MANIFEST.json). Earlier c03b50f evidence remains scoped to its own artifact/deployment.
-- Isolated DEV integrated: [21-check receipt](../evidence/dev-integration.json) for candidate at c03b50f.
-- Unknown/not complete: new-backend Owner physical UAT, full Agent/browser SSO, live signed B-command, full public release/feed; see [Known Issues](../../KNOWN_ISSUES.md).
+- Current Windows candidate/build and backend CI: source947a117, full CI45 PASS; [current acceptance](../evidence/desktop-user-experience/ACCEPTANCE.json) and [primary manifest](../evidence/desktop-user-experience/PRIMARY_EXE_MANIFEST.json). Earlier c03b50f evidence remains scoped to its own artifact/deployment.
+- Historical reconstruction DEV integrated: [21-check receipt](../evidence/dev-integration.json) for candidate at c03b50f.
+- Unknown/not complete: dev.4 Owner physical UAT, full Agent/browser SSO, physical signed remote commands and future public release/feed migration; see [Known Issues](../../KNOWN_ISSUES.md).
 - Historical physical Windows proof 4dddf511 belongs to the **old** artifact; do not transfer it to the new build.
 
 ## Updating this map

@@ -12,40 +12,39 @@
   "apiContractVersion": "light-remote.api.v1",
   "profile": "goldabv2-desktop-v4",
   "officialRepositoryId": 1450214328,
-  "verifiedBuiltSourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
-  "verifiedBuiltSourceTree": "18d53e536239e4cb414e75aae7d012972a4a90bc",
-  "checkpointUpdatedAt": "2026-11-09T13:46:16.853Z",
-  "migrationPhase": "DESKTOP_BACKEND_INTERNAL_CANDIDATE_ACCEPTED",
+  "verifiedBuiltSourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+  "verifiedBuiltSourceTree": "0ef2892ae2b8ecf253e35510548a1493673d21ee",
+  "checkpointUpdatedAt": "2026-11-09T14:22:27.978Z",
+  "migrationPhase": "DESKTOP_USER_EXPERIENCE_INTERNAL_CANDIDATE_ACCEPTED",
   "ci": {
     "status": "success",
-    "runId": 42549642811,
-    "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
+    "runId": 42628405851,
+    "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
     "passedJobs": 9,
     "totalJobs": 9
   },
   "isolatedDev": {
-    "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
-    "checks": 21,
+    "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+    "checks": 25,
     "status": "PASS",
     "evidence": "docs/evidence/dev-integration.json"
   },
   "windows": {
-    "sourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
-    "artifactId": 13645690974,
-    "sha256": "aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19",
+    "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+    "artifactId": 13679554745,
+    "sha256": "a59e94e98c2581def5a9f622a3551e57a9ecc2071f7994f5a30db3850729ad5e",
     "physicalOwnerAcceptance": "NOT_RUN"
   },
   "sourcePresenceDoesNotProveDeployment": true,
   "productionRelease": false,
   "remaining": [
-    "Owner acceptance/native end-to-end with the new backend; controlled candidate routing required before Windows UAT",
-    "Local Agent/browser SSO wiring and positive redemption remain unfinished",
-    "Live signed B/command on new candidate not yet exercised",
+    "Owner installs exact internal dev.4 and accepts all nine screens/local actions, account/vault/fresh B and remote commands on physical PC",
+    "Local Agent/browser Wall SSO wiring and positive redemption remain unfinished; candidate flag OFF",
     "Continuity modern Wall/core hook and old-history-dependent packaging test unresolved",
-    "Legacy LM extension/RC50 prototypes not active; full Mac/Linux packages not rebuilt",
-    "Full endpoint/schema catalog coverage and remaining server route constants",
-    "Signed legacy beta/feed migration before a new public release; historical Fleet Wall URL targets the old repository name",
-    "Physical Owner/account/vault/B acceptance of one-primary candidate0.10.1-dev.2 NOT_RUN; use pinned compatibility bridge before upgrading incompatible old helpers"
+    "Legacy LM extension/RC50/Guest prototypes and full physical Windows ConPTY remain scoped backlog; full current Mac/Linux installers NOT_BUILT",
+    "Full endpoint/schema catalog coverage and remaining legacy server route constants",
+    "Signed legacy beta/feed migration before any future explicitly authorized public release",
+    "Memory/Codex100-row native window with notice; loaded task history initially renders10 and can show/load more; history is not immutable audit"
   ],
   "historicalRefsOnly": {
     "oldRepository": "n8n2erpnext/light-remote-mcp-archive-20261108",

@@ -1,0 +1,107 @@
+{
+  "installedLifecycle": {
+    "result": "PASS",
+    "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+    "ciRunId": "42628405851",
+    "checks": [
+      "one-primary-layout",
+      "same-native-exe-task",
+      "same-native-exe-autostart-shortcut",
+      "private-clr-loaded-in-gui-with-global-dotnet-disabled",
+      "background-preserves-hidden-window",
+      "agent-only-restart-preserves-gui-and-hidden-state",
+      "old-daemon-exit-new-wall-health",
+      "explicit-start-is-idempotent-preserves-running-agent",
+      "shortcut-restores-existing-window"
+    ],
+    "physicalOwnerAcceptance": false
+  },
+  "layoutId": "lightremote-primary-hosted-v1",
+  "privateFrameworkBytes": 167323268,
+  "physicalOwnerAcceptance": false,
+  "version": "0.10.1-dev.4",
+  "stagedBytes": 441850007,
+  "publicFeedPromoted": false,
+  "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+  "executables": [
+    {
+      "path": "LightRemote.exe",
+      "role": "primary-ui-agent-managed-worker",
+      "bytes": 8409088,
+      "sha256": "57ad18672ddb6be3c719d6a0cb7df7d65db571559db93c49ecd84986ef0bda68"
+    },
+    {
+      "path": "agent/node_modules/node-pty/prebuilds/win32-x64/winpty-agent.exe",
+      "role": "supporting-runtime-tool",
+      "bytes": 307712,
+      "sha256": "0c4834a0ab2a4f8c855a2f1db9b21fa6e5fc324ae8e3c82addd53d503d999825"
+    },
+    {
+      "path": "agent/node_modules/node-pty/prebuilds/win32-x64/conpty/OpenConsole.exe",
+      "role": "supporting-runtime-tool",
+      "bytes": 1148448,
+      "sha256": "d1fe7faa62f9e955e2ac2371f95d7e5513df4d496255097158f979c94782c5fc"
+    },
+    {
+      "path": "helper-candidate/LightRemote.Updater.exe",
+      "role": "independent-update-helper-candidate",
+      "bytes": 11875374,
+      "sha256": "7043f90b5fa6b1ce31434ffd0b277cf9233d76f8c04213726f553ad98eabe59c"
+    },
+    {
+      "path": "realremote-v2/LightRemote.RM.exe",
+      "role": "rm-v2-companion",
+      "bytes": 74052695,
+      "sha256": "57ba7fdb8d845320ddeb3b165fc08a5607cfb2ddcfecae3f9b7009186c030d5e"
+    },
+    {
+      "path": "runtime/node.exe",
+      "role": "node-runtime",
+      "bytes": 86997320,
+      "sha256": "0d0f5e39f9f3d9587bc19f73eab3c2c9c4903fd02d6dbf9c853dd81b3d95fad4"
+    },
+    {
+      "path": "windows-host/runtime/shared/Microsoft.NETCore.App/8.0.33/createdump.exe",
+      "role": "supporting-runtime-tool",
+      "bytes": 71552,
+      "sha256": "4a001d54e32cfdaefdc3a1deb881c4d12abf61fe408bb4a492bd407517d225ad"
+    }
+  ],
+  "migration": {
+    "schemaVersion": 1,
+    "result": "PASS",
+    "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+    "ciRunId": "42628405851",
+    "primaryVersion": "0.10.1-dev.4",
+    "bridgeSource": "e997e149d7494ef86eeb95da759bb324bf4b1b13",
+    "bridgeVersion": "0.10.1-dev.1",
+    "bridgeInstallerSha256": "d909f6253b61b39d15fae08f586199c7f6c83ec160cccdd3c8eb841dfd6ca69c",
+    "checks": {
+      "verified-bridge-fresh-install-independent-helper": "PASS",
+      "real-installer-incompatible-helper-blocks-before-core-stop": "PASS",
+      "bridge-helper-installs-and-verifies-primary-layout": "PASS",
+      "same-version-primary-reinstall-preserves-config-device-local-canaries": "PASS",
+      "primary-to-legacy-real-installer-transaction": "PASS",
+      "real-primary-install-health-failure-restores-real-bridge-and-removes-new-exe": "PASS",
+      "restored-legacy-gui-does-not-activate-leftover-hosted-component": "PASS",
+      "manual-installer-postinstall-failure-watchdog-restores-bridge": "PASS",
+      "upgrade-after-rollback-reuses-same-identity-directories": "PASS"
+    },
+    "preservedCanaryCount": 4,
+    "liveOwnerIdentityOrVaultAcceptance": false,
+    "physicalOwnerAcceptance": false
+  },
+  "ciRunId": "42628405851",
+  "frameworkVersions": [
+    {
+      "name": "Microsoft.NETCore.App",
+      "version": "8.0.33"
+    },
+    {
+      "name": "Microsoft.WindowsDesktop.App",
+      "version": "8.0.33"
+    }
+  ],
+  "primaryExecutable": "LightRemote.exe",
+  "schemaVersion": 1
+}

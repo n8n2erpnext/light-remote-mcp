@@ -48,3 +48,7 @@ Current baseline2771f47/CI41: Desktop32-action native device API and14 fixed Win
 ## Rebuild Desktop as a user workspace and fix populated approval and monitor layouts
 
 No endpoint/method, schema version, native allowlist, Owner/device binding or OAuth scope change. Browser consent HTML moves into plugin-server/desktop-consent-page.mjs; desktop-auth-v4-server.mjs still owns Owner verification, one-time intent/CSRF, callback validation and exact CSP. User labels do not rename compatibility route/profile/vault identifiers.
+
+## Record verified all-screen Desktop UX installer and same-source internal consent deployment
+
+Current verified947a117/CI45 keeps light-remote.api.v1 and all native/API/OAuth authorities/identifiers unchanged. Both real B paths/native API pass in25-check CI integration. Internal Lab Operator+Plugin/consent now serve0.10.1-dev.4 from the same GitHub source, snapshot unauthenticated401 and public API/version health PASS. Positive browser Wall SSO physical acceptance remains separate.

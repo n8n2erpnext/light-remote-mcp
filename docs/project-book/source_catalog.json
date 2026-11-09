@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 259,
+    "total": 262,
     "markdown": 225,
-    "json": 34
+    "json": 37
   },
   "files": [
     {
@@ -136,6 +136,48 @@
       ]
     },
     {
+      "path": "docs/evidence/desktop-user-experience/ACCEPTANCE.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3880,
+      "sha256": "1fcca9d92ebfb773411fedba7854464712ea1e12fdd75f4e4e024196c156c1c0",
+      "topLevelKeys": [
+        "schemaVersion",
+        "candidateVersion",
+        "sourceCommit",
+        "sourceTree",
+        "audience",
+        "ci",
+        "artifact",
+        "frontend",
+        "backend",
+        "lab",
+        "ownerReportedPreviousCandidate",
+        "ownerWindowsInstallationChangedByCodex"
+      ]
+    },
+    {
+      "path": "docs/evidence/desktop-user-experience/BUILD_MANIFEST.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2495,
+      "sha256": "3f8af2dbd451d016c103bb26d1e660887d627f6114ac0acc2dd26a4388f8ac4f",
+      "topLevelKeys": [
+        "schemaVersion",
+        "project",
+        "projectVersion",
+        "repository",
+        "sourceCommit",
+        "sourceTree",
+        "buildTimestamp",
+        "ciRunId",
+        "ciRepository",
+        "platform",
+        "apiContractVersion",
+        "featureProfile"
+      ]
+    },
+    {
       "path": "docs/evidence/desktop-user-experience/LOCAL_VERIFICATION.json",
       "shelf": "evidence",
       "extension": "json",
@@ -153,6 +195,27 @@
         "physicalOwnerAcceptance",
         "ownerInstallationChangedByCodex",
         "publicReleaseOrFeed"
+      ]
+    },
+    {
+      "path": "docs/evidence/desktop-user-experience/PRIMARY_EXE_MANIFEST.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3986,
+      "sha256": "f83996150cd9bdbb2a10c693da4ae9629022b8cdd7504b220c6f0e82534744bb",
+      "topLevelKeys": [
+        "installedLifecycle",
+        "layoutId",
+        "privateFrameworkBytes",
+        "physicalOwnerAcceptance",
+        "version",
+        "stagedBytes",
+        "publicFeedPromoted",
+        "sourceCommit",
+        "executables",
+        "migration",
+        "ciRunId",
+        "frameworkVersions"
       ]
     },
     {

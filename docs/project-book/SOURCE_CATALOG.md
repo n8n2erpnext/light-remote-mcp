@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 259 (225 Markdown, 34 JSON).
+Documents: 262 (225 Markdown, 37 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -19,7 +19,10 @@ Documents: 259 (225 Markdown, 34 JSON).
 | evidence | [docs/evidence/desktop-backend/ACCEPTANCE.json](../evidence/desktop-backend/ACCEPTANCE.json) | schemaVersion, sourceCommit, candidateVersion, audience, ci, artifact, backend, lab, ownerWindow | 5eac6901d47cc7a4cba3b20e915a7d6c42a5bbc0fe04b8f396470ae259d4ca19 |
 | evidence | [docs/evidence/desktop-backend/BUILD_MANIFEST.json](../evidence/desktop-backend/BUILD_MANIFEST.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | b138c38e183cb30b30fa42cedc71b11efbf45ccc0a89314239f9f43c4a853ab8 |
 | evidence | [docs/evidence/desktop-backend/PRIMARY_EXE_MANIFEST.json](../evidence/desktop-backend/PRIMARY_EXE_MANIFEST.json) | schemaVersion, publicFeedPromoted, layoutId, privateFrameworkBytes, frameworkVersions, executabl | ad930c8cad0c37a3adafdfe1486b30903b30f006a0bc3bb8e3fa06f4b4a9bed8 |
+| evidence | [docs/evidence/desktop-user-experience/ACCEPTANCE.json](../evidence/desktop-user-experience/ACCEPTANCE.json) | schemaVersion, candidateVersion, sourceCommit, sourceTree, audience, ci, artifact, frontend, bac | 1fcca9d92ebfb773411fedba7854464712ea1e12fdd75f4e4e024196c156c1c0 |
+| evidence | [docs/evidence/desktop-user-experience/BUILD_MANIFEST.json](../evidence/desktop-user-experience/BUILD_MANIFEST.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | 3f8af2dbd451d016c103bb26d1e660887d627f6114ac0acc2dd26a4388f8ac4f |
 | evidence | [docs/evidence/desktop-user-experience/LOCAL_VERIFICATION.json](../evidence/desktop-user-experience/LOCAL_VERIFICATION.json) | schemaVersion, candidateVersion, scope, react, consentAndToken, sourceAuthorityGuards, browser,  | 9a0227f9780c596c2294037b37bbee501404e28018f9ec5b35d5095eb41c936f |
+| evidence | [docs/evidence/desktop-user-experience/PRIMARY_EXE_MANIFEST.json](../evidence/desktop-user-experience/PRIMARY_EXE_MANIFEST.json) | installedLifecycle, layoutId, privateFrameworkBytes, physicalOwnerAcceptance, version, stagedByt | f83996150cd9bdbb2a10c693da4ae9629022b8cdd7504b220c6f0e82534744bb |
 | evidence | [docs/evidence/dev-integration.json](../evidence/dev-integration.json) | sourceCommit, apiContractVersion, layer, physicalAcceptance, checks, notVerified, result | 5e7b3829a8810cca4b17256861bfac0af13cc72d63f8445787dd8e406751650f |
 | evidence | [docs/evidence/github-clone-verification.json](../evidence/github-clone-verification.json) | verifiedAt, repositoryId, repository, clonedFrom, candidateDirectory, sourceCommit, sourceTree,  | af2a38f771941bca97e3967fc080c216e588719ac7d2b9d0e6723b8bfbfa9b94 |
 | evidence | [docs/evidence/main-protection.json](../evidence/main-protection.json) | repositoryId, branch, requiredCheck, checkAppId, checkAppSlug, strict, enforceAdmins, allowForce | 8417d9a5415938472634c7ec2a93ea754751b998c122bc8f6933b367210b0d04 |

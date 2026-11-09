@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "candidateVersion": "0.10.1-dev.4",
+  "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+  "sourceTree": "0ef2892ae2b8ecf253e35510548a1493673d21ee",
+  "audience": "INTERNAL_TEST_ONLY",
+  "ci": {
+    "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+    "ciRunId": 42628405851,
+    "runNumber": 45,
+    "attempt": 1,
+    "scope": "full",
+    "result": "PASS",
+    "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851",
+    "allJobs": 9,
+    "successfulJobs": 9,
+    "requiredCheck": "baseline-required",
+    "mainProtectionUnchanged": true,
+    "physicalOwnerAcceptance": false
+  },
+  "artifact": {
+    "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+    "ciRunId": 42628405851,
+    "artifactId": 13679554745,
+    "artifactZipSha256": "0387613036370ef71db350b3ff8d82364993c7f54948dfc2b8b6617715878897",
+    "installerSha256": "a59e94e98c2581def5a9f622a3551e57a9ecc2071f7994f5a30db3850729ad5e",
+    "installerBytes": 167128810,
+    "projectVersion": "0.10.1-dev.4",
+    "result": "VERIFIED_NOT_PHYSICAL_ACCEPTANCE"
+  },
+  "frontend": {
+    "routes": 9,
+    "otherScreens": [
+      "Account entry",
+      "Device linking",
+      "Typed confirmation",
+      "Browser Desktop consent"
+    ],
+    "reactTests": 121,
+    "consentTokenTests": 36,
+    "browserCases": 170,
+    "entryAndUnavailableCases": 30,
+    "populatedCases": 132,
+    "dialogCases": 8,
+    "data": "SYNTHETIC_ONLY",
+    "physicalOwnerAcceptance": false,
+    "layout": {
+      "entryAndUnavailableCases": 30,
+      "populatedCases": 132,
+      "dialogCases": 8,
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "cssWidths": [
+        390,
+        768,
+        853,
+        1024,
+        1280
+      ],
+      "deviceScaleFactors": [
+        1,
+        1.5
+      ],
+      "syntheticLoadedJobs": 120,
+      "syntheticRecentEvents": 187,
+      "initialRenderedTaskRows": 10,
+      "bInputButtonIntersection": false,
+      "overlapNegativeCalibration": "PASS",
+      "horizontalOverflow": false,
+      "minimumTableCellPaddingPx": 14,
+      "logoLoaded": true
+    }
+  },
+  "backend": {
+    "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+    "ciRunId": 42628405851,
+    "checks": 25,
+    "result": "PASS",
+    "scope": "Real private synthetic PostgreSQL/Redis/Agent/Wall/OAuth/MCP integration in Actions; both B paths and native Agent API",
+    "physicalOwnerAcceptance": false
+  },
+  "lab": {
+    "result": "PASS",
+    "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+    "sourceTree": "0ef2892ae2b8ecf253e35510548a1493673d21ee",
+    "version": "0.10.1-dev.4",
+    "databaseMigrated": false,
+    "dbArchiveIndexVerified": true,
+    "dbArchiveSha256": "aa6e76061279d8b9e08cfb0790cbc178ca3e3fcb04c72170510fec57ec6d8f4b",
+    "independentPidsPreserved": true,
+    "dependencyGraphUnchanged": true,
+    "homeAncestorAclChanged": false,
+    "persistentCountsUnchanged": true,
+    "snapshotUnauthenticatedStatus": 401,
+    "apiContractVersion": "light-remote.api.v1",
+    "publicHealth": "PASS",
+    "oldSourcesPreserved": true,
+    "ownerWindowsInstallationChanged": false,
+    "physicalOwnerAcceptance": false,
+    "publicReleaseOrFeed": false
+  },
+  "ownerReportedPreviousCandidate": "Installed dev.3 functional Desktop UI; all-screen UX rejected. This is not dev.4 physical acceptance.",
+  "ownerWindowsInstallationChangedByCodex": false,
+  "physicalOwnerAcceptance": false,
+  "publicBinaryRelease": false,
+  "publicFeedPromoted": false,
+  "remaining": [
+    "Owner installs this exact dev.4 artifact and validates all screens, local feature actions and fresh B on their physical PC",
+    "Memory/Codex reads are capped at100 with a partial notice; task history initially shows10 and can show/load more",
+    "Positive browser Wall SSO and full macOS/Linux installers remain separate backlog"
+  ]
+}

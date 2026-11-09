@@ -1,12 +1,14 @@
 # Feature status matrix
 
+Current UX/source baseline:0.10.1-dev.4 at947a117, full CI45 PASS9/9. All nine Desktop screens plus login/link/confirm and consent are implemented and browser-verified with121 React/170 browser cases. Same-source internal Lab deployed. New physical Owner acceptance remains pending.
+
 Status is per layer. IMPLEMENTED does not imply DEPLOYED, ENABLED, INTEGRATED, CI_PASS or PHYSICAL_PASS. The checkpoint and sanitized integration report provide current run evidence; this table records selected capability and remaining scope. A source regression PASS verifies its stated source invariant, not a physical platform behavior.
 
 | Feature | UI/frontend/source | Backend/API | Existing evidence | New DEV/CI/physical | Remaining work |
 |---|---|---|---|---|---|
 | Device identity/enrollment | `device-agent/` | signed enrolled channel | historical/source | IMPLEMENTED; scoped DEV API PASS; native profile CI PASS; physical pending | new candidate Agent needed |
 | Short ID | `lib/gold-short-id.mjs` | core043 immutable SQL identity | source | IMPLEMENTED; profile CI PASS; DEV scope in report; new PHYSICAL UNKNOWN | real enrolled-device exercise |
-| A/B consent/approval | Desktop + Local Wall + Account | signed current-attempt/device/Owner/CSRF gates | real OAuth -> Wall/Account B -> PG grant -> MCP attach | source2771f47; ARM backend25 + CI41 PASS; physical NOT_RUN | Owner physical B test after exact artifact install |
+| A/B consent/approval | Desktop + Local Wall + Account | signed current-attempt/device/Owner/CSRF gates | real OAuth -> Wall/Account B -> PG grant -> MCP attach | source947a117; real backend25 + CI45 PASS; physical NOT_RUN | Owner physical B test after exact artifact install |
 | Owner/Agent grants | `operator-host/` | native AB ledger | source | IMPLEMENTED; profile CI PASS; DEV scope in report; new PHYSICAL UNKNOWN | device-bound positive/negative integration |
 | Session lifecycle/durable sessions | `lib/ + operator-host/` | PG receipts / Redis retained sessions | source | IMPLEMENTED; profile CI PASS; DEV scope in report; new PHYSICAL UNKNOWN | restart with live candidate Agent |
 | Remote command | `device-agent/` | signed device command channel | historical Wall physical 4dddf511 | IMPLEMENTED; profile CI PASS; DEV scope in report; new PHYSICAL UNKNOWN | new candidate Agent |
