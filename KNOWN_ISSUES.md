@@ -42,3 +42,7 @@ P2 CI37 failed two source tests that still matched the old displayed A/B V2 labe
 ## Preserve explicit Agent start intent and isolate Owner rows during rendering
 
 Fixed source: an Owner inventory/activity could briefly render previous Owner rows before useEffect cleared state; now filtered synchronously. Fixed source: a Desktop Start could toggle to Stop if another UI started the Agent during confirmation; explicit native desired-state verbs replace the Desktop toggle. Pinned compatibility bridge external download returned504 in CI38 attempt1; attempt2 pending. Physical Owner acceptance remains NOT_RUN.
+
+## Read pinned migration bridge assets through bounded authenticated GitHub API intake
+
+CI38 attempt1/2 failed at an external GitHub release download504 before the migration fixture began; builds/installed GUI restart had passed. This is recorded as overall CI FAIL, never accepted. Bounded asset API intake replaces the failing browser endpoint, and the next full exact-source run must still prove every migration assertion.

@@ -142,3 +142,7 @@ deploy/unified/dev-device-acceptance.mjs exercises real public MCP PKCE/client r
 ## Preserve explicit Agent start intent and isolate Owner rows during rendering
 
 use-owner-inventory/use-owner-activity derive currently owned pages synchronously before rendering, in addition to async generation fences. NativeModuleScreens sends explicit confirmed Agent start/stop intent through DeviceLinkDialog, both fixed Rust allowlists and the in-process C# host. test-primary-installed.ps1 now proves repeated Start preserves the same actual running Node daemon and GUI. Portal consent/account HTML and MCP descriptions use the shared display naming.
+
+## Read pinned migration bridge assets through bounded authenticated GitHub API intake
+
+CI-only migration intake in client/windows-native/test-primary-migration.ps1 uses installerAssetId/manifestAssetId from config/windows-core-migration.json. windows-native-client.yml supplies its existing contents-read job token to that step only. Native application/updater implementation and product feed are unaffected.

@@ -106,3 +106,7 @@ The disposable coherent backend is built only from a clean identified GitHub com
 ## Preserve explicit Agent start intent and isolate Owner rows during rendering
 
 Final candidate remains0.10.1-dev.3 internal-only. Native installed lifecycle now includes explicit-start-is-idempotent-preserves-running-agent. CI38 initial Windows failure was GitHub504 while fetching the pinned compatibility manifest, after native build/fresh installation/GUI restart; it is not a proven migration failure. Only rerun success may accept it. Lab staging714 has exact Git source and same-lock ARM Node22 dependencies from the coherent candidate, private service/key/DB backups and read-only schema43 verification. Final source and CI must be staged/verified before cutover; no SQL migration was needed.
+
+## Read pinned migration bridge assets through bounded authenticated GitHub API intake
+
+test-primary-migration.ps1 receives the workflow contents-read GITHUB_TOKEN only for api.github.com/releases/assets/<pinned ID>. A signed redirect must be HTTPS release-assets.githubusercontent.com or objects.githubusercontent.com; its download client has no API bearer. Each attempt has a90-second cancellation budget including streaming, at most3 attempts. Installer/source/manifest/version pin checks and actual upgrade/reinstall/health-failure/watchdog rollback remain unchanged. The pinned recovery bridge is an existing CI input, not a new public release.

@@ -21,14 +21,52 @@ if($config.schemaVersion -ne 1 -or $config.version -ne '0.10.1-dev.1' -or
    $config.sourceCommit -notmatch '^[a-f0-9]{40}$' -or $config.installerSha256 -notmatch '^[a-f0-9]{64}$' -or
    $config.installerUrl -notlike 'https://github.com/n8n2erpnext/light-remote-mcp/releases/download/*' -or
    $config.manifestSha256 -notmatch '^[a-f0-9]{64}$' -or
+   $config.installerAssetId -lt 1 -or $config.manifestAssetId -lt 1 -or
    $config.manifestUrl -ne ($config.installerUrl.Substring(0,$config.installerUrl.LastIndexOf('/')+1)+'BUILD_MANIFEST.json')){
     throw 'Bridge pin must identify a verified installer in the official repository'
 }
 $bridge=Join-Path $evidence 'compatibility-bridge.exe'
-Invoke-WebRequest -Uri $config.installerUrl -OutFile $bridge -TimeoutSec 60
+function Receive-BridgeAsset([long]$AssetId,[string]$Destination,[string]$ExpectedSha256){
+    if(-not $env:GITHUB_TOKEN){throw 'Hosted bridge intake requires its contents-read Actions token'}
+    # The release browser endpoint intermittently returned504 on hosted
+    # runners. Read the exact pinned asset through the repository API.
+    # Never forward the API bearer to its signed CDN redirect.
+    for($attempt=1;$attempt -le 3;$attempt++){
+        $handler=[Net.Http.HttpClientHandler]::new();$handler.AllowAutoRedirect=$false
+        $api=[Net.Http.HttpClient]::new($handler);$api.Timeout=[TimeSpan]::FromSeconds(30)
+        $api.DefaultRequestHeaders.UserAgent.ParseAdd('LightRemote-Internal-CI/1')
+        $api.DefaultRequestHeaders.Accept.ParseAdd('application/octet-stream')
+        $api.DefaultRequestHeaders.Authorization=[Net.Http.Headers.AuthenticationHeaderValue]::new('Bearer',$env:GITHUB_TOKEN)
+        $reply=$null;$cdn=$null;$download=$null;$output=$null;$assetStream=$null
+        $budget=[Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds(90))
+        try{
+            $reply=$api.GetAsync(('https://api.github.com/repos/n8n2erpnext/light-remote-mcp/releases/assets/'+$AssetId),[Net.Http.HttpCompletionOption]::ResponseHeadersRead,$budget.Token).GetAwaiter().GetResult()
+            if([int]$reply.StatusCode -in @(301,302,303,307,308)){
+                $location=$reply.Headers.Location
+                if(-not $location.IsAbsoluteUri -or $location.Scheme -ne 'https' -or $location.Host -notin @('release-assets.githubusercontent.com','objects.githubusercontent.com') -or $location.UserInfo){throw 'bridge_asset_redirect_denied'}
+                $cdn=[Net.Http.HttpClient]::new();$cdn.Timeout=[TimeSpan]::FromSeconds(180)
+                $download=$cdn.GetAsync($location,[Net.Http.HttpCompletionOption]::ResponseHeadersRead,$budget.Token).GetAwaiter().GetResult()
+            }else{$download=$reply}
+            [void]$download.EnsureSuccessStatusCode()
+            $assetStream=$download.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
+            $output=[IO.File]::Create($Destination);$assetStream.CopyToAsync($output,$budget.Token).GetAwaiter().GetResult();$output.Dispose();$output=$null
+            if((Get-FileHash -LiteralPath $Destination -Algorithm SHA256).Hash.ToLowerInvariant() -ne $ExpectedSha256){throw 'bridge_asset_digest_mismatch'}
+            return
+        }catch{
+            if($_.Exception.Message -match 'bridge_asset_(digest_mismatch|redirect_denied)'){throw}
+            if($attempt -eq 3){throw 'Pinned bridge asset unavailable after three bounded API attempts'}
+            Start-Sleep -Seconds 2
+        }finally{
+            if($output){$output.Dispose()};if($assetStream){$assetStream.Dispose()}
+            if($download -and $download -ne $reply){$download.Dispose()};if($reply){$reply.Dispose()}
+            if($cdn){$cdn.Dispose()};$api.Dispose();$handler.Dispose();$budget.Dispose()
+        }
+    }
+}
+Receive-BridgeAsset $config.installerAssetId $bridge $config.installerSha256
 if((Get-FileHash -LiteralPath $bridge -Algorithm SHA256).Hash.ToLowerInvariant() -ne $config.installerSha256){throw 'Bridge installer digest mismatch'}
 $bridgeManifestFile=Join-Path $evidence 'bridge-build-manifest.json'
-Invoke-WebRequest -Uri $config.manifestUrl -OutFile $bridgeManifestFile -TimeoutSec 30
+Receive-BridgeAsset $config.manifestAssetId $bridgeManifestFile $config.manifestSha256
 if((Get-FileHash -LiteralPath $bridgeManifestFile -Algorithm SHA256).Hash.ToLowerInvariant() -ne $config.manifestSha256){throw 'Bridge source manifest digest mismatch'}
 $bridgeManifest=Get-Content -LiteralPath $bridgeManifestFile -Raw|ConvertFrom-Json
 if($bridgeManifest.sourceCommit -ne $config.sourceCommit -or $bridgeManifest.artifact.sha256 -ne $config.installerSha256 -or

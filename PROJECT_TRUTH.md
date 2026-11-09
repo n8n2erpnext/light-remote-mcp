@@ -130,3 +130,7 @@ Exact d4efc68 coherent disposable ARM backend21 checks PASS; additional real MCP
 ## Preserve explicit Agent start intent and isolate Owner rows during rendering
 
 Current-source coherent ARM backend25/25 PASS includes real signed B in Wall and Account, native Owner-bound Agent IPC, module CAS/SQLite/Codex/Settings; wrong B400. Final UI guards now prevent old Owner rows during the first render before effects, and native Desktop Start/Stop carry explicit intent. Installed Start no-op regression is added to full Windows acceptance. Label cleanup also covers Portal consent and MCP metadata. Existing Lab is prepared/backed up, not yet switched.
+
+## Read pinned migration bridge assets through bounded authenticated GitHub API intake
+
+Final product source35eb962 passed coherent ARM backend25/25. CI38 attempts1/2 were blocked by GitHub504 downloading the existing pinned bridge installer/manifest before migration; no failed assertion was removed or recategorized as PASS. Hosted CI now uses exact release asset IDs through authenticated GitHub API with separate credential-free CDN download, digest checks and bounded attempts. Public binary release/feed remains forbidden.

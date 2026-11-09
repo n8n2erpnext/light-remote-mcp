@@ -1281,6 +1281,8 @@ jobs:
             Write-Host 'windows-native-installer-roundtrip=SKIP install-not-reached'
           }
       - name: Real bridge upgrade, primary reinstall and cross-layout rollback
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         if: env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
         timeout-minutes: 18
         shell: pwsh

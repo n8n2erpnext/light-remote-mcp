@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-09T07:50:38.332Z",
+  "updatedAt": "2026-11-09T08:02:07.080Z",
   "version": "0.10.1-dev.3",
   "phase": "DESKTOP_BACKEND_API_ALIGNMENT",
-  "status": "FINAL_ASYNC_CONTRACTS_IMPLEMENTED_EXACT_CI_PENDING",
+  "status": "FINAL_PRODUCT_VERIFIED_ARM_CI_INTAKE_FIX_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -238,7 +238,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Require final exact-source full CI including explicit Start/native migration to PASS. Verify internal installer hashes, stage final GitHub source coherently in the already-backed-up internal Lab, validate backend API/health/state preservation and rollback, and close the single canonical checkpoint/handoff. No public Release or Owner installation change.",
+  "nextAction": "Require the current exact-source full CI to PASS115 UI/backend25/native explicit Start/complete migration. Verify the internal installer and manifest SHA256, complete coherent internal Lab backend staging/cutover with retained backups and health/state validation, then close canonical handoff and promote only verified source under baseline-required.",
   "receiptNote": "Current compiled source and verified CI artifact are pinned independently from this documentation-only receipt; public binary release awaits explicit Owner approval. No native rebuild or existing-runtime deployment is implied.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -329,12 +329,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-desktop-final-async-and-display-contracts",
-    "status": "FINAL_ASYNC_AND_DISPLAY_FIXES_IMPLEMENTED_FULL_CI_PENDING",
-    "summary": "Prevent one-render old Owner inventory/activity disclosure by projecting pages against the current Owner/kind before effects; clear pending on signout. Add explicit idempotent native service-start/service-stop so a confirmed Start cannot toggle an independently started Agent off. Keep legacy service compatibility. Finish displayed A/B/Desktop naming in Portal, consent and MCP descriptions without changing protocol/profile/vault identities. Add UI race tests and installed Windows same-daemon Start acceptance.",
-    "verification": "New targeted UI14/14 and typecheck PASS (Owner first-render swap and delayed Start added); previous112 UI tests, 25 real coherent backend integration steps PASS. Native explicit Start is CI_PENDING. Source714 CI38 passed Core extended backend, web and Linux/macOS; Windows compiled/installed/restarted GUI successfully, then external GitHub bridge-manifest download returned504 before migration. Rerun attempt2 is running; no product assertion removed. A new isolated Lab source/dependency tree714 is prepared with private unit/key/DB backups and read-only schema43 preflight PASS; existing serving Lab unchanged.",
-    "nextAction": "Require final exact-source full CI including explicit Start/native migration to PASS. Verify internal installer hashes, stage final GitHub source coherently in the already-backed-up internal Lab, validate backend API/health/state preservation and rollback, and close the single canonical checkpoint/handoff. No public Release or Owner installation change.",
-    "sourceDigest": "d38ec7fe06b7677651fb334339325a070757772a7e80b81bad31e6b316640244",
+    "taskId": "20261109-pinned-bridge-api-ci-intake",
+    "status": "CI_NETWORK_DEPENDENCY_FIX_IMPLEMENTED_FULL_CI_PENDING",
+    "summary": "CI38 failed twice at the external GitHub browser release download with504, after product build/install/GUI/Agent lifecycle checks. Replace only the hosted migration fixture download with exact pinned GitHub release asset IDs, a contents-read Actions token, three bounded attempts and immediate SHA256 checks. The token goes only to api.github.com; signed CDN follow-up uses a separate unauthenticated client and strict HTTPS host allowlist. Existing bridge source/version/installer/manifest hash and real migration/rollback/watchdog assertions remain intact. No release publication or updater feed change.",
+    "verification": "GitHub API confirms existing verified bridge installer asset724770343 digestd909f6253b61b39d15fae08f586199c7f6c83ec160cccdd3c8eb841dfd6ca69c and manifest asset724777570 digestea1c2f8d49cf408e1bc7fbfc1d4877d3b15aba8dacfb565ef3daf9f13d945bd9. PowerShell parser PASS. Final app source35eb962 independently passed real ARM backend25/25; final UI race controls targeted14/14 and typecheck PASS. CI39 at35eb962 is running, and this intake change still requires full Windows migration acceptance on its own exact commit.",
+    "nextAction": "Require the current exact-source full CI to PASS115 UI/backend25/native explicit Start/complete migration. Verify the internal installer and manifest SHA256, complete coherent internal Lab backend staging/cutover with retained backups and health/state validation, then close canonical handoff and promote only verified source under baseline-required.",
+    "sourceDigest": "1d58e19c21afae833c6b12d90b19a0d25508ed9f8bc2313af0cd5981ab3a3838",
     "sourceFileCount": 1638
   },
   "legacyFilesystemCleanup": {
@@ -545,7 +545,7 @@
     "publicFeed": "HOLD"
   },
   "desktopBackendIntegration": {
-    "status": "FINAL_UI_RACE_AND_NATIVE_INTENT_CHECKS_PENDING_CI",
+    "status": "FINAL_CI_PENDING_BOUNDED_PINNED_BRIDGE_API_INTAKE",
     "baseCommit": "521d04cc559e0e263390863ed1caaf8bf0205797",
     "preChangeTag": "checkpoint/20261109-before-desktop-backend-521d04c",
     "bundleSha256": "5f20de606764ca319b3bfd695c81dda0b08bacac6a3ac831bdc8405e222c2331",
@@ -569,7 +569,8 @@
       "P4InternalNativeIntegration": "NOT_STARTED",
       "P2DesktopUiBinding": "WEB112_PASS_NATIVE_MAC_LINUX_PASS_WINDOWS_GUARD_TEXT_FIXED",
       "P3WallBAndBackend": "COHERENT_ARM25_OF25_PASS",
-      "P4FinalAsyncAndNaming": "IMPLEMENTED_TARGETED_UI14_PASS_NATIVE_PENDING"
+      "P4FinalAsyncAndNaming": "IMPLEMENTED_UI14_TYPECHECK_PASS_WINDOWS_CI_PENDING",
+      "P5CiBridgeIntake": "BOUNDED_API_AND_DIGEST_PIN_IMPLEMENTED_PENDING_CI"
     },
     "wallBRegression": "REPORTED_NOT_YET_REPRODUCED",
     "runtimeChanged": false,
@@ -602,7 +603,7 @@
       "wrongB": "REPRODUCED503_SOURCE_FIX_PENDING_NEW_INTEGRATION"
     },
     "existingLabRuntimeChanged": false,
-    "backend25Source": "714f61987dd68289704a870c9b91b6e9cf86b140",
+    "backend25Source": "35eb96243fb95ab9eb847f8c264961d410675268",
     "labPreparation": {
       "source": "714f61987dd68289704a870c9b91b6e9cf86b140",
       "status": "PREPARED_NOT_CUT_OVER",
@@ -611,6 +612,7 @@
       "dbArchiveSha256": "1197c17189af7704d733d12cb95255baccc83dd0bc566a2a232694e87aa9e2cb",
       "archiveIndexVerified": true
     },
-    "ci38InitialFailure": "External GitHub504 fetching pinned bridge BUILD_MANIFEST, before migration; approved rerun attempt2 in progress"
+    "ci38InitialFailure": "External GitHub504 fetching pinned bridge BUILD_MANIFEST, before migration; approved rerun attempt2 in progress",
+    "ci38Attempt2Failure": "GitHub504 on pinned installer download before migration; no product assertion failed"
   }
 }

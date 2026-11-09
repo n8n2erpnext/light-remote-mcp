@@ -11,5 +11,7 @@
   "installerBytes": 181022596,
   "manifestUrl": "https://github.com/n8n2erpnext/light-remote-mcp/releases/download/compatibility/windows-oneexe-0.10.1-dev.1/BUILD_MANIFEST.json",
   "manifestSha256": "ea1c2f8d49cf408e1bc7fbfc1d4877d3b15aba8dacfb565ef3daf9f13d945bd9",
-  "scope": "CI migration/recovery input; public product update feed remains HOLD."
+  "scope": "CI migration/recovery input; public product update feed remains HOLD.",
+  "installerAssetId": 724770343,
+  "manifestAssetId": 724777570
 }
