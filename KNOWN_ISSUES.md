@@ -1,18 +1,21 @@
 # Known issues and remaining verification
 
+Current source2771f47 / internal candidate0.10.1-dev.3: full CI41 PASS9/9, web115/115 and backend25/25. Earlier dated sections record historical task states; the current table and final checkpoint take precedence. Fixed: unbound native UI/status, fresh Memory schema, missing inventory ACL, unsafe async projections, ambiguous service toggle and wrong-B503. Desktop lists cap local Memory/Codex at100 with explicit partial coverage.
+
+
 | Item | Current evidence | Next action |
 |---|---|---|
-| Native end-to-end/new backend | CI native/install/rollback PASS; real backend/Agent API21 PASS separately; not one physical authenticated GUI acceptance | Prepare controlled routing and isolated Windows state for one acceptance round |
-| Candidate exposure/profile | Retained Docker network internal; no host ports; Windows artifact retains canonical GoldABV2 Lab profile | Do not claim installing against old Lab tests the new backend; provide controlled candidate transport first |
+| Native end-to-end/new backend | source2771f47 CI41 native/install/migration PASS; real backend25 PASS; internal Lab Operator/Plugin deployed | Owner physical authenticated GUI acceptance remains NOT_RUN |
+| Candidate exposure/profile | internal Lab now serves same tested Operator/Plugin commit; disposable candidates remain private | install exact internal artifact; do not publish binaries/feed |
 | Wall SSO local integration | Backend mTLS issue positive/negative PASS; local Agent/browser bootstrap production wiring unfinished; UI SSO candidate remains disabled | Finish real native/Agent/Wall wiring with live family and device signature checks |
-| New signed B/remote command | Actual candidate Agent enrollment/heartbeat/connect PASS; new live B grant/command not exercised | Exercise both Wall/account approval flows on an isolated enrolled device |
+| New signed B/remote command | real Wall and Account B -> PG/MCP attach PASS; wrong B400 verified | physical new-artifact B and remote command acceptance remain separate |
 | Continuity | Source restored; optional modern Wall/core hook absent; P1 gets404; module regression references old Git history | Complete hook/package closure, replace old-history dependency with a pinned fixture; Windows DACL remains unverified |
 | Extensions | Existing GoldABV2 LM0.3 retained and integrity/manual-staging source contract PASS; separate legacy LM0.2 restored | Verify real Chrome/current Wall compatibility; do not enable legacy product bindings as GoldABV2 |
 | RC50/Guest | Missing portability/prototype source recovered; Guest native wiring incomplete | Keep Guest044 deferred; do not simulate readiness with SQL-only ledger changes |
 | Mac/Linux packages | Locked native source builds/tests PASS | Full current installers still NOT_BUILT |
-| Windows primary candidate physical acceptance | One LightRemote.exe implemented; CI #30 actual install/GUI/Agent restart/bridge upgrade/reinstall/rollback/watchdog/uninstall PASS | Focused isolated Owner/account/vault/B acceptance remains NOT_RUN; old helper installations take the pinned bridge first |
+| Windows primary candidate physical acceptance | source2771f47/CI41 full installed lifecycle, explicit Start, bridge/reinstall/rollback/watchdog/uninstall PASS | Owner physical/account/vault/B NOT_RUN; incompatible old helpers take pinned bridge first |
 | Endpoint/schema catalog | Critical V4 catalog/version/handler wiring exists; legacy schemas and some authorize/SSO/Wall route constants remain | Finish full catalog coverage; do not promise every URL/path can already change from JSON alone |
-| Runtime drift/data migration | Lab43+Owner, UAT42 without Owner; Lab source stages mixed | New runtime/data migration plan after acceptance; no overwrite of old paths/databases |
+| Runtime drift/data migration | internal Lab Operator+Plugin aligned to2771f47 and Desktop read enabled; DB43+Owner preserved, no SQL migration | independent old Agent/supervisor/transport retained; production UAT/direct untouched |
 | Windows current process inventory | WMI process read denied; binary file identity and historical artifact available | Keep runtime provenance UNKNOWN where unsupported; no privilege bypass |
 
 Resolved: stale Owner Cargo.lock made previous native builds resolve dependencies outside the committed graph. Reviewed lock committed; --locked and strict post-build source provenance PASS in final CI. Actual original Wall wrapping/module-state/B fixes were inherited from tested T11 source; reconstruction did not change the Owner's installed app or old server.

@@ -1,14 +1,14 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-09T08:02:07.080Z",
+  "updatedAt": "2026-11-09T08:47:22.463Z",
   "version": "0.10.1-dev.3",
-  "phase": "DESKTOP_BACKEND_API_ALIGNMENT",
-  "status": "FINAL_PRODUCT_VERIFIED_ARM_CI_INTAKE_FIX_PENDING",
+  "phase": "DESKTOP_BACKEND_INTERNAL_CANDIDATE_ACCEPTED",
+  "status": "DESKTOP_BACKEND_INTEGRATED_INTERNAL_CANDIDATE_VERIFIED_LAB_DEPLOYED",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
-  "baselineSourceCommit": "31f23393aacb89b6d541cebb2cd0c2e1afa64538",
-  "baselineSourceTree": "4dc6fa959f9bdd77d24eac9a5a7123f0f6cc2215",
+  "baselineSourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+  "baselineSourceTree": "18d53e536239e4cb414e75aae7d012972a4a90bc",
   "validationBranch": "work",
   "apiContractVersion": "light-remote.api.v1",
   "featureProfile": "goldabv2-desktop-v4",
@@ -233,12 +233,12 @@
       "verifiedAt": "2026-11-08T11:39:35.526332+00:00"
     }
   },
-  "legacySourceAndRuntimeChanged": false,
+  "legacySourceAndRuntimeChanged": true,
   "scope": {
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Require the current exact-source full CI to PASS115 UI/backend25/native explicit Start/complete migration. Verify the internal installer and manifest SHA256, complete coherent internal Lab backend staging/cutover with retained backups and health/state validation, then close canonical handoff and promote only verified source under baseline-required.",
+  "nextAction": "Owner installs this exact internal artifact and validates authenticated native Memory/Codex/Settings and one fresh Wall/Desktop B request. Retain old sources and recovery; continue future development on work from this verified GitHub baseline. No public release/feed.",
   "receiptNote": "Current compiled source and verified CI artifact are pinned independently from this documentation-only receipt; public binary release awaits explicit Owner approval. No native rebuild or existing-runtime deployment is implied.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -329,11 +329,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-pinned-bridge-api-ci-intake",
-    "status": "CI_NETWORK_DEPENDENCY_FIX_IMPLEMENTED_FULL_CI_PENDING",
-    "summary": "CI38 failed twice at the external GitHub browser release download with504, after product build/install/GUI/Agent lifecycle checks. Replace only the hosted migration fixture download with exact pinned GitHub release asset IDs, a contents-read Actions token, three bounded attempts and immediate SHA256 checks. The token goes only to api.github.com; signed CDN follow-up uses a separate unauthenticated client and strict HTTPS host allowlist. Existing bridge source/version/installer/manifest hash and real migration/rollback/watchdog assertions remain intact. No release publication or updater feed change.",
-    "verification": "GitHub API confirms existing verified bridge installer asset724770343 digestd909f6253b61b39d15fae08f586199c7f6c83ec160cccdd3c8eb841dfd6ca69c and manifest asset724777570 digestea1c2f8d49cf408e1bc7fbfc1d4877d3b15aba8dacfb565ef3daf9f13d945bd9. PowerShell parser PASS. Final app source35eb962 independently passed real ARM backend25/25; final UI race controls targeted14/14 and typecheck PASS. CI39 at35eb962 is running, and this intake change still requires full Windows migration acceptance on its own exact commit.",
-    "nextAction": "Require the current exact-source full CI to PASS115 UI/backend25/native explicit Start/complete migration. Verify the internal installer and manifest SHA256, complete coherent internal Lab backend staging/cutover with retained backups and health/state validation, then close canonical handoff and promote only verified source under baseline-required.",
+    "taskId": "20261109-desktop-backend-candidate-verified-closeout",
+    "status": "IMPLEMENTED_CI41_PASS_INTERNAL_ARTIFACT_VERIFIED_LAB_DEPLOYED_OWNER_PHYSICAL_PENDING",
+    "summary": "Desktop now uses actual Owner/account/device-bound Agent APIs for Memory, Codex, Settings, Cloud and exact-local session/job control; display names A/B and Light Remote Desktop. Async/CAS/Owner render fences and explicit native Start/Stop are enforced. Both B paths pass through real signed channels/durable PG/MCP; wrong B400. Exact internal candidate0.10.1-dev.3 full CI41 PASS9/9 and installer/manifests independently hash-verified. Internal Lab Operator+Plugin deployed from the same GitHub source with authenticated read/snapshot/pages enabled, preserved database/identities/grants and retained rollback. No public binary/feed or existing Owner installation change.",
+    "verification": "Compiled source 2771f47080bdf21913371126bcefd2923b12d257, CI41/42583094615 PASS9/9. React115/115, browser geometry, ARM actual backend25/25, Linux/macOS native source and Windows real install/GUI/private CLR/explicit Start/Agent restart/bridge upgrade/reinstall/forced health-failure rollback/watchdog/uninstall PASS. Installer SHA256 f089a2cd66a4e0a05d10aa274a189be4f71f42c82185f7847d2c92648808e57a, bytes167087915, artifact13659545229. Internal Lab private/public version/API health PASS, unauthenticated snapshot401, persistent counts and Owner singleton retained; no SQL migration. Physical Owner GUI/account/vault/B acceptance NOT_RUN; positive browser SSO and full Mac/Linux installers remain separate. First Lab trial dependency rollback and restoration are documented; the successful final transaction retained independent process PIDs after fixture validation.",
+    "nextAction": "Owner installs this exact internal artifact and validates authenticated native Memory/Codex/Settings and one fresh Wall/Desktop B request. Retain old sources and recovery; continue future development on work from this verified GitHub baseline. No public release/feed.",
     "sourceDigest": "1d58e19c21afae833c6b12d90b19a0d25508ed9f8bc2313af0cd5981ab3a3838",
     "sourceFileCount": 1638
   },
@@ -392,7 +392,7 @@
     "note": "VERIFICATION.json is historical pre-removal evidence. To restore, download archived GitHub release assets as needed."
   },
   "singlePrimaryWindowsExe": {
-    "status": "IMPLEMENTED_CI30_PASS_ARTIFACT_VERIFIED_COMPILED_SOURCE_ON_MAIN_PUBLIC_RELEASE_AWAITS_APPROVAL",
+    "status": "IMPLEMENTED_CI41_PASS_INTERNAL_ARTIFACT_VERIFIED_NO_PUBLIC_RELEASE",
     "ownerImplementationAuthorized": true,
     "target": "LightRemote.exe",
     "merge": [
@@ -421,14 +421,14 @@
       "P5Migration": "CI30_PASS",
       "P6Promotion": "COMPILED_SOURCE_MAIN_AND_INTERNAL_ARTIFACT_DONE_NO_PUBLIC_RELEASE_REQUESTED"
     },
-    "newNativeBuild": "CI30_PASS_9_OF_9",
+    "newNativeBuild": "CI41_PASS9_OF9",
     "physicalAcceptance": "NOT_RUN",
     "runtimeChanged": false,
     "architectureUnderTest": "Tauri LightRemote.exe hosts a framework-dependent managed WindowsHost DLL in-process using private .NET frameworks; no second managed apphost/EXE.",
     "pocScope": "Completed full candidate package and native migration lifecycle; no longer a PoC-only layout.",
     "migrationSequence": {
       "bridgeVersion": "0.10.1-dev.1",
-      "primaryVersion": "0.10.1-dev.2",
+      "primaryVersion": "0.10.1-dev.3",
       "policy": "Install and verify the dual-layout independent helper first. Never offer primary layout to an unverified old helper. Public feed remains HOLD."
     },
     "bridgeCompileCorrection": "Resolved; final compatibility bridgee997e14 passed full CI26 and is pinned by installer/manifest SHA-256.",
@@ -452,7 +452,7 @@
       "manifestSha256": "ea1c2f8d49cf408e1bc7fbfc1d4877d3b15aba8dacfb565ef3daf9f13d945bd9",
       "scope": "CI migration/recovery input; public product update feed remains HOLD."
     },
-    "candidateVersion": "0.10.1-dev.2",
+    "candidateVersion": "0.10.1-dev.3",
     "physicalOwnerAcceptance": "NOT_RUN",
     "publicFeedPromotion": "HOLD_NOT_CHANGED",
     "lastNativeTrial": {
@@ -536,6 +536,27 @@
       },
       "method": "normal-fast-forward-SSH-no-force",
       "runtimeChanged": false
+    },
+    "compiledSourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+    "latestVerifiedCi": {
+      "sourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+      "ciRunId": 42583094615,
+      "runNumber": 41,
+      "attempt": 1,
+      "scope": "full",
+      "result": "PASS",
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42583094615",
+      "allJobs": 9,
+      "successfulJobs": 9,
+      "requiredCheck": "baseline-required",
+      "mainProtectionUnchanged": true,
+      "physicalOwnerAcceptance": false
+    },
+    "latestInternalArtifact": {
+      "artifactId": 13659545229,
+      "artifactZipSha256": "c31568abe5dcb62292bdf9c2bf9c7b258a273f5b5571df03f0a31cc671a08507",
+      "installerSha256": "f089a2cd66a4e0a05d10aa274a189be4f71f42c82185f7847d2c92648808e57a",
+      "installerBytes": 167087915
     }
   },
   "activeDevelopmentWorkspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/single-primary-exe",
@@ -545,7 +566,7 @@
     "publicFeed": "HOLD"
   },
   "desktopBackendIntegration": {
-    "status": "FINAL_CI_PENDING_BOUNDED_PINNED_BRIDGE_API_INTAKE",
+    "status": "IMPLEMENTED_CI41_PASS_INTERNAL_ARTIFACT_VERIFIED_LAB_DEPLOYED",
     "baseCommit": "521d04cc559e0e263390863ed1caaf8bf0205797",
     "preChangeTag": "checkpoint/20261109-before-desktop-backend-521d04c",
     "bundleSha256": "5f20de606764ca319b3bfd695c81dda0b08bacac6a3ac831bdc8405e222c2331",
@@ -563,19 +584,20 @@
     ],
     "steps": {
       "P0Inventory": "DONE",
-      "P1NativeDeviceApi": "CI36_PASS9_OF9",
+      "P1NativeDeviceApi": "DONE",
       "P2DesktopBindings": "NEXT",
       "P3CoherentBackendAndWallB": "NOT_STARTED",
       "P4InternalNativeIntegration": "NOT_STARTED",
-      "P2DesktopUiBinding": "WEB112_PASS_NATIVE_MAC_LINUX_PASS_WINDOWS_GUARD_TEXT_FIXED",
-      "P3WallBAndBackend": "COHERENT_ARM25_OF25_PASS",
-      "P4FinalAsyncAndNaming": "IMPLEMENTED_UI14_TYPECHECK_PASS_WINDOWS_CI_PENDING",
-      "P5CiBridgeIntake": "BOUNDED_API_AND_DIGEST_PIN_IMPLEMENTED_PENDING_CI"
+      "P2DesktopUiBinding": "DONE",
+      "P3WallBAndBackend": "DONE_REAL25_PASS",
+      "P4FinalAsyncAndNaming": "DONE_WEB115_AND_WINDOWS_EXPLICIT_START_PASS",
+      "P5CiBridgeIntake": "DONE_REAL_MIGRATION_PASS",
+      "P6InternalLabDeployment": "DONE_PRIVATE_PUBLIC_API_AND_PERSISTENCE_PASS"
     },
     "wallBRegression": "REPORTED_NOT_YET_REPRODUCED",
     "runtimeChanged": false,
     "candidateVersion": "0.10.1-dev.3",
-    "nativeApi": "P1_CI36_PASS9_OF9_P2_NATIVE_EXTENSION_PENDING",
+    "nativeApi": "IMPLEMENTED_CI41_PASS_REAL_ARM_OWNER_AGENT_INTEGRATION_PASS",
     "confirmedFixes": [
       "Fresh Memory usage initializes lm_scopes schema",
       "Explicit Tauri ACL now permits registered inventory pagination command"
@@ -602,7 +624,7 @@
       "accountB": "PASS_REAL_INDEPENDENT_AGENT",
       "wrongB": "REPRODUCED503_SOURCE_FIX_PENDING_NEW_INTEGRATION"
     },
-    "existingLabRuntimeChanged": false,
+    "existingLabRuntimeChanged": true,
     "backend25Source": "35eb96243fb95ab9eb847f8c264961d410675268",
     "labPreparation": {
       "source": "714f61987dd68289704a870c9b91b6e9cf86b140",
@@ -613,6 +635,44 @@
       "archiveIndexVerified": true
     },
     "ci38InitialFailure": "External GitHub504 fetching pinned bridge BUILD_MANIFEST, before migration; approved rerun attempt2 in progress",
-    "ci38Attempt2Failure": "GitHub504 on pinned installer download before migration; no product assertion failed"
-  }
+    "ci38Attempt2Failure": "GitHub504 on pinned installer download before migration; no product assertion failed",
+    "compiledSourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+    "verifiedCi": {
+      "sourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+      "ciRunId": 42583094615,
+      "runNumber": 41,
+      "attempt": 1,
+      "scope": "full",
+      "result": "PASS",
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42583094615",
+      "allJobs": 9,
+      "successfulJobs": 9,
+      "requiredCheck": "baseline-required",
+      "mainProtectionUnchanged": true,
+      "physicalOwnerAcceptance": false
+    },
+    "artifact": {
+      "artifactId": 13659545229,
+      "artifactZipSha256": "c31568abe5dcb62292bdf9c2bf9c7b258a273f5b5571df03f0a31cc671a08507",
+      "installerSha256": "f089a2cd66a4e0a05d10aa274a189be4f71f42c82185f7847d2c92648808e57a",
+      "installerBytes": 167087915
+    },
+    "labDeployment": {
+      "result": "PASS",
+      "sourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+      "components": [
+        "Operator",
+        "Plugin Server"
+      ],
+      "apiContractVersion": "light-remote.api.v1",
+      "publicHealth": "PASS",
+      "unauthenticatedSnapshot": 401,
+      "databaseMigrationPerformed": false,
+      "persistedCountsPreserved": true,
+      "oldSourcesAndIndependentAgentSupervisorTransportPreserved": true,
+      "privateRecoveryOnArm": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/backend-runtime/2771f47080bdf21913371126bcefd2923b12d257/recovery"
+    },
+    "ownerWindowsInstallationChanged": false
+  },
+  "runtimeChangeScope": "Internal Lab Operator and Plugin only migrated into a new exact-source runtime; old source trees unchanged. One initial PartOf-driven Wall stop was restored; final controlled cutover preserved Agent/supervisor/transport PIDs. No SQL migration or Owner Windows install change."
 }

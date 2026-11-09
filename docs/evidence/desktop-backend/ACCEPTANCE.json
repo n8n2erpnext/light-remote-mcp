@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+  "candidateVersion": "0.10.1-dev.3",
+  "audience": "INTERNAL_TEST_ONLY",
+  "ci": {
+    "sourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+    "ciRunId": 42583094615,
+    "runNumber": 41,
+    "attempt": 1,
+    "scope": "full",
+    "result": "PASS",
+    "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42583094615",
+    "allJobs": 9,
+    "successfulJobs": 9,
+    "requiredCheck": "baseline-required",
+    "mainProtectionUnchanged": true,
+    "physicalOwnerAcceptance": false
+  },
+  "artifact": {
+    "artifactId": 13659545229,
+    "artifactZipSha256": "c31568abe5dcb62292bdf9c2bf9c7b258a273f5b5571df03f0a31cc671a08507",
+    "installerSha256": "f089a2cd66a4e0a05d10aa274a189be4f71f42c82185f7847d2c92648808e57a",
+    "installerBytes": 167087915
+  },
+  "backend": {
+    "sourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+    "apiContractVersion": "light-remote.api.v1",
+    "layer": "real-private-dev-integration",
+    "physicalAcceptance": false,
+    "checks": [
+      {
+        "name": "real Plugin health/version header",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "cross-origin Portal mutation denied",
+        "status": "PASS",
+        "statusCode": 403
+      },
+      {
+        "name": "snapshot route enabled and unauthenticated caller denied",
+        "status": "PASS",
+        "statusCode": 401
+      },
+      {
+        "name": "real Agent identity -> Owner approval -> signed enrollment/heartbeat/connect",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "actual Agent daemon and Local Wall listening in private candidate",
+        "status": "PASS",
+        "statusCode": 401
+      },
+      {
+        "name": "Portal Owner consent -> PKCE native token; code replay rejected",
+        "status": "PASS",
+        "statusCode": 200,
+        "replayStatus": 401
+      },
+      {
+        "name": "two real Portal accounts use durable PG credentials",
+        "status": "PASS",
+        "accounts": 2
+      },
+      {
+        "name": "native Owner live family/session verified",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "native session refuses browser cookie/origin",
+        "status": "PASS",
+        "statusCode": 403
+      },
+      {
+        "name": "Desktop snapshot -> real private Operator -> PG/Redis",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "Owner-scoped typed devices page",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "Owner-scoped typed grants page",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "Owner-scoped typed usage page",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "Owner-scoped typed jobs page",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "Owner-scoped typed sessions page",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "caller cannot inject a foreign account into snapshot",
+        "status": "PASS",
+        "statusCode": 403
+      },
+      {
+        "name": "foreign non-Owner redirected to login without Owner code",
+        "status": "PASS",
+        "statusCode": 303
+      },
+      {
+        "name": "real mTLS SSO route denies unknown target",
+        "status": "PASS",
+        "statusCode": 403
+      },
+      {
+        "name": "real mTLS SSO issuer accepts current Owner and enrolled device",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "real Wall B rejects missing CSRF, stale attempt and wrong B",
+        "status": "PASS",
+        "csrfStatus": 403,
+        "staleStatus": 409,
+        "wrongBStatus": 400
+      },
+      {
+        "name": "MCP OAuth request -> signed Agent Wall B -> durable PG grant -> MCP attach",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "independent Account B flow still commits a separate OAuth Agent grant",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "native Owner -> real same-device Agent IPC -> module CAS, SQLite Memory, Codex tasks and Settings",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "native refresh token rotates atomically",
+        "status": "PASS",
+        "statusCode": 200
+      },
+      {
+        "name": "logout revokes access and refresh family",
+        "status": "PASS",
+        "accessStatus": 401,
+        "refreshStatus": 401
+      }
+    ],
+    "notVerified": [
+      "Windows native IPC/vault/tray on new artifact",
+      "Positive device-signed Wall SSO redemption/browser relay",
+      "Reboot/rollback on Windows",
+      "macOS/Linux full installer",
+      "Remote command dispatch on new candidate"
+    ],
+    "result": "PASS"
+  },
+  "lab": {
+    "result": "PASS",
+    "sourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+    "components": [
+      "Operator",
+      "Plugin Server"
+    ],
+    "apiContractVersion": "light-remote.api.v1",
+    "publicHealth": "PASS",
+    "unauthenticatedSnapshot": 401,
+    "databaseMigrationPerformed": false,
+    "persistedCountsPreserved": true,
+    "oldSourcesAndIndependentAgentSupervisorTransportPreserved": true,
+    "privateRecoveryOnArm": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/backend-runtime/2771f47080bdf21913371126bcefd2923b12d257/recovery"
+  },
+  "ownerWindowsInstallChanged": false,
+  "physicalOwnerAcceptance": false,
+  "publicBinaryRelease": false,
+  "publicFeedPromoted": false,
+  "remaining": [
+    "Owner installs this exact internal artifact and exercises authenticated native UI/B on their physical device",
+    "Desktop local Memory/Codex list window is100 with explicit partial coverage; further records through Wall",
+    "Full macOS/Linux installers and positive browser Wall SSO physical acceptance remain separate"
+  ]
+}

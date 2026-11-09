@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 254 (224 Markdown, 30 JSON).
+Documents: 257 (224 Markdown, 33 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -16,6 +16,9 @@ Documents: 254 (224 Markdown, 30 JSON).
 | evidence | [docs/evidence/ci-status.json](../evidence/ci-status.json) | repository, repositoryId, runId, url, sourceCommit, sourceTree, conclusion, jobs, passedJobs, jo | 36bbde0c6fd20682730b8f6f8d615941e52a28f2fa63d6378d9cc4043a414a30 |
 | evidence | [docs/evidence/component-variant-summary.json](../evidence/component-variant-summary.json) | refsCompared, distinctHeadTagRevisions, uniquePaths, executableConfigPathsAbsentFromDesktop, com | 900771ef02c2dc67b16db2d34e7d7d5a69892dd6ef4d47ed4241bdf73b217e0b |
 | evidence | [docs/evidence/deployment-manifest.json](../evidence/deployment-manifest.json) | verifiedAt, repositoryId, sourceCommit, sourceTree, ciRunId, ciJobs, ciPassedJobs, artifactsVeri | 6dec14a74d7ed35352241ae66ceb3a90f0a96edd841feb11753db377eb973912 |
+| evidence | [docs/evidence/desktop-backend/ACCEPTANCE.json](../evidence/desktop-backend/ACCEPTANCE.json) | schemaVersion, sourceCommit, candidateVersion, audience, ci, artifact, backend, lab, ownerWindow | 5eac6901d47cc7a4cba3b20e915a7d6c42a5bbc0fe04b8f396470ae259d4ca19 |
+| evidence | [docs/evidence/desktop-backend/BUILD_MANIFEST.json](../evidence/desktop-backend/BUILD_MANIFEST.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | b138c38e183cb30b30fa42cedc71b11efbf45ccc0a89314239f9f43c4a853ab8 |
+| evidence | [docs/evidence/desktop-backend/PRIMARY_EXE_MANIFEST.json](../evidence/desktop-backend/PRIMARY_EXE_MANIFEST.json) | schemaVersion, publicFeedPromoted, layoutId, privateFrameworkBytes, frameworkVersions, executabl | ad930c8cad0c37a3adafdfe1486b30903b30f006a0bc3bb8e3fa06f4b4a9bed8 |
 | evidence | [docs/evidence/dev-integration.json](../evidence/dev-integration.json) | sourceCommit, apiContractVersion, layer, physicalAcceptance, checks, notVerified, result | 5e7b3829a8810cca4b17256861bfac0af13cc72d63f8445787dd8e406751650f |
 | evidence | [docs/evidence/github-clone-verification.json](../evidence/github-clone-verification.json) | verifiedAt, repositoryId, repository, clonedFrom, candidateDirectory, sourceCommit, sourceTree,  | af2a38f771941bca97e3967fc080c216e588719ac7d2b9d0e6723b8bfbfa9b94 |
 | evidence | [docs/evidence/main-protection.json](../evidence/main-protection.json) | repositoryId, branch, requiredCheck, checkAppId, checkAppSlug, strict, enforceAdmins, allowForce | 8417d9a5415938472634c7ec2a93ea754751b998c122bc8f6933b367210b0d04 |

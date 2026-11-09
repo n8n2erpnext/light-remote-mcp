@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "publicFeedPromoted": false,
+  "layoutId": "lightremote-primary-hosted-v1",
+  "privateFrameworkBytes": 167323268,
+  "frameworkVersions": [
+    {
+      "version": "8.0.33",
+      "name": "Microsoft.NETCore.App"
+    },
+    {
+      "version": "8.0.33",
+      "name": "Microsoft.WindowsDesktop.App"
+    }
+  ],
+  "executables": [
+    {
+      "path": "LightRemote.exe",
+      "role": "primary-ui-agent-managed-worker",
+      "bytes": 8404992,
+      "sha256": "86f5c3b3002534df488f19eb8270d838214e67047a0a28517c7f65493b0382f8"
+    },
+    {
+      "path": "agent/node_modules/node-pty/prebuilds/win32-x64/winpty-agent.exe",
+      "role": "supporting-runtime-tool",
+      "bytes": 307712,
+      "sha256": "0c4834a0ab2a4f8c855a2f1db9b21fa6e5fc324ae8e3c82addd53d503d999825"
+    },
+    {
+      "path": "agent/node_modules/node-pty/prebuilds/win32-x64/conpty/OpenConsole.exe",
+      "role": "supporting-runtime-tool",
+      "bytes": 1148448,
+      "sha256": "d1fe7faa62f9e955e2ac2371f95d7e5513df4d496255097158f979c94782c5fc"
+    },
+    {
+      "path": "helper-candidate/LightRemote.Updater.exe",
+      "role": "independent-update-helper-candidate",
+      "bytes": 11875377,
+      "sha256": "045df25e9bd19d4cbcf2096dc7c3229d6ddfebb5cdb8c827aadcc9a4626b11d4"
+    },
+    {
+      "path": "realremote-v2/LightRemote.RM.exe",
+      "role": "rm-v2-companion",
+      "bytes": 74052693,
+      "sha256": "abf4981dd66d762d8461a243fa6dd9a1621782d365f02aeb9b3dc8d8879e3e1e"
+    },
+    {
+      "path": "runtime/node.exe",
+      "role": "node-runtime",
+      "bytes": 86997320,
+      "sha256": "0d0f5e39f9f3d9587bc19f73eab3c2c9c4903fd02d6dbf9c853dd81b3d95fad4"
+    },
+    {
+      "path": "windows-host/runtime/shared/Microsoft.NETCore.App/8.0.33/createdump.exe",
+      "role": "supporting-runtime-tool",
+      "bytes": 71552,
+      "sha256": "4a001d54e32cfdaefdc3a1deb881c4d12abf61fe408bb4a492bd407517d225ad"
+    }
+  ],
+  "stagedBytes": 441845912,
+  "physicalOwnerAcceptance": false,
+  "version": "0.10.1-dev.3",
+  "primaryExecutable": "LightRemote.exe",
+  "installedLifecycle": {
+    "result": "PASS",
+    "sourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+    "ciRunId": "42583094615",
+    "checks": [
+      "one-primary-layout",
+      "same-native-exe-task",
+      "same-native-exe-autostart-shortcut",
+      "private-clr-loaded-in-gui-with-global-dotnet-disabled",
+      "background-preserves-hidden-window",
+      "agent-only-restart-preserves-gui-and-hidden-state",
+      "old-daemon-exit-new-wall-health",
+      "explicit-start-is-idempotent-preserves-running-agent",
+      "shortcut-restores-existing-window"
+    ],
+    "physicalOwnerAcceptance": false
+  },
+  "migration": {
+    "schemaVersion": 1,
+    "result": "PASS",
+    "sourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+    "ciRunId": "42583094615",
+    "primaryVersion": "0.10.1-dev.3",
+    "bridgeSource": "e997e149d7494ef86eeb95da759bb324bf4b1b13",
+    "bridgeVersion": "0.10.1-dev.1",
+    "bridgeInstallerSha256": "d909f6253b61b39d15fae08f586199c7f6c83ec160cccdd3c8eb841dfd6ca69c",
+    "checks": {
+      "verified-bridge-fresh-install-independent-helper": "PASS",
+      "real-installer-incompatible-helper-blocks-before-core-stop": "PASS",
+      "bridge-helper-installs-and-verifies-primary-layout": "PASS",
+      "same-version-primary-reinstall-preserves-config-device-local-canaries": "PASS",
+      "primary-to-legacy-real-installer-transaction": "PASS",
+      "real-primary-install-health-failure-restores-real-bridge-and-removes-new-exe": "PASS",
+      "restored-legacy-gui-does-not-activate-leftover-hosted-component": "PASS",
+      "manual-installer-postinstall-failure-watchdog-restores-bridge": "PASS",
+      "upgrade-after-rollback-reuses-same-identity-directories": "PASS"
+    },
+    "preservedCanaryCount": 4,
+    "liveOwnerIdentityOrVaultAcceptance": false,
+    "physicalOwnerAcceptance": false
+  },
+  "sourceCommit": "2771f47080bdf21913371126bcefd2923b12d257",
+  "ciRunId": "42583094615"
+}

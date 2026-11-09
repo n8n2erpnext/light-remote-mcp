@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 254,
+    "total": 257,
     "markdown": 224,
-    "json": 30
+    "json": 33
   },
   "files": [
     {
@@ -70,6 +70,69 @@
         "candidateDirectory",
         "deploymentReceipt",
         "integrationResult"
+      ]
+    },
+    {
+      "path": "docs/evidence/desktop-backend/ACCEPTANCE.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 6081,
+      "sha256": "5eac6901d47cc7a4cba3b20e915a7d6c42a5bbc0fe04b8f396470ae259d4ca19",
+      "topLevelKeys": [
+        "schemaVersion",
+        "sourceCommit",
+        "candidateVersion",
+        "audience",
+        "ci",
+        "artifact",
+        "backend",
+        "lab",
+        "ownerWindowsInstallChanged",
+        "physicalOwnerAcceptance",
+        "publicBinaryRelease",
+        "publicFeedPromoted"
+      ]
+    },
+    {
+      "path": "docs/evidence/desktop-backend/BUILD_MANIFEST.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2495,
+      "sha256": "b138c38e183cb30b30fa42cedc71b11efbf45ccc0a89314239f9f43c4a853ab8",
+      "topLevelKeys": [
+        "schemaVersion",
+        "project",
+        "projectVersion",
+        "repository",
+        "sourceCommit",
+        "sourceTree",
+        "buildTimestamp",
+        "ciRunId",
+        "ciRepository",
+        "platform",
+        "apiContractVersion",
+        "featureProfile"
+      ]
+    },
+    {
+      "path": "docs/evidence/desktop-backend/PRIMARY_EXE_MANIFEST.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3986,
+      "sha256": "ad930c8cad0c37a3adafdfe1486b30903b30f006a0bc3bb8e3fa06f4b4a9bed8",
+      "topLevelKeys": [
+        "schemaVersion",
+        "publicFeedPromoted",
+        "layoutId",
+        "privateFrameworkBytes",
+        "frameworkVersions",
+        "executables",
+        "stagedBytes",
+        "physicalOwnerAcceptance",
+        "version",
+        "primaryExecutable",
+        "installedLifecycle",
+        "migration"
       ]
     },
     {

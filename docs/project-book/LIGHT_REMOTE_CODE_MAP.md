@@ -146,3 +146,7 @@ use-owner-inventory/use-owner-activity derive currently owned pages synchronousl
 ## Read pinned migration bridge assets through bounded authenticated GitHub API intake
 
 CI-only migration intake in client/windows-native/test-primary-migration.ps1 uses installerAssetId/manifestAssetId from config/windows-core-migration.json. windows-native-client.yml supplies its existing contents-read job token to that step only. Native application/updater implementation and product feed are unaffected.
+
+## Record verified internal Desktop backend candidate and coherent Lab deployment
+
+Current accepted2771f47 evidence is docs/evidence/desktop-backend/ACCEPTANCE.json plus exact BUILD_MANIFEST/PRIMARY_EXE_MANIFEST. Desktop native-device/NativeModuleScreens own real local actions; Owner typed page hooks synchronously filter current scope. Local Wall classifies known B rejections and preserves unknown outcomes. Current internal Lab Operator/Plugin are same-source; old enrolled Agent/Wall/supervisor/mTLS transport stay independent and retained.
