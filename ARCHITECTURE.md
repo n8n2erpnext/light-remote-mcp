@@ -44,3 +44,7 @@ Added native transport desktopDevice in contracts/api.v1.json: desktop_owner_dev
 ## Connect Desktop controls to the verified Agent API and unify displayed names
 
 Desktop native-device.ts/useNativeDevice is a scoped read/write provider: current Owner + native expectedAccountId + enrolled device, single-flight visible polling, account/generation invalidation, pre/post-write real reads and no automatic mutation retries. Rust owner_device uses fixed private IPC and native-only bearer. Existing Agent module/controllers execute operations. Settings host start/restart/update remains an exact compiled native action for Agent-offline recovery; it carries no browser credential. Device-change events refresh Owner read models only for the matching account.
+
+## Defer Windows close hide beyond callback and preserve installed responsiveness checks
+
+Windows hide-to-tray must not synchronously change visibility inside CloseRequested. The callback immediately prevents destruction and queues hide from the existing Tauri worker runtime, allowing native listeners to finish before focus/visibility messages. Background Agent/session ownership is unchanged. Source diagnosis follows pinned tauri-runtime-wry2.12.3: https://raw.githubusercontent.com/tauri-apps/tauri/tauri-runtime-wry-v2.12.3/crates/tauri-runtime-wry/src/lib.rs (on_close_requested listener mutex, same-thread send_user_message and WindowMessage::Hide). This is a source-based reentrancy diagnosis; installed CI must confirm the behavior.

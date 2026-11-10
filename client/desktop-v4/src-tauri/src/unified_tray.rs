@@ -55,7 +55,13 @@ pub(crate) fn already_running() -> bool {
 pub(crate) fn hide_on_close(window:&tauri::Window,event:&tauri::WindowEvent){
     if let tauri::WindowEvent::CloseRequested{api,..}=event{
         api.prevent_close();
-        let _=window.hide();
+        // Wry invokes close listeners while its listener mutex is held. On
+        // the event thread, hide is synchronous and can cause focus/visibility
+        // messages to re-enter those listeners. Queue it from a worker so the
+        // CloseRequested callback releases its locks before the hide runs.
+        // This only hides this window; Agent/session lifetimes are untouched.
+        let window=window.clone();
+        tauri::async_runtime::spawn_blocking(move||{let _=window.hide();});
     }
 }
 

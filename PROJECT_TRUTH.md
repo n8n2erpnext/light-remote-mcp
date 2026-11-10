@@ -158,3 +158,7 @@ Owner installed dev.4 and reports six new follow-up groups; implementation is no
 ## Align follow-up SSO branding and cross-language HMAC revision fixtures
 
 CI57 rejected stale presentation and HMAC-vector fixtures after the intentional removal of visible V4 and endpoint configuration revision3. Both expectations are repaired; explicit revision2 coverage is preserved and revision3/tamper vectors now match Node, Rust and .NET. This is not a native build PASS: complete exact-source Actions and internal artifact verification remain pending; Lab stays947a117/dev4.
+
+## Defer Windows close hide beyond callback and preserve installed responsiveness checks
+
+CI58 passed all284 Node units,70 portable suite entries and backend integration; Windows built/installed but actual WM_CLOSE failed, so the candidate is not accepted. A native repair now queues hide from a worker after the close callback returns. The same3s/3cycle integration assertion remains, with bounded WM_NULL responsiveness evidence. Full repaired Actions/native acceptance is pending; runtime947a117 is preserved.

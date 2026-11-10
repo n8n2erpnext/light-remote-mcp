@@ -162,3 +162,7 @@ Codex runtime metadata/selection/counters are in [session view](../../device-age
 ## Align follow-up SSO branding and cross-language HMAC revision fixtures
 
 HMAC fixture revisions live in selftest-goldabv2-local-instance-proof-t11.mjs, Rust wall_instance_proof.rs and Windows GptOperator.Client/Program.cs. Revision2 stays explicitly covered; current revision3 uses its own known vector. SSO bootstrap tests assert current product copy, canonical SVG/font and self-only font/script CSP.
+
+## Defer Windows close hide beyond callback and preserve installed responsiveness checks
+
+unified_tray.rs::hide_on_close prevents destruction and defers hide outside the window event callback. test-primary-installed.ps1 retains3 Close/reopen cycles and adds bounded WM_NULL responsiveness receipts native-close.json, even when visibility fails. Gateway oauth.mjs now actually emits the canonical @font-face already imported by its retained OAuth page.

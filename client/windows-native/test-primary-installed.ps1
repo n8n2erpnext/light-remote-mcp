@@ -24,6 +24,7 @@ public static class LRPrimaryWindow {
  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr window,uint message,IntPtr wParam,IntPtr lParam);
  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr window,int command);
  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr window);
+ [DllImport("user32.dll",SetLastError=true)] public static extern IntPtr SendMessageTimeout(IntPtr window,uint message,IntPtr wParam,IntPtr lParam,uint flags,uint timeout,out IntPtr result);
 }
 '@
 function Start-Core([string[]]$Arguments){
@@ -84,13 +85,22 @@ try{
     # Exercise the actual close event repeatedly while native status/Owner
     # restore polling is active. It must hide the window, retain the same GUI
     # PID and never stop the background Agent/session lifetime.
+    $closeEvidence=[Collections.Generic.List[object]]::new()
+    $closeCycle=0
     foreach($closeDelay in @(0,600,1200)){
         Start-Sleep -Milliseconds $closeDelay
         if(-not [LRPrimaryWindow]::PostMessage($window,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'Could not post native Close'}
         $closeDeadline=[DateTime]::UtcNow.AddSeconds(3)
         while([LRPrimaryWindow]::IsWindowVisible($window) -and [DateTime]::UtcNow -lt $closeDeadline){Start-Sleep -Milliseconds 50}
         $gui.Refresh()
-        if($gui.HasExited -or [LRPrimaryWindow]::IsWindowVisible($window)){throw 'Native X failed to hide responsive Desktop'}
+        $isVisible=[LRPrimaryWindow]::IsWindowVisible($window)
+        $pong=[IntPtr]::Zero
+        $responsive= -not $gui.HasExited -and [LRPrimaryWindow]::SendMessageTimeout($window,0,[IntPtr]::Zero,[IntPtr]::Zero,2,500,[ref]$pong) -ne [IntPtr]::Zero
+        $closeEvidence.Add([ordered]@{cycle=$closeCycle;guiExited=$gui.HasExited;windowVisible=$isVisible;uiResponsive=$responsive;deadlineMs=3000})
+        [ordered]@{sourceCommit=$env:GITHUB_SHA;cycles=@($closeEvidence.ToArray());physicalOwnerAcceptance=$false}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath (Join-Path $EvidenceDir 'native-close.json') -Encoding utf8NoBOM
+        Write-Host ('WINDOWS_NATIVE_CLOSE_CYCLE='+($closeEvidence[$closeCycle]|ConvertTo-Json -Compress))
+        if($gui.HasExited -or $isVisible -or -not $responsive){throw 'Native X failed to hide responsive Desktop'}
+        $closeCycle++
         foreach($daemonId in $currentDaemon){if(-not (Get-Process -Id $daemonId -ErrorAction SilentlyContinue)){throw 'Closing Desktop stopped its background Agent'}}
         $again=Start-Core @()
         try{if(-not $again.WaitForExit(10000) -or $again.ExitCode -ne 0){throw 'Close/reopen singleton failed'}}finally{if(-not $again.HasExited){$again.Kill($true)};$again.Dispose()}

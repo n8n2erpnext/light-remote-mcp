@@ -125,3 +125,7 @@ Candidate0.10.1-dev.5 remains internal-only and one-primary LightRemote.exe. Nat
 ## Align follow-up SSO branding and cross-language HMAC revision fixtures
 
 Follow-up CI57 stopped at stale SSO heading and catalog revision-vector fixtures before Windows compilation. Revision2 and3 vectors plus tamper checks must pass across Node/Rust/.NET. Do not reuse the failed run or bypass any gate; rebuild exact repaired commit in Actions.
+
+## Defer Windows close hide beyond callback and preserve installed responsiveness checks
+
+CI58 built and installed the dev5 one-primary package but failed the real WM_CLOSE3cycle gate; no artifact from it is accepted. Retain the original3s deadline and all Agent/singleton checks. The installed test additionally records bounded native-close.json/WM_NULL responsiveness on every cycle. Native builds remain Actions-only.
