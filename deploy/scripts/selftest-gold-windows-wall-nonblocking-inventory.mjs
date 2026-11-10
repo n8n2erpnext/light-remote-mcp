@@ -27,6 +27,11 @@ try{
  const caps=adapter.installedCapabilities();
  assert(caps.includes('git')&&caps.includes('docker')&&caps.includes('build-test'));
  assert(caps.includes('powershell')&&caps.includes('terminal'));
+ assert.deepEqual(adapter.terminalFor({shell:'powershell.exe'}),adapter.terminalFor({shell:'powershell'}));
+ assert.deepEqual(adapter.terminalFor({shell:'cmd.exe'}),adapter.terminalFor({shell:'cmd'}));
+ assert.throws(()=>adapter.terminalFor({shell:'C:/untrusted/powershell.exe'}),/windows_shell_unsupported/);
+ assert.ok(!adapter.inferRequiredCapabilities('echo fixture',{shell:'cmd.exe'}).includes('powershell'));
+
  assert(performance.now()-began<1000,'windows local capability read must not block the Node event loop');
  for(let n=0;n<12;n++)assert.deepEqual(adapter.installedCapabilities(),caps);
  let count=0;

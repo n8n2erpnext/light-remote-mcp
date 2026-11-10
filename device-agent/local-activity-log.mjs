@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import {readActivityHistoryPage,withActivityCursor} from './activity-history-reader.mjs';
 
 const MiB=1024*1024;
 const DEFAULT='standard';
@@ -122,9 +123,17 @@ export class DeviceLocalActivityLog {
       }
     }
   }
+  async historyPage({before=null,limit=500}={}){
+    if(this.historyInFlight)throw fail('activity_history_busy',503);
+    this.flush();
+    this.historyInFlight=true;
+    try{const page=await readActivityHistoryPage({files:this.files().slice(0,this.config().archives+1),before,limit,purgedBefore:this.settings.purgedBefore});return {...page,warning:this.lastError?'activity_history_persistence_unconfirmed':null};}
+    catch(error){if(/^activity_history_|^activity_log_path_/.test(error.message||''))throw error;throw fail('activity_history_unavailable',503);}
+    finally{this.historyInFlight=false;}
+  }
   history(limit=100){
     this.flush();
-    const max=Math.max(1,Math.min(Number(limit)||100,200)),found=[],keys=new Set();
+    const max=Math.max(1,Math.min(Number(limit)||100,5000)),found=[],keys=new Set();
     const files=[this.file];
     for(let i=1;i<=this.config().archives;i++)files.push(this.file+'.'+i+'.gz');
     for(const file of files){
@@ -171,7 +180,7 @@ export class DeviceLocalActivityLog {
   }
   recent(limit=500){
     this.prune();const n=Math.max(1,Math.min(Number(limit)||500,MAX_EVENTS));
-    return this.ring.slice(-n).map(x=>x.event);
+    return this.ring.slice(-n).map(x=>withActivityCursor(x.event));
   }
   freeSpaceOK(){
     if(typeof fs.statfsSync!=='function')return true;

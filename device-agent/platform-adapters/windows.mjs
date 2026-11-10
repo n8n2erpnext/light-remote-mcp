@@ -57,7 +57,7 @@ export function createWindowsAdapter({commandExists}) {
     inferRequiredCapabilities(script,{shell:requestedShell='default'}={}) {
       // An explicitly selected cmd.exe shell must not require the separate
       // PowerShell capability; it requires terminal shell authority instead.
-      const shellCapability=String(requestedShell||'default').toLowerCase()==='cmd'
+      const shellCapability=['cmd','cmd.exe'].includes(String(requestedShell||'default').trim().toLowerCase())
        ?'terminal':'powershell';
       return uniqueCapabilities(['filesystem',shellCapability,...inferCapabilities(scopedInstaller(script)||script,RULES)]);
     },
@@ -72,14 +72,16 @@ export function createWindowsAdapter({commandExists}) {
       const modes=['default'];if(shell)modes.push('powershell');if(cmd)modes.push('cmd');return modes;
     },
     commandFor(script,{shell:requestedShell='default'}={}) {
-      const requested=String(requestedShell||'default').trim().toLowerCase();
+      const raw=String(requestedShell||'default').trim().toLowerCase();
+      const requested=raw==='powershell.exe'?'powershell':raw==='cmd.exe'?'cmd':raw;
       if(requested==='cmd'){if(!cmd)throw new Error('cmd_unavailable');return {file:cmd,args:['/d','/s','/c',String(script||'')]};}
       if(!['default','powershell'].includes(requested))throw new Error(`windows_shell_unsupported:${requested}`);
       if(!shell)throw new Error('powershell_unavailable');
       return {file:shell,args:['-NoLogo','-NoProfile','-NonInteractive','-Command',String(script||'')]};
         },
     terminalFor({shell:requestedShell='default'}={}) {
-      const requested=String(requestedShell||'default').trim().toLowerCase();
+      const raw=String(requestedShell||'default').trim().toLowerCase();
+      const requested=raw==='powershell.exe'?'powershell':raw==='cmd.exe'?'cmd':raw;
       if(requested==='cmd'){if(!cmd)throw new Error('cmd_unavailable');return {file:cmd,args:['/d'],shell:'cmd'};}
       if(!['default','powershell'].includes(requested))throw new Error(`windows_shell_unsupported:${requested}`);
       if(!shell)throw new Error('powershell_unavailable');

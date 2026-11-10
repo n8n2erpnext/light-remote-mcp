@@ -107,6 +107,17 @@ body.wall-sidebar-collapsed .sidebar-items .pill,body.wall-sidebar-collapsed #en
 
 @media(max-width:870px){body .wrap{margin-left:calc(var(--wall-sidebar-width) + 7px);margin-right:6px;max-width:calc(100% - var(--wall-sidebar-width) - 13px)}.top{align-items:flex-start}.topright{justify-content:flex-start}.term .commandrow{grid-template-columns:58px 1fr}.term .cmdwrap{grid-column:1/-1}.term .actions{grid-column:1/-1}}
 @media(max-width:540px){body{--wall-sidebar-width:63px}.wall-sidebar{padding:7px}.wall-sidebar .sidebar-items .btn span,.wall-sidebar .sidebar-toggle .nav-label{display:none}.wall-sidebar .sidebar-items .btn{justify-content:center;padding:8px}.wall-sidebar .sidebar-toggle{justify-content:center}.topright .wall-notification{margin-left:0}}
+
+/* Badges keep their own first line above every script. */
+.term .cmdwrap{display:flex;flex-direction:column;align-items:stretch;gap:7px}
+.term .commandbadges{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:5px;min-height:18px}
+.term .commandbody{min-width:0;width:100%}.term .commandbody .cmdtext{display:block;min-width:0;max-width:100%;overflow-wrap:anywhere}
+
+#ptyOutput.pty-screen{display:block;overflow:auto;min-width:0;padding:8px}
+#ptyOutput .xterm{width:max-content;min-width:100%;min-height:0;flex:none;height:auto}
+.pty-read-status{font-size:12px;margin:0 0 8px;white-space:normal}
+.pty-transcript{font:12px/1.5 'Google Sans Code',monospace;margin:0 0 8px;white-space:normal}
+.pty-transcript textarea{display:block;width:100%;min-height:130px;max-height:230px;resize:vertical;font:12px/1.5 'Google Sans Code',monospace;white-space:pre;overflow:auto;user-select:text;-webkit-user-select:text}
 `;
 export const WALL_UI_REFINEMENT_SCRIPT = `
 (function(){

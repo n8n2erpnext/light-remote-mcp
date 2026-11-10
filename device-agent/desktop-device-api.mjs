@@ -61,7 +61,7 @@ export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSy
   if(action==='codex.read'){
    if(!modulesView.codexBridge)return {...base,codex:null};
    const observer=modules.observer(),runtime=modules.managedCodexStatus();
-   return {...base,codex:{coverage:{returned:Math.min(100,observer.tasks.length),total:observer.tasks.length},tasks:observer.tasks.slice(0,100).map(t=>({id:t.id,title:text(t.title),state:t.state,
+   return {...base,codex:{session:modules.codexPlusView?.()||null,coverage:{returned:Math.min(100,observer.tasks.length),total:observer.tasks.length},tasks:observer.tasks.slice(0,100).map(t=>({id:t.id,title:text(t.title),state:t.state,
     createdAt:number(t.createdAt),changedAt:number(t.changedAt)})),recommendation:observer.recommendation,
     runtime:{state:runtime.state,installed:runtime.installed===true,externalAvailable:runtime.externalAvailable===true,
      installing:runtime.installing===true,lastError:text(runtime.lastError,160)},
@@ -155,10 +155,15 @@ export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSy
    if(!['todo','working','waiting','done'].includes(payload.state))throw fail('desktop_payload_invalid');
    return {result:modules.updateTask(payload)};
   }
+  if(action==='codex.preferences'){
+   exact(payload,['model','reasoningEffort']);
+   if(typeof payload.model!=='string'||payload.model.length>160||typeof payload.reasoningEffort!=='string'||payload.reasoningEffort.length>160)throw fail('desktop_payload_invalid');
+   await modules.codexPlusPreferences(payload,guard);return {saved:true,session:modules.codexPlusView()};
+  }
   if(action==='codex.account'){
    exact(payload,[]);
    const r=await modules.codexPlusStatus();
-   return {connected:r.connected===true,authMode:text(r.authMode,40),plan:text(r.plan,40)};
+   return {connected:r.connected===true,authMode:text(r.authMode,40),plan:text(r.plan,40),session:modules.codexPlusView?.()||null};
   }
   if(['codex.runtime-install','codex.runtime-remove','codex.login','codex.logout','codex.login-cancel','codex.observe'].includes(action)){
    exact(payload,['confirmed']);confirm(payload);
@@ -166,6 +171,7 @@ export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSy
    if(action==='codex.runtime-remove'){modules.removeManagedCodexRuntime();return {removed:true};}
    if(action==='codex.login'){
     const r=await modules.codexPlusLogin();
+    if(r.connected===true)return {state:'connected',connected:true};
     // The CLI's one-time user code is intended for the owner's login UI.
     // It is not a bearer, refresh token or the private app-server loginId.
     const url=new URL(r.verificationUrl);

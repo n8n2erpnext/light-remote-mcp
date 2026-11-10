@@ -10,7 +10,7 @@ pub(crate) const ACTIONS:&[&str]=&[
  "memory.delete-account","memory.sync-policy","memory.sync-manual",
  "codex.task-create","codex.task-edit","codex.task-state","codex.task-delete",
  "codex.runtime-install","codex.runtime-remove","codex.login","codex.login-cancel","codex.logout","codex.account","codex.observe",
- "codex.delegate","codex.pause","sessions.close","jobs.cancel","logs.configure","logs.clean"
+ "codex.preferences","codex.delegate","codex.pause","sessions.close","jobs.cancel","logs.configure","logs.clean"
 ];
 fn deny()->String{"desktop_device_unavailable".into()}
 pub(crate) fn valid_id(s:&str)->bool{

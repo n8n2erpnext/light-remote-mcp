@@ -117,3 +117,7 @@ Internal candidate0.10.1-dev.3 compiled from 2771f47080bdf21913371126bcefd2923b1
 ## Rebuild Desktop as a user workspace and fix populated approval and monitor layouts
 
 Internal UX candidate0.10.1-dev.4 keeps one primary LightRemote.exe. Frontend package test:visual now runs entry/unavailable gates and populated product-ux-smoke from a separate synthetic e2e/fixtures entry that is never imported by production. The fixture is checked absent from dist. Browser evidence covers11 screens, six size/DPI variants, both themes and link/confirm dialogs. Native build remains Actions-only; no new public release/feed or installed Owner changes. Local source evidence is docs/evidence/desktop-user-experience/LOCAL_VERIFICATION.json.
+
+## Fix Codex state usage Wall history PTY and responsive Desktop lifecycle
+
+Candidate0.10.1-dev.5 remains internal-only and one-primary LightRemote.exe. Native builds occur only in Actions. Frontend visual workflow additionally runs real local Wall/SQLite/log/ANSI browser regression; synthetic fixtures are still absent from production bundle. Windows installed lifecycle posts actual Close3 times while polling, confirms same GUI/Agent PID, and uses the packaged Node/node-pty for an isolated real ConPTY->authenticated Wall HTTP executed-output proof. Rust delayed-work unit covers UI event timer liveness. New callback includes the same distribution SVG/CSS/font offline; no second EXE. Current old runtime947a117/dev4 must stay until final exact source CI/artifact proof and controlled internal Lab-only consent rollout.

@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 263,
+    "total": 264,
     "markdown": 226,
-    "json": 37
+    "json": 38
   },
   "files": [
     {
@@ -133,6 +133,27 @@
         "primaryExecutable",
         "installedLifecycle",
         "migration"
+      ]
+    },
+    {
+      "path": "docs/evidence/desktop-followup/LOCAL_VERIFICATION.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2630,
+      "sha256": "9f6d1486aae879cacc1ed06d236d8de77302e7f4533174577fb46baaec4fbaf9",
+      "topLevelKeys": [
+        "schemaVersion",
+        "candidateVersion",
+        "sourceStatus",
+        "sourceBase",
+        "scope",
+        "react",
+        "backendAndContracts",
+        "browser",
+        "history",
+        "localWindowsConptyHarness",
+        "nativeClose",
+        "onePrimaryExe"
       ]
     },
     {
@@ -2230,8 +2251,8 @@
       "path": "docs/plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 3842,
-      "sha256": "1f527529bc07cdfb03fc3bb81a6a7e6f4f79b866cd5acde08a4fda36c7edc3d6",
+      "bytes": 5079,
+      "sha256": "f34742e48ab7cd06d5605911cb81ebf179314548f01b5e2e7ed78fd3167afb10",
       "title": "Codex, Wall and Desktop follow-up — 2026-11-10"
     },
     {

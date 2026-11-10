@@ -9,6 +9,7 @@ import {spawn,execFileSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import {createCodexSessionView} from './gold-codex-session-view.mjs';
 
 function fault(code,status=400){return Object.assign(new Error(code),{status});}
 const ALLOWED_LOGIN_HOSTS=new Set(['auth.openai.com','chatgpt.com','login.openai.com']);
@@ -97,23 +98,25 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
   if(!path.isAbsolute(home)||!path.isAbsolute(command))
     throw fault('codex_plus_runtime_paths_invalid');
   let child=null,buffer='',requestId=0,booting=null,pending=new Map();
-  let login=null,lastError=null,currentTurn=null;
-  const notices=[];
+  let login=null,currentTurn=null,accountRefresh=null,metadataAt=0,lastAccountAt=0,generation=0,working=false;
+  const session=createCodexSessionView({home});
   function emit(msg){
     if(msg?.method==='account/login/completed'){
       const params=msg.params||{};
       if(login&&(!params.loginId||params.loginId===login.loginId)){
         login={...login,state:params.success===false||params.error?'failed':'completed',verificationUrl:null,userCode:null};
+        if(login.state==='completed')queueMicrotask(()=>account().catch(()=>{}));
       }
     }
-    if(msg?.method==='account/updated' && login?.state==='pending'){
-      // Account can refresh without completing this particular login.
-      notices.push({method:'account/updated'});
-    }
+    if(msg?.method==='account/updated')queueMicrotask(()=>account().catch(()=>{}));
+    if(msg?.method==='thread/tokenUsage/updated')session.ingestTokens(msg.params);
+    if(msg?.method==='account/rateLimits/updated'&&session.snapshot().account.connected)session.applyRateLimits(msg.params);
     if(currentTurn){
+      if(msg.params?.threadId&&msg.params.threadId!==currentTurn.threadId)return;
       if(msg.method==='item/agentMessage/delta'){
         if(typeof msg.params?.delta==='string')currentTurn.output=(currentTurn.output+msg.params.delta).slice(0,4000);
       }
+      if(msg.method==='turn/completed'&&!currentTurn.turnId){currentTurn.earlyCompletion=msg.params;return;}
       if(msg.method==='turn/completed' && msg.params?.turn?.id===currentTurn.turnId){
         const status=msg.params.turn.status;
         const payload={completed:status==='completed',status:status||'unverified',
@@ -140,7 +143,7 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
     if(msg?.method)emit(msg);
   }
   function stop(reason='codex_runtime_disconnected'){
-    const old=child;child=null;booting=null;buffer='';
+    const old=child;child=null;booting=null;buffer='';login=null;generation++;metadataAt=0;session.disconnected();
     for(const [id,item] of pending){clearTimeout(item.timer);item.reject(fault(reason,503));pending.delete(id);}
     if(currentTurn){currentTurn.reject(fault(reason,503));currentTurn=null;}
     if(old && !old.killed){try{old.kill('SIGTERM');}catch{}}
@@ -193,18 +196,62 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
     catch(e){stop('codex_runtime_start_failed');throw e;}
     finally{booting=null;}
   }
+  async function refreshMetadata(force=false){
+    if(!force&&Date.now()-metadataAt<30000)return;
+    const epoch=generation;metadataAt=Date.now();
+    const requests=[
+      ['models',async()=>{
+        if(session.catalogFresh()&&!force)return;
+        const rows=[];let cursor=null;
+        do{
+          const result=await rpc('model/list',{limit:50,includeHidden:false,...(cursor?{cursor}:{})},5000);
+          if(!Array.isArray(result.data))throw fault('codex_model_catalog_invalid',502);
+          rows.push(...result.data);cursor=typeof result.nextCursor==='string'?result.nextCursor:null;
+        }while(cursor&&rows.length<100);
+        if(epoch===generation)session.applyModels(rows);
+      }],
+      ['quota',async()=>{const r=await rpc('account/rateLimits/read',undefined,5000);if(epoch===generation)session.applyRateLimits(r);}],
+      ['usage',async()=>{const r=await rpc('account/usage/read',undefined,5000);if(epoch===generation)session.applyAccountUsage(r);}]
+    ];
+    const results=await Promise.allSettled(requests.map(([,read])=>read()));
+    results.forEach((r,i)=>{if(r.status==='rejected'&&epoch===generation)session.unavailable(requests[i][0]);});
+  }
   async function account(){
-    await start();
-    const result=await rpc('account/read',{refreshToken:false},15000);
-    const a=result?.account;
-    return {connected:Boolean(a),authMode:a?.type||a?.authMode||null,
-      plan:a?.planType||null,requiresOpenaiAuth:result?.requiresOpenaiAuth!==false,
-      runtime:'codex-app-server',billing:'chatgpt_plan',
-      login:login&&login.state==='pending'?{state:'pending',
-        verificationUrl:login.verificationUrl,userCode:login.userCode}:null};
+    if(accountRefresh)return accountRefresh;
+    const epoch=generation;lastAccountAt=Date.now();
+    accountRefresh=(async()=>{
+      await start();
+      const result=await rpc('account/read',{refreshToken:false},5000);
+      if(epoch!==generation)throw fault('codex_runtime_disconnected',503);
+      const a=result?.account;session.updateAccount(a);
+      const connected=Boolean(a)&&a.type!=='apiKey'&&a.authMode!=='apiKey';
+      // A verified connected account is authoritative even when an older CLI
+      // omits/reorders the login/completed notification.
+      if(connected&&login?.state==='pending')login=null;
+      if(connected)await refreshMetadata();
+      return {connected,authMode:a?.type||a?.authMode||null,
+        plan:a?.planType||null,requiresOpenaiAuth:result?.requiresOpenaiAuth!==false,
+        runtime:'codex-app-server',billing:'chatgpt_plan',
+        login:login?.state==='pending'?{state:'pending',verificationUrl:login.verificationUrl,userCode:login.userCode}:null,
+        session:session.snapshot()};
+    })();
+    try{return await accountRefresh;}finally{accountRefresh=null;}
+  }
+  function snapshot(){if(child?.stdin?.writable&&Date.now()-lastAccountAt>3000&&(login?.state==='pending'||session.snapshot().account.connected))void account().catch(()=>{});return {...session.snapshot(),login:login?.state==='pending'?{state:'pending',userCode:login.userCode}:null};}
+  async function preferences(input,beforeSave=()=>{}){
+    const a=await account();if(!a.connected)throw fault('codex_chatgpt_sign_in_required',409);
+    await refreshMetadata(true);beforeSave();return session.select(input);
+  }
+  async function workSelection(){
+    // Keep existing CLI default compatibility until the owner chooses a
+    // model. Every exposed picker value is validated against the live catalog.
+    const selected=session.selection();
+    if(selected.unavailable)throw fault('codex_model_or_effort_unavailable',409);
+    return selected;
   }
   async function beginLogin(){
-    await start();
+    const current=await account();
+    if(current.connected)return {state:'connected',connected:true};
     if(login?.state==='pending')return {state:'pending',verificationUrl:login.verificationUrl,userCode:login.userCode};
     const result=await rpc('account/login/start',{type:'chatgptDeviceCode'},30000);
     if(!result||!result.loginId||!result.verificationUrl||!result.userCode)
@@ -225,33 +272,43 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
     await start();
     if(login?.state==='pending')await cancelLogin();
     await rpc('account/logout',undefined,12000);
-    login=null;
+    generation++;metadataAt=0;login=null;session.updateAccount(null);
     return {signedOut:true};
+  }
+  async function performTurn(threadId,text,choice,ms){
+    let resolve,reject;
+    const finished=new Promise((yes,no)=>{resolve=yes;reject=no;});
+    finished.catch(()=>{});
+    const timer=setTimeout(()=>{if(currentTurn===state)stop('codex_turn_timeout');},ms);timer.unref?.();
+    const state={threadId,turnId:null,output:'',earlyCompletion:null,
+      resolve:r=>{clearTimeout(timer);resolve(r);},reject:e=>{clearTimeout(timer);reject(e);}};
+    currentTurn=state;
+    try{
+      const result=await rpc('turn/start',{threadId,...(choice.model?{model:choice.model}:{}),
+        ...(choice.reasoningEffort?{effort:choice.reasoningEffort}:{}),input:[{type:'text',text}]},20000);
+      state.turnId=result?.turn?.id;
+      if(!state.turnId)throw fault('codex_turn_start_failed',502);
+      if(state.earlyCompletion)emit({method:'turn/completed',params:state.earlyCompletion});
+      return await finished;
+    }catch(error){if(currentTurn===state)currentTurn=null;state.reject(error);throw error;}
   }
   async function runReadOnly({tasks=[]}={}){
     if(currentTurn)throw fault('codex_observer_busy',409);
     if(!Array.isArray(tasks)||tasks.length>20)throw fault('codex_task_limit_exceeded');
     const a=await account();
     if(!a.connected||a.authMode==='apiKey')throw fault('codex_chatgpt_sign_in_required',409);
+    const choice=await workSelection();
     const isolated=path.join(home,'observer-workspace');
     privateFolder(isolated);
-    const started=await rpc('thread/start',{cwd:isolated,
+    const started=await rpc('thread/start',{...(choice.model?{model:choice.model}:{}),cwd:isolated,
       approvalPolicy:'never',sandbox:'read-only',ephemeral:true},20000);
     const threadId=started?.thread?.id;
     if(!threadId)throw fault('codex_thread_start_failed',502);
+    session.trackThread(threadId,choice);
     const safeTasks=tasks.map(t=>({title:String(t.title||'').slice(0,240),
       state:String(t.state||'').slice(0,24)}));
     const text='Light Remote Gold owner-authorized observer TEST. Do not execute tools, read files or run commands. Review task states and return one brief next step (80 words maximum):\n'+JSON.stringify(safeTasks);
-    const turn=await rpc('turn/start',{threadId,input:[{type:'text',text}]},20000);
-    const turnId=turn?.turn?.id;
-    if(!turnId)throw fault('codex_turn_start_failed',502);
-    return new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>{
-        if(currentTurn?.turnId===turnId){currentTurn=null;reject(fault('codex_turn_timeout',504));}
-      },60000);timer.unref?.();
-      currentTurn={turnId,output:'',resolve:r=>{clearTimeout(timer);resolve(r);},
-        reject:e=>{clearTimeout(timer);reject(e);}};
-    });
+    return performTurn(threadId,text,choice,60000);
   }
   async function runDelegated({taskTitle,goal,workspace,round=1,maxRounds=2,previous=[]}={}){
     if(currentTurn)throw fault('codex_supervisor_busy',409);
@@ -260,11 +317,13 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
       throw fault('codex_supervisor_input_invalid');
     const a=await account();
     if(!a.connected||a.authMode==='apiKey')throw fault('codex_chatgpt_sign_in_required',409);
+    const choice=await workSelection();
     const cwd=fs.realpathSync(workspace);
-    const started=await rpc('thread/start',{cwd,
+    const started=await rpc('thread/start',{...(choice.model?{model:choice.model}:{}),cwd,
       approvalPolicy:'never',sandbox:'workspace-write',ephemeral:true},20000);
     const threadId=started?.thread?.id;
     if(!threadId)throw fault('codex_thread_start_failed',502);
+    session.trackThread(threadId,choice);
     const past=(Array.isArray(previous)?previous:[]).slice(0,2).map(v=>String(v.summary||'').slice(0,1500));
     const instructions=[
       'Light Remote Gold: OWNER-DELEGATED BOUNDED CODING TASK.',
@@ -279,16 +338,7 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
       'WAIT_OWNER means missing owner decision, blocked tooling or uncertain result.',
       'DONE means suggest owner review; it never authorizes marking task done.'
     ].join('\n');
-    const turn=await rpc('turn/start',{threadId,input:[{type:'text',text:instructions}]},20000);
-    const turnId=turn?.turn?.id;
-    if(!turnId)throw fault('codex_turn_start_failed',502);
-    return new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>{
-        if(currentTurn?.turnId===turnId)stop('codex_supervisor_turn_timeout');
-      },120000);timer.unref?.();
-      currentTurn={turnId,output:'',resolve:x=>{clearTimeout(timer);resolve(x);},
-        reject:e=>{clearTimeout(timer);reject(e);}};
-    });
+    return performTurn(threadId,instructions,choice,120000);
   }
   async function runReviewReport({planTitle,step,report,evidence,last=false,upcoming=null}={}){
     if(currentTurn)throw fault('codex_review_busy',409);
@@ -297,12 +347,14 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
       throw fault('codex_review_payload_invalid',400);
     const user=await account();
     if(!user.connected||user.authMode==='apiKey')throw fault('codex_chatgpt_sign_in_required',409);
+    const choice=await workSelection();
     const isolated=path.join(home,'observer-workspace');
     privateFolder(isolated);
-    const started=await rpc('thread/start',{cwd:isolated,approvalPolicy:'never',
+    const started=await rpc('thread/start',{...(choice.model?{model:choice.model}:{}),cwd:isolated,approvalPolicy:'never',
       sandbox:'read-only',ephemeral:true},20000);
     const threadId=started?.thread?.id;
     if(!threadId)throw fault('codex_review_thread_failed',502);
+    session.trackThread(threadId,choice);
     const instruction=[
       'Light Remote Gold: REVIEW AN AGENT WORK REPORT, DO NOT PERFORM THE WORK.',
       'You are the independent next-step gate between short tasks.',
@@ -324,17 +376,8 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
       evidence.slice(0,4000),
       'END UNTRUSTED EVIDENCE'
     ].join('\n');
-    const startedTurn=await rpc('turn/start',{threadId,input:[{type:'text',text:instruction}]},20000);
-    const turnId=startedTurn?.turn?.id;
-    if(!turnId)throw fault('codex_review_turn_failed',502);
-    return new Promise((resolve,reject)=>{
-      const timer=setTimeout(()=>{
-        if(currentTurn?.turnId===turnId)stop('codex_review_timeout');
-      },90000);
-      timer.unref?.();
-      currentTurn={turnId,output:'',resolve:v=>{clearTimeout(timer);resolve(v);},
-        reject:e=>{clearTimeout(timer);reject(e);}};
-    });
+    return performTurn(threadId,instruction,choice,90000);
   }
-  return {account,beginLogin,cancelLogin,logout,runReadOnly,runDelegated,runReviewReport,stop};
+  const guarded=fn=>async input=>{if(working)throw fault('codex_run_already_in_progress',409);working=true;try{return await fn(input);}finally{working=false;}};
+  return {account,snapshot,preferences,beginLogin,cancelLogin,logout,runReadOnly:guarded(runReadOnly),runDelegated:guarded(runDelegated),runReviewReport:guarded(runReviewReport),stop};
 }

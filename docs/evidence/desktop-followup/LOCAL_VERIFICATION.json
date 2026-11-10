@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "candidateVersion": "0.10.1-dev.5",
+  "sourceStatus": "LOCAL_IMPLEMENTATION_BEFORE_ATOMIC_COMMIT",
+  "sourceBase": "3a57d9afc761cfbf6e977cf9ee2d54195faedc4b",
+  "scope": "Synthetic isolated tests; no Owner installation change or complete physical acceptance",
+  "react": {
+    "fullSuitePassed": 125,
+    "testFilesPassed": 25,
+    "latestLocalFullSuite": "PASS",
+    "exactSourceActions": "PENDING"
+  },
+  "backendAndContracts": {
+    "selectedNodeTestsPassed": 48,
+    "codexRpc": "PASS device login, already-connected login, runtime model/effort forwarding, duplicate usage notices, fast completion in start response chunk, revoked-before-save guard"
+  },
+  "browser": {
+    "entryUnavailable": 30,
+    "populatedAndDialogs": 140,
+    "wallActualServerScenarioGroups": [
+      "Codex selectable/copy code, automatic connected cleanup, catalog/effort preferences and reported usage",
+      "SSE advances past200; bounded moving view; oldest retained job, new arrival during history and return-to-live",
+      "COMMAND/DANGER badges remain on their own first row at four widths, including multiline SSE updates",
+      "PTY producer grid, bottom-right ANSI output, transcript, close/reopen/minimize, replacement session and narrow containment"
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "cssWidths": [
+      390,
+      768,
+      853,
+      1024,
+      1280,
+      1440
+    ],
+    "dpi": [
+      1,
+      1.5
+    ]
+  },
+  "history": {
+    "pageAcrossGzipRestartRamExpiry": "PASS1800 retained events",
+    "liveBrowserBeyond200": "PASS360 new jobs; oldest retained job reachable; moving window bounded",
+    "pageMaxEvents": 1000,
+    "pageMaxBytes": 1048576,
+    "diskRetention": "existing owner-selected activity log preset"
+  },
+  "localWindowsConptyHarness": {
+    "result": "PASS",
+    "scope": "new JS source + existing installed Node22/node-pty, isolated shell and fake Owner HTTP server",
+    "checks": [
+      "real-packaged-conpty",
+      "powershell-ended-with-verified-exit-evidence",
+      "owner-only-http-read",
+      "producer-grid120x32",
+      "executed-output-not-input-echo",
+      "unicode-output",
+      "monotonic-byte-offset-eof"
+    ],
+    "exitEvidence": "onExit",
+    "exitCode": 0,
+    "unknownExitNeverInventedAsZero": true
+  },
+  "nativeClose": "async source implemented; delayed-work Rust unit and real installed Close/reopen3 cycles ACTIONS_PENDING",
+  "onePrimaryExe": "LightRemote.exe; layout unchanged",
+  "publicReleaseOrFeed": false,
+  "ownerInstallationChanged": false,
+  "completePhysicalAcceptance": false,
+  "nativeArtifact": "NOT_BUILT_YET"
+}

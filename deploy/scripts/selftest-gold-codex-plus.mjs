@@ -12,7 +12,7 @@ import {startLocalWall} from '../../device-agent/local-wall.mjs';
 class FakeCodex extends EventEmitter {
   constructor(){
     super();this.stdout=new PassThrough();this.stderr=new PassThrough();this.killed=false;
-    this.auth=false;this.received=[];this._buffer='';
+    this.auth=false;this.threadCount=0;this.received=[];this._buffer='';
     this.stdin=new Writable({write:(chunk,enc,done)=>{
       this._buffer+=chunk.toString('utf8');
       let i;while((i=this._buffer.indexOf('\n'))>=0){
@@ -34,23 +34,29 @@ class FakeCodex extends EventEmitter {
         break;
       case 'account/login/cancel':result={};break;
       case 'account/logout':this.auth=false;result={};break;
+      case 'model/list':result={data:[{model:'fixture-codex',displayName:'Fixture Codex',isDefault:true,defaultReasoningEffort:'medium',supportedReasoningEfforts:[{reasoningEffort:'medium',description:'Balanced fixture'},{reasoningEffort:'high',description:'Deep fixture'}]}],nextCursor:null};break;
+      case 'account/rateLimits/read':result={rateLimits:{limitId:'codex',primary:{usedPercent:25,windowDurationMins:300,resetsAt:1900000000}}};break;
+      case 'account/usage/read':result={summary:{lifetimeTokens:120},dailyUsageBuckets:[]};break;
       case 'thread/start':
         assert.ok(['read-only','workspace-write'].includes(req.params.sandbox));
         assert.equal(req.params.approvalPolicy,'never');
         assert.equal(req.params.ephemeral,true);
-        result={thread:{id:'thread-123'}};break;
+        result={thread:{id:'thread-'+(++this.threadCount)}};break;
       case 'turn/start':
         assert.deepEqual(req.params.input[0].type,'text');
         result={turn:{id:'turn-123'}};break;
       default:throw Error('unexpected fake RPC:'+req.method);
     }
     this.stdout.write(JSON.stringify({id:req.id,result})+'\n');
-    if(req.method==='turn/start')setTimeout(()=>{
+    if(req.method==='turn/start'){const finish=()=>{
       this.stdout.write(JSON.stringify({method:'item/agentMessage/delta',
         params:{delta:this.received.at(-1)?.params?.input?.[0]?.text?.includes('OWNER-DELEGATED')?'Test file changed.\nRECOMMENDATION: CONTINUE':'Safe observer result'}})+'\n');
+      const total={totalTokens:26,inputTokens:20,cachedInputTokens:4,outputTokens:6,reasoningOutputTokens:2};
+      const usage={method:'thread/tokenUsage/updated',params:{threadId:req.params.threadId,turnId:'turn-123',tokenUsage:{total,last:total}}};
+      this.stdout.write(JSON.stringify(usage)+'\n');this.stdout.write(JSON.stringify(usage)+'\n');
       this.stdout.write(JSON.stringify({method:'turn/completed',
         params:{turn:{id:'turn-123',status:'completed'}}})+'\n');
-    },8);
+    };if(this.fast)finish();else setTimeout(finish,8);}
   }
   kill(){this.killed=true;this.emit('exit',0);}
 }
@@ -89,9 +95,20 @@ try {
   assert.equal(logged.authMode,'chatgpt');
   assert.equal(logged.plan,'plus');
   assert.equal(logged.billing,'chatgpt_plan');
+  await client.preferences({model:'fixture-codex',reasoningEffort:'high'});
+  assert.equal(client.snapshot().quota.buckets[0].primary.usedPercent,25);
+  assert.equal(client.snapshot().accountUsage.lifetimeTokens,120);
   const observed=await client.runReadOnly({tasks:[{title:'Check Gold',state:'todo'}]});
   assert.equal(observed.completed,true);
   assert.equal(observed.summary,'Safe observer result');
+  assert.equal(client.snapshot().usage.total.totalTokens,26,'duplicate cumulative notices are not added twice');
+  assert.ok(fake.received.some(x=>x.method==='turn/start'&&x.params.model==='fixture-codex'&&x.params.effort==='high'));
+  assert.equal((await client.beginLogin()).connected,true,'verified account must not start a second login');
+  fake.fast=true;
+  const fast=await client.runReadOnly({tasks:[]});assert.equal(fast.completed,true,'completion in the start response chunk must not hang');
+  assert.equal(client.snapshot().usage.total.totalTokens,52);
+  await assert.rejects(client.preferences({model:'fixture-codex',reasoningEffort:'medium'},()=>{throw Error('owner_changed');}),/owner_changed/);
+  assert.equal(client.snapshot().selection.reasoningEffort,'high');
   const delegated=await client.runDelegated({workspace:dir,taskTitle:'Sample',
     goal:'Change one file inside this workspace',round:1,maxRounds:2});
   assert.equal(delegated.completed,true);

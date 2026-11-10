@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "configRevision": 2,
+  "configRevision": 3,
   "selectedProfile": "goldabv2-lab",
   "profiles": {
     "goldabv2-lab": {
@@ -124,6 +124,21 @@
       "method": "GET",
       "path": "/settings",
       "fragment": "activityLogSettings"
+    },
+    "wallCodexStatus": {
+      "originRole": "local.wall",
+      "method": "GET",
+      "path": "/api/gold/modules/codex-plus/status"
+    },
+    "wallCodexPreferences": {
+      "originRole": "local.wall",
+      "method": "POST",
+      "path": "/api/gold/modules/codex-plus/preferences"
+    },
+    "wallActivityHistory": {
+      "originRole": "local.wall",
+      "method": "GET",
+      "path": "/api/activity/logs/history"
     }
   },
   "releaseIntegrity": {

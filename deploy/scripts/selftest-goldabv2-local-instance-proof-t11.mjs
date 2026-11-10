@@ -14,7 +14,7 @@ import {loadCanonicalEndpoints} from '../../lib/canonical-endpoints.mjs';
 
 const root=fileURLToPath(new URL('../../config/endpoints.json',import.meta.url));
 const config=loadCanonicalEndpoints(root);
-assert.equal(config.configRevision,2);
+assert.equal(config.configRevision,3);
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'goldabv2-instance-proof-'));
 const keyFile=path.join(dir,'profile','wall-instance.key');
 let wall;

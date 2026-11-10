@@ -150,6 +150,30 @@
       "component": "device-agent/local-wall.mjs",
       "request": "Explicit desired state + expectedRevision CAS + Owner/CSRF",
       "response": "Persisted new state or 409; disabling Memory does not delete data"
+    },
+    "wallCodexStatus": {
+      "component": "device-agent/local-wall.mjs",
+      "request": [],
+      "response": "Sanitized ChatGPT-plan account, pending code, runtime catalog/selection, actual rate-limit windows and token usage; unavailable/stale remain explicit",
+      "authority": "Authenticated local Owner; mutation also requires current CSRF; no A/B grant inferred"
+    },
+    "wallCodexPreferences": {
+      "component": "device-agent/local-wall.mjs",
+      "request": [
+        "model",
+        "reasoningEffort"
+      ],
+      "response": "Validated available model/reasoning saved device-locally for subsequent actual turns; no work is started",
+      "authority": "Authenticated local Owner; mutation also requires current CSRF; no A/B grant inferred"
+    },
+    "wallActivityHistory": {
+      "component": "device-agent/local-wall.mjs",
+      "request": [
+        "before? (opaque event hash)",
+        "limit? (page size, max1000)"
+      ],
+      "response": "Retained local events, nextCursor, hasMore, explicit storage-preset coverage; moving UI window never limits total retained jobs",
+      "authority": "Authenticated local Owner; mutation also requires current CSRF; no A/B grant inferred"
     }
   },
   "nonClaims": [
@@ -190,6 +214,7 @@
         "codex.logout",
         "codex.account",
         "codex.observe",
+        "codex.preferences",
         "codex.delegate",
         "codex.pause",
         "sessions.close",
@@ -204,7 +229,7 @@
         "deviceId",
         "payload"
       ],
-      "response": "Bounded allowlisted local state or acknowledged operation; unknown outcome never retried automatically.",
+      "response": "Bounded allowlisted local state or acknowledged operation; unknown outcome never retried automatically. Codex read projects cached account/login, runtime model catalog/selection, reported quota and tokens. codex.preferences validates the current catalog and saves only model/reasoning identifiers; it does not start work.",
       "featureFlag": "LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4",
       "sourceStatus": "IMPLEMENTED_UI_BOUND_CANDIDATE_NOT_DEPLOYED",
       "nativeArguments": [

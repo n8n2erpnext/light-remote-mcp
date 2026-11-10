@@ -421,6 +421,8 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     supervisorPause(input={}){return supervisor().pause(input);},
     async supervisorTick(){if(!flags().codexBridge)return {ran:false,reason:'module_off'};return supervisor().tick();},
     async codexPlusStatus(){enabled('codexBridge');return plus.account();},
+    codexPlusView(){enabled('codexBridge');return plus.snapshot?.()||null;},
+    async codexPlusPreferences(input,guard=()=>{}){enabled('codexBridge');return plus.preferences(input,()=>{enabled('codexBridge');guard();});},
     async codexPlusLogin(){enabled('codexBridge');return plus.beginLogin();},
     async codexPlusCancel(){enabled('codexBridge');return plus.cancelLogin();},
     async codexPlusLogout(){enabled('codexBridge');return plus.logout();},

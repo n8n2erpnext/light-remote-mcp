@@ -13,6 +13,8 @@ mod owner_vault;
 #[cfg(feature = "desktop-owner-login")]
 mod owner_login;
 #[cfg(feature = "desktop-owner-login")]
+mod callback_page;
+#[cfg(feature = "desktop-owner-login")]
 mod owner_wall_ticket;
 #[cfg(feature = "desktop-owner-login")]
 mod owner_abv2;
@@ -36,8 +38,12 @@ fn exact_wall_view(view: &str) -> Result<&'static str, String> {
 }
 
 #[tauri::command]
-fn open_local_wall(view: &str) -> Result<(), String> {
-    let url = exact_wall_view(view)?;
+async fn open_local_wall(view: String) -> Result<(), String> {
+    let url = exact_wall_view(&view)?;
+    tauri::async_runtime::spawn_blocking(move||launch_local_wall(url)).await
+        .map_err(|_|"system_browser_unavailable".to_string())?
+}
+fn launch_local_wall(url: &str) -> Result<(), String> {
     // Exact literal URL only. No Owner credentials or MCP endpoint.
     #[cfg(target_os = "windows")]
     let result = std::process::Command::new("rundll32.exe")

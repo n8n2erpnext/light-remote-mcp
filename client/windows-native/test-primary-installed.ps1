@@ -21,6 +21,7 @@ if([IO.Path]::GetFullPath($link.TargetPath) -ne $exe){throw 'Start Menu shortcut
 Add-Type -TypeDefinition @'
 using System;using System.Runtime.InteropServices;
 public static class LRPrimaryWindow {
+ [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr window,uint message,IntPtr wParam,IntPtr lParam);
  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr window,int command);
  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr window);
 }
@@ -80,10 +81,28 @@ try{
     $open=Start-Core @()
     try{if(-not $open.WaitForExit(10000)){throw 'Shortcut relaunch singleton did not return'}}finally{if(-not $open.HasExited){$open.Kill($true)};$open.Dispose()}
     if(-not [LRPrimaryWindow]::IsWindowVisible($window)){throw 'Shortcut relaunch did not restore the existing native window'}
+    # Exercise the actual close event repeatedly while native status/Owner
+    # restore polling is active. It must hide the window, retain the same GUI
+    # PID and never stop the background Agent/session lifetime.
+    foreach($closeDelay in @(0,600,1200)){
+        Start-Sleep -Milliseconds $closeDelay
+        if(-not [LRPrimaryWindow]::PostMessage($window,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'Could not post native Close'}
+        $closeDeadline=[DateTime]::UtcNow.AddSeconds(3)
+        while([LRPrimaryWindow]::IsWindowVisible($window) -and [DateTime]::UtcNow -lt $closeDeadline){Start-Sleep -Milliseconds 50}
+        $gui.Refresh()
+        if($gui.HasExited -or [LRPrimaryWindow]::IsWindowVisible($window)){throw 'Native X failed to hide responsive Desktop'}
+        foreach($daemonId in $currentDaemon){if(-not (Get-Process -Id $daemonId -ErrorAction SilentlyContinue)){throw 'Closing Desktop stopped its background Agent'}}
+        $again=Start-Core @()
+        try{if(-not $again.WaitForExit(10000) -or $again.ExitCode -ne 0){throw 'Close/reopen singleton failed'}}finally{if(-not $again.HasExited){$again.Kill($true)};$again.Dispose()}
+        if(-not [LRPrimaryWindow]::IsWindowVisible($window)){throw 'Close/reopen failed to restore the same window'}
+    }
+    $conptyProof=Join-Path $PSScriptRoot '../../deploy/scripts/selftest-wall-conpty-roundtrip.mjs'
+    & $node $conptyProof --install-root $root --evidence (Join-Path $EvidenceDir 'real-conpty-wall.json')
+    if($LASTEXITCODE -ne 0){throw 'Real packaged ConPTY to Local Wall output proof failed'}
     [ordered]@{result='PASS';sourceCommit=$env:GITHUB_SHA;ciRunId=$env:GITHUB_RUN_ID
         checks=@('one-primary-layout','same-native-exe-task','same-native-exe-autostart-shortcut','private-clr-loaded-in-gui-with-global-dotnet-disabled',
         'background-preserves-hidden-window','agent-only-restart-preserves-gui-and-hidden-state',
-        'old-daemon-exit-new-wall-health','explicit-start-is-idempotent-preserves-running-agent','shortcut-restores-existing-window')
+        'old-daemon-exit-new-wall-health','explicit-start-is-idempotent-preserves-running-agent','shortcut-restores-existing-window','native-close-reopen-three-cycles-retains-agent','real-conpty-local-wall-output')
         physicalOwnerAcceptance=$false}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath (Join-Path $EvidenceDir 'installed-lifecycle.json') -Encoding utf8NoBOM
     Write-Host 'WINDOWS_PRIMARY_INSTALLED_GUI_AGENT_RESTART=PASS'
 }finally{

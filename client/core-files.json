@@ -548,6 +548,26 @@
     {
       "source": "project.manifest.json",
       "destination": "project.manifest.json"
+    },
+    {
+      "source": "device-agent/gold-codex-session-view.mjs",
+      "destination": "device-agent/gold-codex-session-view.mjs"
+    },
+    {
+      "source": "device-agent/wall-codex-controls.mjs",
+      "destination": "device-agent/wall-codex-controls.mjs"
+    },
+    {
+      "source": "device-agent/activity-history-reader.mjs",
+      "destination": "device-agent/activity-history-reader.mjs"
+    },
+    {
+      "source": "device-agent/wall-history-controls.mjs",
+      "destination": "device-agent/wall-history-controls.mjs"
+    },
+    {
+      "source": "device-agent/wall-pty-reader.mjs",
+      "destination": "device-agent/wall-pty-reader.mjs"
     }
   ]
 }

@@ -1,3 +1,5 @@
+import {brandMarkSvg} from '../lib/brand.mjs';
+import {WEB_FONT_FACE_CSS,WEB_UI_FONT,WEB_CODE_FONT} from '../lib/web-typography.mjs';
 /**
  * T04b9c3c — browser-only, same-origin Owner-initiated Wall SSO challenge.
  * This page never receives Owner access/refresh, a ticket, Device identity,
@@ -10,13 +12,13 @@ export const WALL_SSO_BROWSER_PAGE_V4='/auth/desktop/sso/browser';
 export const WALL_SSO_BROWSER_SCRIPT_V4='/auth/desktop/sso/browser/app.js';
 export const WALL_SSO_BROWSER_CSP_V4=
   "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; "+
-  "connect-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'";
+  "font-src 'self'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'";
 export function desktopWallSsoBrowserPageV4(){
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Light Remote · Desktop Wall sign-in</title>
 <style>
-:root{color-scheme:dark;font-family:system-ui,Arial,sans-serif;
+${WEB_FONT_FACE_CSS}:root{color-scheme:dark;font-family:${WEB_UI_FONT};
  background:#080a0c;color:#dce3eb}body{margin:0;min-height:100vh;
  display:grid;place-items:center;padding:16px;box-sizing:border-box}
 main{width:min(440px,100%);background:#0a0e12;border:1px solid #29333f;
@@ -28,19 +30,19 @@ button,a{font:inherit;border:1px solid #3c546c;border-radius:8px;
  padding:11px 15px;background:#132131;color:#eef3f9;cursor:pointer}
 button{width:100%;margin-top:14px}button:disabled{opacity:.5;cursor:not-allowed}
 a{display:inline-block;text-decoration:none;background:transparent;margin-top:16px}
-#code{display:block;text-align:center;font:700 32px ui-monospace,monospace;
+#code{display:block;text-align:center;font:700 32px ${WEB_CODE_FONT};
  letter-spacing:.18em;padding:16px 0;border:1px solid #344a63;
  border-radius:8px;user-select:all;overflow-wrap:anywhere}
 #code[hidden],#pending[hidden]{display:none}
 #message{min-height:24px}strong{color:#e6edf4}
 </style><script defer src="/auth/desktop/sso/browser/app.js"></script>
 </head><body><main>
-<div class="brand">LIGHT REMOTE · LOCAL WALL</div>
-<h1>Sign in with Desktop V4</h1>
-<p>Start a request here, then enter the matching code in your already-signed-in Desktop V4 app and confirm. This does not approve any Agent A/B access.</p>
+<div class="brand" style="display:flex;align-items:center;gap:12px">${brandMarkSvg(44)}<span>Light Remote · Local Wall</span></div>
+<h1>Sign in with Desktop</h1>
+<p>Start a request here, then enter the matching code in your already-signed-in Desktop app and confirm. This does not approve any Agent A/B access.</p>
 <button id="begin" type="button">Generate verification code</button>
 <div id="pending" hidden>
-  <p>Enter this code <strong>exactly as shown</strong> in Desktop V4:</p>
+  <p>Enter this code <strong>exactly as shown</strong> in Desktop:</p>
   <output id="code" aria-label="Wall sign-in verification code"></output>
   <p>Valid for 60 seconds. Keep this browser tab open until Desktop confirms.</p>
 </div>
@@ -103,7 +105,7 @@ button.addEventListener('click',async()=>{
     expiresAt=value.expiresAt;started=true;active=true;
     code.textContent=value.challenge.slice(0,8);
     container.hidden=false;
-    message.textContent='Open Desktop V4 and approve this exact code.';
+    message.textContent='Open Desktop and approve this exact code.';
     window.setTimeout(poll,1200);
   }catch{
     active=false;button.disabled=false;

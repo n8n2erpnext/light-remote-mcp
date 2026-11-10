@@ -115,7 +115,7 @@ pub(crate) fn config_revision()->Result<u64,String>{Ok(profile()?.revision)}
 mod tests{
     use super::*;
     #[test] fn routes_are_from_canonical_json_and_hold_not_legacy(){
-        assert_eq!(config_revision().unwrap(),2);
+        assert_eq!(config_revision().unwrap(),3);
         assert_eq!(local_port("wall").unwrap(),5491);
         assert_eq!(route("wallStatus").unwrap(),"http://127.0.0.1:5491/api/status");
         assert!(route("ownerAuthorize").unwrap().ends_with("/account/desktop/v4/authorize"));

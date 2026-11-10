@@ -50,3 +50,7 @@ Fixed source: an Owner inventory/activity could briefly render previous Owner ro
 ## Read pinned migration bridge assets through bounded authenticated GitHub API intake
 
 CI38 attempt1/2 failed at an external GitHub release download504 before the migration fixture began; builds/installed GUI restart had passed. This is recorded as overall CI FAIL, never accepted. Bounded asset API intake replaces the failing browser endpoint, and the next full exact-source run must still prove every migration assertion.
+
+## Fix Codex state usage Wall history PTY and responsive Desktop lifecycle
+
+Dev.5 installed-feedback fixes are IMPLEMENTED_LOCAL_VERIFIED, native Actions/installer/Owner physical retest pending. The new history UI pages retained logs and keeps a moving view; disk retention remains finite and intentional, not a200-job ceiling or immutable audit. Previous logs already rotated/cleaned cannot be reconstructed. Full app-server models/usage and actual installed PTY/Close need Owner retest on the exact new installer; unavailable quota is never replaced with guessed0. Existing positive browser Wall SSO and full Mac/Linux installers remain out of this claim.

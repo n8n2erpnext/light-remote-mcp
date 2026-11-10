@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@font-face{font-family:"Cascadia Code";src:url("../../../assets/fonts/web/CascadiaCode.ttf") format("truetype");font-weight:200 700;font-display:swap}
 @font-face {
   font-family:"Light Remote Google Sans";
   src:url("../../../assets/fonts/web/GoogleSans-Variable.ttf") format("truetype");
@@ -2485,3 +2486,13 @@ progress::-webkit-progress-value {
     animation-duration:0s!important
   }
 }
+
+/* Codex metadata: selectable one-time codes and runtime-provided controls. */
+.codex-copy-code{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.codex-copy-code input{font:600 22px/1.4 'Cascadia Code',monospace;letter-spacing:.08em;user-select:text;-webkit-user-select:text;width:14em;max-width:100%;padding:12px 14px;background:var(--surface);color:inherit;border:1px solid var(--border,#e5e8ed);border-radius:10px}
+.codex-preferences{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:20px;margin:10px 0 16px}
+.codex-preferences label{display:grid;gap:9px;min-width:0}.codex-preferences select{width:100%;min-width:0}
+.codex-usage-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px}.codex-usage-grid section{min-width:0}.codex-usage-grid h3{font-size:17px;margin:0 0 18px}
+.codex-quota{padding:14px 0;border-bottom:1px solid var(--border,#e5e8ed)}.codex-quota-label{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;margin:12px 0 5px}
+.codex-quota progress{width:100%;height:7px;accent-color:#b79b00}.codex-quota small{display:block;margin:7px 0}
+@media(max-width:800px){.codex-usage-grid,.codex-preferences{grid-template-columns:minmax(0,1fr)}}

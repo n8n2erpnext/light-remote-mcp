@@ -67,6 +67,23 @@ describe('Desktop module controls backed by native Agent state',()=>{
   expect(invoke.mock.calls.map(c=>c[1].action)).toEqual(['device.read','codex.read']);
   expect((screen.getByRole('button',{name:'Sign in to Codex'}) as HTMLButtonElement).disabled).toBe(true);
  });
+ it('removes an outstanding sign-in code on the next verified account snapshot without a manual check',async()=>{
+  let connected=false;
+  invoke=vi.fn(async(_command:string,args:{action:string})=>({ok:true,accountId:'owner',deviceId:'device',view:{asOf:100,
+   modules:{longMemory:false,codexBridge:true,revision:1},
+   ...(args.action==='device.read'?{device:{deviceName:'Fixture PC',policy:{effectiveCapabilities:[],deniedCapabilities:[]}}}:{}),
+   ...(args.action==='codex.read'?{codex:{tasks:[],delegations:[],recommendation:null,runtime:{state:'installed',installed:true,installing:false},operation:null,
+    session:{account:{state:'ready',connected,plan:connected?'plus':null},login:{state:'pending',userCode:'CODE-TEST'},catalog:{state:'not_checked',models:[]},selection:{},quota:{state:'not_checked'},accountUsage:{state:'not_checked'},usage:{state:'not_reported'}}}}:{})}}));
+  Object.assign(window,{__TAURI_INTERNALS__:{invoke}});
+  const view=render(<CodexBridgeScreen accountId="owner"/>);
+  expect((await screen.findByRole('textbox',{name:'Codex sign-in code'}) as HTMLInputElement).value).toBe('CODE-TEST');
+  connected=true;fireEvent(document,new CustomEvent('lightremote:refresh'));
+  await screen.findByRole('button',{name:'Signed in'});
+  expect(screen.queryByRole('textbox',{name:'Codex sign-in code'})).toBeNull();
+  expect(invoke.mock.calls.every(c=>['device.read','codex.read'].includes(c[1].action))).toBe(true);
+  view.rerender(<CodexBridgeScreen accountId={null}/>);
+  expect(screen.queryByText('Connected · plus')).toBeNull();
+ });
  it('cancels a pending destructive confirmation when the verified Owner changes',async()=>{
   const view=render(<LongMemoryScreen accountId="owner"/>);await screen.findByText('Project receipt');
   fireEvent.click(screen.getByText('Manage project'));

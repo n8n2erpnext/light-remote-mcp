@@ -1,3 +1,4 @@
+import {AUTH_PRESENTATION} from '../lib/auth-presentation-assets.mjs';
 /**
  * Desktop Owner V4 authorization code consent ? source-only, feature flagged.
  * No access/refresh tokens are created here. This does NOT authorize an
@@ -209,9 +210,9 @@ export function createDesktopOwnerAuthorization({
     const callbackOrigin = new URL(intent.redirectUri).origin;
     // Only the exact vetted loopback origin is included in form-action CSP,
     // following Chrome behavior for 303 after POST, not a wildcard localhost.
-    const csp = "default-src 'none'; style-src 'unsafe-inline'; form-action 'self' " +
+    const csp = "default-src 'none'; font-src 'self'; style-src 'unsafe-inline'; form-action 'self' " +
       callbackOrigin + "; frame-ancestors 'none'; base-uri 'none'";
-    const html=desktopConsentPage({csrf,formAction:'/account/desktop/v4/authorize'});
+    const html=desktopConsentPage({csrf,formAction:'/account/desktop/v4/authorize',presentation:AUTH_PRESENTATION});
     return {html,csp};
   }
   async function getConsent(req,res) {

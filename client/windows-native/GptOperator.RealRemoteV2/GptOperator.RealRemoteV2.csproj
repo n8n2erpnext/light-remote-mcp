@@ -14,7 +14,7 @@
     <Description>Light Remote Real Remote companion</Description>
     <Company>Light Remote</Company>
     <ApplicationIcon>Assets\light-remote-rm.ico</ApplicationIcon>
-    <Version>0.10.1-dev.4</Version>
+    <Version>0.10.1-dev.5</Version>
     <FileVersion>0.10.1.0</FileVersion>
     <AssemblyVersion>0.10.1.0</AssemblyVersion>
     <PublishSingleFile>true</PublishSingleFile>

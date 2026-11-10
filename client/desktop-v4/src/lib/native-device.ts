@@ -1,3 +1,4 @@
+import {projectCodexSession,type CodexSession} from './codex-session';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {startScopedReadPoller,type ScopedReadPoller} from './scoped-read-poller';
 
@@ -6,7 +7,7 @@ export type DeviceAction=DeviceSection|'device.connect'|'device.disconnect'|'mod
  'memory.restore'|'memory.delete-local'|'memory.delete-account'|'memory.sync-policy'|'memory.sync-manual'|
  'codex.task-create'|'codex.task-edit'|'codex.task-state'|'codex.task-delete'|'codex.runtime-install'|
  'codex.runtime-remove'|'codex.login'|'codex.login-cancel'|'codex.logout'|'codex.account'|'codex.observe'|
- 'codex.delegate'|'codex.pause'|'sessions.close'|'jobs.cancel'|'logs.configure'|'logs.clean';
+ 'codex.preferences'|'codex.delegate'|'codex.pause'|'sessions.close'|'jobs.cancel'|'logs.configure'|'logs.clean';
 type Modules=Readonly<{longMemory:boolean;codexBridge:boolean;revision:number}>;
 export type LocalDevice=Readonly<{deviceName:string|null;cloudDesiredConnected:boolean;cloudState:string|null;
  version:string|null;platform:string|null;executorReady:boolean|null;policy:{profile:string|null;revision:number|null;effectiveCapabilities:string[];deniedCapabilities:string[]}}>;
@@ -18,7 +19,7 @@ export type SyncPolicy=Readonly<{enabled:boolean;revision:number;devices:Readonl
 export type MemoryView=Readonly<{localFileBytes:number|null;liveBytes:number|null;checkpointBytes:number|null;coverage:Coverage|null;
  lastConfirmedSyncAt:number|null;scopes:ReadonlyArray<MemoryScope>;sync:{state:'ready'|'unavailable';currentDeviceId?:string;devices?:ReadonlyArray<SyncDevice>;policy?:SyncPolicy}}>;
 export type CodexTask=Readonly<{id:string;title:string;state:string;createdAt:number|null;changedAt:number}>;
-export type CodexView=Readonly<{tasks:ReadonlyArray<CodexTask>;recommendation:string|null;coverage:Coverage|null;
+export type CodexView=Readonly<{session:CodexSession|null;tasks:ReadonlyArray<CodexTask>;recommendation:string|null;coverage:Coverage|null;
  runtime:{state:string|null;installed:boolean;externalAvailable:boolean;installing:boolean;lastError:string|null};
  operation:{state:string;error:string|null}|null;delegations:ReadonlyArray<{taskId:string;state:string;decision:string|null;maxRounds:number|null;rounds:number|null}>}>;
 export type DeviceView=Readonly<{asOf:number|null;modules:Modules|null;device:LocalDevice|null;memory:MemoryView|null;
@@ -99,7 +100,7 @@ export function projectDeviceReply(input:unknown,accountId:string,deviceId:strin
    const x=object(value);return x&&id(x.taskId)?[{taskId:x.taskId,state:string(x.state,40)||'unknown',
     decision:string(x.decision,50),maxRounds:count(x.maxRounds),rounds:count(x.rounds)}]:[];
   });
-  codex={tasks,recommendation:string(c.recommendation,50),coverage:coverage(c.coverage),runtime:{state:string(rt.state,40),installed:rt.installed===true,
+  codex={session:projectCodexSession(c.session),tasks,recommendation:string(c.recommendation,50),coverage:coverage(c.coverage),runtime:{state:string(rt.state,40),installed:rt.installed===true,
    externalAvailable:rt.externalAvailable===true,installing:rt.installing===true,lastError:string(rt.lastError,160)},
    operation:op?{state:string(op.state,40)||'unknown',error:string(op.error,160)}:null,delegations};
  }
@@ -164,7 +165,7 @@ export function useNativeDevice(section:DeviceSection,accountId:string|null){
    }
    return nativeDeviceRequest(section,accountId,binding.current);
   };
-  const task=startScopedReadPoller({intervalMs:15000,task:read,healthy:x=>x.state==='ready',unavailable:()=>closed(),
+  const task=startScopedReadPoller({intervalMs:section==='codex.read'?3000:15000,task:read,healthy:x=>x.state==='ready',unavailable:()=>closed(),
    apply:value=>{if(epoch.current===generation){if(value.state!=='ready')binding.current=null;setResult(value);}}});
   poller.current=task;
   const refreshAll=()=>task.refreshNow();document.addEventListener('lightremote:refresh',refreshAll);

@@ -318,14 +318,7 @@ fn validate_callback(target:&str, state:&str) -> Result<String,String> {
     if !token_ok(&code) || error.is_some(){return Err("owner_callback_invalid".into());}
     Ok(code)
 }
-fn respond(mut client:TcpStream, ok:bool) {
-    let msg=if ok { "Return to Light Remote Desktop. Sign-in result received." }
-        else { "This sign-in request was not accepted. Return to Light Remote Desktop." };
-    let response=format!(
-        "HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nX-Content-Type-Options: nosniff\r\nContent-Security-Policy: default-src 'none'; frame-ancestors 'none'\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
-        msg.len(),msg);
-    let _=client.write_all(response.as_bytes());
-}
+fn respond(client:TcpStream, ok:bool) { crate::callback_page::respond(client,ok); }
 fn capture(listener:TcpListener, state:&str, port:u16) -> Result<String,String> {
     listener.set_nonblocking(true).map_err(|_|"owner_callback_unavailable")?;
     let deadline=Instant::now()+Duration::from_secs(120);
@@ -361,11 +354,14 @@ fn capture(listener:TcpListener, state:&str, port:u16) -> Result<String,String> 
                 }
                 let target=first.strip_prefix("GET ").unwrap_or("")
                     .strip_suffix(" HTTP/1.1").unwrap_or("");
+                if target==crate::callback_page::FONT_PATH {
+                    crate::callback_page::font(client);continue;
+                }
                 let outcome=validate_callback(target,state);
                 respond(client,outcome.is_ok());
                 match outcome {
-                    Ok(code)=>return Ok(code),
-                    Err(error) if error=="owner_consent_denied"=>return Err(error),
+                    Ok(code)=>{crate::callback_page::finish_assets(listener,port);return Ok(code);},
+                    Err(error) if error=="owner_consent_denied"=>{crate::callback_page::finish_assets(listener,port);return Err(error);},
                     Err(_)=>continue
                 }
             }
@@ -377,8 +373,16 @@ fn capture(listener:TcpListener, state:&str, port:u16) -> Result<String,String> 
     Err("owner_callback_expired".into())
 }
 
+async fn owner_work<T:Send+'static>(work:impl FnOnce()->Result<T,String>+Send+'static)->Result<T,String>{
+    tauri::async_runtime::spawn_blocking(work).await.map_err(|_|"owner_state_unavailable".to_string())?
+}
+
 #[tauri::command]
-pub(crate) fn desktop_owner_begin(state:State<'_,OwnerRuntime>) -> Result<OwnerView,String> {
+pub(crate) async fn desktop_owner_begin(state:State<'_,OwnerRuntime>) -> Result<OwnerView,String> {
+    let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
+    owner_work(move||begin_owner(&runtime)).await
+}
+fn begin_owner(state:&OwnerRuntime) -> Result<OwnerView,String> {
     let listener=TcpListener::bind("127.0.0.1:0")
         .map_err(|_|"owner_callback_unavailable")?;
     let port=listener.local_addr().map_err(|_|"owner_callback_unavailable")?.port();
@@ -509,14 +513,22 @@ pub(crate) async fn desktop_owner_status(state:State<'_,OwnerRuntime>) -> Result
         .await.map_err(|_|"owner_state_unavailable".to_string())?
 }
 #[tauri::command]
-pub(crate) fn desktop_owner_restore(state:State<'_,OwnerRuntime>) -> Result<OwnerView,String> {
+pub(crate) async fn desktop_owner_restore(state:State<'_,OwnerRuntime>) -> Result<OwnerView,String> {
+    let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
+    owner_work(move||restore_owner(&runtime)).await
+}
+fn restore_owner(state:&OwnerRuntime) -> Result<OwnerView,String> {
     let generation=state.transition("restoring")?;
     let runtime=OwnerRuntime { inner:Arc::clone(&state.inner) };
     thread::spawn(move||runtime.finish(generation,refresh_from_vault()));
     state.view()
 }
 #[tauri::command]
-pub(crate) fn desktop_owner_logout(state:State<'_,OwnerRuntime>) -> Result<OwnerView,String> {
+pub(crate) async fn desktop_owner_logout(state:State<'_,OwnerRuntime>) -> Result<OwnerView,String> {
+    let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
+    owner_work(move||logout_owner(&runtime)).await
+}
+fn logout_owner(state:&OwnerRuntime) -> Result<OwnerView,String> {
     let access={
         let mut s=state.inner.lock().map_err(|_|"owner_state_unavailable")?;
         s.generation=s.generation.wrapping_add(1);
@@ -874,7 +886,7 @@ pub(crate) async fn desktop_owner_device_request(
     if !runtime.wall_snapshot_current_after_verification(&snap).await{
         return Err("desktop_device_outcome_unknown".into());
     }
-    if opens_codex{crate::owner_device::open_codex_verification(&result)?;}
+    if opens_codex&&result["view"]["connected"]!=serde_json::Value::Bool(true){crate::owner_device::open_codex_verification(&result)?;}
     Ok(result)
 }
 
@@ -1336,4 +1348,21 @@ mod tests {
         assert_eq!(later.view().unwrap().phase,"verified");
         assert!(later.inner.lock().unwrap().status_inflight);
     }
+}
+
+#[cfg(test)] mod auth_ui_liveness_tests {
+ use super::*;
+ #[test] fn pending_vault_or_mutex_does_not_block_async_window_dispatch(){
+  let (send,receive)=std::sync::mpsc::channel();
+  let release=thread::spawn(move||{thread::sleep(Duration::from_millis(250));let _=send.send(());});
+  let runtime=tokio::runtime::Builder::new_current_thread().enable_time().build().unwrap();
+  runtime.block_on(async{
+   let started=Instant::now();
+   let mut pending=Box::pin(owner_work(move||{receive.recv().unwrap();Ok::<_,String>(())}));
+   assert!(tokio::time::timeout(Duration::from_millis(25),pending.as_mut()).await.is_err());
+   assert!(started.elapsed()<Duration::from_millis(150),"UI timer was blocked by native work");
+   pending.await.unwrap();
+  });
+  release.join().unwrap();
+ }
 }

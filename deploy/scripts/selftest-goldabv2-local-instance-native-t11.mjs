@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const read=p=>fs.readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 const config=JSON.parse(read('config/endpoints.json'));
 assert.equal(config.schemaVersion,1);
-assert.equal(config.configRevision,2);
+assert.equal(config.configRevision,3);
 assert.deepEqual(config.routeCatalog.wallInstanceProof,{
  originRole:'local.wall',method:'GET',path:'/api/local-instance/proof'
 });
