@@ -237,3 +237,8 @@ All nine Desktop routes and login/link/confirm/consent now use task-oriented use
 - Rebuilt `README.md` and `README.en.md` with the archived public README's product layout, replacing Vercel bridge/RC26 setup with the confirmed direct HTTPS MCP Plugin -> private Unix Operator -> enrolled Agent architecture.
 - Grounded in `mcp.json`, `plugin-server/server.mjs`, `plugin-server/operator-client.mjs`, `ARCHITECTURE.md`, `config/endpoints.json`, current desktop source and dev.4 acceptance. Describes A/B V2, Fleet, PTY/ConPTY, Real Remote V2, one-primary Windows EXE, proper release limitations and Owner-controlled branch/commit governance.
 - Local README diff/relative links PASS. Pre-change `work` source `ee7c1ab` and protected `main` `c8d308c`; annotated recovery tag `checkpoint/20261110-before-direct-readme-ee7c1ab`. This is documentation only: no app rebuild, runtime/DB changes or physical Owner acceptance; new signed public feed remains HOLD. Pending CI/promotion until explicitly verified.
+
+## 2026-11-10 — Direct MCP README promoted to protected main
+- Receipt: 20261110-direct-readme-main-closure
+- README pair commit `0e4015e` reached both official `work` and protected `main` via normal fast-forward after [run42747025126](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42747025126) succeeded. `truth` and `baseline-required` PASS; native jobs skipped for docs-only change.
+- Source, internal dev.4 CI45 and independent Operator/Plugin/Agent runtime remain unchanged. This closure entry records verified publication and exact scope; physical Owner acceptance/public signed feed remain pending/HOLD.

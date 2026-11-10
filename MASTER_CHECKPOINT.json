@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T03:04:21.780Z",
+  "updatedAt": "2026-11-10T03:07:07.045Z",
   "version": "0.10.1-dev.4",
   "phase": "DESKTOP_USER_EXPERIENCE_INTERNAL_CANDIDATE_ACCEPTED",
   "status": "DESKTOP_UX_IMPLEMENTED_CI45_PASS_INTERNAL_ARTIFACT_VERIFIED_LAB_DEPLOYED",
@@ -363,11 +363,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-direct-mcp-readme-refresh",
-    "status": "DOCS_REWRITTEN_LOCAL_VERIFIED_CI_PENDING",
-    "summary": "Rewrite README.md and README.en.md to archive-style public product documentation grounded in current 0.10.1-dev.4 unified source, direct HTTPS MCP Plugin/Operator over Unix socket, no Vercel bridge dependency, correct one-primary Windows app, A/B V2, Fleet/PTY/Real Remote and precise internal-only build limitations. No executable/runtime/SQL/Owner machine changes.",
-    "verification": "Read main and work refs, mcp.json, plugin-server/server.mjs, operator-client.mjs, ARCHITECTURE.md, Code Map, endpoint catalog, Feature Status, Known Issues, installed-candidate CI45, and archived README. Local git diff --check and local relative Markdown link verification PASS. Existing pinned source947a117 CI45 9/9 remains historical evidence for compiled dev.4; this README commit has not rebuilt native artifacts and has no physical Owner acceptance.",
-    "nextAction": "Finish same-commit truth/docs/staged gate checks; commit/push on work; verify baseline-required and fast-forward to protected main only after success, with no production or feed promotion.",
+    "taskId": "20261110-direct-readme-main-closure",
+    "status": "README_DIRECT_MCP_PUBLISHED_MAIN_CI_PASS_DOCS_CLOSEOUT",
+    "summary": "Both README.md and README.en.md were rewritten from current source to archive-style product docs without old Vercel bridge/RC26 instructions, including direct HTTPS MCP Plugin to private Operator, exact Agent/A-B V2, current Windows dev.4 one-primary executable and scoped release status. Documentation-only commit 0e4015e was pushed on work, GitHub CI 42747025126 baseline-required PASS and non-forced fast-forward published the same commit to protected main. This is the final closure receipt, no product code/runtime change.",
+    "verification": "README source 0e4015ea4dc99c90998694618dc2a866aba049e2 GitHub work/main confirmed equal; CI42747025126 workflow SUCCESS, truth/changes/baseline-required PASS; native jobs skipped for docs-only commit. Local UNIFIED_PROJECT_TRUTH PASS, UNIFIED_PROJECT_BOOK PASS 393 links/12 route checks, atomic commit-sync PASS and diff --check PASS. Exact compiled dev.4 source947a117/CI45 remains unaffected; Owner physical acceptance pending, public release/feed HOLD.",
+    "nextAction": "Owner physical verification of exact internal 0.10.1-dev.4 installer; no production or feed promotion. Keep future work on permanent work with atomic checkpoint receipts; this closure commit must also pass truth/baseline-required and be fast-forwarded to main.",
     "sourceDigest": "98fd17c91f46f5be46e931427c46e25b1043d2e830ae260cb90f3af705d7134f",
     "sourceFileCount": 1646
   },
