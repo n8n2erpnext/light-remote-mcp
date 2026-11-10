@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "302c662dcae3e5bdee096f5722d0cdd80a642667",
+  "ciRunId": 42856334137,
+  "ciRunNumber": 71,
+  "result": "PASS",
+  "jobs": 9,
+  "uiArtifactId": 13783997596,
+  "uiZipSha256": "c3b9088b88c3380fda0bdeb965b05dea8847323f6f04db41d894b071b44e3b99",
+  "font": "Google Sans",
+  "screens": {
+    "install": {
+      "result": "PASS",
+      "sourceCommit": "302c662dcae3e5bdee096f5722d0cdd80a642667",
+      "mode": "Install",
+      "views": [
+        {
+          "view": "01-welcome",
+          "title": "Your AI workspace,",
+          "secondTitle": "on this PC.",
+          "secondTitleInkPixels": 112,
+          "cardPixels": 6868,
+          "font": "Google Sans",
+          "dpi": 96,
+          "width": 816,
+          "height": 599,
+          "brandPixels": 1420,
+          "rendered": true
+        },
+        {
+          "view": "02-installing",
+          "title": "Making room for",
+          "secondTitle": "what's next.",
+          "secondTitleInkPixels": 133,
+          "cardPixels": 6648,
+          "font": "Google Sans",
+          "dpi": 96,
+          "width": 816,
+          "height": 599,
+          "brandPixels": 856,
+          "rendered": true
+        },
+        {
+          "view": "03-ready",
+          "title": "Ready when",
+          "secondTitle": "you are.",
+          "secondTitleInkPixels": 87,
+          "cardPixels": 8974,
+          "font": "Google Sans",
+          "dpi": 96,
+          "width": 816,
+          "height": 599,
+          "brandPixels": 1420,
+          "rendered": true
+        }
+      ],
+      "physicalOwnerAcceptance": false,
+      "publicRelease": false
+    },
+    "uninstall": {
+      "result": "PASS",
+      "sourceCommit": "302c662dcae3e5bdee096f5722d0cdd80a642667",
+      "mode": "Uninstall",
+      "views": [
+        {
+          "view": "04-uninstall-confirm",
+          "title": "Remove the app.",
+          "secondTitle": "Keep your work.",
+          "secondTitleInkPixels": 185,
+          "cardPixels": 8941,
+          "font": "Google Sans",
+          "dpi": 96,
+          "width": 816,
+          "height": 599,
+          "brandPixels": 846,
+          "rendered": true
+        },
+        {
+          "view": "05-removing",
+          "title": "Leaving things",
+          "secondTitle": "in good order.",
+          "secondTitleInkPixels": 150,
+          "cardPixels": 6425,
+          "font": "Google Sans",
+          "dpi": 96,
+          "width": 816,
+          "height": 599,
+          "brandPixels": 846,
+          "rendered": true
+        },
+        {
+          "view": "06-removed",
+          "title": "is uninstalled.",
+          "secondTitle": "is uninstalled.",
+          "secondTitleInkPixels": 155,
+          "cardPixels": 8974,
+          "font": "Google Sans",
+          "dpi": 96,
+          "width": 816,
+          "height": 599,
+          "brandPixels": 1410,
+          "rendered": true
+        }
+      ],
+      "physicalOwnerAcceptance": false,
+      "publicRelease": false
+    }
+  },
+  "scope": "Actual Windows setup/uninstall, six native views, private font, real controls, screenshot card/title ink and data preservation. CI71 also passed lifecycle/ConPTY/migration/watchdog.",
+  "finalSourceCommit": "0397d87114d51944f4918a68889e90bc9b6cc483",
+  "finalSourceNativeBuild": "DEFERRED_BY_OWNER",
+  "finalSourceDifference": "Heading allocation102px and bottom ink margin assertion; not native tested.",
+  "physicalOwnerAcceptance": false,
+  "publicReleaseOrFeed": false
+}

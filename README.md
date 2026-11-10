@@ -273,3 +273,7 @@ Backend Lab đã được cập nhật riêng sang dev5; bộ cài không tự t
 ## License
 
 Apache-2.0 — [LICENSE](LICENSE), [NOTICE](NOTICE), [THIRD_PARTY_DISTRIBUTION_NOTICES.md](THIRD_PARTY_DISTRIBUTION_NOTICES.md).
+
+## Record Owner stop-build instruction and next native acceptance checklist
+
+Owner instruction (2026-11-11): **fix source only; do not build now**. Final implementation source0397d871 is published on permanent work. CI72 cancellation requested. CI71 source302c662 is a separate full9/9 PASS baseline with six native views; the final heading102px/margin correction is not native tested. Resume with one exact-source build/test only when Owner asks. [Native baseline/evidence](docs/evidence/distribution-redesign/CI71_NATIVE_UI.json). Lab remains verifieddev5; Owner self-install and dev6 deployment pending.

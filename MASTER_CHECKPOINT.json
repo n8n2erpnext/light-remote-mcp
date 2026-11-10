@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T17:01:01.223Z",
+  "updatedAt": "2026-11-10T17:04:48.969Z",
   "version": "0.10.1-dev.6",
-  "phase": "DISTRIBUTION_V3_DEV6_NATIVE_IMPLEMENTED",
-  "status": "IMPLEMENTED_NATIVE_CI_PENDING",
+  "phase": "SOURCE_FIXED_OWNER_DEFERRED_BUILD_TEST",
+  "status": "SOURCE_FIXED_BUILD_TEST_DEFERRED_BY_OWNER",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -359,7 +359,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow full exact-source Actions; resolve compile/real Windows UI failures, verify internal dev6 installer and native evidence independently, synchronize Lab from accepted source if necessary, then canonical docs/handoff with Owner physical test pending.",
+  "nextAction": "Wait for Owner instruction to build. Then build/test the exact new GitHub work source once: all six native views/Google Sans/title bottom margins, DPI/keyboard, five tray states/reduced motion, fresh/upgrade/quiet uninstall/data preservation, X/Agent/ConPTY and real rollback/watchdog. Independently verify artifact source/tree/SHA/manifests; only then synchronize Lab through isolated verified runtime with backups/rollback. Owner self-installs/tests; no public release/feed.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -450,11 +450,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-native-heading-descender-margin",
-    "status": "CI71_FULL_PASS_HEADING_MARGIN_FINAL_CANDIDATE",
-    "summary": "CI71 source302c662 completed successfully9/9 including all six native views/font/card/title-ink, lifecycle and real migration/watchdog recovery. A final pixel read showed descender ink in some second headings at the last label row. Increase total heading allocation92→102px, ending exactly at the body start, and require an actual bottom ink margin in native screenshots. No font/wording/flow/transaction changes.",
-    "verification": "CI71 API explicitly completed/success with9 successful jobs. Native UI artifact13783997596 has install/uninstall summaries PASS and all six Google Sans views. Reviewed all six PNGs; portable PNG pixel decode confirms affected heading ink reaches row238, label bottom239. This small allocation correction is verified by a stricter screenshot margin assertion in a new exact-source full run; physical Owner acceptance remains pending.",
-    "nextAction": "Follow full exact-source Actions; resolve compile/real Windows UI failures, verify internal dev6 installer and native evidence independently, synchronize Lab from accepted source if necessary, then canonical docs/handoff with Owner physical test pending.",
+    "taskId": "20261111-owner-defer-build-test",
+    "status": "SOURCE_FIXED_BUILD_TEST_DEFERRED_BY_OWNER",
+    "summary": "Owner explicitly requested fix-only, no further build, and note everything for the next combined build/test. All requested native source/design fixes are published through0397d871. CI72 cancellation requested; no final installer accepted/delivered, no dev6 Lab deployment. CI71 source302c662 remains a separate verified9/9 baseline with six native UI views. Final heading102px/margin correction has no native acceptance yet.",
+    "verification": "ARM permanent work HEAD and origin/work both0397d871, clean; heading102px and margin assertion confirmed read-only. CI71 API completed/success9/9 and UI artifact13783997596 six-view summaries independently downloaded/digested and visually reviewed. CI72 cancel requested per Owner; its final conclusion will be checked. Only mandatory documentation/checkpoint gates are run for this receipt; no native build/test or installer execution.",
+    "nextAction": "Wait for Owner instruction to build. Then build/test the exact new GitHub work source once: all six native views/Google Sans/title bottom margins, DPI/keyboard, five tray states/reduced motion, fresh/upgrade/quiet uninstall/data preservation, X/Agent/ConPTY and real rollback/watchdog. Independently verify artifact source/tree/SHA/manifests; only then synchronize Lab through isolated verified runtime with backups/rollback. Owner self-installs/tests; no public release/feed.",
     "sourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "sourceFileCount": 1672
   },
@@ -1191,7 +1191,7 @@
     "reason": "Owner requested docs/checkpoint/handoff, then self-download/install/test; no promotion in this closeout"
   },
   "distributionRedesign": {
-    "status": "NEW_DESIGN_NATIVE_IMPLEMENTED_CI_PENDING",
+    "status": "SOURCE_FIXED_BUILD_TEST_DEFERRED_BY_OWNER",
     "preChange": {
       "sourceCommit": "0c1a153ecb6a8c67b987e753e520381730f56a43",
       "sourceTree": "d9335bc82c5a9ec22089373911186d3f98030839",
@@ -1257,7 +1257,7 @@
     },
     "plannedCandidateVersion": "0.10.1-dev.6",
     "ownerScreenshot": "dev5 Agent and one LightRemote.exe observed; not blanket physical acceptance",
-    "newNativeBuild": "CI71_FULL_PASS_FINAL_HEADING_MARGIN_CANDIDATE",
+    "newNativeBuild": "NOT_ACCEPTED_FINAL_HEADING_FIX_BUILD_DEFERRED_BY_OWNER",
     "publicReleaseOrFeed": false,
     "tray": {
       "projection": "native VisualFor",
@@ -1302,6 +1302,28 @@
       "font": "Google Sans",
       "physicalOwnerAcceptance": false
     },
-    "finalVisualPolish": "heading label102px; bottom ink margin assertion; new full run pending"
+    "finalVisualPolish": "heading label102px; bottom ink margin assertion; new full run pending",
+    "finalImplementationSource": "0397d87114d51944f4918a68889e90bc9b6cc483",
+    "ownerInstruction": "fix đi đừng build note lại lần sau build test luôn",
+    "buildControl": {
+      "ownerRequestedNoFurtherBuild": true,
+      "cancelRequestedRunId": 42860544260,
+      "runNumber": 72,
+      "sourceCommit": "0397d87114d51944f4918a68889e90bc9b6cc483",
+      "cancelRequested": true,
+      "nativeBuildTestResumeRequiresOwnerInstruction": true
+    },
+    "nextBuildChecks": [
+      "exact GitHub source/tree/clean dependency lock",
+      "six actual native views; Google Sans; full title/descender bottom margin; card/logo",
+      "DPI100/150/200, keyboard Tab/Enter/Escape/X and native data choices",
+      "five actual tray states and reduced-motion-aware175ms transitions; no idle pulse",
+      "fresh/upgrade empty-only desktop-v4 cleanup; preserve unrelated files",
+      "actual Windows Apps Keep app/Uninstall/Close, quiet and VERYSILENT paths",
+      "one primary LightRemote.exe, private CLR, Agent restart/X3cycles/ConPTY",
+      "real bridge upgrade/reinstall and cross-layout rollback/native watchdog",
+      "independent local+ARM artifact SHA/source manifests, private-backed Lab sync after acceptance"
+    ],
+    "nativeUiEvidence": "docs/evidence/distribution-redesign/CI71_NATIVE_UI.json"
   }
 }

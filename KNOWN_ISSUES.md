@@ -63,3 +63,7 @@ Dev.5 installed-feedback fixes are IMPLEMENTED_LOCAL_VERIFIED, native Actions/in
 ## Implement fresh Moryqa Windows setup uninstall and five-state primary tray
 
 Dev6 Windows distribution is implemented but native compilation/UI artifact acceptance is pending. Actual Owner DPI/multiple monitor/keyboard/screen-reader behavior and state transition appearance need exact dev6 physical feedback after CI. Existing dev5 compiled evidence cannot certify new V3. Moryqa raw HTML/CSS vector placeholders are archived evidence; native setup uses canonical STOCK image assets.
+
+## Record Owner stop-build instruction and next native acceptance checklist
+
+Final source0397d871 heading102px/bottom-margin change has NOT been native built/tested because Owner requested stopping builds. CI71 prior source302c662 passed9/9 with six actual UI views; that does not certify the later source. Physical DPI150/200, keyboard/screen-reader usage and actual five-state tray transitions remain Owner/device acceptance tasks for the next build. Lab is stilldev5, so final dev6 version synchronization must wait for accepted build/artifact.

@@ -210,3 +210,7 @@ LightRemote.Wizard.iss LRText splits explicit title/body lines into accessible n
 ## Retain bottom margin for native Google Sans heading descenders
 
 LRView heading allocation is102px, retaining room below the second native Google Sans line; LRText first-line pitch remains46. test-distribution-ui.ps1 records secondTitleBottomMargin and blocks descender ink touching the label edge, using actual PrintWindow pixels. CI71 remains a verified full baseline; the final exact-source run is distinct.
+
+## Record Owner stop-build instruction and next native acceptance checklist
+
+Owner defers build/test after final source0397d871. Current native map remains tray_visual.rs/unified_tray.rs + VisualFor projection, exact Moryqa assets, LightRemote.Wizard.iss six-view native UI and safe empty-directory cleanup. The final102px title allocation and bottom-margin image assertion await native verification. UI baseline302c662/CI71 proof is retained separately in docs/evidence/distribution-redesign/CI71_NATIVE_UI.json. No final artifact/runtime acceptance is inferred.

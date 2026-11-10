@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 273 (228 Markdown, 45 JSON).
+Documents: 274 (228 Markdown, 46 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -32,6 +32,7 @@ Documents: 273 (228 Markdown, 45 JSON).
 | evidence | [docs/evidence/desktop-user-experience/LOCAL_VERIFICATION.json](../evidence/desktop-user-experience/LOCAL_VERIFICATION.json) | schemaVersion, candidateVersion, scope, react, consentAndToken, sourceAuthorityGuards, browser,  | 9a0227f9780c596c2294037b37bbee501404e28018f9ec5b35d5095eb41c936f |
 | evidence | [docs/evidence/desktop-user-experience/PRIMARY_EXE_MANIFEST.json](../evidence/desktop-user-experience/PRIMARY_EXE_MANIFEST.json) | installedLifecycle, layoutId, privateFrameworkBytes, physicalOwnerAcceptance, version, stagedByt | f83996150cd9bdbb2a10c693da4ae9629022b8cdd7504b220c6f0e82534744bb |
 | evidence | [docs/evidence/dev-integration.json](../evidence/dev-integration.json) | sourceCommit, apiContractVersion, layer, physicalAcceptance, checks, notVerified, result | 9729b9a21968de243f9e5daeb981801d7f772203386bf18639e9e6fa9c389b23 |
+| evidence | [docs/evidence/distribution-redesign/CI71_NATIVE_UI.json](../evidence/distribution-redesign/CI71_NATIVE_UI.json) | schemaVersion, sourceCommit, ciRunId, ciRunNumber, result, jobs, uiArtifactId, uiZipSha256, font | f4882421974e1ff81382e792eb4827a6c1b1f3b02c7cdf39e8dcb6af56eaf382 |
 | evidence | [docs/evidence/distribution-redesign/DEV5_LAB_DEPLOYMENT.json](../evidence/distribution-redesign/DEV5_LAB_DEPLOYMENT.json) | result, sourceCommit, sourceTree, version, databaseMigrated, dbArchiveIndexVerified, dbArchiveSh | 457141a6fe3284427db096172643e97ad50a37698258f988ca34f054e93c0b97 |
 | evidence | [docs/evidence/github-clone-verification.json](../evidence/github-clone-verification.json) | verifiedAt, repositoryId, repository, clonedFrom, candidateDirectory, sourceCommit, sourceTree,  | af2a38f771941bca97e3967fc080c216e588719ac7d2b9d0e6723b8bfbfa9b94 |
 | evidence | [docs/evidence/main-protection.json](../evidence/main-protection.json) | repositoryId, branch, requiredCheck, checkAppId, checkAppSlug, strict, enforceAdmins, allowForce | 8417d9a5415938472634c7ec2a93ea754751b998c122bc8f6933b367210b0d04 |

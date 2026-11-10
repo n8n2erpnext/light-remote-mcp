@@ -55,3 +55,7 @@ Current compiled candidate: CI #30 **9/9 PASS**, source `31f23393aacb89b6d541ceb
 ## Rebuild Desktop as a user workspace and fix populated approval and monitor layouts
 
 All nine Desktop routes, Auth entry, linking, typed confirmation and browser consent: IMPLEMENTED_LOCAL_VERIFIED, native CI/artifact pending. Source/UI trust boundaries retain prior functional APIs. No new physical acceptance inferred from synthetic screenshot QA.
+
+## Record Owner stop-build instruction and next native acceptance checklist
+
+Fresh Moryqa Windows V3, canonical STOCK logo, Google Sans Flex design/Google Sans native, actual five-state unified tray, gentle reduced-motion-aware transitions and empty-only desktop-v4 cleanup: SOURCE_IMPLEMENTED through0397d871. CI71 prior source302c662:9/9 PASS, six native views. Final heading-margin source: BUILD_TEST_DEFERRED_BY_OWNER. Dev6 deployed/Owner physical acceptance/public release remain false.

@@ -190,3 +190,7 @@ CI70 installed dev6 with three actual native views/font/progress/Finish and fres
 ## Retain bottom margin for native Google Sans heading descenders
 
 CI71 source302c662 is full9/9 PASS with six actual native views and real migration/watchdog. Final pixel inspection found a narrow bottom clipping boundary for Google Sans descenders. Heading allocation grows92→102px (body starts at218, so no overlap); a new native screenshot assertion requires bottom ink padding. Follow the new exact-source run before final dev6 artifact acceptance.
+
+## Record Owner stop-build instruction and next native acceptance checklist
+
+Owner explicitly deferred all further native builds/tests. Source/design/branding/tray/installer and empty-folder fixes are published through0397d871. CI72 cancel requested; no final dev6 artifact accepted and no dev6 runtime deployment. CI71 source302c662 full9/9 and six UI views remain historical baseline evidence, not acceptance of the later heading-margin fix. Next native acceptance is deferred until Owner instructs build/test.

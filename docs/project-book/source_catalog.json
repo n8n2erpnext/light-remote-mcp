@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 273,
+    "total": 274,
     "markdown": 228,
-    "json": 45
+    "json": 46
   },
   "files": [
     {
@@ -373,6 +373,27 @@
         "checks",
         "notVerified",
         "result"
+      ]
+    },
+    {
+      "path": "docs/evidence/distribution-redesign/CI71_NATIVE_UI.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3463,
+      "sha256": "f4882421974e1ff81382e792eb4827a6c1b1f3b02c7cdf39e8dcb6af56eaf382",
+      "topLevelKeys": [
+        "schemaVersion",
+        "sourceCommit",
+        "ciRunId",
+        "ciRunNumber",
+        "result",
+        "jobs",
+        "uiArtifactId",
+        "uiZipSha256",
+        "font",
+        "screens",
+        "scope",
+        "finalSourceCommit"
       ]
     },
     {

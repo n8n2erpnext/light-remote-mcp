@@ -179,3 +179,7 @@ CI70 UI artifact13781309625 confirms actual Google Sans and successful three-vie
 ## Retain bottom margin for native Google Sans heading descenders
 
 Verified CI71 completed/success9/9 and actual six native UI summaries. Final heading descender correction reserves102px for the two32px lines at y116; its bottom meets body y218. Native CI now requires at least3px bottom ink padding in the second heading. Font assets, content, API and installer/recovery transactions are unchanged. Physical Owner feedback remains pending.
+
+## Record Owner stop-build instruction and next native acceptance checklist
+
+**Owner stop-build instruction, 2026-11-11:** no native build/test, no installer execution or new Lab deployment now. Source0397d871 is fixed/published. CI72 cancel requested; final artifact is unaccepted. On resume run one full exact-source GitHub Actions candidate: six UI views/font/logo/card/title-bottom margin; DPI and keyboard; actual five tray states/reduced motion; fresh/upgrade/quiet uninstall/data preservation; primary GUI X3cycles and Agent restart; real ConPTY and bridge/native watchdog rollback. Then verify ZIP/installer SHA and exact source/tree manifests independently on local+ARM. Only accepted code may deploy in a new Lab runtime with private backups and old5 rollback. No public Release/feed or automatic Owner PC install. [CI71 evidence](docs/evidence/distribution-redesign/CI71_NATIVE_UI.json).
