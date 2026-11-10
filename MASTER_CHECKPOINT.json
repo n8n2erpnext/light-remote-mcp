@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T05:05:30.751Z",
+  "updatedAt": "2026-11-10T05:11:57.001Z",
   "version": "0.10.1-dev.5",
-  "phase": "CODEX_WALL_FOLLOWUP_NATIVE_INTEGRATION",
-  "status": "CODEX_WALL_FOLLOWUP_IMPLEMENTED_LOCAL_VERIFIED_NATIVE_CI_PENDING",
+  "phase": "codex-wall-followup-ci-fixtures",
+  "status": "CI_FIXTURES_REPAIRED_FULL_BUILD_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -272,7 +272,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Verify exact published source full Actions, repair real failures without bypass, independently verify internal installer/source/hash/manifests, update only same-source internal Lab consent backend with retained state/processes, then close canonical checkpoint/handoff and normally promote protected main.",
+  "nextAction": "Complete full Actions for this repaired source; investigate any remaining failures, verify internal installer hashes/manifests, then same-source Lab consent deployment and canonical final receipt.",
   "receiptNote": "Compiled source947a117/CI45/internal artifact are pinned independently from this documentation receipt. The receipt does not rebuild the installer. No new public Release/feed or Owner installation change. Source publication uses normal protected work-to-main fast-forward after checks.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -363,12 +363,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-codex-wall-followup-implementation",
-    "status": "IMPLEMENTED_LOCAL_VERIFIED_NATIVE_CI_PENDING",
-    "summary": "Implement all seven installed dev4 follow-ups in internal dev5: authoritative Codex completion/copy/catalog/effort/actual usage, canonical auth branding, short Agent labels, producer-grid PTY/replay/transcript and ConPTY drain, retained-history pagination beyond200, async native auth/browser work and consistent first-row command/risk badges.",
-    "verification": "Local backend/contracts48 PASS, Codex fake-RPC device auth/model-effort forwarding/duplicate tokens/fast completion/revoked-before-save PASS; full React125/125 across25 files PASS; browser30 entry +140 populated/dialog +4 actual-server Wall groups PASS; retained history1800 records across gzip/restart/RAM expiry; actual isolated Windows ConPTY/Wall HTTP executed Unicode/byte-offset proof PASS (latest real receipt onExit/code0; missing-onExit fallback independently covered without inventing exit code). Canonical endpoint/native deadline/scoped polling/one-app/import closure guards PASS. Source native compilation, delayed-work Rust test and installed Close3-cycle/native ConPTY CI are ACTIONS_PENDING.",
-    "nextAction": "Verify exact published source full Actions, repair real failures without bypass, independently verify internal installer/source/hash/manifests, update only same-source internal Lab consent backend with retained state/processes, then close canonical checkpoint/handoff and normally promote protected main.",
-    "sourceDigest": "40d0e368aa936b118ca6d35e09cbc639d1229293e7e9a2040599dc414c59eb02",
+    "taskId": "20261110-codex-wall-followup-ci-fixtures",
+    "status": "CI_FIXTURES_REPAIRED_FULL_BUILD_PENDING",
+    "summary": "CI57 exposed two stale expectations after intentional presentation/catalog changes: Desktop V4 copy and revision2 HMAC used with revision3. Update the SSO rendering assertion with canonical logo/font/CSP checks; retain explicit revision2 vectors and add revision3 plus revision-tamper checks in Node/Rust/.NET fixtures. Runtime proof validation and fail-closed security behavior are unchanged.",
+    "verification": "Local SSO HTTP tests10/10 PASS; current/previous-revision Node HMAC HTTP and native contract guards PASS. CI57 Node unit result283/284 and full source68/70 recorded as FAILED; Windows stopped before compilation at the same old vector. Native/full integration remains pending on repaired exact source.",
+    "nextAction": "Complete full Actions for this repaired source; investigate any remaining failures, verify internal installer hashes/manifests, then same-source Lab consent deployment and canonical final receipt.",
+    "sourceDigest": "806dbbb1f3f2024e7b59c7d845d6fe87534b6193b851bb4d0c12e7d057a2693e",
     "sourceFileCount": 1662
   },
   "legacyFilesystemCleanup": {
@@ -845,6 +845,16 @@
     },
     "onePrimaryExe": "LightRemote.exe",
     "runtimeChanged": false,
-    "publicReleaseOrFeed": false
+    "publicReleaseOrFeed": false,
+    "ciAttempts": [
+      {
+        "runId": 42759924065,
+        "runNumber": 57,
+        "sourceCommit": "25fc208b9f8cace90f1e96300b15609a43ea690f",
+        "result": "FAIL",
+        "failure": "Stale Desktop V4 presentation assertion and revision2 HMAC fixture applied to current revision3; repaired without weakening security validation."
+      }
+    ],
+    "nextGate": "Exact repaired source full nine-job CI and internal installer verification"
   }
 }

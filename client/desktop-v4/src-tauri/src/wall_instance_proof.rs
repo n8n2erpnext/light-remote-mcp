@@ -106,6 +106,11 @@ mod tests{
         let digest=mac(&key,input.as_bytes()).unwrap();
         assert_eq!(digest.len(),32);
         assert_eq!(to_hex(&digest),"f747cc842827747022d75f5a889c7a34e55db1deefd08e5a98b0757abe510329");
+        let current=format!("{}\n{}\n4242\n{}\n{}\n3",
+            DOMAIN,"aa".repeat(32),PRODUCT,PROFILE);
+        let revision3=mac(&key,current.as_bytes()).unwrap();
+        assert_eq!(to_hex(&revision3),"b4627b638a8321caafeeff101fc1acbd07e8d0b5c37bc7841d42041a9652ace0");
+        assert_ne!(revision3,digest);
         assert_ne!(mac(&key,b"tampered").unwrap(),digest);
         assert_eq!(from_hex(&to_hex(&digest)).unwrap(),digest);
         assert!(from_hex(&"fg".repeat(32)).is_none());

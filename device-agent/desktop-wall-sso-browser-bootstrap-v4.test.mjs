@@ -260,12 +260,16 @@ test('T04b9c3c local Wall renders challenge page only when native SSO opted in',
     const page=await fetch(x.base+'/auth/desktop/sso/browser');
     assert.equal(page.status,200);
     const html=await page.text();
-    assert.match(html,/Sign in with Desktop V4/);
+    assert.match(html,/<h1>Sign in with Desktop<\/h1>/);
+    assert.doesNotMatch(html,/Desktop V4/);
+    assert.match(html,/<svg/);
+    assert.match(html,/Google Sans/);
     assert.match(html,/app\.js/);
     assert.equal(html.includes(TICKET),false);
     assert.equal(html.includes(FAMILY),false);
     const csp=page.headers.get('content-security-policy');
     assert.match(csp,/script-src 'self'/);
+    assert.match(csp,/font-src 'self'/);
     assert.doesNotMatch(csp,/script-src[^;]*unsafe-inline/);
     const js=await fetch(x.base+'/auth/desktop/sso/browser/app.js');
     assert.equal(js.status,200);

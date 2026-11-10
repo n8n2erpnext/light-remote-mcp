@@ -56,6 +56,8 @@ assert.match(rust,/diff\|=supplied\[i\]\^expected\[i\]/);
 assert.match(rustMain,/wall_instance_proof::verify\(\)/);
 assert.match(routes,/"wallInstanceProof"/);
 assert.match(rust,/f747cc842827747022d75f5a889c7a34e55db1deefd08e5a98b0757abe510329/);
+assert.match(rust,/b4627b638a8321caafeeff101fc1acbd07e8d0b5c37bc7841d42041a9652ace0/);
+assert.match(program,/legacyVectorOk&&revisionTamperRejected/);
 assert.match(workflow,/cryptoVectorOk/);
 assert.match(workflow,/selftest-goldabv2-local-instance-proof-t11\.mjs/);
 console.log('T11_F08B_HMAC_LOCAL_WALL_NODE_NET_RUST_NATIVE_PROOF_CONTRACT=PASS');

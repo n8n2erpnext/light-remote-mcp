@@ -44,7 +44,12 @@ try{
   .update(wallInstanceMessage({nonce:'aa'.repeat(32),pid:4242,
    productId:config.productId,profile:config.selectedProfile,
    revision:config.configRevision})).digest('hex');
- assert.equal(vector,'f747cc842827747022d75f5a889c7a34e55db1deefd08e5a98b0757abe510329');
+ assert.equal(vector,'b4627b638a8321caafeeff101fc1acbd07e8d0b5c37bc7841d42041a9652ace0');
+ const priorVector=crypto.createHmac('sha256',Buffer.alloc(32,0x11))
+  .update(wallInstanceMessage({nonce:'aa'.repeat(32),pid:4242,
+   productId:config.productId,profile:config.selectedProfile,revision:2})).digest('hex');
+ assert.equal(priorVector,'f747cc842827747022d75f5a889c7a34e55db1deefd08e5a98b0757abe510329');
+ assert.notEqual(vector,priorVector,'proof binds the endpoint catalog revision');
  const expected=crypto.createHmac('sha256',loadOrCreateWallInstanceKey(keyFile))
    .update(wallInstanceMessage({nonce,pid:json.pid,productId:config.productId,
       profile:config.selectedProfile,revision:config.configRevision})).digest('hex');

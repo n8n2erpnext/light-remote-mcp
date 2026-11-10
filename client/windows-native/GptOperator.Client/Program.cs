@@ -130,8 +130,8 @@ internal static class Program
             }
             finally {unrelated.Stop();}
             // Vector is generated independently by the Node.js HMAC module:
-            // key=0x11*32, nonce=0xaa*32, pid=4242, revision=2.
-            const string vectorMac="f747cc842827747022d75f5a889c7a34e55db1deefd08e5a98b0757abe510329";
+            // key=0x11*32, nonce=0xaa*32, pid=4242, current revision=3.
+            const string vectorMac="b4627b638a8321caafeeff101fc1acbd07e8d0b5c37bc7841d42041a9652ace0";
             var vectorKey=Enumerable.Repeat((byte)0x11,32).ToArray();
             var vectorNonce=new string('a',64);
             var fixtureJson=JsonSerializer.Serialize(new {
@@ -140,6 +140,14 @@ internal static class Program
             });
             var cryptoVectorOk=LocalWallChallengeProof.VerifyPayload(
                 fixtureJson,vectorNonce,4242,vectorKey,config.ConfigRevision);
+            var legacyJson=JsonSerializer.Serialize(new {
+                ok=true,pid=4242,productId=config.ProductId,profile=config.SelectedProfile,
+                configRevision=2,mac="f747cc842827747022d75f5a889c7a34e55db1deefd08e5a98b0757abe510329"
+            });
+            var legacyVectorOk=LocalWallChallengeProof.VerifyPayload(
+                legacyJson,vectorNonce,4242,vectorKey,2);
+            var revisionTamperRejected=!LocalWallChallengeProof.VerifyPayload(
+                legacyJson,vectorNonce,4242,vectorKey,config.ConfigRevision);
             var nonceTamperRejected=!LocalWallChallengeProof.VerifyPayload(
                 fixtureJson,new string('b',64),4242,vectorKey,config.ConfigRevision);
             var pidTamperRejected=!LocalWallChallengeProof.VerifyPayload(
@@ -149,11 +157,11 @@ internal static class Program
                 vectorNonce,4242,vectorKey,config.ConfigRevision);
             var ok=wrongProductRejected&&correctProductAccepted&&exactNodePath&&
                 wrongNodePathRejected&&sawUnrelatedPort&&wrongListenerRejected&&
-                cryptoVectorOk&&nonceTamperRejected&&pidTamperRejected&&productTamperRejected;
+                cryptoVectorOk&&legacyVectorOk&&revisionTamperRejected&&nonceTamperRejected&&pidTamperRejected&&productTamperRejected;
             File.WriteAllText(output,JsonSerializer.Serialize(new {
                 ok,wrongProductRejected,correctProductAccepted,exactNodePath,
                 wrongNodePathRejected,sawUnrelatedPort,wrongListenerRejected,
-                cryptoVectorOk,nonceTamperRejected,pidTamperRejected,productTamperRejected
+                cryptoVectorOk,legacyVectorOk,revisionTamperRejected,nonceTamperRejected,pidTamperRejected,productTamperRejected
             }));
             return ok;
         }

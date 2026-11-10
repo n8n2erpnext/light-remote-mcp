@@ -154,3 +154,7 @@ Rebuild all Desktop screens, login/link/confirm and browser consent as task-orie
 ## Checkpoint Codex Wall and Desktop follow-up from installed dev4 feedback
 
 Owner installed dev.4 and reports six new follow-up groups; implementation is now in progress. See docs/plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md. Existing CI45 is scoped to its earlier tests and does not establish these regressions are resolved.
+
+## Align follow-up SSO branding and cross-language HMAC revision fixtures
+
+CI57 rejected stale presentation and HMAC-vector fixtures after the intentional removal of visible V4 and endpoint configuration revision3. Both expectations are repaired; explicit revision2 coverage is preserved and revision3/tamper vectors now match Node, Rust and .NET. This is not a native build PASS: complete exact-source Actions and internal artifact verification remain pending; Lab stays947a117/dev4.

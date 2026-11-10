@@ -121,3 +121,7 @@ Internal UX candidate0.10.1-dev.4 keeps one primary LightRemote.exe. Frontend pa
 ## Fix Codex state usage Wall history PTY and responsive Desktop lifecycle
 
 Candidate0.10.1-dev.5 remains internal-only and one-primary LightRemote.exe. Native builds occur only in Actions. Frontend visual workflow additionally runs real local Wall/SQLite/log/ANSI browser regression; synthetic fixtures are still absent from production bundle. Windows installed lifecycle posts actual Close3 times while polling, confirms same GUI/Agent PID, and uses the packaged Node/node-pty for an isolated real ConPTY->authenticated Wall HTTP executed-output proof. Rust delayed-work unit covers UI event timer liveness. New callback includes the same distribution SVG/CSS/font offline; no second EXE. Current old runtime947a117/dev4 must stay until final exact source CI/artifact proof and controlled internal Lab-only consent rollout.
+
+## Align follow-up SSO branding and cross-language HMAC revision fixtures
+
+Follow-up CI57 stopped at stale SSO heading and catalog revision-vector fixtures before Windows compilation. Revision2 and3 vectors plus tamper checks must pass across Node/Rust/.NET. Do not reuse the failed run or bypass any gate; rebuild exact repaired commit in Actions.
