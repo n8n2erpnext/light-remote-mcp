@@ -1,0 +1,27 @@
+{
+  "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+  "cycles": [
+    {
+      "cycle": 0,
+      "guiExited": false,
+      "windowVisible": false,
+      "uiResponsive": true,
+      "deadlineMs": 3000
+    },
+    {
+      "cycle": 1,
+      "guiExited": false,
+      "windowVisible": false,
+      "uiResponsive": true,
+      "deadlineMs": 3000
+    },
+    {
+      "cycle": 2,
+      "guiExited": false,
+      "windowVisible": false,
+      "uiResponsive": true,
+      "deadlineMs": 3000
+    }
+  ],
+  "physicalOwnerAcceptance": false
+}

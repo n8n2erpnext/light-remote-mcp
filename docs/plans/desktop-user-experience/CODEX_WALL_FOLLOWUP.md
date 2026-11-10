@@ -10,6 +10,7 @@ Owner installed internal dev.4 and reports six concrete regression/feature group
 4. Reproduce PTY output path end-to-end, including real Windows ConPTY command/ANSI/resize cases; preserve read-only observer. Do not classify the user's screenshot as fixed from a static source test.
 5. Replace silent 200-job deletion and 200-record disk-history cutoff with accessible retained-history pagination. Keep stream live beyond 200, bounded RAM/DOM and explicit disk retention. Verify older records, restart, pagination and live arrival while browsing history.
 6. Keep native window responsive to Close while login/vault/network/host work is pending. Closing hides Desktop; background Agent and sessions retain their independent lifetime.
+7. Keep command/risk labels on their own first row above multiline command bodies, including SSE updates and narrow widths.
 
 ## Inventory evidence
 
@@ -31,3 +32,19 @@ Official app-server protocol reference: https://learn.chatgpt.com/docs/app-serve
 All six groups and Owner's added label layout are implemented in dev.5 source. Local evidence is linked in Project Truth. The initial synthetic PTY success was not used to claim the physical report resolved: new coverage adds ANSI bottom-right120x32 output, replacement selection, replay, read-only transcript and a real isolated Windows ConPTY/HTTP proof. Windows can omit its native exit callback; retain unknown exit code and bounded PID evidence. A new unit proves final ConPTY bytes/onExit can drain after PID disappearance before the worker is disposed.
 
 Source boundaries: gold-codex-session-view + gold-codex-plus; both NativeModuleScreens/CodexControls and wall-codex-controls; activity-history-reader/local-activity-log/wall-history-controls; wall-pty-reader/native-terminal; native owner_login/callback_page and installed lifecycle. Catalog configRevision3 adds status/preferences/history relative routes without changing profile, issuer or credential authority. Keep existing A/B gates, default-OFF Wall SSO and public feed HOLD. The final installer, exact Actions source, backend consent deployment and Owner physical retest still need separate evidence.
+
+## Verified build and Owner self-test handoff — 2026-11-10
+
+Internal **0.10.1-dev.5**, one primary **LightRemote.exe**. Compiled source `8e0d932920d218c54f83989978f3866c321e20de`, tree `fec7d9f8a8242358daf44a13faf2735e18520e2b`. [CI64:9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868) · [internal installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868/artifacts/13758302838) · [acceptance/manifests](../../evidence/desktop-followup/ACCEPTANCE.json). Installer SHA256 `f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af`, bytes168947869. The delivered installer remains pinned to that compiled source; this documentation receipt has its own Git SHA.
+
+Lab Operator/Plugin and independent Agent/Wall/supervisor/mTLS remain on the existing947a117/dev4 baseline. No runtime cutover, SQL migration, Owner installation, public binary Release or update-feed promotion was performed. Remote Lab consent/login presentation still serves the old baseline; its dev5 source changes are CI-verified but not deployed. Main remains8ac6273; this work/documentation is published on permanent work pending later promotion.
+
+Owner requested docs/checkpoint/handoff and will download, install, test and report. Physical acceptance stays PENDING. Record results against the exact installer hash.
+
+1. Desktop + Wall Codex: copy/select the code, verify connected state clears pending login automatically, select actual runtime model/reasoning and check reported token/quota scope/freshness. Already-connected login must not open another flow. No live Owner inference was run by Codex.
+2. Check local login/callback branding and typography. Remote Lab consent remains dev4 until the separate backend deployment; do not classify that undeployed page as the new source.
+3. Verify short Agent label; request a fresh B and approve through the intended Desktop/Wall flow. Owner login alone does not grant Agent execution.
+4. With an Owner-approved harmless PTY command, verify output/Unicode/resize and reopen/replay/transcript/Copy. Viewer shows Device Agent PTYs, not Operator-side terminals.
+5. Check new activity continues past200, Older/Newer/Live and retained records after restart. Disk retention remains intentional; UI does not retain unlimited DOM/RAM.
+6. Repeat X → shortcut reopen at least three times, including pending login/refresh. GUI must hide/respond while Agent/session work survives; tray Quit is the explicit exit.
+7. Inspect COMMAND/DANGER/SYSTEM/FS WRITE labels above long scripts before/after live updates and at narrower widths.

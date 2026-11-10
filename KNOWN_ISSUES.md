@@ -1,5 +1,10 @@
 # Known issues and remaining verification
 
+Current dev5/source8e0d932: full CI64 PASS9/9 and internal installer verified on ARM and locally. Seven source groups have automated acceptance. Owner physical acceptance, new-source Lab deployment and protected-main promotion remain PENDING. Remote Lab consent presentation is still dev4. [Current evidence](docs/evidence/desktop-followup/ACCEPTANCE.json).
+
+## Historical candidates and prior evidence
+
+
 Current compiled source947a117/internal candidate0.10.1-dev.4: full CI45 PASS9/9, React121, consent/token36, browser170 and real private backend25 PASS. Internal Lab Operator/Plugin/consent deployed from the same source with unchanged data and independent processes. B overlap, table spacing and technical main-screen presentation now have verified source/renderer fixes across all screens. Owner physical acceptance of this UX remains pending; prior dev.3 was reported functional only.
 
 Local Memory/Codex reads still cap at100 with a visible partial notice. Task/session history is bounded and pageable, not an immutable audit archive. Account reads follow scoped polling; do not infer new grants or optimistic success from local UI state. Earlier dated sections are historical.

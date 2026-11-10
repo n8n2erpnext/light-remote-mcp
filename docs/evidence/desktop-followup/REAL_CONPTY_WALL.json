@@ -1,0 +1,17 @@
+{
+  "result": "PASS",
+  "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+  "checks": [
+    "real-packaged-conpty",
+    "powershell-ended-with-verified-exit-evidence",
+    "owner-only-http-read",
+    "producer-grid120x32",
+    "executed-output-not-input-echo",
+    "unicode-output",
+    "monotonic-byte-offset-eof"
+  ],
+  "outputBytes": 396,
+  "exitEvidence": "onExit",
+  "exitCode": 0,
+  "physicalOwnerAcceptance": false
+}

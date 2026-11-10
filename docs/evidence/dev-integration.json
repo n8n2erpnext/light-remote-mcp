@@ -1,5 +1,5 @@
 {
-  "sourceCommit": "c03b50f4328e07138f350532c31dfc8b260311ce",
+  "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
   "apiContractVersion": "light-remote.api.v1",
   "layer": "real-private-dev-integration",
   "physicalAcceptance": false,
@@ -101,6 +101,28 @@
       "statusCode": 200
     },
     {
+      "name": "real Wall B rejects missing CSRF, stale attempt and wrong B",
+      "status": "PASS",
+      "csrfStatus": 403,
+      "staleStatus": 409,
+      "wrongBStatus": 400
+    },
+    {
+      "name": "MCP OAuth request -> signed Agent Wall B -> durable PG grant -> MCP attach",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "independent Account B flow still commits a separate OAuth Agent grant",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
+      "name": "native Owner -> real same-device Agent IPC -> module CAS, SQLite Memory, Codex tasks and Settings",
+      "status": "PASS",
+      "statusCode": 200
+    },
+    {
       "name": "native refresh token rotates atomically",
       "status": "PASS",
       "statusCode": 200
@@ -114,10 +136,10 @@
   ],
   "notVerified": [
     "Windows native IPC/vault/tray on new artifact",
-    "Live signed B approval and remote command on new candidate",
     "Positive device-signed Wall SSO redemption/browser relay",
     "Reboot/rollback on Windows",
-    "macOS/Linux full installer"
+    "macOS/Linux full installer",
+    "Remote command dispatch on new candidate"
   ],
   "result": "PASS"
 }

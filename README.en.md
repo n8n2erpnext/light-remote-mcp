@@ -7,7 +7,7 @@
   <img alt="Protocol" src="https://img.shields.io/badge/MCP-Streamable%20HTTP-2563eb">
   <img alt="Access" src="https://img.shields.io/badge/Access-Short%20ID%20%2B%20A%2FB-059669">
   <img alt="Real Remote" src="https://img.shields.io/badge/Real%20Remote-V2-2563eb">
-  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.4-f59e0b">
+  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.5-f59e0b">
   <img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-555555">
 </p>
 
@@ -18,7 +18,7 @@
 - **ChatGPT plugin:** [Connect Light Remote in ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e)
 - **Source:** [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp)
 
-> **Build status:** Windows `0.10.1-dev.4` is an **internal testing candidate**, not a publicly published binary Release. Source implementation, CI passing, internal deployment and physical Owner acceptance are separate levels of evidence. See [Project status](#project-status).
+> **Build status:** Windows `0.10.1-dev.5` is an **internal testing candidate**, not a publicly published binary Release. Source implementation, CI passing, internal deployment and physical Owner acceptance are separate levels of evidence. See [Project status](#project-status).
 
 ## What makes Light Remote different?
 
@@ -216,7 +216,7 @@ Exact configuration syntax and OAuth support vary by client. Do not commit beare
 
 ## Updates and recovery
 
-Windows now packages one primary **`LightRemote.exe`**: Tauri/Rust owns GUI/tray and worker dispatch and hosts a fixed-path private WindowsHost/.NET component. Node, RM V2, private .NET libraries and updater/watchdog/recovery tools remain separate. Updates are designed around signed manifests, hash/size verification, health gates and rollback; the **dev.4 public signed feed has not been promoted**.
+Windows now packages one primary **`LightRemote.exe`**: Tauri/Rust owns GUI/tray and worker dispatch and hosts a fixed-path private WindowsHost/.NET component. Node, RM V2, private .NET libraries and updater/watchdog/recovery tools remain separate. Updates are designed around signed manifests, hash/size verification, health gates and rollback; the **dev.5 public signed feed has not been promoted**.
 
 Older incompatible helpers must take the [pinned compatibility bridge](config/windows-core-migration.json) before installing the one-primary layout. Do not republish signed manifests or use unverified upgrade artifacts.
 
@@ -247,18 +247,20 @@ npm test
 
 ## Project status
 
-| Component | Verified scope |
+| Component | Current status |
 | --- | --- |
-| Windows Desktop | Internal `0.10.1-dev.4`, one primary `LightRemote.exe`, Windows build/installer/migration/rollback tested in CI |
-| GitHub CI | [CI #45, 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851): React 121, consent/token 36, browser 170, backend checks 25 |
-| Internal Operator/Plugin Lab | Pinned source `947a117` has been tested/deployed in the private Lab |
-| Short ID / A/B | Current Agent-initiated Short ID and Owner B approval flow; grant required before control |
-| RM V2 / Fleet / PTY | Source/tool capabilities and scoped tests; exact physical/platform acceptance varies |
-| Physical Owner UAT for dev.4 | **Not yet accepted as PASS** |
-| Full current macOS/Linux installers | **Not verified built/released**; native source checks passed |
-| Public binary Release / signed dev.4 feed | **NOT PUBLISHED / HOLD** |
+| Windows Desktop | Internal `0.10.1-dev.5`, one primary `LightRemote.exe`; build/install/migration/watchdog PASS |
+| CI | [CI #64 — 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868); Node284, React125, browser170 + Wall4, backend25 |
+| Codex / Wall / PTY / native X / command labels | Implemented and automated tests PASS; physical Owner acceptance pending |
+| Operator/Plugin Lab | Preserved `947a117` / dev4; **dev5 not deployed**, remote consent still old |
+| Git | Source/handoff published on `work`; `main` remains `8ac6273`, promotion pending |
+| Physical Owner dev5 UAT | **Owner downloads/installs/tests and reports; PENDING** |
+| macOS/Linux installers | Native source tests PASS; full installers not established |
+| Public Release / signed feed | **NOT PUBLISHED / HOLD** |
 
-An automated test or source implementation is not a claim of universal physical acceptance. See [dev.4 acceptance evidence](docs/evidence/desktop-user-experience/ACCEPTANCE.json) and [Known Issues](KNOWN_ISSUES.md).
+Source `8e0d932920d218c54f83989978f3866c321e20de` · [internal installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868/artifacts/13758302838) · [evidence/SHA256](docs/evidence/desktop-followup/ACCEPTANCE.json) · [handoff](PROJECT_HANDOFF.md).
+
+Installing this candidate does not update the remote Lab backend. Runtime token/quota scope, unsupported/stale data and configured activity retention remain explicit.
 
 ## License
 

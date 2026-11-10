@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 264,
+    "total": 269,
     "markdown": 226,
-    "json": 38
+    "json": 43
   },
   "files": [
     {
@@ -136,6 +136,48 @@
       ]
     },
     {
+      "path": "docs/evidence/desktop-followup/ACCEPTANCE.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 8359,
+      "sha256": "001779d81975a5e976d46a6ede0359739d4ccbdc313439286def35f09340e6b4",
+      "topLevelKeys": [
+        "schemaVersion",
+        "candidateVersion",
+        "sourceCommit",
+        "sourceTree",
+        "audience",
+        "ci",
+        "artifact",
+        "verifiedOnArm",
+        "automated",
+        "scopeGroups",
+        "nativeClose",
+        "realPackagedConptyWall"
+      ]
+    },
+    {
+      "path": "docs/evidence/desktop-followup/BUILD_MANIFEST.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2495,
+      "sha256": "b0fb7919ae2023f7451f72de89e2d3bb32183d656a18ab4f600e0bea90b76cdb",
+      "topLevelKeys": [
+        "schemaVersion",
+        "project",
+        "projectVersion",
+        "repository",
+        "sourceCommit",
+        "sourceTree",
+        "buildTimestamp",
+        "ciRunId",
+        "ciRepository",
+        "platform",
+        "apiContractVersion",
+        "featureProfile"
+      ]
+    },
+    {
       "path": "docs/evidence/desktop-followup/LOCAL_VERIFICATION.json",
       "shelf": "evidence",
       "extension": "json",
@@ -154,6 +196,55 @@
         "localWindowsConptyHarness",
         "nativeClose",
         "onePrimaryExe"
+      ]
+    },
+    {
+      "path": "docs/evidence/desktop-followup/NATIVE_CLOSE.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 539,
+      "sha256": "872750ccd4f89da7bb3d4e3e6128a8e3a17492ffbbabd90c5a8d510af193411d",
+      "topLevelKeys": [
+        "sourceCommit",
+        "cycles",
+        "physicalOwnerAcceptance"
+      ]
+    },
+    {
+      "path": "docs/evidence/desktop-followup/PRIMARY_EXE_MANIFEST.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 4125,
+      "sha256": "bedf6e8c40bc39ad79cafce487da605805c2c0d76c5a87122f29d2bf9bd7cfd7",
+      "topLevelKeys": [
+        "physicalOwnerAcceptance",
+        "version",
+        "frameworkVersions",
+        "ciRunId",
+        "migration",
+        "executables",
+        "schemaVersion",
+        "publicFeedPromoted",
+        "stagedBytes",
+        "primaryExecutable",
+        "layoutId",
+        "privateFrameworkBytes"
+      ]
+    },
+    {
+      "path": "docs/evidence/desktop-followup/REAL_CONPTY_WALL.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 434,
+      "sha256": "0d4494ce178ad4922e48850614ddedd1b9941cda4d7be3d102033753f17b3b18",
+      "topLevelKeys": [
+        "result",
+        "sourceCommit",
+        "checks",
+        "outputBytes",
+        "exitEvidence",
+        "exitCode",
+        "physicalOwnerAcceptance"
       ]
     },
     {
@@ -243,8 +334,8 @@
       "path": "docs/evidence/dev-integration.json",
       "shelf": "evidence",
       "extension": "json",
-      "bytes": 3167,
-      "sha256": "5e7b3829a8810cca4b17256861bfac0af13cc72d63f8445787dd8e406751650f",
+      "bytes": 3817,
+      "sha256": "9729b9a21968de243f9e5daeb981801d7f772203386bf18639e9e6fa9c389b23",
       "topLevelKeys": [
         "sourceCommit",
         "apiContractVersion",
@@ -2251,8 +2342,8 @@
       "path": "docs/plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 5079,
-      "sha256": "f34742e48ab7cd06d5605911cb81ebf179314548f01b5e2e7ed78fd3167afb10",
+      "bytes": 7811,
+      "sha256": "aabeb020caa313351fd8a22231f5478199e0a5595eb58c91c5b7cb8303a546db",
       "title": "Codex, Wall and Desktop follow-up — 2026-11-10"
     },
     {

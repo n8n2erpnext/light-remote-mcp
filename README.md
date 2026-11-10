@@ -10,7 +10,7 @@
   <img alt="MCP" src="https://img.shields.io/badge/MCP-Streamable%20HTTP-2563eb">
   <img alt="Access" src="https://img.shields.io/badge/Access-Short%20ID%20%2B%20A%2FB-059669">
   <img alt="Real Remote" src="https://img.shields.io/badge/Real%20Remote-V2-2563eb">
-  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.4-f59e0b">
+  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.5-f59e0b">
   <img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-555555">
 </p>
 
@@ -21,7 +21,7 @@
 - **ChatGPT plugin:** [Cài hoặc mở Light Remote trong ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e)
 - **Source:** [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp)
 
-> **Trạng thái bản build:** Windows `0.10.1-dev.4` là ứng viên **kiểm thử nội bộ**, không phải bản phát hành nhị phân công khai. Tính năng có trong source, đã qua CI, đã deploy nội bộ và đã được Owner nghiệm thu trên máy vật lý là **những trạng thái khác nhau**. Xem [Trạng thái dự án](#trạng-thái-dự-án).
+> **Trạng thái bản build:** Windows `0.10.1-dev.5` là ứng viên **kiểm thử nội bộ**, không phải bản phát hành nhị phân công khai. Tính năng có trong source, đã qua CI, đã deploy nội bộ và đã được Owner nghiệm thu trên máy vật lý là **những trạng thái khác nhau**. Xem [Trạng thái dự án](#trạng-thái-dự-án).
 
 ## Vì sao Light Remote khác công cụ remote thông thường?
 
@@ -224,7 +224,7 @@ Chọn giao thức **Streamable HTTP**, URL **`https://light-remote.thaiduy.digi
 
 ## Cập nhật và phục hồi
 
-Windows hiện dùng **một chương trình chính `LightRemote.exe`**: Tauri/Rust phụ trách GUI/tray và thực thi worker role, gọi private WindowsHost/.NET component theo đường cố định. Node, RM V2, private .NET libraries, updater/watchdog và thành phần rollback vẫn độc lập. Signed manifests, hash/size và health-gated rollback là thiết kế của kênh cập nhật; **bản dev.4 chưa có public feed được phát hành**.
+Windows hiện dùng **một chương trình chính `LightRemote.exe`**: Tauri/Rust phụ trách GUI/tray và thực thi worker role, gọi private WindowsHost/.NET component theo đường cố định. Node, RM V2, private .NET libraries, updater/watchdog và thành phần rollback vẫn độc lập. Signed manifests, hash/size và health-gated rollback là thiết kế của kênh cập nhật; **bản dev.5 chưa có public feed được phát hành**.
 
 Các bản helper quá cũ cần đi theo [pinned compatibility bridge](config/windows-core-migration.json) trước khi nâng cấp dạng one-primary EXE. Không tự chỉnh manifest đã ký hoặc dùng artifact chưa xác minh.
 
@@ -255,18 +255,20 @@ npm test
 
 ## Trạng thái dự án
 
-| Thành phần | Phạm vi đã kiểm chứng |
+| Thành phần | Trạng thái hiện tại |
 | --- | --- |
-| Windows Desktop | `0.10.1-dev.4`, một `LightRemote.exe` chính, build/installer/migration/rollback chạy qua Windows CI |
-| GitHub CI | [CI #45 — 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851): React 121, consent/token 36, browser 170, backend integration 25 |
-| Internal Operator/Plugin Lab | Đã kiểm thử và triển khai bản source `947a117` trong Lab nội bộ |
-| Short ID / A/B | Luồng hiện hành theo Short ID + B; quyền điều khiển chỉ sau Owner approval |
-| RM V2 / Fleet / PTY | Tool/source và kiểm thử theo phạm vi; trạng thái tính năng vật lý tùy nền tảng/phiên bản |
-| Windows dev.4 Owner physical UAT | **Chưa kết luận PASS** |
-| macOS/Linux full current installers | **Chưa chứng minh build/phát hành đầy đủ**, native source CI có kiểm thử |
-| Public Release / signed update feed dev.4 | **Chưa phát hành / HOLD** |
+| Windows Desktop | Nội bộ `0.10.1-dev.5`, một `LightRemote.exe` chính; build/install/migration/watchdog PASS |
+| CI | [CI #64 — 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868); Node284, React125, browser170 + Wall4, backend25 |
+| Codex / Wall / PTY / nút X / nhãn lệnh | Đã sửa trong source và qua kiểm thử tự động; chờ Owner nghiệm thu máy thật |
+| Lab Operator/Plugin | Giữ `947a117` / dev4, **chưa triển khai dev5**; trang consent web còn bản cũ |
+| Git | Source và handoff trên `work`; `main` giữ `8ac6273`, chờ promotion |
+| Owner physical dev5 UAT | **Owner tự tải/cài/test rồi báo kết quả; PENDING** |
+| macOS/Linux installers | Native source tests PASS; chưa kết luận đầy đủ bộ cài |
+| Public Release / signed feed | **Không phát hành / HOLD** |
 
-Không coi CI hoặc source implementation là bằng chứng toàn bộ tính năng đã được nghiệm thu vật lý. [Evidence dev.4](docs/evidence/desktop-user-experience/ACCEPTANCE.json) · [Known Issues](KNOWN_ISSUES.md).
+Source `8e0d932920d218c54f83989978f3866c321e20de` · [internal installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868/artifacts/13758302838) · [evidence/SHA256](docs/evidence/desktop-followup/ACCEPTANCE.json) · [handoff](PROJECT_HANDOFF.md).
+
+Bộ cài mới không tự cập nhật backend Lab. Token/quota chỉ hiển thị dữ liệu runtime cung cấp, có phân biệt phạm vi và dữ liệu thiếu/cũ. Lịch sử chỉ gồm bản ghi còn được lưu theo cấu hình dung lượng.
 
 ## License
 

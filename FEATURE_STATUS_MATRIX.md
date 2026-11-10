@@ -1,5 +1,10 @@
 # Feature status matrix
 
+Current dev5/source8e0d932: full CI64 PASS9/9 and internal installer verified on ARM and locally. Seven source groups have automated acceptance. Owner physical acceptance, new-source Lab deployment and protected-main promotion remain PENDING. Remote Lab consent presentation is still dev4. [Current evidence](docs/evidence/desktop-followup/ACCEPTANCE.json).
+
+## Historical candidates and prior evidence
+
+
 Current UX/source baseline:0.10.1-dev.4 at947a117, full CI45 PASS9/9. All nine Desktop screens plus login/link/confirm and consent are implemented and browser-verified with121 React/170 browser cases. Same-source internal Lab deployed. New physical Owner acceptance remains pending.
 
 Status is per layer. IMPLEMENTED does not imply DEPLOYED, ENABLED, INTEGRATED, CI_PASS or PHYSICAL_PASS. The checkpoint and sanitized integration report provide current run evidence; this table records selected capability and remaining scope. A source regression PASS verifies its stated source invariant, not a physical platform behavior.

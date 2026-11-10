@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "candidateVersion": "0.10.1-dev.5",
+  "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+  "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+  "audience": "INTERNAL_TEST_ONLY",
+  "ci": {
+    "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+    "ciRunId": 42803494868,
+    "runNumber": 64,
+    "attempt": 1,
+    "scope": "full",
+    "result": "PASS",
+    "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868",
+    "allJobs": 9,
+    "successfulJobs": 9,
+    "requiredCheck": "baseline-required",
+    "mainProtectionUnchanged": true,
+    "physicalOwnerAcceptance": false
+  },
+  "artifact": {
+    "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+    "ciRunId": 42803494868,
+    "artifactId": 13758302838,
+    "artifactZipSha256": "63ac2a034ef67ef4abe85931f31baad7ac9576d255cf9c3b16c66305b626c1ac",
+    "installerSha256": "f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af",
+    "installerBytes": 168947869,
+    "projectVersion": "0.10.1-dev.5",
+    "result": "VERIFIED_NOT_PHYSICAL_ACCEPTANCE"
+  },
+  "verifiedOnArm": {
+    "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+    "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+    "version": "0.10.1-dev.5",
+    "ciRunId": 42803494868,
+    "installerSha256": "f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af",
+    "installerBytes": 168947869,
+    "artifactZipSha256": "63ac2a034ef67ef4abe85931f31baad7ac9576d255cf9c3b16c66305b626c1ac",
+    "result": "VERIFIED_INTERNAL_ARTIFACT",
+    "primaryCount": 1,
+    "oldPrimariesAbsent": true,
+    "migration": "PASS",
+    "installedLifecycle": "PASS",
+    "nativeCloseAndConptyChecksPresent": true,
+    "physicalOwnerAcceptance": false,
+    "publicFeedPromoted": false
+  },
+  "automated": {
+    "nodeTests": 284,
+    "portableSuiteEntries": 70,
+    "reactTests": 125,
+    "browserCases": 170,
+    "wallGroups": 4,
+    "backendIntegrationChecks": 25,
+    "linuxNativeTests": 45,
+    "macNativeTests": 45,
+    "data": "SYNTHETIC_ISOLATED_ONLY"
+  },
+  "scopeGroups": 7,
+  "nativeClose": {
+    "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+    "cycles": [
+      {
+        "cycle": 0,
+        "guiExited": false,
+        "windowVisible": false,
+        "uiResponsive": true,
+        "deadlineMs": 3000
+      },
+      {
+        "cycle": 1,
+        "guiExited": false,
+        "windowVisible": false,
+        "uiResponsive": true,
+        "deadlineMs": 3000
+      },
+      {
+        "cycle": 2,
+        "guiExited": false,
+        "windowVisible": false,
+        "uiResponsive": true,
+        "deadlineMs": 3000
+      }
+    ],
+    "physicalOwnerAcceptance": false
+  },
+  "realPackagedConptyWall": {
+    "result": "PASS",
+    "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+    "checks": [
+      "real-packaged-conpty",
+      "powershell-ended-with-verified-exit-evidence",
+      "owner-only-http-read",
+      "producer-grid120x32",
+      "executed-output-not-input-echo",
+      "unicode-output",
+      "monotonic-byte-offset-eof"
+    ],
+    "outputBytes": 396,
+    "exitEvidence": "onExit",
+    "exitCode": 0,
+    "physicalOwnerAcceptance": false
+  },
+  "backendIntegrationEvidence": {
+    "report": "docs/evidence/dev-integration.json",
+    "artifact": {
+      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+      "ciRunId": 42803494868,
+      "artifactId": 13756459550,
+      "artifactZipSha256": "bf4217fc92ebd419911f8d96bee37f6d11ef5b2290de98bb3dbe63a656303cd8",
+      "coreJob": "PASS",
+      "checks": 25,
+      "result": "VERIFIED_CORE_EVIDENCE_ONLY",
+      "fullCiAcceptanceInferred": false
+    }
+  },
+  "ciAttempts": [
+    {
+      "runId": 42759924065,
+      "runNumber": 57,
+      "sourceCommit": "25fc208b9f8cace90f1e96300b15609a43ea690f",
+      "result": "FAIL",
+      "failure": "Stale Desktop V4 and revision2 HMAC expectations; repaired retaining revision2/tamper coverage."
+    },
+    {
+      "runId": 42760608591,
+      "runNumber": 58,
+      "sourceCommit": "8959681e3696c0ade25a7f798ff14be3dddc79ad",
+      "result": "FAIL",
+      "core": "PASS284 Node tests,70 suite entries and backend integration",
+      "failure": "Actual installed Close failed; no accepted artifact or runtime rollout."
+    },
+    {
+      "runId": 42788237266,
+      "runNumber": 59,
+      "sourceCommit": "d6f8eb875a30b081c1b9a3ab1969a44f92bb61e7",
+      "result": "FAIL",
+      "passed": "Core/integration/browser/Linux/macOS; Windows build/install and Close0",
+      "failure": "Close1 after shortcut restore visible=true, responsive=true, guiExited=false; reentrancy-only repair insufficient."
+    },
+    {
+      "runId": 42791588758,
+      "runNumber": 60,
+      "sourceCommit": "62b008e59cf073a6103e4dbe4c08024b2c59f98e",
+      "result": "FAIL",
+      "passed": "Core/browser/Linux/macOS native, Windows compile/install and native show event exists",
+      "failure": "Initial shortcut restore after unchanged raw Win32 hide failed. Tao cached VISIBLE=true while OS hidden; Close cycles and ConPTY not reached."
+    },
+    {
+      "runId": 42794129035,
+      "runNumber": 61,
+      "sourceCommit": "e334d187b1d617f0759277328baf115781b4afd5",
+      "result": "FAIL",
+      "passed": "Core284/70, React125/browser170+Wall4, Linux/macOS native; installed Close3cycles/background/Agent/WM_NULL and actual ConPTY; seven migration checks including real bridge upgrade/reinstall/rollback",
+      "failure": "Native watchdog revision3 rejected restored revision2 Wall proof; actual old Wall healthy, manual watchdog final verified health not recorded."
+    },
+    {
+      "runId": 42798278392,
+      "runNumber": 62,
+      "sourceCommit": "718254a56ffa652656590c1053367c05109f8cd8",
+      "result": "FAIL",
+      "passed": "Node284 unit tests; standalone web validation",
+      "failure": "One stale portable ownership guard expected IsExpectedWall in recovery consumers; Windows stopped at the same source assertion before compile. Guard aligned retaining ordinary strict proof and all rollback gates."
+    },
+    {
+      "runId": 42800400272,
+      "runNumber": 63,
+      "sourceCommit": "aa2be210735e070c9d7805f5f0bfb23d56dfef93",
+      "result": "FAIL",
+      "passed": "Core284/70, React125/browser170+Wall4, Linux native and complete Windows build/install/Close3cycles/WM_NULL/Agent/real ConPTY/bridge upgrade/reinstall/rollback/manual watchdog recovery PASS",
+      "failure": "macOS44/45: native auth liveness fixture exceeded a150ms wall-clock sample. Replace sample with deterministic async timer/worker release ordering; retain real installed Close3s and recovery tests."
+    }
+  ],
+  "preservedRuntime": {
+    "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+    "version": "0.10.1-dev.4",
+    "servicesActive": true,
+    "runtimeChanged": false,
+    "newCandidateDeployment": "PENDING",
+    "ownerWindowsInstallationChanged": false,
+    "result": "PRESERVED_NOT_DEPLOYED",
+    "mainSourceCommit": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+    "checkedAt": "2026-11-10T11:29:08.328782+00:00",
+    "candidateSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de"
+  },
+  "ownerInstruction": "Write docs/checkpoint/handoff; Owner downloads, installs, tests and reports.",
+  "ownerWindowsInstallationChangedByCodex": false,
+  "physicalOwnerAcceptance": false,
+  "labDeploymentOfThisSource": "PENDING_NOT_PERFORMED",
+  "mainPromotion": "WORK_PUBLISHED_MAIN_PENDING",
+  "publicBinaryRelease": false,
+  "publicFeedPromoted": false,
+  "nextAction": "Owner downloads and installs exact internal dev5, tests and reports observed results. Keep physical acceptance PENDING. Resume from that report; separately complete verified-source Lab Operator/Plugin/consent deployment with backups and independent PID preservation, then normal protected-main promotion. Never infer remote Lab deployment from the installer build.",
+  "limits": [
+    "No live OpenAI inference or Owner account consumption in synthetic tests",
+    "Unsupported/stale Codex telemetry remains explicit; locally observed tokens are not total account usage",
+    "History pages expose retained records under configured disk retention, with bounded RAM/DOM",
+    "Remote Lab consent branding is still dev4 until backend deployment",
+    "Owner physical dev5 acceptance and full Mac/Linux installers remain pending"
+  ]
+}
