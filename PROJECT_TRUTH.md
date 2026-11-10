@@ -182,3 +182,7 @@ CI68 Windows native app and48 Rust tests PASS; Inno installer compilation stoppe
 ## Measure installer Google Sans in its owning GDI process
 
 CI69 compiled the full dev6 installer; native UI acceptance stopped at an invalid external GDI font measurement. The observer is replaced by an in-process GetTextFaceW measurement using the exact title TFont, with strict Google Sans requirement retained. No installer is accepted until fresh six-view UI/lifecycle/migration CI passes. Server5 and Owner installation remain unchanged.
+
+## Correct native title lines card surfaces and uninstall button selection
+
+CI70 installed dev6 with three actual native views/font/progress/Finish and fresh empty-directory cleanup PASS. Uninstall selector ambiguity and actual screenshot fidelity gaps are corrected: explicit accessible title/body line placement, opaque native card/footer colors and button-class selection. New screenshot checks require second-title ink and card pixels. A new full exact-source run must pass before artifact/deployment acceptance.

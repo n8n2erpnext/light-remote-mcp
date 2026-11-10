@@ -202,3 +202,7 @@ New tray_visual.rs owns pure fail-closed display projection and five exact embed
 ## Native title font measurement in the owning installer
 
 LightRemote.Wizard.iss LRText copies the actual LRTitle TFont to a process-local bitmap Canvas, selects it through TextWidth and resolves it with GetTextFaceW. Only sanitized face/width are logged. test-distribution-ui.ps1 reads that native measurement and retains the strict Google Sans assertion; invalid external HFONT/DC imports are removed. It retains rendered failure PNG/JSON diagnostics and uniquely waits for the final uninstall title. No font fallback is accepted by CI; Owner installation is unchanged.
+
+## Correct native title lines card surfaces and uninstall button selection
+
+LightRemote.Wizard.iss LRText splits explicit title/body lines into accessible native controls with fixed line pitches; original packaged Google Sans remains unchanged. LRSurface/LRView own their panel colors with ParentBackground=False/StyleElements=[], and info/footer text uses matching backgrounds. test-distribution-ui.ps1 restricts actions to native Button/CheckBox classes and verifies painted second-heading ink plus card pixels in actual PrintWindow captures; it uniquely waits for the final is-uninstalled title.

@@ -130,7 +130,7 @@ end;
 
 function LRText(Parent: TWinControl; Name, Text: String;
   X, Y, W, H, Pixels: Integer; Bold: Boolean; Color: TColor): TNewStaticText;
-var Probe: TBitmap; Face: String; Count, Width: Integer;
+var Probe: TBitmap; Face, Tail: String; Count, Width, BreakAt, Pitch: Integer;
 begin
   Result := TNewStaticText.Create(Parent);
   Result.Parent := Parent;
@@ -138,7 +138,20 @@ begin
   Result.AutoSize := False;
   Result.WordWrap := True;
   Result.SetBounds(LRX(X), LRY(Y), LRX(W), LRY(H));
-  Result.Caption := Text;
+  BreakAt := Pos(#13#10, Text);
+  if BreakAt > 0 then
+  begin
+    // Google Sans has large GDI line metrics. Use native accessible labels
+    // with explicit line placement so the second title cannot be clipped.
+    if Pixels >= 30 then Pitch := 46 else Pitch := 26;
+    Result.Caption := Copy(Text, 1, BreakAt - 1);
+    Result.Height := LRY(Pitch);
+  end
+  else Result.Caption := Text;
+  Result.StyleElements := [];
+  Result.Color := clWhite;
+  if (Y >= 322) and (Y < 438) then Result.Color := LRCard;
+  if Y >= 480 then Result.Color := LRFooter;
   LRFont(Result.Font, Pixels, Bold, Color);
   if Name = 'LRTitle' then
   begin
@@ -161,6 +174,11 @@ begin
       Probe.Free;
     end;
   end;
+  if BreakAt > 0 then
+  begin
+    Tail := Copy(Text, BreakAt + 2, Length(Text));
+    LRText(Parent, Name + 'NextLine', Tail, X, Y + Pitch, W, H - Pitch, Pixels, Bold, Color);
+  end;
 end;
 
 procedure LRSurface(Parent: TWinControl; X, Y, W, H: Integer; Color: TColor; Rounded: Boolean);
@@ -169,6 +187,8 @@ begin
   P := TPanel.Create(Parent);
   P.Parent := Parent;
   P.BevelOuter := bvNone;
+  P.ParentBackground := False;
+  P.StyleElements := [];
   P.Color := Color;
   P.SetBounds(LRX(X), LRY(Y), LRX(W), LRY(H));
   if Rounded then
@@ -251,6 +271,8 @@ begin
   Result.Parent := Form;
   Result.SetBounds(0, 0, LRX(800), LRY(560));
   Result.BevelOuter := bvNone;
+  Result.ParentBackground := False;
+  Result.StyleElements := [];
   Result.Color := clWhite;
   LRSurface(Result, 0, 78, 800, 1, LRLine, False);
   LRSurface(Result, 40, 322, 720, 116, LRCard, True);
@@ -357,6 +379,9 @@ begin
   LRDesktopShortcut.SetBounds(LRX(58), LRY(393), LRX(650), LRY(30));
   LRDesktopShortcut.Caption := 'Create a desktop shortcut';
   LRDesktopShortcut.Checked := True;
+  LRDesktopShortcut.Color := LRCard;
+  LRDesktopShortcut.ParentBackground := False;
+  LRDesktopShortcut.StyleElements := [];
   LRFont(LRDesktopShortcut.Font, 14, False, LRInk);
   LRPercent := LRText(LRInstallingPanel, 'LRPercent', '', 690, 342, 52, 24, 13, False, LRMuted);
   LRPercent.Alignment := taRightJustify;

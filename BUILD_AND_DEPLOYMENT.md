@@ -171,3 +171,7 @@ CI68 passed all components except Windows installer parse. Inno6.7.1 exposes UIN
 ## Measure installer Google Sans in its owning GDI process
 
 CI69 source299c31d built the complete installer but UI font verification was invalid: GDI handles are process-private. New proof logs in-process GetTextFaceW output selected from the exact title TFont; CI still rejects anything other than Google Sans and saves sanitized failure diagnostics and screenshots. The uninstall-finished wait uses its full unique multiline title, avoiding matching an earlier header. Final artifact acceptance still requires a new exact-source full run.
+
+## Correct native title lines card surfaces and uninstall button selection
+
+CI70 UI artifact13781309625 confirms actual Google Sans and successful three-view installation. Visual review found missing second heading lines caused by large GDI font line metrics and missing card/footer surfaces inherited from theme/parent. Explicit native line labels and explicit background/style settings correct those gaps. Native UI proof now checks second-line text, painted ink and card-color pixels; selector excludes static captions when clicking Uninstall. New full run required.

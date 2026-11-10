@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T16:12:36.178Z",
+  "updatedAt": "2026-11-10T16:37:03.421Z",
   "version": "0.10.1-dev.6",
   "phase": "DISTRIBUTION_V3_DEV6_NATIVE_IMPLEMENTED",
   "status": "IMPLEMENTED_NATIVE_CI_PENDING",
@@ -450,12 +450,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-native-font-process-proof",
-    "status": "CI69_INSTALLER_BUILT_FONT_OBSERVER_FIXED_UI_PENDING",
-    "summary": "CI69 compiled the full dev6 installer and passed all other jobs. Interactive UI proof stopped at font verification because the external observer selected a process-private HFONT in another process and saw its own System DC font. Measure the exact title TFont with in-process GetTextFaceW, keep the strict Google Sans assertion, preserve failure screenshots/sanitized font diagnostics, and wait for a unique uninstall-finished title for the full deadline.",
-    "verification": "CI69 full Inno output built; core/backend/web/macOS/Linux PASS, Windows Rust48/native app PASS. Microsoft GDI documentation confirms process-private object handles. In-process probe copies the actual title TFont to a local Canvas then resolves selected typeface through GetTextFaceW. Source regression and PowerShell AST parse PASS locally. New actual six-view installer proof remains pending; no fallback font is accepted by CI.",
+    "taskId": "20261110-native-ui-lines-surfaces-selectors",
+    "status": "CI70_INSTALL_UI_PASS_VISUAL_QA_CORRECTIONS_PENDING",
+    "summary": "CI70 install UI passed all three views with actual Google Sans, real progress/default checkbox/Finish launch and empty legacy directory absent. Uninstall selector matched both static role label and Uninstall button; restrict to button/checkbox controls. Actual native PNG review found clipped second title lines and unpainted themed card/footer surfaces. Place explicit native title/body lines at bounded pitches, disable inherited panel background/theme colors, and assert actual screenshot title ink and card pixels for all six views.",
+    "verification": "CI70 native install-summary confirms Google Sans and three real views; native lifecycle/rollback steps before uninstall completed. Uninstall-failure identifies two matching controls. Inspected actual welcome/confirmation PNGs and found the visual gaps; native code and screenshot proof are strengthened. Local source regression and PowerShell AST pass. Full new CI and physical Owner testing remain pending; no installer has been accepted.",
     "nextAction": "Follow full exact-source Actions; resolve compile/real Windows UI failures, verify internal dev6 installer and native evidence independently, synchronize Lab from accepted source if necessary, then canonical docs/handoff with Owner physical test pending.",
-    "sourceDigest": "e050094ad328cdd10042625eb7b41ebd6f7cca57769bb91fa9630f6339889e9b",
+    "sourceDigest": "41903fcc7a379c4fee7306166015337b9e89c31d00634e1deddc4678ab94fb9f",
     "sourceFileCount": 1672
   },
   "legacyFilesystemCleanup": {
@@ -1257,7 +1257,7 @@
     },
     "plannedCandidateVersion": "0.10.1-dev.6",
     "ownerScreenshot": "dev5 Agent and one LightRemote.exe observed; not blanket physical acceptance",
-    "newNativeBuild": "CI69_FULL_INSTALLER_BUILT_FONT_OBSERVER_FIXED",
+    "newNativeBuild": "CI70_THREE_INSTALL_VIEWS_PASS_VISUAL_AND_SELECTOR_FIX",
     "publicReleaseOrFeed": false,
     "tray": {
       "projection": "native VisualFor",
@@ -1271,23 +1271,24 @@
     "ciAttempts": [
       {
         "runId": 42829575184,
-        "sourceCommit": "9c738c4e12da5dd7fec14ccc9c970c3c6731e72e",
-        "reason": "autocrlf byte-exact SVG guard fixed"
+        "reason": "autocrlf exact SVG guard fixed"
       },
       {
         "runId": 42845761914,
-        "sourceCommit": "0cf72c9a6238dd36540302d0979d0df148b68e6e",
-        "windowsRustTests": 48,
-        "nativeApp": "PASS",
-        "reason": "Inno6.7.1 unsupported NativeUInt fixed with UINT_PTR"
+        "reason": "released Inno UINT_PTR ABI fixed"
       },
       {
         "runId": 42848917668,
-        "sourceCommit": "299c31dfa10a9a12cc6a694a158abfa5e31fc0b9",
-        "installerCompile": "PASS",
-        "otherComponentJobs": "PASS",
-        "reason": "External cross-process HFONT selection is invalid; in-process GDI font proof added",
-        "interactiveUi": "NOT_ACCEPTED"
+        "reason": "external GDI font probe replaced by owning-process measurement"
+      },
+      {
+        "runId": 42852234869,
+        "sourceCommit": "686839a4ff55333d67bb1951fb384e7c5e517f5f",
+        "installUiViews": 3,
+        "actualTitleFont": "Google Sans",
+        "nativeInstallUi": "PASS",
+        "uninstall": "selector matched role label and button; not accepted",
+        "visualReview": "second title line clipped and panel backgrounds inherited; corrected with image assertions"
       }
     ]
   }
