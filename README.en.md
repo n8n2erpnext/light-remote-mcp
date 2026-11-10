@@ -252,7 +252,7 @@ npm test
 | Windows Desktop | Internal `0.10.1-dev.5`, one primary `LightRemote.exe`; build/install/migration/watchdog PASS |
 | CI | [CI #64 — 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868); Node284, React125, browser170 + Wall4, backend25 |
 | Codex / Wall / PTY / native X / command labels | Implemented and automated tests PASS; physical Owner acceptance pending |
-| Operator/Plugin Lab | Preserved `947a117` / dev4; **dev5 not deployed**, remote consent still old |
+| Operator/Plugin Lab | Exact `8e0d932` / dev5 deployed; health/API PASS, data and independent Agent/Wall preserved |
 | Git | Source/handoff published on `work`; `main` remains `8ac6273`, promotion pending |
 | Physical Owner dev5 UAT | **Owner downloads/installs/tests and reports; PENDING** |
 | macOS/Linux installers | Native source tests PASS; full installers not established |
@@ -260,7 +260,7 @@ npm test
 
 Source `8e0d932920d218c54f83989978f3866c321e20de` · [internal installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868/artifacts/13758302838) · [evidence/SHA256](docs/evidence/desktop-followup/ACCEPTANCE.json) · [handoff](PROJECT_HANDOFF.md).
 
-Installing this candidate does not update the remote Lab backend. Runtime token/quota scope, unsupported/stale data and configured activity retention remain explicit.
+The Lab backend was separately updated to dev5; installing this candidate does not change the server. Runtime token/quota scope, unsupported/stale data and configured activity retention remain explicit.
 
 ## License
 

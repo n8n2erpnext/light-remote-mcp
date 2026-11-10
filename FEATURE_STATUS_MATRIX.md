@@ -1,6 +1,6 @@
 # Feature status matrix
 
-Current dev5/source8e0d932: full CI64 PASS9/9 and internal installer verified on ARM and locally. Seven source groups have automated acceptance. Owner physical acceptance, new-source Lab deployment and protected-main promotion remain PENDING. Remote Lab consent presentation is still dev4. [Current evidence](docs/evidence/desktop-followup/ACCEPTANCE.json).
+Current dev5/source8e0d932: full CI64 PASS9/9 and internal installer verified on ARM and locally. Seven source groups have automated acceptance. Owner physical acceptance, newly requested tray/setup redesign and protected-main promotion remain PENDING. Dev5 Lab Operator/Plugin/consent are now deployed with preserved state/processes. [Current evidence](docs/evidence/desktop-followup/ACCEPTANCE.json).
 
 ## Historical candidates and prior evidence
 

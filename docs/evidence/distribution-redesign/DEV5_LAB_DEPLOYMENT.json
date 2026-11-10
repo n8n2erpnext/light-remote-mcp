@@ -1,0 +1,21 @@
+{
+  "result": "PASS",
+  "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+  "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+  "version": "0.10.1-dev.5",
+  "databaseMigrated": false,
+  "dbArchiveIndexVerified": true,
+  "dbArchiveSha256": "651f2911c28ef6c033219fe380ff6aeeac73d30df25b4b8e68ed24d36c822596",
+  "independentPidsPreserved": true,
+  "dependencyGraphUnchanged": true,
+  "homeAncestorAclChanged": false,
+  "persistentCountsUnchanged": true,
+  "snapshotUnauthenticatedStatus": 401,
+  "apiContractVersion": "light-remote.api.v1",
+  "publicHealth": "PASS",
+  "oldSourcesPreserved": true,
+  "ownerWindowsInstallationChanged": false,
+  "physicalOwnerAcceptance": false,
+  "publicReleaseOrFeed": false,
+  "previousSource": "947a11763161aca6856ffc1e8e18dc8fc446ede7"
+}

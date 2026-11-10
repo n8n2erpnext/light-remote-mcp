@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 269 (226 Markdown, 43 JSON).
+Documents: 271 (227 Markdown, 44 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -30,6 +30,7 @@ Documents: 269 (226 Markdown, 43 JSON).
 | evidence | [docs/evidence/desktop-user-experience/LOCAL_VERIFICATION.json](../evidence/desktop-user-experience/LOCAL_VERIFICATION.json) | schemaVersion, candidateVersion, scope, react, consentAndToken, sourceAuthorityGuards, browser,  | 9a0227f9780c596c2294037b37bbee501404e28018f9ec5b35d5095eb41c936f |
 | evidence | [docs/evidence/desktop-user-experience/PRIMARY_EXE_MANIFEST.json](../evidence/desktop-user-experience/PRIMARY_EXE_MANIFEST.json) | installedLifecycle, layoutId, privateFrameworkBytes, physicalOwnerAcceptance, version, stagedByt | f83996150cd9bdbb2a10c693da4ae9629022b8cdd7504b220c6f0e82534744bb |
 | evidence | [docs/evidence/dev-integration.json](../evidence/dev-integration.json) | sourceCommit, apiContractVersion, layer, physicalAcceptance, checks, notVerified, result | 9729b9a21968de243f9e5daeb981801d7f772203386bf18639e9e6fa9c389b23 |
+| evidence | [docs/evidence/distribution-redesign/DEV5_LAB_DEPLOYMENT.json](../evidence/distribution-redesign/DEV5_LAB_DEPLOYMENT.json) | result, sourceCommit, sourceTree, version, databaseMigrated, dbArchiveIndexVerified, dbArchiveSh | 457141a6fe3284427db096172643e97ad50a37698258f988ca34f054e93c0b97 |
 | evidence | [docs/evidence/github-clone-verification.json](../evidence/github-clone-verification.json) | verifiedAt, repositoryId, repository, clonedFrom, candidateDirectory, sourceCommit, sourceTree,  | af2a38f771941bca97e3967fc080c216e588719ac7d2b9d0e6723b8bfbfa9b94 |
 | evidence | [docs/evidence/main-protection.json](../evidence/main-protection.json) | repositoryId, branch, requiredCheck, checkAppId, checkAppSlug, strict, enforceAdmins, allowForce | 8417d9a5415938472634c7ec2a93ea754751b998c122bc8f6933b367210b0d04 |
 | evidence | [docs/evidence/old-runtime-commit-proof.json](../evidence/old-runtime-commit-proof.json) |  | 6dca49afc8f06dcaf60ddb7f0a4827e2f3b9c820f8b2eece2fd4f2fea73616e6 |
@@ -251,6 +252,7 @@ Documents: 269 (226 Markdown, 43 JSON).
 | optimization | [docs/optimization/RDC_LIGHT_REMOTE_GOLD_MASTER_PLAN.md](../optimization/RDC_LIGHT_REMOTE_GOLD_MASTER_PLAN.md) | RDC → Light Remote Gold: reliability optimization master plan | bcf1e46371d57eb1e00f304780fbd29ac48a7137fb5d263f70aefd17ba31dbb6 |
 | plans | [docs/plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md](../plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md) | Codex, Wall and Desktop follow-up — 2026-11-10 | aabeb020caa313351fd8a22231f5478199e0a5595eb58c91c5b7cb8303a546db |
 | plans | [docs/plans/desktop-user-experience/README.md](../plans/desktop-user-experience/README.md) | Desktop user experience reconstruction | 2fe4928a903a2e3634cc86aa5cec9dc10bbfd5c871324e832842a356ac2dc779 |
+| plans | [docs/plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md](../plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md) | Windows tray, setup and branding follow-up — 2026-11-10 | 170c323df85d9f8c23a436851351946c89440d4eb2a4b9d92064ce8d55a5be29 |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json) | schemaVersion, status, dateLocal, timezone, repository, scope, requestedTarget, currentGithubHea | cccd37f78676a45a4605c91cbe37ac46b647e24024d9bef663a90d3abcdfbc4d |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md) | T12-PLAN — Gộp hai Windows core thành LightRemote.exe | 8803418d5f846a3568be08128a70e21a53ccee6e7d2083a41dcd005c2e8bd237 |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_SINGLE_CORE_EXE_BUILD_REVIEW_20261107.md](../plans/windows-single-primary-exe/LIGHT_REMOTE_SINGLE_CORE_EXE_BUILD_REVIEW_20261107.md) | T11 — Windows build: hợp nhất executable chính | 7b73c419d2302a21ad01c278d8696640fd144b7346a1135242aa1c64c620f1c3 |

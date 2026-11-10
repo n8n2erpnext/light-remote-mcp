@@ -6,9 +6,9 @@ Internal **0.10.1-dev.5**, one primary **LightRemote.exe**. Compiled source `8e0
 
 Exact-source CI64 PASS9/9: Node284, portable suite70, React125, browser170 plus4 actual-server Wall groups, private backend25 checks including both B paths. Windows build/install/private CLR/Close3cycles/WM_NULL/real ConPTY/bridge upgrade/reinstall/rollback/watchdog/uninstall PASS. Linux/macOS native tests45/45 each, including synchronized async timer/worker liveness. Full Mac/Linux installers and Owner physical acceptance are not inferred.
 
-Lab Operator/Plugin and independent Agent/Wall/supervisor/mTLS remain on the existing947a117/dev4 baseline. No runtime cutover, SQL migration, Owner installation, public binary Release or update-feed promotion was performed. Remote Lab consent/login presentation still serves the old baseline; its dev5 source changes are CI-verified but not deployed. Main remains8ac6273; this work/documentation is published on permanent work pending later promotion.
+Lab Operator/Plugin now serve exact GitHub8e0d932/dev5 after CI64/artifact verification and private backups. Public/private health/API and unauthenticated snapshot401 PASS; persistent counts and independent Agent/Wall/supervisor/mTLS PIDs are preserved. No SQL migration or Owner Windows change. Prior947a117 runtime remains for rollback. Remote consent branding is deployed. Main remains8ac6273; permanent work is active. New task: restore tray state icons and redesign Windows install/uninstall in Moryqa, reuse STOCK logo, remove only empty desktop-v4 directories, then build internal dev6.
 
-Owner downloads and tests this exact internal artifact. Native builds remain Actions-only. New Lab deployment and main promotion are pending; no failed candidate is accepted.
+Owner downloads and tests this exact internal artifact. Native builds remain Actions-only. Dev5 Lab deployment is complete; new tray/setup build and main promotion are pending. No failed candidate is accepted.
 
 Earlier candidate records below retain their original scope.
 
@@ -151,3 +151,7 @@ CI62 stopped before native compilation because the portable ownership guard stil
 ## Prove native auth UI liveness with synchronized worker release
 
 CI63 core/web/Linux passed; macOS failed the isolated auth fixture150ms elapsed assertion. Replace elapsed sampling with causal synchronization between the async25ms timer and blocked native worker. A5s independent emergency release prevents test hangs and must never supply the successful result. Production code and actual Windows3s/3cycle Close, WM_NULL responsiveness, same Agent and real ConPTY/watchdog checks are unchanged. Native repair validation remains Actions-only. CI63 complete Windows lane later passed including real bridge/watchdog recovery, Close3cycles and packaged ConPTY. Full run remains failed due the macOS fixture only; do not deliver that failed-run installer.
+
+## Checkpoint fresh Windows distribution redesign and verified dev5 Lab deployment
+
+Lab Operator/Plugin now serve exact GitHub8e0d932/dev5 after CI64/artifact verification and private backups. Public/private health/API and unauthenticated snapshot401 PASS; persistent counts and independent Agent/Wall/supervisor/mTLS PIDs are preserved. No SQL migration or Owner Windows change. Prior947a117 runtime remains for rollback. Remote consent branding is deployed. Main remains8ac6273; permanent work is active. New task: restore tray state icons and redesign Windows install/uninstall in Moryqa, reuse STOCK logo, remove only empty desktop-v4 directories, then build internal dev6. Fresh design/source plan: docs/plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md. Keep Windows native compilation in Actions and full migration/watchdog gates.

@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 269,
-    "markdown": 226,
-    "json": 43
+    "total": 271,
+    "markdown": 227,
+    "json": 44
   },
   "files": [
     {
@@ -344,6 +344,27 @@
         "checks",
         "notVerified",
         "result"
+      ]
+    },
+    {
+      "path": "docs/evidence/distribution-redesign/DEV5_LAB_DEPLOYMENT.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 790,
+      "sha256": "457141a6fe3284427db096172643e97ad50a37698258f988ca34f054e93c0b97",
+      "topLevelKeys": [
+        "result",
+        "sourceCommit",
+        "sourceTree",
+        "version",
+        "databaseMigrated",
+        "dbArchiveIndexVerified",
+        "dbArchiveSha256",
+        "independentPidsPreserved",
+        "dependencyGraphUnchanged",
+        "homeAncestorAclChanged",
+        "persistentCountsUnchanged",
+        "snapshotUnauthenticatedStatus"
       ]
     },
     {
@@ -2353,6 +2374,14 @@
       "bytes": 3811,
       "sha256": "2fe4928a903a2e3634cc86aa5cec9dc10bbfd5c871324e832842a356ac2dc779",
       "title": "Desktop user experience reconstruction"
+    },
+    {
+      "path": "docs/plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md",
+      "shelf": "plans",
+      "extension": "md",
+      "bytes": 3464,
+      "sha256": "170c323df85d9f8c23a436851351946c89440d4eb2a4b9d92064ce8d55a5be29",
+      "title": "Windows tray, setup and branding follow-up — 2026-11-10"
     },
     {
       "path": "docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json",

@@ -60,3 +60,7 @@ Add codex.preferences to the fixed native Owner/device action contract (33 opera
 ## Record CI64 verified internal dev5 and Owner self-test handoff
 
 CI64/source8e0d932920d218c54f83989978f3866c321e20de: light-remote.api.v1 preserved; configRevision3 centralizes Codex status/preferences and history. Native33-action allowlist and pre-save Owner/device/module fence pass. Exact backend25, including independent Wall B and Account B, PASS. This is isolated integration acceptance; Lab Operator/Plugin still947a117/dev4 and new consent presentation is NOT_DEPLOYED. Owner physical acceptance/main promotion remain pending.
+
+## Checkpoint fresh Windows distribution redesign and verified dev5 Lab deployment
+
+Dev5 Lab Operator/Plugin now serve CI64/source8e0d932 with light-remote.api.v1 and existing Owner/A/B authority unchanged. Health version/API and unauthenticated native snapshot401 PASS; no schema migration. New tray presentation must derive actual state from the existing sanitized native bridge, not UI guesses.

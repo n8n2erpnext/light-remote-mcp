@@ -190,3 +190,7 @@ owner_login.rs auth_ui_liveness_tests now holds native work until an independent
 ## Verified dev5 owner-test handoff — 2026-11-10
 
 Source8e0d932920d218c54f83989978f3866c321e20de, treefec7d9f8a8242358daf44a13faf2735e18520e2b, CI64 PASS9/9. [Acceptance](../evidence/desktop-followup/ACCEPTANCE.json), [build](../evidence/desktop-followup/BUILD_MANIFEST.json), [primary package](../evidence/desktop-followup/PRIMARY_EXE_MANIFEST.json), [actual backend25](../evidence/dev-integration.json). Existing follow-up source maps remain valid. Native actual Close3cycles, real ConPTY and real cross-revision watchdog rollback PASS. Synchronized auth liveness passes45/45 native tests on both Mac/Linux. Work published; main and Lab unchanged. Owner self-install/test next.
+
+## Checkpoint fresh Windows distribution redesign and verified dev5 Lab deployment
+
+New distribution plan: [tray/setup redesign](../plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md). Current tray boundaries unified_tray.rs vs TrayApplicationContext.VisualFor/TrayIconFactory; installer GptOperator.iss V2 to be replaced by a fresh Moryqa/native design, with stage-primary-core.ps1 empty-directory guard. [Dev5 Lab receipt](../evidence/distribution-redesign/DEV5_LAB_DEPLOYMENT.json) records actual verified server update.

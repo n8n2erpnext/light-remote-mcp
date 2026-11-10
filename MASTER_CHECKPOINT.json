@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T11:33:56.669Z",
+  "updatedAt": "2026-11-10T12:50:52.616Z",
   "version": "0.10.1-dev.5",
-  "phase": "DEV5_BUILD_VERIFIED_OWNER_SELF_TEST_HANDOFF",
-  "status": "FULL_CI_ARTIFACT_VERIFIED_OWNER_TEST_NEXT_LAB_AND_MAIN_PENDING",
+  "phase": "TRAY_INSTALLER_INVENTORY_DEV5_SERVER_DEPLOYED",
+  "status": "IN_PROGRESS_NEW_MORYQA_WINDOWS_DESIGN",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -201,12 +201,12 @@
     },
     "internalLab": {
       "result": "PASS",
-      "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
-      "sourceTree": "0ef2892ae2b8ecf253e35510548a1493673d21ee",
-      "version": "0.10.1-dev.4",
+      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+      "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+      "version": "0.10.1-dev.5",
       "databaseMigrated": false,
       "dbArchiveIndexVerified": true,
-      "dbArchiveSha256": "aa6e76061279d8b9e08cfb0790cbc178ca3e3fcb04c72170510fec57ec6d8f4b",
+      "dbArchiveSha256": "651f2911c28ef6c033219fe380ff6aeeac73d30df25b4b8e68ed24d36c822596",
       "independentPidsPreserved": true,
       "dependencyGraphUnchanged": true,
       "homeAncestorAclChanged": false,
@@ -219,17 +219,46 @@
       "physicalOwnerAcceptance": false,
       "publicReleaseOrFeed": false,
       "dev5Followup": {
+        "result": "PASS",
+        "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+        "version": "0.10.1-dev.5",
+        "newCandidateDeployment": "DEPLOYED",
+        "runtimeChanged": true,
+        "evidence": "docs/evidence/distribution-redesign/DEV5_LAB_DEPLOYMENT.json"
+      },
+      "historicalBeforeDev5": {
+        "result": "PASS",
         "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+        "sourceTree": "0ef2892ae2b8ecf253e35510548a1493673d21ee",
         "version": "0.10.1-dev.4",
-        "servicesActive": true,
-        "runtimeChanged": false,
-        "newCandidateDeployment": "PENDING",
+        "databaseMigrated": false,
+        "dbArchiveIndexVerified": true,
+        "dbArchiveSha256": "aa6e76061279d8b9e08cfb0790cbc178ca3e3fcb04c72170510fec57ec6d8f4b",
+        "independentPidsPreserved": true,
+        "dependencyGraphUnchanged": true,
+        "homeAncestorAclChanged": false,
+        "persistentCountsUnchanged": true,
+        "snapshotUnauthenticatedStatus": 401,
+        "apiContractVersion": "light-remote.api.v1",
+        "publicHealth": "PASS",
+        "oldSourcesPreserved": true,
         "ownerWindowsInstallationChanged": false,
-        "result": "PRESERVED_NOT_DEPLOYED",
-        "mainSourceCommit": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
-        "checkedAt": "2026-11-10T11:29:08.328782+00:00",
-        "candidateSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de"
-      }
+        "physicalOwnerAcceptance": false,
+        "publicReleaseOrFeed": false,
+        "dev5Followup": {
+          "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+          "version": "0.10.1-dev.4",
+          "servicesActive": true,
+          "runtimeChanged": false,
+          "newCandidateDeployment": "PENDING",
+          "ownerWindowsInstallationChanged": false,
+          "result": "PRESERVED_NOT_DEPLOYED",
+          "mainSourceCommit": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+          "checkedAt": "2026-11-10T11:29:08.328782+00:00",
+          "candidateSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de"
+        }
+      },
+      "previousSource": "947a11763161aca6856ffc1e8e18dc8fc446ede7"
     },
     "historicalBeforeDev5Followup": {
       "windows": {
@@ -284,11 +313,10 @@
     }
   },
   "remaining": [
-    "Owner downloads and installs exact internal dev5, tests and reports observed results. Keep physical acceptance PENDING. Resume from that report; separately complete verified-source Lab Operator/Plugin/consent deployment with backups and independent PID preservation, then normal protected-main promotion. Never infer remote Lab deployment from the installer build.",
+    "Fresh tray/installer redesign and safe empty directory cleanup pending; full exact-source dev6 CI/artifact/Owner acceptance required.",
     "No live OpenAI inference or Owner account consumption in synthetic tests",
     "Unsupported/stale Codex telemetry remains explicit; locally observed tokens are not total account usage",
     "History pages expose retained records under configured disk retention, with bounded RAM/DOM",
-    "Remote Lab consent branding is still dev4 until backend deployment",
     "Owner physical dev5 acceptance and full Mac/Linux installers remain pending",
     "Existing reconstruction backlog retained: Continuity modern Wall/core hook and history-dependent packaging regression",
     "Existing reconstruction backlog retained: legacy Long Memory extension/RC50/Guest prototypes and full Mac/Linux installers",
@@ -331,7 +359,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Owner downloads and installs exact internal dev5, tests and reports observed results. Keep physical acceptance PENDING. Resume from that report; separately complete verified-source Lab Operator/Plugin/consent deployment with backups and independent PID preservation, then normal protected-main promotion. Never infer remote Lab deployment from the installer build.",
+  "nextAction": "Finish fresh Moryqa Windows design and export; implement five-state tray, native setup/uninstall and empty-dir cleanup; full internal dev6 Actions, exact artifact and canonical closeout.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -422,11 +450,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-dev5-owner-self-test-handoff",
-    "status": "WORK_PUBLISHED_MAIN_PENDING_OWNER_PHYSICAL_AND_LAB_PENDING",
-    "summary": "Codex state/copy, runtime model/reasoning and scoped token/quota; canonical auth logo/fonts; short Agent summaries; PTY rendering/replay/transcript; pageable retained activity beyond200; responsive native X with preserved Agent; first-row COMMAND/DANGER/SYSTEM/FS WRITE labels. CI64 PASS9/9; installer independently verified on ARM and locally. Owner requested docs/checkpoint/handoff and will download/install/test. Lab/main unchanged.",
-    "verification": "Exact-source CI64 PASS9/9: Node284, portable suite70, React125, browser170 plus4 actual-server Wall groups, private backend25 checks including both B paths. Windows build/install/private CLR/Close3cycles/WM_NULL/real ConPTY/bridge upgrade/reinstall/rollback/watchdog/uninstall PASS. Linux/macOS native tests45/45 each, including synchronized async timer/worker liveness. Full Mac/Linux installers and Owner physical acceptance are not inferred. Installer SHA256f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af, bytes168947869; artifact13758302838. ZIP digest matches both ARM and direct GitHub download.",
-    "nextAction": "Owner downloads and installs exact internal dev5, tests and reports observed results. Keep physical acceptance PENDING. Resume from that report; separately complete verified-source Lab Operator/Plugin/consent deployment with backups and independent PID preservation, then normal protected-main promotion. Never infer remote Lab deployment from the installer build.",
+    "taskId": "20261110-tray-installer-inventory-server-dev5",
+    "status": "DEV5_SERVER_DEPLOYED_NEW_MORYQA_DESIGN_IN_PROGRESS",
+    "summary": "Preserved full0c1a153 Git/tag/bundle restore. Confirmed static unified tray omitted existing five-state Moryqa icon wiring. Owner requires fresh Windows setup/uninstall, Google Sans Flex in Figma and packaged Google Sans in code. Exact CI64 dev5 Lab Operator/Plugin deployed with preserved data/independent processes. New design starts separately from old V2; no Owner install or public release.",
+    "verification": "Full pre-change bundle restore/fsck PASS. Dev5 source/archive/locks/ABI/private backup/pg_dump index preflight PASS; health/API/snapshot401, unchanged persistent counts and independent PIDs/dependencies/ACL PASS. Moryqa connected/editable, STOCK/tray nodes found and Google Sans Flex Regular/Bold created; installed code font name table Google Sans verified.",
+    "nextAction": "Finish fresh Moryqa Windows design and export; implement five-state tray, native setup/uninstall and empty-dir cleanup; full internal dev6 Actions, exact artifact and canonical closeout.",
     "sourceDigest": "3d5fe3e834be7f4421ef0a43f92f43789a34097bd70707d3e3a1e81ccfa6bf84",
     "sourceFileCount": 1662
   },
@@ -716,7 +744,7 @@
     "publicFeed": "HOLD"
   },
   "desktopBackendIntegration": {
-    "status": "FULL_CI_ARTIFACT_VERIFIED_OWNER_TEST_NEXT_LAB_AND_MAIN_PENDING",
+    "status": "DEV5_LAB_DEPLOYED_TRAY_INSTALLER_REDESIGN_NEXT",
     "baseCommit": "521d04cc559e0e263390863ed1caaf8bf0205797",
     "preChangeTag": "checkpoint/20261109-before-desktop-backend-521d04c",
     "bundleSha256": "5f20de606764ca319b3bfd695c81dda0b08bacac6a3ac831bdc8405e222c2331",
@@ -745,7 +773,7 @@
       "P6InternalLabDeployment": "DONE_PRIVATE_PUBLIC_API_AND_PERSISTENCE_PASS"
     },
     "wallBRegression": "KNOWN_REJECTION400_AND_BOTH_FLOWS_REAL_CI25_PASS; DESKTOP_B_OVERLAP_FIXED_BROWSER_PASS",
-    "runtimeChanged": false,
+    "runtimeChanged": true,
     "candidateVersion": "0.10.1-dev.5",
     "nativeApi": "IMPLEMENTED_CI41_PASS_REAL_ARM_OWNER_AGENT_INTEGRATION_PASS",
     "confirmedFixes": [
@@ -771,7 +799,7 @@
       "accountB": "PASS_ISOLATED_REAL_BACKEND",
       "physicalOwnerAcceptance": false
     },
-    "existingLabRuntimeChanged": false,
+    "existingLabRuntimeChanged": true,
     "backend25Source": "8e0d932920d218c54f83989978f3866c321e20de",
     "labPreparation": {
       "source": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
@@ -809,27 +837,36 @@
       "result": "VERIFIED_NOT_PHYSICAL_ACCEPTANCE"
     },
     "labDeployment": {
-      "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
-      "version": "0.10.1-dev.4",
-      "servicesActive": true,
-      "runtimeChanged": false,
-      "newCandidateDeployment": "PENDING",
+      "result": "PASS",
+      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+      "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+      "version": "0.10.1-dev.5",
+      "databaseMigrated": false,
+      "dbArchiveIndexVerified": true,
+      "dbArchiveSha256": "651f2911c28ef6c033219fe380ff6aeeac73d30df25b4b8e68ed24d36c822596",
+      "independentPidsPreserved": true,
+      "dependencyGraphUnchanged": true,
+      "homeAncestorAclChanged": false,
+      "persistentCountsUnchanged": true,
+      "snapshotUnauthenticatedStatus": 401,
+      "apiContractVersion": "light-remote.api.v1",
+      "publicHealth": "PASS",
+      "oldSourcesPreserved": true,
       "ownerWindowsInstallationChanged": false,
-      "result": "PRESERVED_NOT_DEPLOYED",
-      "mainSourceCommit": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
-      "checkedAt": "2026-11-10T11:29:08.328782+00:00",
-      "candidateSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de"
+      "physicalOwnerAcceptance": false,
+      "publicReleaseOrFeed": false,
+      "previousSource": "947a11763161aca6856ffc1e8e18dc8fc446ede7"
     },
     "ownerWindowsInstallationChanged": false,
     "newArtifact": "VERIFIED_ON_ARM_AND_LOCAL",
     "completePhysicalAcceptance": false,
     "publicReleaseOrFeed": false,
     "acceptance": "docs/evidence/desktop-followup/ACCEPTANCE.json",
-    "followupLabPreparation": "NOT_RUN_NEW_SOURCE_DEPLOYMENT_PENDING"
+    "followupLabPreparation": "DEPLOYED_DEV5_CI64"
   },
-  "runtimeChangeScope": "Lab Operator/Plugin and independent Agent/Wall/supervisor/mTLS remain on the existing947a117/dev4 baseline. No runtime cutover, SQL migration, Owner installation, public binary Release or update-feed promotion was performed. Remote Lab consent/login presentation still serves the old baseline; its dev5 source changes are CI-verified but not deployed. Main remains8ac6273; this work/documentation is published on permanent work pending later promotion.",
+  "runtimeChangeScope": "Lab Operator/Plugin now serve exact GitHub8e0d932/dev5 after CI64/artifact verification and private backups. Public/private health/API and unauthenticated snapshot401 PASS; persistent counts and independent Agent/Wall/supervisor/mTLS PIDs are preserved. No SQL migration or Owner Windows change. Prior947a117 runtime remains for rollback. Remote consent branding is deployed. Main remains8ac6273; permanent work is active. New task: restore tray state icons and redesign Windows install/uninstall in Moryqa, reuse STOCK logo, remove only empty desktop-v4 directories, then build internal dev6.",
   "desktopUserExperience": {
-    "status": "FULL_CI_ARTIFACT_VERIFIED_OWNER_TEST_NEXT_LAB_AND_MAIN_PENDING",
+    "status": "DEV5_LAB_DEPLOYED_TRAY_INSTALLER_REDESIGN_NEXT",
     "baseCommit": "467a48a44bea89f039fe17baa932aa6ab5e79a69",
     "preChangeTag": "checkpoint/20261109-before-desktop-ux-467a48a",
     "bundleSha256": "ab64da04c5c085c34d47168d75cfb82275a0aa9864dcfe6602fc3f0462aabcfd",
@@ -844,7 +881,7 @@
       "Visual QA currently uses empty unauthorized states"
     ],
     "newArtifact": "VERIFIED_ON_ARM_AND_LOCAL",
-    "runtimeChanged": false,
+    "runtimeChanged": true,
     "candidateVersion": "0.10.1-dev.5",
     "steps": {
       "P0Inventory": "DONE",
@@ -886,27 +923,37 @@
       "result": "VERIFIED_NOT_PHYSICAL_ACCEPTANCE"
     },
     "labDeployment": {
-      "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
-      "version": "0.10.1-dev.4",
-      "servicesActive": true,
-      "runtimeChanged": false,
-      "newCandidateDeployment": "PENDING",
+      "result": "PASS",
+      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+      "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+      "version": "0.10.1-dev.5",
+      "databaseMigrated": false,
+      "dbArchiveIndexVerified": true,
+      "dbArchiveSha256": "651f2911c28ef6c033219fe380ff6aeeac73d30df25b4b8e68ed24d36c822596",
+      "independentPidsPreserved": true,
+      "dependencyGraphUnchanged": true,
+      "homeAncestorAclChanged": false,
+      "persistentCountsUnchanged": true,
+      "snapshotUnauthenticatedStatus": 401,
+      "apiContractVersion": "light-remote.api.v1",
+      "publicHealth": "PASS",
+      "oldSourcesPreserved": true,
       "ownerWindowsInstallationChanged": false,
-      "result": "PRESERVED_NOT_DEPLOYED",
-      "mainSourceCommit": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
-      "checkedAt": "2026-11-10T11:29:08.328782+00:00",
-      "candidateSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de"
+      "physicalOwnerAcceptance": false,
+      "publicReleaseOrFeed": false,
+      "previousSource": "947a11763161aca6856ffc1e8e18dc8fc446ede7"
     },
     "runtimeScope": "Internal Lab Operator+Plugin/consent only; old sources and independent processes preserved",
     "ownerWindowsInstallationChangedByCodex": false,
     "publicReleaseOrFeed": false,
     "acceptance": "docs/evidence/desktop-followup/ACCEPTANCE.json",
-    "existingLabRuntimeChanged": false,
+    "existingLabRuntimeChanged": true,
     "ownerWindowsInstallationChanged": false,
-    "physicalOwnerAcceptance": "PENDING_DEV5_OWNER_SELF_INSTALL_TEST"
+    "physicalOwnerAcceptance": "PENDING_DEV5_OWNER_SELF_INSTALL_TEST",
+    "followupLabPreparation": "DEPLOYED_DEV5_CI64"
   },
   "codexWallFollowup": {
-    "status": "FULL_CI_ARTIFACT_VERIFIED_OWNER_TEST_NEXT_LAB_AND_MAIN_PENDING",
+    "status": "DEV5_FULL_CI_AND_LAB_VERIFIED_NEW_TRAY_INSTALLER_TASK_ACTIVE",
     "baseCommit": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
     "preChangeTag": "checkpoint/20261110-before-codex-wall-8ac6273",
     "bundleSha256": "4b0fe9fd2ae24bcf8a406bf03ddc8c3a5b6feb9a975b8c34f45d2d7b5265e5b3",
@@ -926,11 +973,11 @@
       "internalConsentDeployment": "NOT_STARTED",
       "physicalOwnerRetest": "NOT_RUN",
       "P3NativeActions": "PASS9_OF9",
-      "P4InternalArtifactAndLab": "ARTIFACT_VERIFIED_LAB_DEPLOYMENT_PENDING",
-      "P5OwnerPhysical": "OWNER_SELF_INSTALL_TEST_NEXT"
+      "P4InternalArtifactAndLab": "DONE_DEV5_VERIFIED_AND_DEPLOYED",
+      "P5OwnerPhysical": "SCOPED_OWNER_FEEDBACK_NEW_TASK_ACTIVE"
     },
     "onePrimaryExe": "LightRemote.exe",
-    "runtimeChanged": false,
+    "runtimeChanged": true,
     "publicReleaseOrFeed": false,
     "ciAttempts": [
       {
@@ -989,7 +1036,7 @@
         "failure": "macOS44/45: native auth liveness fixture exceeded a150ms wall-clock sample. Replace sample with deterministic async timer/worker release ordering; retain real installed Close3s and recovery tests."
       }
     ],
-    "nextGate": "Owner downloads and installs exact internal dev5, tests and reports observed results. Keep physical acceptance PENDING. Resume from that report; separately complete verified-source Lab Operator/Plugin/consent deployment with backups and independent PID preservation, then normal protected-main promotion. Never infer remote Lab deployment from the installer build.",
+    "nextGate": "Finish fresh Moryqa Windows design and export; implement five-state tray, native setup/uninstall and empty-dir cleanup; full internal dev6 Actions, exact artifact and canonical closeout.",
     "nativeClose": {
       "sourceRepair": "owning-runtime singleton show event, actual OS visibility reconciliation and deferred hide",
       "diagnosis": "Pinned Tao is_visible delegates to OS, while set_visible/apply_diff caches flags. CI59 external show caused later hide no-op; CI60 fixture external hide caused initial show no-op. Reconcile actual hidden state on restore, preserving raw-hide fixture and all checks.",
@@ -1092,16 +1139,31 @@
     },
     "ownerWindowsInstallationChangedByCodex": false,
     "labDeployment": {
-      "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
-      "version": "0.10.1-dev.4",
+      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+      "version": "0.10.1-dev.5",
       "servicesActive": true,
       "runtimeChanged": false,
-      "newCandidateDeployment": "PENDING",
+      "newCandidateDeployment": "DEPLOYED",
       "ownerWindowsInstallationChanged": false,
-      "result": "PRESERVED_NOT_DEPLOYED",
+      "result": "PASS",
       "mainSourceCommit": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
       "checkedAt": "2026-11-10T11:29:08.328782+00:00",
-      "candidateSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de"
+      "candidateSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+      "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+      "databaseMigrated": false,
+      "dbArchiveIndexVerified": true,
+      "dbArchiveSha256": "651f2911c28ef6c033219fe380ff6aeeac73d30df25b4b8e68ed24d36c822596",
+      "independentPidsPreserved": true,
+      "dependencyGraphUnchanged": true,
+      "homeAncestorAclChanged": false,
+      "persistentCountsUnchanged": true,
+      "snapshotUnauthenticatedStatus": 401,
+      "apiContractVersion": "light-remote.api.v1",
+      "publicHealth": "PASS",
+      "oldSourcesPreserved": true,
+      "physicalOwnerAcceptance": false,
+      "publicReleaseOrFeed": false,
+      "previousSource": "947a11763161aca6856ffc1e8e18dc8fc446ede7"
     },
     "acceptance": "docs/evidence/desktop-followup/ACCEPTANCE.json",
     "realPackagedConptyWall": {
@@ -1127,5 +1189,61 @@
     "mainSourceCommit": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
     "candidateCompiledSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
     "reason": "Owner requested docs/checkpoint/handoff, then self-download/install/test; no promotion in this closeout"
+  },
+  "distributionRedesign": {
+    "status": "INVENTORIED_DESIGN_IN_PROGRESS",
+    "preChange": {
+      "sourceCommit": "0c1a153ecb6a8c67b987e753e520381730f56a43",
+      "sourceTree": "d9335bc82c5a9ec22089373911186d3f98030839",
+      "branch": "work",
+      "tag": "checkpoint/20261110-before-tray-installer-0c1a153",
+      "bundleSha256": "5a17f1e7c61983d0f636cb136d8d463679ef9339cd2c00de403215f7b33534f9",
+      "bundleRestoreFsck": "PASS",
+      "archiveSha256": "024addab5f89d706532675bbc82e27d53107c91cd531e8f2887e4f30533b50ef",
+      "archiveBytes": 9521575,
+      "createdAt": "2026-11-10T12:27:28.297488+00:00",
+      "runtimeChanged": false,
+      "mainChanged": false
+    },
+    "scope": [
+      "five-state native tray with subtle transitions",
+      "new Moryqa Windows setup/uninstall; no V2 layout reuse",
+      "STOCK exact canonical logo",
+      "Google Sans Flex design; packaged Google Sans code",
+      "safe empty desktop-v4 cleanup",
+      "verified server synchronization"
+    ],
+    "moryqa": {
+      "fileName": "Light Remote AI UI/UX",
+      "stockLogo": "34:4",
+      "trayFrame": "40:895",
+      "newWelcome": "73:76",
+      "font": "Google Sans Flex"
+    },
+    "server": {
+      "result": "PASS",
+      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+      "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+      "version": "0.10.1-dev.5",
+      "databaseMigrated": false,
+      "dbArchiveIndexVerified": true,
+      "dbArchiveSha256": "651f2911c28ef6c033219fe380ff6aeeac73d30df25b4b8e68ed24d36c822596",
+      "independentPidsPreserved": true,
+      "dependencyGraphUnchanged": true,
+      "homeAncestorAclChanged": false,
+      "persistentCountsUnchanged": true,
+      "snapshotUnauthenticatedStatus": 401,
+      "apiContractVersion": "light-remote.api.v1",
+      "publicHealth": "PASS",
+      "oldSourcesPreserved": true,
+      "ownerWindowsInstallationChanged": false,
+      "physicalOwnerAcceptance": false,
+      "publicReleaseOrFeed": false,
+      "previousSource": "947a11763161aca6856ffc1e8e18dc8fc446ede7"
+    },
+    "plannedCandidateVersion": "0.10.1-dev.6",
+    "ownerScreenshot": "dev5 Agent and one LightRemote.exe observed; not blanket physical acceptance",
+    "newNativeBuild": "NOT_BUILT",
+    "publicReleaseOrFeed": false
   }
 }

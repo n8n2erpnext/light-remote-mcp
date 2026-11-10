@@ -260,7 +260,7 @@ npm test
 | Windows Desktop | Nội bộ `0.10.1-dev.5`, một `LightRemote.exe` chính; build/install/migration/watchdog PASS |
 | CI | [CI #64 — 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868); Node284, React125, browser170 + Wall4, backend25 |
 | Codex / Wall / PTY / nút X / nhãn lệnh | Đã sửa trong source và qua kiểm thử tự động; chờ Owner nghiệm thu máy thật |
-| Lab Operator/Plugin | Giữ `947a117` / dev4, **chưa triển khai dev5**; trang consent web còn bản cũ |
+| Lab Operator/Plugin | Đã lên `8e0d932` / dev5; health/API PASS, giữ dữ liệu và Agent/Wall độc lập |
 | Git | Source và handoff trên `work`; `main` giữ `8ac6273`, chờ promotion |
 | Owner physical dev5 UAT | **Owner tự tải/cài/test rồi báo kết quả; PENDING** |
 | macOS/Linux installers | Native source tests PASS; chưa kết luận đầy đủ bộ cài |
@@ -268,7 +268,7 @@ npm test
 
 Source `8e0d932920d218c54f83989978f3866c321e20de` · [internal installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868/artifacts/13758302838) · [evidence/SHA256](docs/evidence/desktop-followup/ACCEPTANCE.json) · [handoff](PROJECT_HANDOFF.md).
 
-Bộ cài mới không tự cập nhật backend Lab. Token/quota chỉ hiển thị dữ liệu runtime cung cấp, có phân biệt phạm vi và dữ liệu thiếu/cũ. Lịch sử chỉ gồm bản ghi còn được lưu theo cấu hình dung lượng.
+Backend Lab đã được cập nhật riêng sang dev5; bộ cài không tự thay đổi server. Token/quota chỉ hiển thị dữ liệu runtime cung cấp, có phân biệt phạm vi và dữ liệu thiếu/cũ. Lịch sử chỉ gồm bản ghi còn được lưu theo cấu hình dung lượng.
 
 ## License
 

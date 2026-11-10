@@ -60,3 +60,7 @@ Owning-runtime singleton show additionally reconciles actual visibility: Tao0.37
 ## Bind recovery Wall health proof to validated installed package revision
 
 Recovery helpers may survive a Core rollback to a different endpoint configuration revision. Updater/InstallWatchdog use IsInstalledWall, which selects revision from a <=16KiB, non-reparse installed package marker only after exact compiled product/profile validation. It retains exact installed Node path, listener PID and a fresh nonce/constant-time HMAC over that selected revision. The HTTP response never selects the expected revision; there is no retry-any-revision or trust of TCP LISTEN alone. Regular GUI/client IsExpectedWall still binds its compiled revision. Fixed loopback URL/port/Host and user key boundary remain unchanged. Native tests cover current/legacy revision selection, wrong profile/oversized marker and existing2/3 vectors plus tamper checks.
+
+## Checkpoint fresh Windows distribution redesign and verified dev5 Lab deployment
+
+The unified Tauri tray currently uses a static default icon while managed TrayIconFactory and VisualFor retain five-state assets/semantics. New wiring will reuse that trusted sanitized snapshot projection and Moryqa exports. Dev5 Operator/Plugin deployment now serves canonical consent presentation; authorization/issuer/API identities and independent local runtime boundaries are unchanged.

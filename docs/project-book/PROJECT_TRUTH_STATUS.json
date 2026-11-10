@@ -14,8 +14,8 @@
   "officialRepositoryId": 1450214328,
   "verifiedBuiltSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
   "verifiedBuiltSourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
-  "checkpointUpdatedAt": "2026-11-10T11:33:56.669Z",
-  "migrationPhase": "DEV5_BUILD_VERIFIED_OWNER_SELF_TEST_HANDOFF",
+  "checkpointUpdatedAt": "2026-11-10T12:50:52.616Z",
+  "migrationPhase": "TRAY_INSTALLER_INVENTORY_DEV5_SERVER_DEPLOYED",
   "ci": {
     "status": "success",
     "runId": 42803494868,
@@ -38,11 +38,10 @@
   "sourcePresenceDoesNotProveDeployment": true,
   "productionRelease": false,
   "remaining": [
-    "Owner downloads and installs exact internal dev5, tests and reports observed results. Keep physical acceptance PENDING. Resume from that report; separately complete verified-source Lab Operator/Plugin/consent deployment with backups and independent PID preservation, then normal protected-main promotion. Never infer remote Lab deployment from the installer build.",
+    "Fresh tray/installer redesign and safe empty directory cleanup pending; full exact-source dev6 CI/artifact/Owner acceptance required.",
     "No live OpenAI inference or Owner account consumption in synthetic tests",
     "Unsupported/stale Codex telemetry remains explicit; locally observed tokens are not total account usage",
     "History pages expose retained records under configured disk retention, with bounded RAM/DOM",
-    "Remote Lab consent branding is still dev4 until backend deployment",
     "Owner physical dev5 acceptance and full Mac/Linux installers remain pending",
     "Existing reconstruction backlog retained: Continuity modern Wall/core hook and history-dependent packaging regression",
     "Existing reconstruction backlog retained: legacy Long Memory extension/RC50/Guest prototypes and full Mac/Linux installers",
