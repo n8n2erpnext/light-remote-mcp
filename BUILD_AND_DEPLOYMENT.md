@@ -175,3 +175,7 @@ CI69 source299c31d built the complete installer but UI font verification was inv
 ## Correct native title lines card surfaces and uninstall button selection
 
 CI70 UI artifact13781309625 confirms actual Google Sans and successful three-view installation. Visual review found missing second heading lines caused by large GDI font line metrics and missing card/footer surfaces inherited from theme/parent. Explicit native line labels and explicit background/style settings correct those gaps. Native UI proof now checks second-line text, painted ink and card-color pixels; selector excludes static captions when clicking Uninstall. New full run required.
+
+## Retain bottom margin for native Google Sans heading descenders
+
+Verified CI71 completed/success9/9 and actual six native UI summaries. Final heading descender correction reserves102px for the two32px lines at y116; its bottom meets body y218. Native CI now requires at least3px bottom ink padding in the second heading. Font assets, content, API and installer/recovery transactions are unchanged. Physical Owner feedback remains pending.

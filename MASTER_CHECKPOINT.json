@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T16:37:03.421Z",
+  "updatedAt": "2026-11-10T17:01:01.223Z",
   "version": "0.10.1-dev.6",
   "phase": "DISTRIBUTION_V3_DEV6_NATIVE_IMPLEMENTED",
   "status": "IMPLEMENTED_NATIVE_CI_PENDING",
@@ -450,12 +450,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-native-ui-lines-surfaces-selectors",
-    "status": "CI70_INSTALL_UI_PASS_VISUAL_QA_CORRECTIONS_PENDING",
-    "summary": "CI70 install UI passed all three views with actual Google Sans, real progress/default checkbox/Finish launch and empty legacy directory absent. Uninstall selector matched both static role label and Uninstall button; restrict to button/checkbox controls. Actual native PNG review found clipped second title lines and unpainted themed card/footer surfaces. Place explicit native title/body lines at bounded pitches, disable inherited panel background/theme colors, and assert actual screenshot title ink and card pixels for all six views.",
-    "verification": "CI70 native install-summary confirms Google Sans and three real views; native lifecycle/rollback steps before uninstall completed. Uninstall-failure identifies two matching controls. Inspected actual welcome/confirmation PNGs and found the visual gaps; native code and screenshot proof are strengthened. Local source regression and PowerShell AST pass. Full new CI and physical Owner testing remain pending; no installer has been accepted.",
+    "taskId": "20261110-native-heading-descender-margin",
+    "status": "CI71_FULL_PASS_HEADING_MARGIN_FINAL_CANDIDATE",
+    "summary": "CI71 source302c662 completed successfully9/9 including all six native views/font/card/title-ink, lifecycle and real migration/watchdog recovery. A final pixel read showed descender ink in some second headings at the last label row. Increase total heading allocation92→102px, ending exactly at the body start, and require an actual bottom ink margin in native screenshots. No font/wording/flow/transaction changes.",
+    "verification": "CI71 API explicitly completed/success with9 successful jobs. Native UI artifact13783997596 has install/uninstall summaries PASS and all six Google Sans views. Reviewed all six PNGs; portable PNG pixel decode confirms affected heading ink reaches row238, label bottom239. This small allocation correction is verified by a stricter screenshot margin assertion in a new exact-source full run; physical Owner acceptance remains pending.",
     "nextAction": "Follow full exact-source Actions; resolve compile/real Windows UI failures, verify internal dev6 installer and native evidence independently, synchronize Lab from accepted source if necessary, then canonical docs/handoff with Owner physical test pending.",
-    "sourceDigest": "41903fcc7a379c4fee7306166015337b9e89c31d00634e1deddc4678ab94fb9f",
+    "sourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "sourceFileCount": 1672
   },
   "legacyFilesystemCleanup": {
@@ -1257,7 +1257,7 @@
     },
     "plannedCandidateVersion": "0.10.1-dev.6",
     "ownerScreenshot": "dev5 Agent and one LightRemote.exe observed; not blanket physical acceptance",
-    "newNativeBuild": "CI70_THREE_INSTALL_VIEWS_PASS_VISUAL_AND_SELECTOR_FIX",
+    "newNativeBuild": "CI71_FULL_PASS_FINAL_HEADING_MARGIN_CANDIDATE",
     "publicReleaseOrFeed": false,
     "tray": {
       "projection": "native VisualFor",
@@ -1290,6 +1290,18 @@
         "uninstall": "selector matched role label and button; not accepted",
         "visualReview": "second title line clipped and panel backgrounds inherited; corrected with image assertions"
       }
-    ]
+    ],
+    "ci71Baseline": {
+      "runId": 42856334137,
+      "sourceCommit": "302c662dcae3e5bdee096f5722d0cdd80a642667",
+      "result": "PASS",
+      "jobs": 9,
+      "nativeUiViews": 6,
+      "nativeUiArtifactId": 13783997596,
+      "nativeUiZipSha256": "c3b9088b88c3380fda0bdeb965b05dea8847323f6f04db41d894b071b44e3b99",
+      "font": "Google Sans",
+      "physicalOwnerAcceptance": false
+    },
+    "finalVisualPolish": "heading label102px; bottom ink margin assertion; new full run pending"
   }
 }

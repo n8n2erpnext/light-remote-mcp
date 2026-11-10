@@ -97,21 +97,23 @@ function Capture-View($View,[string]$Name){
     try{
         $g=[Drawing.Graphics]::FromImage($b);$dc=$g.GetHdc()
         try{if(-not [LRSetupUi]::PrintWindow($View.window,$dc,0)){throw 'Native wizard could not render'}}finally{$g.ReleaseHdc($dc);$g.Dispose()}
-        $gold=0;$card=0;$secondInk=0
+        $gold=0;$card=0;$secondInk=0;$lastSecondInk=-1
         for($y=0;$y -lt $b.Height;$y+=3){for($x=0;$x -lt $b.Width;$x+=3){
             $c=$b.GetPixel($x,$y)
             if($c.R -gt 170 -and $c.G -gt 130 -and $c.B -lt 70){$gold++}
             if([Math]::Abs([int]$c.R-246) -le 1 -and [Math]::Abs([int]$c.G-247) -le 1 -and [Math]::Abs([int]$c.B-249) -le 1){$card++}
             if($x -ge $secondRect.Left-$rect.Left -and $x -lt $secondRect.Right-$rect.Left -and
                $y -ge $secondRect.Top-$rect.Top -and $y -lt $secondRect.Bottom-$rect.Top -and
-               $c.R -lt 100 -and $c.G -lt 110 -and $c.B -lt 130){$secondInk++}
+               $c.R -lt 100 -and $c.G -lt 110 -and $c.B -lt 130){$secondInk++;$lastSecondInk=$y}
         }}
         $b.Save((Join-Path $evidence ($Name+'.png')),[Drawing.Imaging.ImageFormat]::Png)
         if($face -notlike '*Google Sans*'){throw "Native title font is not packaged Google Sans: $face"}
         if($gold -lt 100){throw 'Canonical gold logo/brand art missing from actual native wizard'}
         if($card -lt 100){throw 'Native information card background is missing'}
         if($secondInk -lt 25){throw 'Second title line is clipped or not painted'}
-        return [ordered]@{view=$Name;title=$View.text;secondTitle=$secondText;secondTitleInkPixels=$secondInk;cardPixels=$card;font=$face;dpi=[LRSetupUi]::GetDpiForWindow($View.window);width=$b.Width;height=$b.Height;brandPixels=$gold;rendered=$true}
+        $secondBottomMargin=$secondRect.Bottom-$rect.Top-1-$lastSecondInk
+        if($secondBottomMargin -lt 3){throw 'Second title descenders touch the clipping boundary'}
+        return [ordered]@{view=$Name;title=$View.text;secondTitle=$secondText;secondTitleInkPixels=$secondInk;secondTitleBottomMargin=$secondBottomMargin;cardPixels=$card;font=$face;dpi=[LRSetupUi]::GetDpiForWindow($View.window);width=$b.Width;height=$b.Height;brandPixels=$gold;rendered=$true}
     }finally{$b.Dispose()}
 }
 $proof=[Collections.Generic.List[object]]::new()

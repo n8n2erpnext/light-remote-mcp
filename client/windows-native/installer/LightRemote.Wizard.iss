@@ -282,7 +282,7 @@ begin
   LRLogo(Result, 580, 124, 128);
   LRText(Result, 'LRWordmark', 'Light Remote', 68, 24, 210, 30, 20, True, LRInk);
   LRText(Result, 'LRRole', Role, 620, 30, 150, 22, 12, False, LRMuted);
-  LRText(Result, 'LRTitle', Title, 40, 116, 470, 92, 32, True, LRInk);
+  LRText(Result, 'LRTitle', Title, 40, 116, 470, 102, 32, True, LRInk);
   LRText(Result, 'LRBody', Body, 40, 218, 480, 70, 15, False, LRMuted);
   if Note <> '' then LRText(Result, 'LRNote', Note, 58, 342, 660, 26, 15, True, LRInk);
   if (Phase = 2) or (Phase = 5) then

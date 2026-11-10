@@ -206,3 +206,7 @@ LightRemote.Wizard.iss LRText copies the actual LRTitle TFont to a process-local
 ## Correct native title lines card surfaces and uninstall button selection
 
 LightRemote.Wizard.iss LRText splits explicit title/body lines into accessible native controls with fixed line pitches; original packaged Google Sans remains unchanged. LRSurface/LRView own their panel colors with ParentBackground=False/StyleElements=[], and info/footer text uses matching backgrounds. test-distribution-ui.ps1 restricts actions to native Button/CheckBox classes and verifies painted second-heading ink plus card pixels in actual PrintWindow captures; it uniquely waits for the final is-uninstalled title.
+
+## Retain bottom margin for native Google Sans heading descenders
+
+LRView heading allocation is102px, retaining room below the second native Google Sans line; LRText first-line pitch remains46. test-distribution-ui.ps1 records secondTitleBottomMargin and blocks descender ink touching the label edge, using actual PrintWindow pixels. CI71 remains a verified full baseline; the final exact-source run is distinct.

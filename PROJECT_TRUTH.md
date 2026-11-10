@@ -186,3 +186,7 @@ CI69 compiled the full dev6 installer; native UI acceptance stopped at an invali
 ## Correct native title lines card surfaces and uninstall button selection
 
 CI70 installed dev6 with three actual native views/font/progress/Finish and fresh empty-directory cleanup PASS. Uninstall selector ambiguity and actual screenshot fidelity gaps are corrected: explicit accessible title/body line placement, opaque native card/footer colors and button-class selection. New screenshot checks require second-title ink and card pixels. A new full exact-source run must pass before artifact/deployment acceptance.
+
+## Retain bottom margin for native Google Sans heading descenders
+
+CI71 source302c662 is full9/9 PASS with six actual native views and real migration/watchdog. Final pixel inspection found a narrow bottom clipping boundary for Google Sans descenders. Heading allocation grows92→102px (body starts at218, so no overlap); a new native screenshot assertion requires bottom ink padding. Follow the new exact-source run before final dev6 artifact acceptance.
