@@ -55,21 +55,28 @@ internal static class WallListenerOwnership
         => ReadListenerPids(port).Any();
 
     public static bool PackageMatches(string installDir)
+        => TryInstalledRevision(installDir,out _);
+
+    internal static bool TryInstalledRevision(string installDir,out int installedRevision)
     {
+        installedRevision=0;
         try
         {
             var marker=Path.Combine(installDir,"agent","device-agent","goldabv2-package-profile.json");
-            if (!File.Exists(marker))return false;
+            var file=new FileInfo(marker);
+            if (!file.Exists||file.Length>16384||(file.Attributes&FileAttributes.ReparsePoint)!=0)return false;
             using var json=JsonDocument.Parse(File.ReadAllText(marker));
             var root=json.RootElement;
             var expected=CanonicalEndpoints.Gold;
-            return root.TryGetProperty("productId",out var product)&&
+            var valid=root.TryGetProperty("productId",out var product)&&
                 product.GetString()==expected.ProductId&&
                 root.TryGetProperty("configProfile",out var profile)&&
                 profile.GetString()==expected.SelectedProfile&&
                 root.TryGetProperty("configRevision",out var revision)&&
                 revision.ValueKind==JsonValueKind.Number&&
-                revision.GetInt32()>0;
+                revision.TryGetInt32(out installedRevision)&&installedRevision>0;
+            if(!valid)installedRevision=0;
+            return valid;
         }
         catch { return false; }
     }
@@ -87,6 +94,15 @@ internal static class WallListenerOwnership
     }
 
     public static bool IsExpectedWall(int port,string installDir)
+        => IsExpectedWallCore(port,installDir,null);
+
+    // Recovery helpers can outlive a Core/configuration revision. Bind the
+    // fresh proof to the validated installed package marker, never a revision
+    // supplied by HTTP. Normal client/GUI probes keep their compiled revision.
+    public static bool IsInstalledWall(int port,string installDir)
+        => TryInstalledRevision(installDir,out var revision)&&IsExpectedWallCore(port,installDir,revision);
+
+    private static bool IsExpectedWallCore(int port,string installDir,int? installedRevision)
     {
         if (!PackageMatches(installDir))return false;
         foreach (var pid in ReadListenerPids(port))
@@ -95,7 +111,9 @@ internal static class WallListenerOwnership
             {
                 using var process=Process.GetProcessById(pid);
                 if (IsExactInstalledRuntimePath(process.MainModule?.FileName,installDir) &&
-                    LocalWallChallengeProof.Probe(port,pid))
+                    (installedRevision.HasValue
+                        ?LocalWallChallengeProof.Probe(port,pid,installedRevision.Value)
+                        :LocalWallChallengeProof.Probe(port,pid)))
                     return true;
             }
             catch { /* Inaccessible PID is unknown, never trusted. */ }

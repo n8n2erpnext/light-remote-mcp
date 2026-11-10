@@ -50,7 +50,11 @@ internal static class LocalWallChallengeProof
     }
 
     internal static bool Probe(int port,int ownerPid)
+        => Probe(port,ownerPid,checked((int)CanonicalEndpoints.Gold.ConfigRevision));
+
+    internal static bool Probe(int port,int ownerPid,int expectedRevision)
     {
+        if(expectedRevision<1)return false;
         try
         {
             var keyText=File.ReadAllText(KeyPath).Trim();
@@ -82,7 +86,7 @@ internal static class LocalWallChallengeProof
             }
             if(total<=0||total>4096)return false;
             return VerifyPayload(Encoding.UTF8.GetString(buffer,0,total),nonce,
-                ownerPid,key,checked((int)CanonicalEndpoints.Gold.ConfigRevision));
+                ownerPid,key,expectedRevision);
         }
         catch {return false;}
     }

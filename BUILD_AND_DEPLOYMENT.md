@@ -137,3 +137,7 @@ CI59 failed second Close after shortcut reopen while responsive; no failed candi
 ## Reconcile actual hidden window state before singleton restore
 
 CI60 initial shortcut restore failed after the unchanged installed raw Win32 hide setup; no accepted binary. Keep that precondition and all existing background/Agent restart/singleton/3s Close3cycle/WM_NULL assertions unchanged. Native restore now reconciles OS visibility before Tauri show; rebuild and pass full exact-source Actions before delivery or Lab rollout.
+
+## Bind recovery Wall health proof to validated installed package revision
+
+CI61 feature/install/Close3cycle/ConPTY checks passed, but the required real manual watchdog rollback failed when helper configRevision3 compared a restored rev2 Wall to its own compiled revision. Recovery-only proof selection now follows validated installed marker revision without relaxing other proof checks. Keep the existing rollback_restore_wall_healthy assertion, real pinned bridge, identity canaries and full native Actions; no failed candidate delivery or runtime rollout.

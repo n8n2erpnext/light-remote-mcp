@@ -174,3 +174,7 @@ unified_tray.rs publishes/consumes fixed native singleton show event while prese
 ## Reconcile actual hidden window state before singleton restore
 
 unified_tray.rs::show_main worker queries window.is_visible (native OS), normalizes cached hide only when actually hidden, then show/unminimize/focus on owning Tauri runtime. This handles CI60 raw-hide restore while retaining CI59 shortcut Close repair. Installed test code is unchanged in this source repair.
+
+## Bind recovery Wall health proof to validated installed package revision
+
+Shared/WallListenerOwnership.TryInstalledRevision bounds and validates the installed product/profile marker. IsInstalledWall is used only by Updater/InstallWatchdog recovery health; normal IsExpectedWall stays compiled-revision strict. Shared/LocalWallChallengeProof adds explicit expected-revision overload while retaining default compiled revision and nonce/MAC/PID validation. Native fixture Program.cs covers current/legacy marker selection plus wrong profile/oversized marker. CI61 installed Close and real ConPTY were PASS; final cross-revision watchdog must pass on the repaired exact source.

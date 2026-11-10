@@ -76,7 +76,7 @@ internal static class UpdateApplier
     private static bool WallPortListening(string installDir)
     {
 #if LIGHT_REMOTE_GOLDABV2_V4
-        return WallListenerOwnership.IsExpectedWall(WallPort,installDir);
+        return WallListenerOwnership.IsInstalledWall(WallPort,installDir);
 #else
         try { return System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties()
             .GetActiveTcpListeners().Any(ep=>ep.Port==WallPort); }

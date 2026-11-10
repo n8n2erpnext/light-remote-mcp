@@ -302,7 +302,7 @@ static class Program
             try
             {
 #if LIGHT_REMOTE_GOLDABV2_V4
-                if (!WallListenerOwnership.IsExpectedWall(CanonicalEndpoints.Gold.LocalPort("wall"),installRoot))
+                if (!WallListenerOwnership.IsInstalledWall(CanonicalEndpoints.Gold.LocalPort("wall"),installRoot))
                 {
                     stable=0;Thread.Sleep(300);continue;
                 }

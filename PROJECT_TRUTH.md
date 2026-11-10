@@ -170,3 +170,7 @@ CI59 d6f8eb8 is not an accepted candidate: core/browser/Linux/macOS passed, actu
 ## Reconcile actual hidden window state before singleton restore
 
 CI60 is not accepted: core/browser/Linux/macOS and Windows compile/install passed, but initial shortcut restore after the existing raw Win32 hide precondition failed. Restore now reads actual OS visibility and normalizes cached hidden state only when already hidden before owning-runtime show. All existing installed tests/deadlines, including raw-hide/background and3 Close cycles, remain unchanged. Full native acceptance is pending; Lab947a117 remains.
+
+## Bind recovery Wall health proof to validated installed package revision
+
+CI61 verified actual installed Close/shortcut/background3cycles, same GUI/Agent and WM_NULL responsiveness; real packaged ConPTY executed output/Unicode/offset/EOF PASS. Full run still failed final manual watchdog rollback health across revisions3->2. Source repair binds recovery-only health to the validated installed package marker revision, with all nonce/MAC/PID/path/profile checks retained and normal GUI/client compiled revision strict. Full repaired CI pending; Lab947a117 unchanged.

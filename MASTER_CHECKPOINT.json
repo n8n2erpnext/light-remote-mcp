@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T09:50:46.537Z",
+  "updatedAt": "2026-11-10T10:20:11.124Z",
   "version": "0.10.1-dev.5",
-  "phase": "codex-wall-followup-native-visibility",
-  "status": "NATIVE_VISIBILITY_RECONCILIATION_CI_PENDING",
+  "phase": "codex-wall-followup-recovery-revision",
+  "status": "FEATURES_NATIVE_PASS_RECOVERY_REVISION_REPAIRED_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -272,7 +272,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Complete exact-source full Actions including unchanged raw-hide/background/Agent restart/shortcut/Close3cycles/WM_NULL and real ConPTY. Then verify internal installer, same-source Lab and final receipt/main promotion.",
+  "nextAction": "Run exact repaired full Actions, require all existing migration/watchdog and feature tests without bypass. Verify internal artifact/hash/source/manifests, deploy same-source Lab only after success, then canonical closeout/main promotion.",
   "receiptNote": "Compiled source947a117/CI45/internal artifact are pinned independently from this documentation receipt. The receipt does not rebuild the installer. No new public Release/feed or Owner installation change. Source publication uses normal protected work-to-main fast-forward after checks.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -363,12 +363,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-codex-wall-followup-native-visibility",
-    "status": "NATIVE_VISIBILITY_RECONCILIATION_CI_PENDING",
-    "summary": "CI60 exposed the inverse cache mismatch: unchanged installed fixture hides the native window directly while Tao VISIBLE remains true, so owning-runtime show alone became a no-op. Before restoring an actually hidden window, read OS visibility, normalize cached hidden state through Tauri hide, then show/unminimize/focus. Already-visible windows are not hidden. Keep the raw-hide precondition and every existing Close/WM_NULL/background/Agent/singleton assertion unchanged.",
-    "verification": "Local unified one-primary source guard PASS. Pinned Tao is_visible reads OS, while set_visible/apply_diff use cached flags. CI60 core/browser/Linux/macOS/build/install passed but initial shortcut restore failed after native raw-hide precondition, before Close cycles or ConPTY. Full repaired exact-source native acceptance remains pending.",
-    "nextAction": "Complete exact-source full Actions including unchanged raw-hide/background/Agent restart/shortcut/Close3cycles/WM_NULL and real ConPTY. Then verify internal installer, same-source Lab and final receipt/main promotion.",
-    "sourceDigest": "628979b2d94fe81fb06b1c4aeacb57a03cc382d38a4b2de5d18c55f1d8e2df19",
+    "taskId": "20261110-codex-wall-followup-recovery-revision",
+    "status": "FEATURES_NATIVE_PASS_RECOVERY_REVISION_REPAIRED_CI_PENDING",
+    "summary": "CI61 passed actual native Close3cycles/WM_NULL/shortcut/background/Agent lifetime and real packaged ConPTY output, then exposed watchdog recovery across config revisions: helper rev3 rejected restored bridge rev2. Recovery-only Updater/watchdog health now binds fresh HMAC to a bounded, same-product/profile installed marker revision. Normal GUI/client proof remains compiled-revision strict. Nonce, constant-time MAC, exact listener PID/Node path, fixed loopback URL, Host and profile checks remain. Add native current/legacy marker, wrong-profile and oversized-marker fixtures.",
+    "verification": "CI61 real Close3cycles each hidden/responsive with same GUI/Agent, ConPTY executed Unicode/byte offsets PASS; bridge upgrade/reinstall/downgrade and real health-failure rollback passed. Only final manual watchdog health failed with restored healthy rev2 and helper rev3. Local four native source/package/deadline guards PASS. Actual repaired cross-revision watchdog and full exact-source Actions remain pending.",
+    "nextAction": "Run exact repaired full Actions, require all existing migration/watchdog and feature tests without bypass. Verify internal artifact/hash/source/manifests, deploy same-source Lab only after success, then canonical closeout/main promotion.",
+    "sourceDigest": "beca6d9b224476e9f59707ad5c74a4baf0e82adde8d4c651d7f0f7a2b526d6e9",
     "sourceFileCount": 1662
   },
   "legacyFilesystemCleanup": {
@@ -877,13 +877,44 @@
         "result": "FAIL",
         "passed": "Core/browser/Linux/macOS native, Windows compile/install and native show event exists",
         "failure": "Initial shortcut restore after unchanged raw Win32 hide failed. Tao cached VISIBLE=true while OS hidden; Close cycles and ConPTY not reached."
+      },
+      {
+        "runId": 42794129035,
+        "runNumber": 61,
+        "sourceCommit": "e334d187b1d617f0759277328baf115781b4afd5",
+        "result": "FAIL",
+        "passed": "Core284/70, React125/browser170+Wall4, Linux/macOS native; installed Close3cycles/background/Agent/WM_NULL and actual ConPTY; seven migration checks including real bridge upgrade/reinstall/rollback",
+        "failure": "Native watchdog revision3 rejected restored revision2 Wall proof; actual old Wall healthy, manual watchdog final verified health not recorded."
       }
     ],
     "nextGate": "Exact-source full9job CI; never deliver failed artifact",
     "nativeClose": {
       "sourceRepair": "Keep owning-runtime native show event and deferred Close. Before show, query actual OS visibility; when already hidden normalize Tauri hide state, then show/unminimize/focus. No visible-window flicker.",
       "diagnosis": "Pinned Tao is_visible delegates to OS, while set_visible/apply_diff caches flags. CI59 external show caused later hide no-op; CI60 fixture external hide caused initial show no-op. Reconcile actual hidden state on restore, preserving raw-hide fixture and all checks.",
-      "requiredAcceptance": "Native show event exists; background remains hidden; asynchronous restore <=3s; actual Close3cycles <=3s and WM_NULL responsive; same GUI/Agent PIDs; real packaged ConPTY HTTP proof"
+      "requiredAcceptance": "Native show event exists; background remains hidden; asynchronous restore <=3s; actual Close3cycles <=3s and WM_NULL responsive; same GUI/Agent PIDs; real packaged ConPTY HTTP proof",
+      "verifiedCI61": {
+        "source": "e334d187b1d617f0759277328baf115781b4afd5",
+        "runId": 42794129035,
+        "result": "PASS",
+        "cycles": 3,
+        "hidden": true,
+        "responsive": true,
+        "agentPidsPreserved": true,
+        "physicalOwnerAcceptance": false
+      }
+    },
+    "realPackagedConptyCI61": {
+      "source": "e334d187b1d617f0759277328baf115781b4afd5",
+      "runId": 42794129035,
+      "result": "PASS",
+      "checks": "executed marker, Unicode, producer120x32, authenticated HTTP, monotonic byte offset and EOF",
+      "physicalOwnerAcceptance": false
+    },
+    "recoveryRevisionRepair": {
+      "status": "IMPLEMENTED_FULL_CI_PENDING",
+      "selection": "bounded installed package marker revision, exact compiled product/profile; recovery-only consumer",
+      "normalClient": "compiled revision strict",
+      "preserved": "fresh nonce, constant-time HMAC, exact PID/installed Node path, fixed loopback/Host/profile, known revision2/3 vectors and tamper checks"
     }
   }
 }

@@ -110,6 +110,20 @@ internal static class Program
                 productId=config.ProductId,configProfile=config.SelectedProfile,configRevision=config.ConfigRevision
             }));
             var correctProductAccepted=WallListenerOwnership.PackageMatches(temp);
+            var currentRevisionSelected=WallListenerOwnership.TryInstalledRevision(temp,out var currentRevision)&&currentRevision==config.ConfigRevision;
+            File.WriteAllText(marker,JsonSerializer.Serialize(new {
+                productId=config.ProductId,configProfile=config.SelectedProfile,configRevision=2
+            }));
+            var restoredRevisionSelected=WallListenerOwnership.TryInstalledRevision(temp,out var restoredRevision)&&restoredRevision==2;
+            File.WriteAllText(marker,JsonSerializer.Serialize(new {
+                productId=config.ProductId,configProfile="wrong-profile",configRevision=2
+            }));
+            var wrongProfileRevisionRejected=!WallListenerOwnership.TryInstalledRevision(temp,out _);
+            File.WriteAllText(marker,new string(' ',17000));
+            var oversizedMarkerRejected=!WallListenerOwnership.TryInstalledRevision(temp,out _);
+            File.WriteAllText(marker,JsonSerializer.Serialize(new {
+                productId=config.ProductId,configProfile=config.SelectedProfile,configRevision=config.ConfigRevision
+            }));
             var expectedPath=Path.Combine(temp,"runtime","node.exe");
             var exactNodePath=WallListenerOwnership.IsExactInstalledRuntimePath(expectedPath,temp);
             var wrongNodePathRejected=!WallListenerOwnership.IsExactInstalledRuntimePath(
@@ -156,10 +170,12 @@ internal static class Program
                 fixtureJson.Replace(config.ProductId,"regular-gold",StringComparison.Ordinal),
                 vectorNonce,4242,vectorKey,config.ConfigRevision);
             var ok=wrongProductRejected&&correctProductAccepted&&exactNodePath&&
+                currentRevisionSelected&&restoredRevisionSelected&&wrongProfileRevisionRejected&&oversizedMarkerRejected&&
                 wrongNodePathRejected&&sawUnrelatedPort&&wrongListenerRejected&&
                 cryptoVectorOk&&legacyVectorOk&&revisionTamperRejected&&nonceTamperRejected&&pidTamperRejected&&productTamperRejected;
             File.WriteAllText(output,JsonSerializer.Serialize(new {
                 ok,wrongProductRejected,correctProductAccepted,exactNodePath,
+                currentRevisionSelected,restoredRevisionSelected,wrongProfileRevisionRejected,oversizedMarkerRejected,
                 wrongNodePathRejected,sawUnrelatedPort,wrongListenerRejected,
                 cryptoVectorOk,legacyVectorOk,revisionTamperRejected,nonceTamperRejected,pidTamperRejected,productTamperRejected
             }));
