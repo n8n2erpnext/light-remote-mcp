@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T17:32:21.940Z",
+  "updatedAt": "2026-11-10T17:34:34.293Z",
   "version": "0.10.1-dev.6",
   "phase": "RMV2_RESEARCH_COMPLETE_BUILD_DEFERRED",
-  "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
+  "status": "RESEARCH_REVIEWED_NO_IMPLEMENTATION_OR_BUILD",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -450,10 +450,10 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-rmv2-cursor-latency-gpu-research",
-    "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
-    "summary": "Read-only RMv2 source research completed at work764e1d7. Old startup/all-resize cursor report is partially obsolete, but normal system override during observation/input and restore-while-alive gaps remain. Confirmed dropped move duration/steps, explicit0 observation interval, synthetic easing/click delays, serial native RPC and CPU GDI/JPEG capture. Proposed native cursor plus AI badge/border, staged responsiveness improvements, optional DXGI JPEG and later authorized GPU video viewer. No implementation, benchmark, native build/test or deployment.",
-    "verification": "Verified immutable Git archive SHA256b5b9e07a77902ddaf3980ea69f1bf67bec17813ff054412ca4f084918c683d86, exact12-file byte equality with preceding snapshot and same cursor source on actual GitHub main8ac6273. Source line evidence and official Microsoft/Sunshine/NVIDIA references reviewed. Programmed165ms is a source timing estimate, not a measured end-to-end result; cursor timer race is explicitly a hypothesis. CI72 completed/cancelled; prior CI73 docs success with all core/native jobs skipped. Only mandatory docs/checkpoint gates for this research receipt.",
+    "taskId": "20261111-rmv2-research-review-closeout",
+    "status": "RESEARCH_REVIEWED_NO_IMPLEMENTATION_OR_BUILD",
+    "summary": "RMv2 plan reviewed; current source cursor findings and staged native-cursor/input/GPU proposals retained. Clarified that an unknown reporter artifact cannot be identified as an older build solely from mismatch with current source. Main/current cursor source comparison is verified; physical incident provenance remains unknown. Research docs published at5f7dbc2; no RM implementation/build/test/deployment.",
+    "verification": "GitHub run42866004082 (#74), exact5f7dbc2, explicitly completed/success. changes/truth/baseline-required succeeded; dependency-lock, core integration, Desktop and Windows all skipped. Canonical docs/stamp/commit-sync passed. No native or product tests, benchmarks or Owner-machine actions performed. Peer source review found no other material cursor-state or implemented/measured-claim issue.",
     "nextAction": "Owner may request implementing cursor preservation/AI badge/border and bounded input contract/timing/instrumentation first. Retain GDI/semantic/A-B/local-policy behavior; add optional DXGI capture only after measurements, and video viewer as a separate later phase. Do not build/test native/deploy until Owner asks; next accepted build must include the deferred dev6 installer/tray/X/Agent/ConPTY/migration/rollback checks plus scoped RM acceptance.",
     "sourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "sourceFileCount": 1672
@@ -1336,12 +1336,12 @@
     "nativeUiEvidence": "docs/evidence/distribution-redesign/CI71_NATIVE_UI.json"
   },
   "rmv2Research": {
-    "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
+    "status": "RESEARCH_REVIEWED_NO_IMPLEMENTATION_OR_BUILD",
     "sourceCommit": "764e1d7ce7670c9e95690fca26b58dd2e3c86f02",
     "sourceTree": "41a48add6e01f3e4f6d28271a59b77f92a8acaca",
     "sourceArchiveSha256": "b5b9e07a77902ddaf3980ea69f1bf67bec17813ff054412ca4f084918c683d86",
     "document": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
-    "documentSha256": "fe04f53527a6667a3da81a81fd4394e3984ac6e4b8f5013f0c930ff7cc5a5b9c",
+    "documentSha256": "00ed0c26b573a0c33101681b6a83c21593b8e6de0ad50605e0547874c420e452",
     "normalCursorOverrideStillPresent": true,
     "resizeOverrideInCurrentCursorList": false,
     "constructorCursorAcquire": false,
@@ -1358,6 +1358,16 @@
       "existing GDI response/capture/mapping improvements",
       "optional DXGI capture with compatible JPEG and GDI fallback",
       "separate optional GPU video and authorized viewer"
-    ]
+    ],
+    "reporterInstalledArtifact": "UNKNOWN_NOT_IDENTIFIED",
+    "documentationCi": {
+      "runId": 42866004082,
+      "runNumber": 74,
+      "sourceCommit": "5f7dbc29755558103afd90ffe42b2fe193353c4e",
+      "result": "success",
+      "nativeAndCoreJobs": "skipped"
+    },
+    "peerCursorReview": "PASS_WITH_PROVENANCE_WORDING_CLARIFIED",
+    "buildStillDeferredByOwner": true
   }
 }

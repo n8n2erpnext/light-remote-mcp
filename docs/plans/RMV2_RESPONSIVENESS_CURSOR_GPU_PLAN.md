@@ -18,7 +18,7 @@ Snapshot Git ZIP đã xác minh SHA-256 `b5b9e07a77902ddaf3980ea69f1bf67bec17813
 
 | Quan sát source hiện tại | Ý nghĩa |
 | --- | --- |
-| [SystemCursorOverride.cs:30](../../client/windows-native/GptOperator.RealRemoteV2/SystemCursorOverride.cs#L30): danh sách thực thi chỉ `OCR_NORMAL` | Đã giữ lại resize, I-beam, hand, wait. Việc còn khai báo các hằng resize không có nghĩa đang thay chúng. Báo lỗi thay toàn bộ resize mô tả một phiên bản cũ hơn. |
+| [SystemCursorOverride.cs:30](../../client/windows-native/GptOperator.RealRemoteV2/SystemCursorOverride.cs#L30): danh sách thực thi chỉ `OCR_NORMAL` | Đã giữ lại resize, I-beam, hand, wait. Việc còn khai báo các hằng resize không có nghĩa đang thay chúng. Mô tả thay toàn bộ resize không khớp source hiện tại; có thể thuộc một phiên bản cũ hơn. Artifact trên máy người báo lỗi chưa được xác minh. |
 | [RobotContext.cs:43](../../client/windows-native/GptOperator.RealRemoteV2/RobotContext.cs#L43): constructor không Acquire | Không còn thay cursor ngay lúc khởi tạo RobotContext. |
 | [RobotContext.cs:154](../../client/windows-native/GptOperator.RealRemoteV2/RobotContext.cs#L154): visual attach Acquire, lease cursor 30 giây | Chỉ mở phiên quan sát vẫn đổi normal cursor toàn Windows. Lifetime cursor không khớp lifetime visual session. |
 | [RobotContext.cs:238](../../client/windows-native/GptOperator.RealRemoteV2/RobotContext.cs#L238): input Acquire với lease 5 giây | `visualSessions: 0` và `osCursorOverridden: true` vẫn có thể xuất hiện sau input; không tự chứng minh leak vĩnh viễn. |
