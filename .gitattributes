@@ -1,3 +1,8 @@
 # Signed fixtures/manifests are byte-exact cryptographic inputs.
 deploy/fixtures/client-update-test.json -text
 deploy/fixtures/client-update-test.json.sig -text
+
+# Moryqa exports and raw tray pixels have byte-exact provenance hashes.
+client/windows-native/GptOperator.Client/Assets/TrayStates/*.svg -text
+client/desktop-v4/src-tauri/assets/tray/*.rgba -text
+docs/design/windows-distribution-v3/moryqa-export/** -text

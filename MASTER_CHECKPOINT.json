@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T13:59:04.849Z",
+  "updatedAt": "2026-11-10T15:34:24.600Z",
   "version": "0.10.1-dev.6",
   "phase": "DISTRIBUTION_V3_DEV6_NATIVE_IMPLEMENTED",
   "status": "IMPLEMENTED_NATIVE_CI_PENDING",
@@ -450,12 +450,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-distribution-v3-native-dev6",
-    "status": "IMPLEMENTED_NATIVE_CI_PENDING",
-    "summary": "Created six entirely new Moryqa Windows setup/uninstall frames with Google Sans Flex and original STOCK logo, exported HTML/CSS and adapted into native Inno controls with privately packaged Google Sans. Unified LightRemote.exe tray now consumes actual five-state projection and exact exported pixels, with bounded reduced-motion-aware transitions. Empty-only desktop-v4 cleanup preserves unrelated files. Internal dev6 metadata and real six-view Windows CI proof are wired; no release/feed or Owner install.",
-    "verification": "Local asset/hash/PNG/transparent RGBA, native presentation boundaries and version parity checks PASS; PowerShell AST parse PASS; STOCK/canonical SVG128px comparison exact. Actual Figma six-frame layout observed through Light Remote AB RM. Full source regressions run before commit; native Rust/.NET/Inno compilation and UI/lifecycle/migration/watchdog checks only in exact-source Actions, pending.",
+    "taskId": "20261110-distribution-exact-export-checkout",
+    "status": "CI67_WINDOWS_CHECKOUT_HASH_FIXED_NATIVE_PENDING",
+    "summary": "CI67 passed source/core/backend and dependency checks but Windows stopped before native build: Git autocrlf altered the exported SVG bytes covered by provenance. Reproduced its exact failing SHA with LF-to-CRLF conversion. Mark only provenance-bound Moryqa SVG/raw pixels/raw exports as byte-exact; retain strict hash checks.",
+    "verification": "Reproduced CI67 actual SVG hash exactly from committed SVG plus Windows CRLF conversion; no asset content/hash or test assertion was changed. Local strict asset/source test PASS. CI67 native Windows was not built; rerun from this new clean work commit required.",
     "nextAction": "Follow full exact-source Actions; resolve compile/real Windows UI failures, verify internal dev6 installer and native evidence independently, synchronize Lab from accepted source if necessary, then canonical docs/handoff with Owner physical test pending.",
-    "sourceDigest": "027c471c2959c70c6b401afc9b13aea8c03117552a5d1230ed35b81e73fe3d18",
+    "sourceDigest": "b4ec64efeff81b4c16c83b10e72e9179bb4d25a85ff8f38163047eb03ff9da23",
     "sourceFileCount": 1672
   },
   "legacyFilesystemCleanup": {
@@ -1257,7 +1257,7 @@
     },
     "plannedCandidateVersion": "0.10.1-dev.6",
     "ownerScreenshot": "dev5 Agent and one LightRemote.exe observed; not blanket physical acceptance",
-    "newNativeBuild": "PENDING_ACTIONS_DEV6",
+    "newNativeBuild": "CI67_BLOCKED_BEFORE_NATIVE_BUILD_CHECKOUT_HASH_FIX",
     "publicReleaseOrFeed": false,
     "tray": {
       "projection": "native VisualFor",
@@ -1267,6 +1267,15 @@
       "reducedMotionAware": true,
       "assets": "client/windows-native/GptOperator.Client/Assets/TrayStates/PROVENANCE.json"
     },
-    "physicalOwnerAcceptance": false
+    "physicalOwnerAcceptance": false,
+    "ciAttempts": [
+      {
+        "runId": 42829575184,
+        "sourceCommit": "9c738c4e12da5dd7fec14ccc9c970c3c6731e72e",
+        "windows": "FAIL_before_native_compile",
+        "reason": "Git autocrlf changed byte-exact SVG export; exact SHA reproduced",
+        "assetIntegrityGatePreserved": true
+      }
+    ]
   }
 }

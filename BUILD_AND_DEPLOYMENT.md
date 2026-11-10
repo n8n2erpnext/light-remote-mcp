@@ -159,3 +159,7 @@ Lab Operator/Plugin now serve exact GitHub8e0d932/dev5 after CI64/artifact verif
 ## Implement fresh Moryqa Windows setup uninstall and five-state primary tray
 
 New internal dev6 source requires full Actions including Rust state/security tests and actual six native setup/uninstall views. [V3 design/mapping](docs/design/windows-distribution-v3/README.md). No local/ARM native compilation. Preserve native install/update/rollback/watchdog/Close/ConPTY gates. Quiet installer/migration paths still run the same Inno transaction; normal Windows Apps uninstall reuses the same uninstaller with explicit /LIGHTREMOTEINTERACTIVE. Exact-source artifact and public status remain unaccepted until CI completes.
+
+## Preserve exact Moryqa asset bytes on Windows checkout
+
+CI67 Windows stopped before compiling because autocrlf changed a Moryqa SVG covered by strict provenance hashes. Exact failure hash reproduced by LF→CRLF conversion. Scoped .gitattributes preserves the original export bytes and embedded raw RGBA. Hash checks remain byte-exact; a new full exact-source run is required.
