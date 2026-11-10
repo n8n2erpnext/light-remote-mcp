@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T03:31:29.624Z",
+  "updatedAt": "2026-11-10T03:47:47.599Z",
   "version": "0.10.1-dev.4",
-  "phase": "DESKTOP_USER_EXPERIENCE_INTERNAL_CANDIDATE_ACCEPTED",
-  "status": "DESKTOP_UX_IMPLEMENTED_CI45_PASS_INTERNAL_ARTIFACT_VERIFIED_LAB_DEPLOYED",
+  "phase": "INTERNAL_DEV4_OWNER_REGRESSIONS",
+  "status": "CODEX_WALL_FOLLOWUP_IMPLEMENTATION_IN_PROGRESS",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -272,7 +272,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Owner installs the exact internal dev.4 artifact and validates all screens, feature actions and a fresh B on their physical PC. Retain old source/runtime/recovery, continue on permanent work and keep public release/feed HOLD.",
+  "nextAction": "Implement Codex state/catalog/usage, branding, accessible retained history, PTY recovery and native UI nonblocking auth; verify real behavior then exact-source internal Actions installer.",
   "receiptNote": "Compiled source947a117/CI45/internal artifact are pinned independently from this documentation receipt. The receipt does not rebuild the installer. No new public Release/feed or Owner installation change. Source publication uses normal protected work-to-main fast-forward after checks.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -363,11 +363,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-shortid-rmv2-readme-main-closure",
-    "status": "DOCS_F8A8B56_MAIN_PUBLISHED_CI42749798491_PASS_CLOSURE",
-    "summary": "Short ID A/B + detailed Real Remote V2 and new Permissions README corrections have been committed as f8a8b56acb91035652438551bb59c516351a0332, published on work, verified by GitHub Actions 42749798491 with truth/changes/baseline-required PASS, then promoted by non-forced fast-forward to protected main. Vietnamese and English documentation now link official ChatGPT plugin and Claude/Claude Code MCP setup. This is documentation-only closeout.",
-    "verification": "GitHub run42749798491 at f8a8b56: truth, changes, baseline-required all SUCCESS; Windows/Desktop/Core native jobs SKIPPED as expected for docs-only. VPS-ARM git ls-remote main/work both f8a8b56; local Project Truth PASS, Project Book PASS links393 routeChecks12, atomic commit-sync PASS, relative links and code fences validated, no test hostname or Vercel text. No executable changes, Owner Windows dev4 physical UAT pending, no public release/feed activation.",
-    "nextAction": "Finish closure docs commit on authorized work, verify its own baseline-required then fast-forward main without force. Future product step is Owner physical acceptance of pinned internal dev.4; do not touch production or signing feed without explicit approval.",
+    "taskId": "20261110-codex-wall-followup-inventory",
+    "status": "INVENTORY_DONE_IMPLEMENTATION_IN_PROGRESS",
+    "summary": "Record all six installed dev4 reports, verified recovery checkpoint and actual source causes. Codex sign-in state split, silent200-job eviction and synchronous native auth waits are confirmed. Synthetic browser PTY renders correctly; physical Windows blank output still requires transport/ConPTY evidence.",
+    "verification": "Full bundle independent restore/fsck PASS; source8ac6273 clean and matches work/main. Actual headless Chrome PTY synthetic65B parses visible text and has nonzero terminal geometry with no page errors. New fixes/artifact NOT_IMPLEMENTED/NOT_BUILT at this milestone.",
+    "nextAction": "Implement Codex state/catalog/usage, branding, accessible retained history, PTY recovery and native UI nonblocking auth; verify real behavior then exact-source internal Actions installer.",
     "sourceDigest": "98fd17c91f46f5be46e931427c46e25b1043d2e830ae260cb90f3af705d7134f",
     "sourceFileCount": 1646
   },
@@ -821,5 +821,15 @@
     "ownerWindowsInstallationChangedByCodex": false,
     "publicReleaseOrFeed": false,
     "acceptance": "docs/evidence/desktop-user-experience/ACCEPTANCE.json"
+  },
+  "codexWallFollowup": {
+    "status": "INVENTORY_DONE",
+    "baseCommit": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+    "preChangeTag": "checkpoint/20261110-before-codex-wall-8ac6273",
+    "bundleSha256": "4b0fe9fd2ae24bcf8a406bf03ddc8c3a5b6feb9a975b8c34f45d2d7b5265e5b3",
+    "restoreFsck": "PASS",
+    "newArtifact": "NOT_BUILT",
+    "physicalOwnerReport": "Installed dev4 functional; six regressions/features requested",
+    "completePhysicalAcceptance": false
   }
 }

@@ -3,8 +3,8 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 262,
-    "markdown": 225,
+    "total": 263,
+    "markdown": 226,
     "json": 37
   },
   "files": [
@@ -2225,6 +2225,14 @@
       "bytes": 13180,
       "sha256": "bcf1e46371d57eb1e00f304780fbd29ac48a7137fb5d263f70aefd17ba31dbb6",
       "title": "RDC → Light Remote Gold: reliability optimization master plan"
+    },
+    {
+      "path": "docs/plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md",
+      "shelf": "plans",
+      "extension": "md",
+      "bytes": 3842,
+      "sha256": "1f527529bc07cdfb03fc3bb81a6a7e6f4f79b866cd5acde08a4fda36c7edc3d6",
+      "title": "Codex, Wall and Desktop follow-up — 2026-11-10"
     },
     {
       "path": "docs/plans/desktop-user-experience/README.md",

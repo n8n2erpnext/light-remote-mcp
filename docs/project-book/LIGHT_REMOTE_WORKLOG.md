@@ -253,3 +253,9 @@ All nine Desktop routes and login/link/confirm/consent now use task-oriented use
 - Receipt: 20261110-shortid-rmv2-readme-main-closure
 - Commit `f8a8b56` containing both public READMEs and atomic project docs passed [GitHub CI42749798491](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42749798491): `truth` and `baseline-required` PASS; native jobs skipped for docs-only source.
 - Git SSH verified non-forced promotion to protected `main`, same ref as permanent `work`. This closeout does not rebuild Windows dev.4, deploy runtime, modify Owner installed devices or issue a signed public feed. Physical Owner acceptance remains separate.
+
+## 2026-11-09 â€” Checkpoint Codex Wall and Desktop follow-up from installed dev4 feedback
+
+Receipt: 20261110-codex-wall-followup-inventory
+
+Record all six installed dev4 reports, verified recovery checkpoint and actual source causes. Codex sign-in state split, silent200-job eviction and synchronous native auth waits are confirmed. Synthetic browser PTY renders correctly; physical Windows blank output still requires transport/ConPTY evidence. Full bundle independent restore/fsck PASS; source8ac6273 clean and matches work/main. Actual headless Chrome PTY synthetic65B parses visible text and has nonzero terminal geometry with no page errors. New fixes/artifact NOT_IMPLEMENTED/NOT_BUILT at this milestone. Runtime: No existing service, state, Owner installation, Agent/session/grant or public feed changed. Current internal Lab stays947a117/dev4. Next: Implement Codex state/catalog/usage, branding, accessible retained history, PTY recovery and native UI nonblocking auth; verify real behavior then exact-source internal Actions installer.
