@@ -35,6 +35,11 @@ jobs:
             node deploy/scripts/selftest-windows-moryqa-tray-v3.mjs
             if ($LASTEXITCODE -ne 0) { throw 'Legacy Moryqa Tray UI contract failed' }
           }
+      - name: Verify fresh Windows distribution and tray assets
+        shell: pwsh
+        run: |
+          node deploy/scripts/selftest-windows-distribution-v3.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Fresh distribution source/asset contract failed' }
       - name: Verify cross-platform physical typing route
         shell: pwsh
         run: |
@@ -761,6 +766,8 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'V4 Owner UI+API contract tests failed' }
             node e2e/tauri-production-packaging-contract.mjs
             if ($LASTEXITCODE -ne 0) { throw 'V4 native packaging contract failed' }
+            cargo test --manifest-path src-tauri/Cargo.toml --features desktop-owner-login --bin light-remote-desktop-v4-pilot --locked
+            if ($LASTEXITCODE -ne 0) { throw 'Windows native state/security tests failed' }
             npm exec -- tauri build --no-bundle --features desktop-owner-login --ci -- --locked
             if ($LASTEXITCODE -ne 0) { throw 'V4 Tauri Owner + A/B + Local Wall native build failed' }
           } finally { Pop-Location }
@@ -964,8 +971,13 @@ jobs:
           $logArg = '/LOG="' + $setupLog + '"'
           $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',$dirArg,$logArg)
           Write-Host "windows-native-install-start dir=$installDir log=$setupLog"
-          $p = Start-Process -FilePath $env:WINDOWS_INSTALLER -ArgumentList $args -PassThru
-          if (-not $p.WaitForExit(120000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'installer timed out after 120s' }
+          if ($env:LIGHT_REMOTE_BUILD_PROFILE -eq 'goldabv2-desktop-v4') {
+            & client/windows-native/test-distribution-ui.ps1 -Mode Install -Installer $env:WINDOWS_INSTALLER -InstallRoot $installDir -SetupLog $setupLog -EvidenceDir (Join-Path $PWD 'dist/windows/distribution-ui-evidence')
+            $p = [pscustomobject]@{ExitCode=0}
+          } else {
+            $p = Start-Process -FilePath $env:WINDOWS_INSTALLER -ArgumentList $args -PassThru
+            if (-not $p.WaitForExit(120000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'installer timed out after 120s' }
+          }
           if ($p.ExitCode -ne 0) {
             Write-Host '=== installer failure diagnostics ==='
             if (Test-Path $setupLog) { Get-Content $setupLog -Tail 220 | ForEach-Object { Write-Host $_ } }
@@ -1270,9 +1282,13 @@ jobs:
           if ($env:WINDOWS_INSTALL_DIR) {
             $unins = Join-Path $env:WINDOWS_INSTALL_DIR 'unins000.exe'
             if (Test-Path $unins) {
-              $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
-              if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'uninstaller timed out after 60s' }
-              if ($p.ExitCode -ne 0) { throw "uninstaller exit=$($p.ExitCode)" }
+              if ($env:LIGHT_REMOTE_BUILD_PROFILE -eq 'goldabv2-desktop-v4') {
+                & client/windows-native/test-distribution-ui.ps1 -Mode Uninstall -Installer $unins -InstallRoot $env:WINDOWS_INSTALL_DIR -EvidenceDir (Join-Path $PWD 'dist/windows/distribution-ui-evidence')
+              } else {
+                $p = Start-Process -FilePath $unins -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru
+                if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'uninstaller timed out after 60s' }
+                if ($p.ExitCode -ne 0) { throw "uninstaller exit=$($p.ExitCode)" }
+              }
             }
             $updaterRoot = $env:WINDOWS_TEST_UPDATER_ROOT
             if (Test-Path $updaterRoot) { throw "updater recovery root survived uninstall: $updaterRoot" }
@@ -1280,6 +1296,15 @@ jobs:
           } else {
             Write-Host 'windows-native-installer-roundtrip=SKIP install-not-reached'
           }
+      - name: Upload actual native setup and uninstall views
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-distribution-ui-${{ github.sha }}
+          path: dist/windows/distribution-ui-evidence/
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Real bridge upgrade, primary reinstall and cross-layout rollback
         env:
           GITHUB_TOKEN: ${{ github.token }}

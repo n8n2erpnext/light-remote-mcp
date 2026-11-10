@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "source": "Moryqa / Light Remote AI UI/UX",
+  "frameId": "40:895",
+  "renderer": "Chromium 157.0.8103.50 / Canvas2D, transparent, high quality",
+  "states": {
+    "connected": {
+      "nodeId": "40:896",
+      "svgSha256": "5fed6008e1d11152aaac58593c1a43860f18bd4e699c061f20002719a6b09f55",
+      "pngs": {
+        "16": "2ce427df06582bbc630f24ee160162544c50be97f74770970403edea89822a36",
+        "32": "5294ffeac971b28c71900edf79cd47ddb4781fb0d963744ed54ddc08d94ef795",
+        "128": "23da05b252ed1d619a4a8b66ad55157dee381afb895bbda55352b8d09613016e"
+      },
+      "rgba32Sha256": "e2fab0beb0de3b47473b15d54865065be5154eea0ef5f6e0cf45d79256484b13"
+    },
+    "disconnected": {
+      "nodeId": "40:899",
+      "svgSha256": "766ed53269e9f44c20e96e5a924c3b067cfe28b8d0008d6b8e0b73cb889c3de9",
+      "pngs": {
+        "16": "1f3ebca487c6a849f30847eee76ae5d02cb12eb2e70ba7f354313a0fec31761a",
+        "32": "b2af2e568db7bdeb919c23490a62e8820f901f843e50126ac3d569e823a362be",
+        "128": "2473c5bdb7798590308cb121c7551f937686e5622df6adf8fbe6d9867a2fd150"
+      },
+      "rgba32Sha256": "42e000d9a2442a33bbbb97d95a8faa17891eec48629135c2134a14978d78c127"
+    },
+    "dormant": {
+      "nodeId": "40:902",
+      "svgSha256": "e41ee30bb525fd34c50eb97ab031ee7649fdfadb6078c60182ccb2803010dba1",
+      "pngs": {
+        "16": "1356c5bda6cea6cac8302a147a16af7e90a91ebfa3cbdf0a5f77c56f1c3e9deb",
+        "32": "207f258b2e1f61e9fdd6791c6a4e09e6478829be7d58abed244f2dd17bf68eea",
+        "128": "a429999933f8486eb15a7198b4fefdbf2a27d19b4f7b63ac6e6769d87a675768"
+      },
+      "rgba32Sha256": "c69737ffe1e3c850e189a2664330451f3bb9fe82750fae4d299f4666cdb3693f"
+    },
+    "unlinked": {
+      "nodeId": "40:905",
+      "svgSha256": "8844cbb0c77e1bc25877c5a86e2328586e1c25093ddf8d43f08193651b97f847",
+      "pngs": {
+        "16": "2c66fd2575d11ff56ea9f355c1daa05513f4ee30c24c385826d3fa8ce3a16401",
+        "32": "da34f43b6d05eb6f9724b65a543004629c8a79152e0dc09504e3ceccc7853198",
+        "128": "ce4d2abeeba2805b3650611487b9a1140bd56f47d8f843afc623de083738e232"
+      },
+      "rgba32Sha256": "a5bbfe1e3a4bd9339be056fb87d12010237440d01f3851346c37249ebe4720a9"
+    },
+    "stopped": {
+      "nodeId": "40:908",
+      "svgSha256": "e09a6da85774ab8d9659209327944fad8077ba643f4f20fefd035a5acff8160d",
+      "pngs": {
+        "16": "f3c761f0cf6e264b3a080fa05083506303aec2a1a97dcd869c555f7cccce50de",
+        "32": "67a255ad0d396091368535757f6ca631bfe53fbce0310028a7c7481514d577d1",
+        "128": "c7d7a239b83eed104eabb82d77f6e57975a9e7737ce83a62f17cbbd844b8dfc0"
+      },
+      "rgba32Sha256": "4b5cb57398106c557280fbce6007ac3b029f51304dd8a6ae941134841b5b92ee"
+    }
+  },
+  "stockLogo": {
+    "nodeId": "34:4",
+    "exportSvgSha256": "b9f23ae11a710735d691f2d0efb45d4e04ea6ff901fbe9662f77f9524951af42",
+    "canonicalSvgSha256": "417f45d22d27c82ba7159b94e6e59bc93da64546a5027ed06aaeb54a9cee1d65",
+    "rgba128Comparison": {
+      "differentChannels": 0,
+      "maxDifference": 0
+    },
+    "canonicalPng512Sha256": "a94b8c92a2ab0e4ba376419a982955a847304622d3dc1dee861de047a47de5e2"
+  }
+}

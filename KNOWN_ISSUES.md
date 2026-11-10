@@ -59,3 +59,7 @@ CI38 attempt1/2 failed at an external GitHub release download504 before the migr
 ## Fix Codex state usage Wall history PTY and responsive Desktop lifecycle
 
 Dev.5 installed-feedback fixes are IMPLEMENTED_LOCAL_VERIFIED, native Actions/installer/Owner physical retest pending. The new history UI pages retained logs and keeps a moving view; disk retention remains finite and intentional, not a200-job ceiling or immutable audit. Previous logs already rotated/cleaned cannot be reconstructed. Full app-server models/usage and actual installed PTY/Close need Owner retest on the exact new installer; unavailable quota is never replaced with guessed0. Existing positive browser Wall SSO and full Mac/Linux installers remain out of this claim.
+
+## Implement fresh Moryqa Windows setup uninstall and five-state primary tray
+
+Dev6 Windows distribution is implemented but native compilation/UI artifact acceptance is pending. Actual Owner DPI/multiple monitor/keyboard/screen-reader behavior and state transition appearance need exact dev6 physical feedback after CI. Existing dev5 compiled evidence cannot certify new V3. Moryqa raw HTML/CSS vector placeholders are archived evidence; native setup uses canonical STOCK image assets.

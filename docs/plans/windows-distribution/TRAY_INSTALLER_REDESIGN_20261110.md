@@ -21,3 +21,9 @@ RM inspection is explicitly authorized on DESKTOP-VA16D27 through Light Remote A
 ## Validation and next step
 
 Check native state projection and transition bounds, empty-directory cleanup with an unrelated-file canary, exported design geometry and fonts, actual Windows wizard/uninstaller views, and unchanged full installed lifecycle/ConPTY/bridge/watchdog recovery. Update the one Master Checkpoint, rolling Handoff and Worklog atomically at each milestone. Keep source implementation, CI_PASS, deployed backend and Owner physical acceptance distinct.
+
+## Implemented candidate — native CI pending
+
+Fresh six-frame group74:202 is complete and observed in actual Figma through authorized RM. [Design exports and mapping](../../design/windows-distribution-v3/README.md). Exact STOCK SVG equality at128px PASS. Five exported state icons now feed the actual unified Tauri tray through the managed component's existing VisualFor projection; missing or contradictory status cannot become green. Motion is five35ms frames on a real state change only and obeys Windows animation/high-contrast settings. Idle polling cadence remains5s.
+
+New native include LightRemote.Wizard.iss replaces the entire old V2 presentation. It uses packaged private Google Sans, canonical STOCK art, real native progress/Finish, rounded accessible native buttons, keyboard handling, work-area scaling and normal Windows Apps uninstall with preserved data. Stage/installer empty-only legacy-folder cleanup is implemented. Dev6 metadata is aligned; no API/issuer/profile/credential identity change. Full source, native compile and six-view Windows CI verification are next; no new installer is declared PASS yet.

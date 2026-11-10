@@ -12,6 +12,22 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 use std::time::Duration;
 use tauri::{Manager, menu::{Menu, MenuItem, PredefinedMenuItem}, tray::TrayIconBuilder};
+use crate::tray_visual::{self, Visual};
+
+fn allow_tray_motion() -> bool {
+    #[repr(C)]
+    struct HighContrast { size: u32, flags: u32, scheme: *mut u16 }
+    #[link(name="user32")]
+    extern "system" { fn SystemParametersInfoW(action:u32,param:u32,value:*mut c_void,flags:u32)->i32; }
+    let mut animation:i32=0;
+    let mut contrast=HighContrast{size:std::mem::size_of::<HighContrast>() as u32,flags:0,scheme:std::ptr::null_mut()};
+    // A failed settings read uses the quiet/static presentation.
+    unsafe {
+        SystemParametersInfoW(0x1042,0,&mut animation as *mut _ as *mut c_void,0)!=0 && animation!=0
+        && SystemParametersInfoW(0x0042,contrast.size,&mut contrast as *mut _ as *mut c_void,0)!=0
+        && contrast.flags&1==0
+    }
+}
 
 static LINK_UI_REQUESTED: AtomicBool = AtomicBool::new(false);
 static GUI_SHOW_EVENT: OnceLock<usize> = OnceLock::new();
@@ -196,9 +212,8 @@ pub(crate) fn attach(app:&mut tauri::App)->tauri::Result<()>{
     let menu=Menu::with_items(handle,&[
         &header,&state,&sep1,&open,&wall,&account,&link,&sep2,
         &restart,&service,&update,&sep3,&exit])?;
-    let icon=app.default_window_icon().cloned()
-        .expect("Light Remote Desktop icon is required for system tray");
-    TrayIconBuilder::new()
+    let icon=tauri::image::Image::new_owned(Visual::Stopped.rgba().to_vec(),32,32);
+    let tray=TrayIconBuilder::new()
         .icon(icon).menu(&menu).show_menu_on_left_click(true)
         .tooltip("Light Remote")
         .on_menu_event(|app,event|{
@@ -227,19 +242,33 @@ pub(crate) fn attach(app:&mut tauri::App)->tauri::Result<()>{
     let menu=menu.clone();
     std::thread::spawn(move||{
         let mut fleet_visible=false;
+        let mut visual=Visual::Stopped;
         loop{
             let data=run_native("status").ok();
+            let next=Visual::from_status(data.as_ref());
+            if next!=visual {
+                if allow_tray_motion() {
+                    // This bounded worker already owns the status poll. No
+                    // UI-thread sleep, background pulse or extra idle timer.
+                    for step in 1..=5 {
+                        let _=tray.set_icon(Some(tauri::image::Image::new_owned(tray_visual::transition(visual,next,step),32,32)));
+                        thread::sleep(Duration::from_millis(35));
+                    }
+                } else {
+                    let _=tray.set_icon(Some(tauri::image::Image::new_owned(next.rgba().to_vec(),32,32)));
+                }
+                visual=next;
+            }
             let ok=data.as_ref().and_then(|v|v.get("ok")).and_then(|v|v.as_bool())==Some(true);
             let short=if ok {data.as_ref().and_then(|v|v.get("ShortId")).and_then(|v|v.as_str())} else {None};
             let short=short.filter(|v|v.len()==6).unwrap_or("------");
             let hostname=std::env::var("COMPUTERNAME").unwrap_or_else(|_|"Windows PC".into());
             let _=header.set_text(format!("{hostname} - Short ID : {short}"));
-            let connected=ok&&data.as_ref().and_then(|v|v.get("connected")).and_then(|v|v.as_bool())==Some(true);
             let pending=ok&&data.as_ref().and_then(|v|v.get("pending")).and_then(|v|v.as_bool())==Some(true);
             let online=data.as_ref().and_then(|v|v.get("wallOnline")).and_then(|v|v.as_bool())==Some(true);
-            let label=if !ok{"Agent unavailable"}else if pending{"Waiting for account approval"}
-                else if connected{"Connected"}else if !online{"Stopped"}else{"Cloud dormant / disconnected"};
+            let label=if pending{"Waiting for account approval"}else{visual.label()};
             let _=state.set_text(label);
+            let _=tray.set_tooltip(Some(format!("Light Remote · {label} · {short}")));
             let _=service.set_text(if online{"Stop"}else{"Start"});
             let ready=data.as_ref().and_then(|v|v.get("PendingUpdates")).and_then(|v|v.as_u64())==Some(1);
             let _=update.set_text(if ready{"Check Update (1)"}else{"Check Update"});

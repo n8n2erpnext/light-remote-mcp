@@ -1029,6 +1029,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
                         connected = s.Enrolled && s.CloudDesiredConnected
                             && s.CloudState.Equals("connected", StringComparison.OrdinalIgnoreCase),
                         cloudState = s.CloudState, wallOnline = wall,
+                        visualState = VisualFor(wall, s.StatusAvailable, s.Enrolled,
+                            s.CloudDesiredConnected, s.CloudState).ToString().ToLowerInvariant(),
                         pending = !string.IsNullOrEmpty(s.PendingEnrollmentId),
                         s.PendingUpdates, fleetUrl = FleetUrl(s),
                         serviceLabel = wall ? "Stop" : "Start"

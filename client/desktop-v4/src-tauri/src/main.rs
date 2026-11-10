@@ -6,6 +6,8 @@
 // Candidate native-only Owner refresh vault is never exposed by Tauri IPC.
 // All credential use will stay in Rust, never React JS or Local Wall cookies.
 mod endpoint_config;
+#[cfg(any(test, all(feature = "desktop-owner-login", target_os = "windows")))]
+mod tray_visual;
 #[cfg(all(feature = "desktop-owner-login", target_os = "windows"))]
 mod wall_instance_proof;
 #[cfg(feature = "desktop-owner-login")]

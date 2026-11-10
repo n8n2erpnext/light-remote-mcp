@@ -65,6 +65,8 @@ UninstallDisplayName=Light Remote
 SetupIconFile={#StageDir}\Assets\light-remote.ico
 
 [Files]
+Source: "{#SourcePath}\..\..\..\assets\fonts\web\GoogleSans-Variable.ttf"; DestDir: "{app}\Assets\setup"; DestName: "LightRemote.Setup.GoogleSans.ttf"; Flags: ignoreversion
+Source: "{#SourcePath}\..\..\..\assets\branding\light-remote-mark-512.png"; DestDir: "{app}\Assets\setup"; DestName: "LightRemote.Setup.Mark.png"; Flags: ignoreversion
 Source: "{#WatchdogExe}"; DestName: "LightRemote.InstallWatchdog.exe"; Flags: dontcopy
 #ifdef CompactNodeBootstrap
 Source: "{#StageDir}\VERSION"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: InstallCompactNodeRuntime
@@ -78,6 +80,7 @@ Type: files; Name: "{app}\realremote-v2\GptOperator.RealRemoteV2.*"
 // and unrelated files in desktop-v4 are preserved, including on upgrade.
 Type: files; Name: "{app}\GptOperator.Client.exe"
 Type: files; Name: "{app}\desktop-v4\LightRemote.Desktop.exe"
+Type: dirifempty; Name: "{app}\desktop-v4"
 #else
 #ifdef UnifiedDesktopV4
 // A compatibility installer can also restore the legacy layout cleanly.
@@ -128,307 +131,6 @@ Filename: "{app}\GptOperator.Client.exe"; Description: "Start Light Remote Agent
 #endif
 
 [Code]
-// Moryqa Windows installer/uninstaller v2: per-user setup, native light/dark
-// palette, and Desktop shortcut checked by default. Application identity stays
-// on the original AppId to preserve upgrades and rollback.
-function LightRemoteDarkWindowsTheme(): Boolean;
-var
-  LightApps: Cardinal;
-begin
-  Result := RegQueryDWordValue(HKCU,
-    'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize',
-    'AppsUseLightTheme', LightApps) and (LightApps = 0);
-end;
-
-// This is an actual custom Inno wizard page, not just a renamed stock
-// WelcomeLabel. Windows-light defaults to Moryqa #F5F8FD / #162B4C.
-var
-  BrandedWelcomePage: TWizardPage;
-  BrandedDesktopShortcut: TNewCheckBox;
-
-procedure AddBrandedText(Page: TWizardPage; TextValue: String;
-  LeftValue, TopValue, WidthValue, FontSize: Integer; TextColor: TColor);
-var
-  L: TNewStaticText;
-begin
-  L := TNewStaticText.Create(Page);
-  L.Parent := Page.Surface;
-  L.Left := ScaleX(LeftValue);
-  L.Top := ScaleY(TopValue);
-  L.Width := ScaleX(WidthValue);
-  L.Height := ScaleY(35);
-  L.AutoSize := False;
-  L.WordWrap := True;
-  L.Caption := TextValue;
-  L.Font.Name := 'Segoe UI';
-  L.Font.Size := FontSize;
-  L.Font.Color := TextColor;
-end;
-
-procedure BuildBrandedWelcomePage();
-var
-  Card: TPanel;
-  IsDark: Boolean;
-  Fore, Muted, Surface: TColor;
-begin
-  IsDark := LightRemoteDarkWindowsTheme();
-  BrandedWelcomePage := CreateCustomPage(wpWelcome,
-    'Light Remote for Windows', 'Your desktop, available to your AI.');
-  if IsDark then
-  begin
-    Fore := clWhite;
-    Muted := $00C3B1A1;
-    Surface := $00221A14;
-    BrandedWelcomePage.Surface.Color := $0017110D;
-  end
-  else
-  begin
-    Fore := $004C2B16;
-    Muted := $008B7564;
-    Surface := $00FCF9F5;
-    BrandedWelcomePage.Surface.Color := clWhite;
-  end;
-  AddBrandedText(BrandedWelcomePage, 'Install Light Remote',
-    16, 10, 440, 24, Fore);
-  AddBrandedText(BrandedWelcomePage,
-    'Secure desktop access for your authorized AI agents.',
-    16, 54, 440, 11, Muted);
-  Card := TPanel.Create(BrandedWelcomePage);
-  Card.Parent := BrandedWelcomePage.Surface;
-  Card.Left := ScaleX(15);
-  Card.Top := ScaleY(93);
-  Card.Width := BrandedWelcomePage.SurfaceWidth - ScaleX(30);
-  Card.Height := ScaleY(93);
-  Card.BevelOuter := bvNone;
-  Card.Color := Surface;
-  // These labels belong to the page surface and remain readable on themes.
-  AddBrandedText(BrandedWelcomePage, '01  Device installation',
-    29, 105, 390, 15, Fore);
-  AddBrandedText(BrandedWelcomePage,
-    'Per-user setup. No administrator elevation required.',
-    29, 137, 414, 11, Muted);
-  BrandedDesktopShortcut := TNewCheckBox.Create(BrandedWelcomePage);
-  BrandedDesktopShortcut.Parent := BrandedWelcomePage.Surface;
-  BrandedDesktopShortcut.Left := ScaleX(20);
-  BrandedDesktopShortcut.Top := ScaleY(198);
-  BrandedDesktopShortcut.Width := BrandedWelcomePage.SurfaceWidth - ScaleX(38);
-  BrandedDesktopShortcut.Height := ScaleY(29);
-  BrandedDesktopShortcut.Caption := 'Create Desktop shortcut';
-  BrandedDesktopShortcut.Font.Name := 'Segoe UI';
-  BrandedDesktopShortcut.Font.Size := 11;
-  BrandedDesktopShortcut.Font.Color := Fore;
-  BrandedDesktopShortcut.Checked := True;
-  AddBrandedText(BrandedWelcomePage,
-    'Starts with Windows  ·  Keeps your linked device identity',
-    20, 234, 430, 10, Muted);
-end;
-
-function ShouldSkipPage(PageID: Integer): Boolean;
-begin
-  Result := PageID = wpSelectTasks;
-end;
-
-function NextButtonClick(CurPageID: Integer): Boolean;
-begin
-  Result := True;
-  if CurPageID = BrandedWelcomePage.ID then
-  begin
-    if BrandedDesktopShortcut.Checked then WizardSelectTasks('desktopicon')
-    else WizardSelectTasks('!desktopicon');
-  end;
-end;
-
-
-
-// Full three-phase Windows installation presentation, not just a custom welcome.
-// Real underlying Inno install transaction, progress and Finish RunList are kept.
-var
-  BrandedInstallingPanel: TPanel;
-  BrandedFinishedPanel: TPanel;
-
-procedure AddPhaseLabel(ParentControl: TWinControl; CaptionText: String;
-  LeftValue, TopValue, WidthValue, HeightValue, FontSize: Integer;
-  TextColor: TColor; IsBold: Boolean);
-var
-  L: TNewStaticText;
-begin
-  L := TNewStaticText.Create(WizardForm);
-  L.Parent := ParentControl;
-  L.Left := ScaleX(LeftValue);
-  L.Top := ScaleY(TopValue);
-  L.Width := ScaleX(WidthValue);
-  L.Height := ScaleY(HeightValue);
-  L.AutoSize := False;
-  L.WordWrap := True;
-  L.Caption := CaptionText;
-  L.Font.Name := 'Segoe UI';
-  L.Font.Size := FontSize;
-  L.Font.Color := TextColor;
-  if IsBold then L.Font.Style := [fsBold];
-end;
-
-procedure BuildInstallPhasePanel(Panel: TPanel; IsFinished: Boolean);
-var
-  Header, Side, Surface, Accent: TColor;
-  LabelColor, MutedColor: TColor;
-  Inner: TPanel;
-  IsDark: Boolean;
-begin
-  IsDark := LightRemoteDarkWindowsTheme();
-  if IsDark then
-  begin
-    Header := $0017110D;
-    Side := $002C2016;
-    Surface := $00221A14;
-    LabelColor := clWhite;
-    MutedColor := $00C3B1A1;
-  end
-  else
-  begin
-    Header := clWhite;
-    Side := $00FFF1EA;
-    Surface := $00FCF9F5;
-    LabelColor := $004C2B16;
-    MutedColor := $008B7564;
-  end;
-  Accent := $00F05D20;
-
-  Panel.Parent := WizardForm;
-  Panel.SetBounds(0, 0, WizardForm.ClientWidth,
-    WizardForm.CancelButton.Top - ScaleY(12));
-  Panel.BevelOuter := bvNone;
-  Panel.Color := Header;
-  Panel.Visible := False;
-
-  Inner := TPanel.Create(WizardForm);
-  Inner.Parent := Panel;
-  Inner.SetBounds(0, 0, ScaleX(185), Panel.Height);
-  Inner.BevelOuter := bvNone;
-  Inner.Color := Side;
-  AddPhaseLabel(Inner, 'LR', 21, 29, 82, 42, 29, Accent, True);
-  AddPhaseLabel(Inner, 'Light Remote', 21, 80, 152, 30, 18,
-    LabelColor, True);
-  AddPhaseLabel(Inner, 'WINDOWS SETUP', 22, 123, 150, 20, 9,
-    MutedColor, True);
-  AddPhaseLabel(Inner, '1   Welcome', 22, 192, 152, 25, 12,
-    MutedColor, False);
-  if IsFinished then
-  begin
-    AddPhaseLabel(Inner, '2   Install & verify', 22, 237, 160, 26, 12,
-      MutedColor, False);
-    AddPhaseLabel(Inner, '3   Ready to use', 22, 283, 160, 26, 12,
-      Accent, True);
-  end
-  else
-  begin
-    AddPhaseLabel(Inner, '2   Install & verify', 22, 237, 160, 26, 12,
-      Accent, True);
-    AddPhaseLabel(Inner, '3   Ready to use', 22, 283, 160, 26, 12,
-      MutedColor, False);
-  end;
-  AddPhaseLabel(Inner, 'Your desktop,', 22, 354, 155, 23, 11,
-    MutedColor, False);
-  AddPhaseLabel(Inner, 'available to your AI.', 22, 381, 157, 50, 11,
-    MutedColor, False);
-
-  // Real page status, not a static mock. The original Inno transaction
-  // remains authoritative; these cards only present its existing controls.
-  if IsFinished then
-  begin
-    AddPhaseLabel(Panel, 'Application installed', 218, 52, 405, 40, 25,
-      LabelColor, True);
-    AddPhaseLabel(Panel, 'Light Remote is ready', 221, 109, 415, 31, 16,
-      Accent, True);
-    AddPhaseLabel(Panel,
-      'Your agent and desktop application have been installed. ' +
-      'Your existing device identity is preserved.',
-      221, 164, 406, 90, 12, MutedColor, False);
-    AddPhaseLabel(Panel, 'Ready to use', 221, 277, 415, 35, 16,
-      LabelColor, True);
-    AddPhaseLabel(Panel, 'Open Local Wall to link or manage your device.',
-      221, 327, 410, 55, 12, MutedColor, False);
-    AddPhaseLabel(Panel,
-      'Start Light Remote tray is selected by default.',
-      221, 386, 415, 26, 11, MutedColor, False);
-  end
-  else
-  begin
-    AddPhaseLabel(Panel, 'Installing your desktop agent',
-      218, 52, 430, 62, 22, LabelColor, True);
-    AddPhaseLabel(Panel,
-      'Application files  ·  Verify Node runtime  ·  Register Agent',
-      221, 136, 418, 54, 12, MutedColor, False);
-    AddPhaseLabel(Panel, 'Installation progress',
-      221, 221, 412, 29, 14, LabelColor, True);
-    AddPhaseLabel(Panel,
-      'Verified files, runtime integrity and updater registration.',
-      221, 370, 420, 50, 11, MutedColor, False);
-    AddPhaseLabel(Panel,
-      'Installation is recoverable; do not turn off Windows during setup.',
-      221, 421, 425, 28, 10, MutedColor, False);
-  end;
-end;
-
-procedure InitializeBrandedInstallPhases();
-begin
-  BrandedInstallingPanel := TPanel.Create(WizardForm);
-  BuildInstallPhasePanel(BrandedInstallingPanel, False);
-  BrandedFinishedPanel := TPanel.Create(WizardForm);
-  BuildInstallPhasePanel(BrandedFinishedPanel, True);
-end;
-
-procedure CurPageChanged(CurPageID: Integer);
-begin
-  // Inno still manages update/rollback, progress, and [Run] checkbox.
-  BrandedInstallingPanel.Visible := CurPageID = wpInstalling;
-  BrandedFinishedPanel.Visible := CurPageID = wpFinished;
-
-  if CurPageID = wpInstalling then
-  begin
-    WizardForm.ProgressGauge.Parent := BrandedInstallingPanel;
-    WizardForm.ProgressGauge.SetBounds(ScaleX(221), ScaleY(274),
-      BrandedInstallingPanel.Width - ScaleX(245), ScaleY(23));
-    WizardForm.StatusLabel.Parent := BrandedInstallingPanel;
-    WizardForm.StatusLabel.SetBounds(ScaleX(221), ScaleY(307),
-      BrandedInstallingPanel.Width - ScaleX(245), ScaleY(38));
-    WizardForm.FilenameLabel.Parent := BrandedInstallingPanel;
-    WizardForm.FilenameLabel.SetBounds(ScaleX(221), ScaleY(342),
-      BrandedInstallingPanel.Width - ScaleX(245), ScaleY(24));
-    BrandedInstallingPanel.BringToFront();
-  end;
-  if CurPageID = wpFinished then
-  begin
-    WizardForm.RunList.Parent := BrandedFinishedPanel;
-    WizardForm.RunList.SetBounds(ScaleX(221), ScaleY(414),
-      BrandedFinishedPanel.Width - ScaleX(240), ScaleY(38));
-    BrandedFinishedPanel.BringToFront();
-  end;
-end;
-
-
-procedure InitializeWizard();
-begin
-  BuildBrandedWelcomePage();
-  InitializeBrandedInstallPhases();
-  WizardForm.WelcomeLabel1.Caption := 'Install Light Remote';
-  WizardForm.WelcomeLabel2.Caption :=
-    'Your desktop, available to your AI.' + #13#10 + #13#10 +
-    'Per-user installation — no administrator elevation required.' + #13#10 +
-    'Run at Windows sign-in and create a Desktop shortcut (selected by default).' + #13#10 +
-    'Your device identity remains under your control.';
-  if LightRemoteDarkWindowsTheme() then
-  begin
-    // Use the same dark Figma status surfaces as the native Windows Tray.
-    WizardForm.Color := $0017110D;
-    WizardForm.MainPanel.Color := $0017110D;
-    WizardForm.InnerPage.Color := $0017110D;
-    WizardForm.WelcomeLabel1.Font.Color := clWhite;
-    WizardForm.WelcomeLabel2.Font.Color := $00B9A89B;
-    WizardForm.PageNameLabel.Font.Color := clWhite;
-    WizardForm.PageDescriptionLabel.Font.Color := $00B9A89B;
-  end;
-end;
-
 var
   InstallTransactionStarted: Boolean;
   InstallTransactionCommitted: Boolean;
@@ -783,6 +485,8 @@ begin
 end;
 #endif
 
+#include "LightRemote.Wizard.iss"
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
 #ifdef SinglePrimaryExe
@@ -808,6 +512,7 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
+  if CurStep = ssDone then LRRegisterUninstallUI();
   if CurStep = ssPostInstall then
   begin
     RunAgentInstallTransaction();
@@ -821,6 +526,7 @@ end;
 
 procedure DeinitializeSetup();
 begin
+  LRReleaseAssets();
   if InstallTransactionStarted and (not InstallTransactionCommitted) then
   begin
     Log('light-remote-install-transaction-abort-watchdog-armed');

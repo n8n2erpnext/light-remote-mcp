@@ -18,6 +18,14 @@ foreach($old in @('GptOperator.Client.exe','desktop-v4/LightRemote.Desktop.exe')
     if(-not $file.StartsWith($stage+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Obsolete core target escaped stage'}
     Remove-Item -LiteralPath $file -Force
 }
+$obsoleteDir=[IO.Path]::GetFullPath((Join-Path $stage 'desktop-v4'))
+if(-not $obsoleteDir.StartsWith($stage+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Obsolete directory escaped stage'}
+if(Test-Path -LiteralPath $obsoleteDir){
+    $item=Get-Item -LiteralPath $obsoleteDir -Force
+    if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Obsolete directory cannot be a reparse point'}
+    # Non-recursive and empty only: preserve any unrelated file.
+    if(-not(Get-ChildItem -LiteralPath $obsoleteDir -Force)){Remove-Item -LiteralPath $obsoleteDir}
+}
 Copy-Item -LiteralPath (Join-Path $proven 'LightRemote.exe') -Destination (Join-Path $stage 'LightRemote.exe') -Force
 Copy-Item -LiteralPath (Join-Path $proven 'windows-host') -Destination $stage -Recurse
 Copy-Item -LiteralPath (Join-Path $proven 'config/core-layout.json') -Destination (Join-Path $stage 'config/core-layout.json') -Force

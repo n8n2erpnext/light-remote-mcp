@@ -3,11 +3,40 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 271,
-    "markdown": 227,
-    "json": 44
+    "total": 273,
+    "markdown": 228,
+    "json": 45
   },
   "files": [
+    {
+      "path": "docs/design/windows-distribution-v3/MORYQA_EXPORT.json",
+      "shelf": "design",
+      "extension": "json",
+      "bytes": 4366,
+      "sha256": "42c4b5a505eb2ec07f0563c053801b1cb36f911c07b7b83bde89b464c35e126f",
+      "topLevelKeys": [
+        "schemaVersion",
+        "fileName",
+        "newGroupId",
+        "newGroupName",
+        "sourceFont",
+        "implementationFont",
+        "stockLogoId",
+        "originalV2LayoutReused",
+        "frames",
+        "nativeImplementation",
+        "canonicalLogoProof",
+        "rmObservation"
+      ]
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/README.md",
+      "shelf": "design",
+      "extension": "md",
+      "bytes": 2658,
+      "sha256": "0d0a1280ab3c672d006ef7d69745e6d081df16571d16f5e192474f12c1936d0b",
+      "title": "Windows setup and uninstall — fresh Moryqa V3"
+    },
     {
       "path": "docs/DEVELOPMENT.md",
       "shelf": "DEVELOPMENT.md",
@@ -2379,8 +2408,8 @@
       "path": "docs/plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 3464,
-      "sha256": "170c323df85d9f8c23a436851351946c89440d4eb2a4b9d92064ce8d55a5be29",
+      "bytes": 4595,
+      "sha256": "7bc713ad524e99348e66ccde7d2b0cde1c4f69d7c5002f1eaff474d59f242e63",
       "title": "Windows tray, setup and branding follow-up — 2026-11-10"
     },
     {

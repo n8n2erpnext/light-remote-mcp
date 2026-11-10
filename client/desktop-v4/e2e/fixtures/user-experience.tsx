@@ -29,7 +29,7 @@ const snapshot:OwnerSnapshot={state:'ready',accountId:owner,asOf:now,
  events:Array.from({length:187},(_,i)=>({deviceId,eventType:['job_finished','stdout','node_command_dispatched','session_hold_released'][i%4]!,status:i%4===0?'ok':'running',at:now-i*6000})),
  coverage:{jobs:{returned:120,total:120,hasMore:false,source:'in_memory_current_window'},sessions:{returned:26,total:26,hasMore:false,activeTotal:1,holdTotal:0,source:'in_memory_current_window'}}
 };
-const device={deviceName:name,cloudDesiredConnected:true,cloudState:'connected',version:'0.10.1-dev.5',platform:'win32',executorReady:true,policy:{profile:'standard',revision:4,effectiveCapabilities:['fs.read','fs.write','process.run'],deniedCapabilities:['desktop.capture']}};
+const device={deviceName:name,cloudDesiredConnected:true,cloudState:'connected',version:'0.10.1-dev.6',platform:'win32',executorReady:true,policy:{profile:'standard',revision:4,effectiveCapabilities:['fs.read','fs.write','process.run'],deniedCapabilities:['desktop.capture']}};
 const modules={longMemory:true,codexBridge:true,revision:9};
 const codexSession={account:{state:'ready',connected:true,plan:'plus'},login:null,
  catalog:{state:'ready',asOf:now,models:[{model:'fixture-model',displayName:'Fixture model for project work',isDefault:true,defaultReasoningEffort:'high',supportedReasoningEfforts:[{reasoningEffort:'high',description:'More careful reasoning for project work'},{reasoningEffort:'max',description:'Maximum fixture reasoning'}]}]},selection:{model:'fixture-model',reasoningEffort:'high'},

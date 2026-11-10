@@ -8,10 +8,12 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 271 (227 Markdown, 44 JSON).
+Documents: 273 (228 Markdown, 45 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
+| design | [docs/design/windows-distribution-v3/MORYQA_EXPORT.json](../design/windows-distribution-v3/MORYQA_EXPORT.json) | schemaVersion, fileName, newGroupId, newGroupName, sourceFont, implementationFont, stockLogoId,  | 42c4b5a505eb2ec07f0563c053801b1cb36f911c07b7b83bde89b464c35e126f |
+| design | [docs/design/windows-distribution-v3/README.md](../design/windows-distribution-v3/README.md) | Windows setup and uninstall — fresh Moryqa V3 | 0d0a1280ab3c672d006ef7d69745e6d081df16571d16f5e192474f12c1936d0b |
 | DEVELOPMENT.md | [docs/DEVELOPMENT.md](../DEVELOPMENT.md) | Light Remote MCP — Development & Testing | f2e9e2091cf6b91ecd1b055b9e8e36db2cf4ff88e759c18ca1340286702183d1 |
 | evidence | [docs/evidence/ci-status.json](../evidence/ci-status.json) | repository, repositoryId, runId, url, sourceCommit, sourceTree, conclusion, jobs, passedJobs, jo | 36bbde0c6fd20682730b8f6f8d615941e52a28f2fa63d6378d9cc4043a414a30 |
 | evidence | [docs/evidence/component-variant-summary.json](../evidence/component-variant-summary.json) | refsCompared, distinctHeadTagRevisions, uniquePaths, executableConfigPathsAbsentFromDesktop, com | 900771ef02c2dc67b16db2d34e7d7d5a69892dd6ef4d47ed4241bdf73b217e0b |
@@ -252,7 +254,7 @@ Documents: 271 (227 Markdown, 44 JSON).
 | optimization | [docs/optimization/RDC_LIGHT_REMOTE_GOLD_MASTER_PLAN.md](../optimization/RDC_LIGHT_REMOTE_GOLD_MASTER_PLAN.md) | RDC → Light Remote Gold: reliability optimization master plan | bcf1e46371d57eb1e00f304780fbd29ac48a7137fb5d263f70aefd17ba31dbb6 |
 | plans | [docs/plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md](../plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md) | Codex, Wall and Desktop follow-up — 2026-11-10 | aabeb020caa313351fd8a22231f5478199e0a5595eb58c91c5b7cb8303a546db |
 | plans | [docs/plans/desktop-user-experience/README.md](../plans/desktop-user-experience/README.md) | Desktop user experience reconstruction | 2fe4928a903a2e3634cc86aa5cec9dc10bbfd5c871324e832842a356ac2dc779 |
-| plans | [docs/plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md](../plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md) | Windows tray, setup and branding follow-up — 2026-11-10 | 170c323df85d9f8c23a436851351946c89440d4eb2a4b9d92064ce8d55a5be29 |
+| plans | [docs/plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md](../plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md) | Windows tray, setup and branding follow-up — 2026-11-10 | 7bc713ad524e99348e66ccde7d2b0cde1c4f69d7c5002f1eaff474d59f242e63 |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json) | schemaVersion, status, dateLocal, timezone, repository, scope, requestedTarget, currentGithubHea | cccd37f78676a45a4605c91cbe37ac46b647e24024d9bef663a90d3abcdfbc4d |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md) | T12-PLAN — Gộp hai Windows core thành LightRemote.exe | 8803418d5f846a3568be08128a70e21a53ccee6e7d2083a41dcd005c2e8bd237 |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_SINGLE_CORE_EXE_BUILD_REVIEW_20261107.md](../plans/windows-single-primary-exe/LIGHT_REMOTE_SINGLE_CORE_EXE_BUILD_REVIEW_20261107.md) | T11 — Windows build: hợp nhất executable chính | 7b73c419d2302a21ad01c278d8696640fd144b7346a1135242aa1c64c620f1c3 |

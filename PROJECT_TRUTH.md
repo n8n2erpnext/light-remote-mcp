@@ -170,3 +170,7 @@ CI62 exposed a stale ownership source assertion after the recovery-only API spli
 ## Prove native auth UI liveness with synchronized worker release
 
 CI63 macOS failed a 150ms wall-clock assertion in the async native-work fixture while core, web and Linux passed. Replace that scheduler-sensitive elapsed sample with causal synchronization: the blocked worker cannot finish until the async25ms timer releases it; a separate5s emergency release makes an inline-blocking regression fail without hanging. Keep real Windows Close3cycles/3s, responsiveness, Agent lifetime, ConPTY and watchdog recovery gates unchanged. Production implementation is unchanged.
+
+## Implement fresh Moryqa Windows setup uninstall and five-state primary tray
+
+Internal dev6 source implements the fresh Moryqa Windows distribution V3, real five-state unified tray, privately packaged Google Sans and empty-only legacy directory cleanup. [Design/code mapping](docs/design/windows-distribution-v3/README.md). Exact-source native CI/artifact is PENDING; previous dev5 accepted build and deployed Lab evidence remain pinned. No Owner install/public Release/feed.

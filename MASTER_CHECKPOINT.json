@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T12:50:52.616Z",
-  "version": "0.10.1-dev.5",
-  "phase": "TRAY_INSTALLER_INVENTORY_DEV5_SERVER_DEPLOYED",
-  "status": "IN_PROGRESS_NEW_MORYQA_WINDOWS_DESIGN",
+  "updatedAt": "2026-11-10T13:59:04.849Z",
+  "version": "0.10.1-dev.6",
+  "phase": "DISTRIBUTION_V3_DEV6_NATIVE_IMPLEMENTED",
+  "status": "IMPLEMENTED_NATIVE_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -359,7 +359,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Finish fresh Moryqa Windows design and export; implement five-state tray, native setup/uninstall and empty-dir cleanup; full internal dev6 Actions, exact artifact and canonical closeout.",
+  "nextAction": "Follow full exact-source Actions; resolve compile/real Windows UI failures, verify internal dev6 installer and native evidence independently, synchronize Lab from accepted source if necessary, then canonical docs/handoff with Owner physical test pending.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -450,13 +450,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-tray-installer-inventory-server-dev5",
-    "status": "DEV5_SERVER_DEPLOYED_NEW_MORYQA_DESIGN_IN_PROGRESS",
-    "summary": "Preserved full0c1a153 Git/tag/bundle restore. Confirmed static unified tray omitted existing five-state Moryqa icon wiring. Owner requires fresh Windows setup/uninstall, Google Sans Flex in Figma and packaged Google Sans in code. Exact CI64 dev5 Lab Operator/Plugin deployed with preserved data/independent processes. New design starts separately from old V2; no Owner install or public release.",
-    "verification": "Full pre-change bundle restore/fsck PASS. Dev5 source/archive/locks/ABI/private backup/pg_dump index preflight PASS; health/API/snapshot401, unchanged persistent counts and independent PIDs/dependencies/ACL PASS. Moryqa connected/editable, STOCK/tray nodes found and Google Sans Flex Regular/Bold created; installed code font name table Google Sans verified.",
-    "nextAction": "Finish fresh Moryqa Windows design and export; implement five-state tray, native setup/uninstall and empty-dir cleanup; full internal dev6 Actions, exact artifact and canonical closeout.",
-    "sourceDigest": "3d5fe3e834be7f4421ef0a43f92f43789a34097bd70707d3e3a1e81ccfa6bf84",
-    "sourceFileCount": 1662
+    "taskId": "20261110-distribution-v3-native-dev6",
+    "status": "IMPLEMENTED_NATIVE_CI_PENDING",
+    "summary": "Created six entirely new Moryqa Windows setup/uninstall frames with Google Sans Flex and original STOCK logo, exported HTML/CSS and adapted into native Inno controls with privately packaged Google Sans. Unified LightRemote.exe tray now consumes actual five-state projection and exact exported pixels, with bounded reduced-motion-aware transitions. Empty-only desktop-v4 cleanup preserves unrelated files. Internal dev6 metadata and real six-view Windows CI proof are wired; no release/feed or Owner install.",
+    "verification": "Local asset/hash/PNG/transparent RGBA, native presentation boundaries and version parity checks PASS; PowerShell AST parse PASS; STOCK/canonical SVG128px comparison exact. Actual Figma six-frame layout observed through Light Remote AB RM. Full source regressions run before commit; native Rust/.NET/Inno compilation and UI/lifecycle/migration/watchdog checks only in exact-source Actions, pending.",
+    "nextAction": "Follow full exact-source Actions; resolve compile/real Windows UI failures, verify internal dev6 installer and native evidence independently, synchronize Lab from accepted source if necessary, then canonical docs/handoff with Owner physical test pending.",
+    "sourceDigest": "027c471c2959c70c6b401afc9b13aea8c03117552a5d1230ed35b81e73fe3d18",
+    "sourceFileCount": 1672
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1191,7 +1191,7 @@
     "reason": "Owner requested docs/checkpoint/handoff, then self-download/install/test; no promotion in this closeout"
   },
   "distributionRedesign": {
-    "status": "INVENTORIED_DESIGN_IN_PROGRESS",
+    "status": "NEW_DESIGN_NATIVE_IMPLEMENTED_CI_PENDING",
     "preChange": {
       "sourceCommit": "0c1a153ecb6a8c67b987e753e520381730f56a43",
       "sourceTree": "d9335bc82c5a9ec22089373911186d3f98030839",
@@ -1218,7 +1218,21 @@
       "stockLogo": "34:4",
       "trayFrame": "40:895",
       "newWelcome": "73:76",
-      "font": "Google Sans Flex"
+      "font": "Google Sans Flex",
+      "groupId": "74:202",
+      "frameIds": [
+        "73:76",
+        "73:96",
+        "73:116",
+        "73:136",
+        "73:156",
+        "73:176"
+      ],
+      "codeFont": "Google Sans",
+      "stockCanonicalPixelEquality": "PASS",
+      "oldV2LayoutReused": false,
+      "exports": "docs/design/windows-distribution-v3/MORYQA_EXPORT.json",
+      "rmVisualObservation": "PASS_SIX_FRESH_EDITABLE_FRAMES"
     },
     "server": {
       "result": "PASS",
@@ -1243,7 +1257,16 @@
     },
     "plannedCandidateVersion": "0.10.1-dev.6",
     "ownerScreenshot": "dev5 Agent and one LightRemote.exe observed; not blanket physical acceptance",
-    "newNativeBuild": "NOT_BUILT",
-    "publicReleaseOrFeed": false
+    "newNativeBuild": "PENDING_ACTIONS_DEV6",
+    "publicReleaseOrFeed": false,
+    "tray": {
+      "projection": "native VisualFor",
+      "states": 5,
+      "boundedTransitionMs": 175,
+      "idleAnimation": false,
+      "reducedMotionAware": true,
+      "assets": "client/windows-native/GptOperator.Client/Assets/TrayStates/PROVENANCE.json"
+    },
+    "physicalOwnerAcceptance": false
   }
 }

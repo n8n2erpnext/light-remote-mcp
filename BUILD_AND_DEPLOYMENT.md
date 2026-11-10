@@ -155,3 +155,7 @@ CI63 core/web/Linux passed; macOS failed the isolated auth fixture150ms elapsed 
 ## Checkpoint fresh Windows distribution redesign and verified dev5 Lab deployment
 
 Lab Operator/Plugin now serve exact GitHub8e0d932/dev5 after CI64/artifact verification and private backups. Public/private health/API and unauthenticated snapshot401 PASS; persistent counts and independent Agent/Wall/supervisor/mTLS PIDs are preserved. No SQL migration or Owner Windows change. Prior947a117 runtime remains for rollback. Remote consent branding is deployed. Main remains8ac6273; permanent work is active. New task: restore tray state icons and redesign Windows install/uninstall in Moryqa, reuse STOCK logo, remove only empty desktop-v4 directories, then build internal dev6. Fresh design/source plan: docs/plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md. Keep Windows native compilation in Actions and full migration/watchdog gates.
+
+## Implement fresh Moryqa Windows setup uninstall and five-state primary tray
+
+New internal dev6 source requires full Actions including Rust state/security tests and actual six native setup/uninstall views. [V3 design/mapping](docs/design/windows-distribution-v3/README.md). No local/ARM native compilation. Preserve native install/update/rollback/watchdog/Close/ConPTY gates. Quiet installer/migration paths still run the same Inno transaction; normal Windows Apps uninstall reuses the same uninstaller with explicit /LIGHTREMOTEINTERACTIVE. Exact-source artifact and public status remain unaccepted until CI completes.

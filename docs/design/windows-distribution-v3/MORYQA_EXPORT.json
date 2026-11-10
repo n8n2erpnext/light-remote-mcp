@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "fileName": "Light Remote AI UI/UX",
+  "newGroupId": "74:202",
+  "newGroupName": "windows/setup-uninstall-v3 — NEW Google Sans Flex",
+  "sourceFont": "Google Sans Flex",
+  "implementationFont": "Google Sans",
+  "stockLogoId": "34:4",
+  "originalV2LayoutReused": false,
+  "frames": [
+    {
+      "id": "73:76",
+      "name": "01-welcome",
+      "width": 800,
+      "height": 560
+    },
+    {
+      "id": "73:96",
+      "name": "02-installing",
+      "width": 800,
+      "height": 560
+    },
+    {
+      "id": "73:116",
+      "name": "03-ready",
+      "width": 800,
+      "height": 560
+    },
+    {
+      "id": "73:136",
+      "name": "04-uninstall-confirm",
+      "width": 800,
+      "height": 560
+    },
+    {
+      "id": "73:156",
+      "name": "05-removing",
+      "width": 800,
+      "height": 560
+    },
+    {
+      "id": "73:176",
+      "name": "06-removed",
+      "width": 800,
+      "height": 560
+    }
+  ],
+  "nativeImplementation": "client/windows-native/installer/LightRemote.Wizard.iss",
+  "canonicalLogoProof": {
+    "nodeId": "34:4",
+    "exportSvgSha256": "b9f23ae11a710735d691f2d0efb45d4e04ea6ff901fbe9662f77f9524951af42",
+    "canonicalSvgSha256": "417f45d22d27c82ba7159b94e6e59bc93da64546a5027ed06aaeb54a9cee1d65",
+    "rgba128Comparison": {
+      "differentChannels": 0,
+      "maxDifference": 0
+    },
+    "canonicalPng512Sha256": "a94b8c92a2ab0e4ba376419a982955a847304622d3dc1dee861de047a47de5e2"
+  },
+  "rmObservation": {
+    "device": "DESKTOP-VA16D27",
+    "result": "Six fresh editable frames observed together on actual Figma canvas; original STOCK and Windows V2 frames untouched",
+    "ownerInstallationChanged": false
+  },
+  "exports": [
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-02-installing-73-96/index.html",
+      "sha256": "00091ac6a2b39914d1fc208457df631c04b50c9c6de6ffec6d09ccac9e79b61b"
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-02-installing-73-96/styles.css",
+      "sha256": "9c5c762eed08dce24e7ae850e642268cdb790c445f7ff2000cf342155487362f"
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-03-ready-73-116/index.html",
+      "sha256": "1ff452c2b25904e3a299f129b8182424db928af360d14deddd1ae6df3bb78514"
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-03-ready-73-116/styles.css",
+      "sha256": "6c7f365d400b77a2c268dfd589c0d572a8c53677d71dcd961372c7df31050c76"
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-04-uninstall-confirm-73-136/index.html",
+      "sha256": "2b73b154f0011c3895fdb163fec360cb6865d8bfb523b188a49dec340031a41e"
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-04-uninstall-confirm-73-136/styles.css",
+      "sha256": "5458c46ca05fa4521fe258be65ef1fa4c92ae7a1e74fb8c2c61971d33a3b2393"
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-05-removing-73-156/index.html",
+      "sha256": "8699d9f5a977d6bffff84989dcba5e11f58b5f583d046499ee575669c142fabe"
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-05-removing-73-156/styles.css",
+      "sha256": "f3f02ab0e0d7352a554f296f42c6a4addaf8088fbe8f6dffceeec7338b4acad4"
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-06-removed-73-176/index.html",
+      "sha256": "e5cb193bbab3a83bfd5e811b236c71ed06cea82a18e9dd4be4e6434958c41102"
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-06-removed-73-176/styles.css",
+      "sha256": "ad01395c6d17b9be24bf5b4ea45d440ab16e9ad0d9083704a6eaff70a7ebdb6f"
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-welcome-73-76/index.html",
+      "sha256": "f3346a555947c0a598127cc91d3db0d2d3de3d6ff92b5df6ceb93c211611593f"
+    },
+    {
+      "path": "docs/design/windows-distribution-v3/moryqa-export/light-remote-windows-v3-welcome-73-76/styles.css",
+      "sha256": "bc9d45d28679419fc59d6c37a7e7459018cc4d31f8f4badee34ba888365a44c7"
+    }
+  ],
+  "nativeCi": "PENDING",
+  "physicalOwnerAcceptance": false
+}

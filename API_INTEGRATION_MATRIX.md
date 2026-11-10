@@ -64,3 +64,7 @@ CI64/source8e0d932920d218c54f83989978f3866c321e20de: light-remote.api.v1 preserv
 ## Checkpoint fresh Windows distribution redesign and verified dev5 Lab deployment
 
 Dev5 Lab Operator/Plugin now serve CI64/source8e0d932 with light-remote.api.v1 and existing Owner/A/B authority unchanged. Health version/API and unauthenticated native snapshot401 PASS; no schema migration. New tray presentation must derive actual state from the existing sanitized native bridge, not UI guesses.
+
+## Implement fresh Moryqa Windows setup uninstall and five-state primary tray
+
+The private native status response adds visualState from the existing VisualFor projection (stopped/unlinked/disconnected/dormant/connected). This additive presentation field changes no authorization/endpoint/issuer/profile or credential identity. Tauri independently rejects missing/contradictory connected status before rendering green; no cloud state is synthesized by the UI.

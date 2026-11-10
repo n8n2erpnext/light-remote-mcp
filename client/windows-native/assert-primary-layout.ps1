@@ -2,6 +2,8 @@ param([Parameter(Mandatory=$true)][string]$InstallRoot,
       [Parameter(Mandatory=$true)][string]$EvidenceFile)
 $ErrorActionPreference='Stop'
 $root=[IO.Path]::GetFullPath($InstallRoot)
+$oldDirectory=Join-Path $root 'desktop-v4'
+if((Test-Path -LiteralPath $oldDirectory) -and -not(Get-ChildItem -LiteralPath $oldDirectory -Force)){throw 'Empty obsolete desktop-v4 directory remains'}
 foreach($old in @('GptOperator.Client.exe','desktop-v4/LightRemote.Desktop.exe')){
     if(Test-Path -LiteralPath (Join-Path $root $old)){throw "Obsolete primary executable still installed: $old"}
 }
