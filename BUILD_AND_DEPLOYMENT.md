@@ -133,3 +133,7 @@ CI58 built and installed the dev5 one-primary package but failed the real WM_CLO
 ## Restore singleton window through owning Tauri runtime to synchronize visibility
 
 CI59 failed second Close after shortcut reopen while responsive; no failed candidate accepted. Keep <=3s hide,3cycles, same GUI/background Agent and WM_NULL checks. Require native show event and <=3s asynchronous restore before subsequent Close; the Close deadline is unchanged. Native builds remain Actions-only.
+
+## Reconcile actual hidden window state before singleton restore
+
+CI60 initial shortcut restore failed after the unchanged installed raw Win32 hide setup; no accepted binary. Keep that precondition and all existing background/Agent restart/singleton/3s Close3cycle/WM_NULL assertions unchanged. Native restore now reconciles OS visibility before Tauri show; rebuild and pass full exact-source Actions before delivery or Lab rollout.

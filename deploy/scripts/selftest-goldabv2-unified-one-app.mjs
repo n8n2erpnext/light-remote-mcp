@@ -29,6 +29,7 @@ assert.match(rust,/OpenEventW\(0x0002/);
 assert.match(rust,/!background&&!signal_existing_gui\(\)/);
 assert.match(rust,/WaitForSingleObject\(show_event as Handle,u32::MAX\)/);
 assert.match(rust,/show_main\(&show_app\)/);
+assert.match(rust,/window\.is_visible\(\),Ok\(false\)/);
 assert.match(rust,/SetForegroundWindow/);
 assert.match(rust,/TrayIconBuilder::new\(\)/);
 assert.match(rust,/on_menu_event/);

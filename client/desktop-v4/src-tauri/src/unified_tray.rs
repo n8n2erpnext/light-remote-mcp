@@ -157,6 +157,12 @@ fn show_main(app:&tauri::AppHandle){
     let app=app.clone();
     tauri::async_runtime::spawn_blocking(move||{
         if let Some(window)=app.get_webview_window("main"){
+            // is_visible reads the OS, while show/hide update cached flags.
+            // An external Win32 hide (including the installed lifecycle
+            // probe) can leave cached VISIBLE=true. Normalize only an already
+            // hidden window, then show through the owning runtime; this does
+            // not flicker an already visible window or bypass Tauri state.
+            if matches!(window.is_visible(),Ok(false)){let _=window.hide();}
             let _=window.show();let _=window.unminimize();let _=window.set_focus();
         }
     });

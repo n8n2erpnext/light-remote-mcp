@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T09:32:33.483Z",
+  "updatedAt": "2026-11-10T09:50:46.537Z",
   "version": "0.10.1-dev.5",
-  "phase": "codex-wall-followup-singleton-visibility",
-  "status": "SINGLETON_VISIBILITY_SOURCE_REPAIRED_NATIVE_CI_PENDING",
+  "phase": "codex-wall-followup-native-visibility",
+  "status": "NATIVE_VISIBILITY_RECONCILIATION_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -272,7 +272,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Complete full exact-source Actions without bypass, verify actual Close/reopen3cycles and packaged ConPTY plus installer/source/hash/manifests; only then same-source Lab and final docs/main promotion.",
+  "nextAction": "Complete exact-source full Actions including unchanged raw-hide/background/Agent restart/shortcut/Close3cycles/WM_NULL and real ConPTY. Then verify internal installer, same-source Lab and final receipt/main promotion.",
   "receiptNote": "Compiled source947a117/CI45/internal artifact are pinned independently from this documentation receipt. The receipt does not rebuild the installer. No new public Release/feed or Owner installation change. Source publication uses normal protected work-to-main fast-forward after checks.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -363,12 +363,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-codex-wall-followup-singleton-visibility",
-    "status": "SINGLETON_VISIBILITY_SOURCE_REPAIRED_NATIVE_CI_PENDING",
-    "summary": "CI59 narrowed X failure to the second Close after shortcut restore: UI responsive, native window visible, process alive. Secondary used raw ShowWindow while Tao cached VISIBLE=false, so hide became a no-op. A fixed OS-user/session native auto-reset show event now lets the existing GUI restore through its owning Tauri worker. Background relaunch never signals. Raw Win32 restore remains only for old compatibility binaries. No Agent/session/authorization change.",
-    "verification": "Local one-primary native source contract and PowerShell parser PASS. Pinned Tao0.37.2 visibility cache/apply_diff no-op matches CI59 Close0 PASS then Close1 visible+responsive. Actual installed3cycle <=3s hide/WM_NULL assertions remain; asynchronous restore has bounded3s wait and required native event existence. Full repaired CI and ConPTY remain pending.",
-    "nextAction": "Complete full exact-source Actions without bypass, verify actual Close/reopen3cycles and packaged ConPTY plus installer/source/hash/manifests; only then same-source Lab and final docs/main promotion.",
-    "sourceDigest": "1ddd76e02fa8ca85fb050456eba67d75d9e560685e1666c74fe6a594649e8a05",
+    "taskId": "20261110-codex-wall-followup-native-visibility",
+    "status": "NATIVE_VISIBILITY_RECONCILIATION_CI_PENDING",
+    "summary": "CI60 exposed the inverse cache mismatch: unchanged installed fixture hides the native window directly while Tao VISIBLE remains true, so owning-runtime show alone became a no-op. Before restoring an actually hidden window, read OS visibility, normalize cached hidden state through Tauri hide, then show/unminimize/focus. Already-visible windows are not hidden. Keep the raw-hide precondition and every existing Close/WM_NULL/background/Agent/singleton assertion unchanged.",
+    "verification": "Local unified one-primary source guard PASS. Pinned Tao is_visible reads OS, while set_visible/apply_diff use cached flags. CI60 core/browser/Linux/macOS/build/install passed but initial shortcut restore failed after native raw-hide precondition, before Close cycles or ConPTY. Full repaired exact-source native acceptance remains pending.",
+    "nextAction": "Complete exact-source full Actions including unchanged raw-hide/background/Agent restart/shortcut/Close3cycles/WM_NULL and real ConPTY. Then verify internal installer, same-source Lab and final receipt/main promotion.",
+    "sourceDigest": "628979b2d94fe81fb06b1c4aeacb57a03cc382d38a4b2de5d18c55f1d8e2df19",
     "sourceFileCount": 1662
   },
   "legacyFilesystemCleanup": {
@@ -869,12 +869,20 @@
         "result": "FAIL",
         "passed": "Core/integration/browser/Linux/macOS; Windows build/install and Close0",
         "failure": "Close1 after shortcut restore visible=true, responsive=true, guiExited=false; reentrancy-only repair insufficient."
+      },
+      {
+        "runId": 42791588758,
+        "runNumber": 60,
+        "sourceCommit": "62b008e59cf073a6103e4dbe4c08024b2c59f98e",
+        "result": "FAIL",
+        "passed": "Core/browser/Linux/macOS native, Windows compile/install and native show event exists",
+        "failure": "Initial shortcut restore after unchanged raw Win32 hide failed. Tao cached VISIBLE=true while OS hidden; Close cycles and ConPTY not reached."
       }
     ],
     "nextGate": "Exact-source full9job CI; never deliver failed artifact",
     "nativeClose": {
-      "sourceRepair": "Fixed native auto-reset show event routes shortcut through existing GUI Tauri runtime. Deferred hide retained; raw Win32 restore only for older binaries lacking event.",
-      "diagnosis": "CI59 Close0 PASS then Close1 after raw shortcut restore visible+responsive. Tao0.37.2 caches VISIBLE and unchanged apply_diff skips native hide.",
+      "sourceRepair": "Keep owning-runtime native show event and deferred Close. Before show, query actual OS visibility; when already hidden normalize Tauri hide state, then show/unminimize/focus. No visible-window flicker.",
+      "diagnosis": "Pinned Tao is_visible delegates to OS, while set_visible/apply_diff caches flags. CI59 external show caused later hide no-op; CI60 fixture external hide caused initial show no-op. Reconcile actual hidden state on restore, preserving raw-hide fixture and all checks.",
       "requiredAcceptance": "Native show event exists; background remains hidden; asynchronous restore <=3s; actual Close3cycles <=3s and WM_NULL responsive; same GUI/Agent PIDs; real packaged ConPTY HTTP proof"
     }
   }

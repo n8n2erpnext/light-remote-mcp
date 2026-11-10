@@ -170,3 +170,7 @@ unified_tray.rs::hide_on_close prevents destruction and defers hide outside the 
 ## Restore singleton window through owning Tauri runtime to synchronize visibility
 
 unified_tray.rs publishes/consumes fixed native singleton show event while preserving mutex/title compatibility. signal_existing_gui sends no payload, skips --background, and owning runtime restores via show_main worker to keep cached visibility/minimize state coherent. Installed test requires event existence and bounded restore, then same3s/3cycle hide/WM_NULL/Agent PID proof.
+
+## Reconcile actual hidden window state before singleton restore
+
+unified_tray.rs::show_main worker queries window.is_visible (native OS), normalizes cached hide only when actually hidden, then show/unminimize/focus on owning Tauri runtime. This handles CI60 raw-hide restore while retaining CI59 shortcut Close repair. Installed test code is unchanged in this source repair.

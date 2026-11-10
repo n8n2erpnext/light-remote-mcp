@@ -166,3 +166,7 @@ CI58 passed all284 Node units,70 portable suite entries and backend integration;
 ## Restore singleton window through owning Tauri runtime to synchronize visibility
 
 CI59 d6f8eb8 is not an accepted candidate: core/browser/Linux/macOS passed, actual Windows Close0 hid and remained responsive, but Close1 after shortcut stayed visible and responsive. Native singleton show now goes through the existing GUI runtime; background relaunch never signals. Exact-source installed acceptance remains pending; Lab947a117 unchanged.
+
+## Reconcile actual hidden window state before singleton restore
+
+CI60 is not accepted: core/browser/Linux/macOS and Windows compile/install passed, but initial shortcut restore after the existing raw Win32 hide precondition failed. Restore now reads actual OS visibility and normalizes cached hidden state only when already hidden before owning-runtime show. All existing installed tests/deadlines, including raw-hide/background and3 Close cycles, remain unchanged. Full native acceptance is pending; Lab947a117 remains.
