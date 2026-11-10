@@ -67,3 +67,7 @@ Dev6 Windows distribution is implemented but native compilation/UI artifact acce
 ## Record Owner stop-build instruction and next native acceptance checklist
 
 Final source0397d871 heading102px/bottom-margin change has NOT been native built/tested because Owner requested stopping builds. CI71 prior source302c662 passed9/9 with six actual UI views; that does not certify the later source. Physical DPI150/200, keyboard/screen-reader usage and actual five-state tray transitions remain Owner/device acceptance tasks for the next build. Lab is stilldev5, so final dev6 version synchronization must wait for accepted build/artifact.
+
+## Document RM v2 native cursor preservation, input latency defects and optional GPU roadmap
+
+RMv2 read-only research at764e1d7 confirms remaining normal-system-pointer override on observation/input, restore CLI without live-process disable/state sync, move duration/steps discarded during normalization, explicit0 observe interval changed to250ms, CPU GDI/JPEG capture and serial native RPC. Current code does NOT replace resize cursors or acquire during RobotContext construction. [Plan/source evidence and acceptance checklist](docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md); no new physical reproduction/benchmark or implementation. Dev6 native final-heading acceptance and all Owner-deferred build work remain pending.

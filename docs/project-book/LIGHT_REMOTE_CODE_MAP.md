@@ -214,3 +214,7 @@ LRView heading allocation is102px, retaining room below the second native Google
 ## Record Owner stop-build instruction and next native acceptance checklist
 
 Owner defers build/test after final source0397d871. Current native map remains tray_visual.rs/unified_tray.rs + VisualFor projection, exact Moryqa assets, LightRemote.Wizard.iss six-view native UI and safe empty-directory cleanup. The final102px title allocation and bottom-margin image assertion await native verification. UI baseline302c662/CI71 proof is retained separately in docs/evidence/distribution-redesign/CI71_NATIVE_UI.json. No final artifact/runtime acceptance is inferred.
+
+## Document RM v2 native cursor preservation, input latency defects and optional GPU roadmap
+
+Read-only RMv2 research at work764e1d7 maps native RobotContext/SystemCursorOverride/NativeInput/DesktopVisual/RobotRpcServer, lib/real-remote-input.cjs + native-desktop.mjs, Plugin tools, Operator executor and Agent visual sessions in [the proposed plan](../plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md). Findings distinguish legacy all-role/startup behavior from remaining normal-pointer override, process-local restore state, dropped motion timing, zero-interval defaults, serialized native work and CPU JPEG. No executable ownership, route, API contract or runtime changed; proposed DXGI/video providers are not implemented.

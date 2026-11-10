@@ -3,8 +3,8 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 274,
-    "markdown": 228,
+    "total": 275,
+    "markdown": 229,
     "json": 46
   },
   "files": [
@@ -2424,6 +2424,14 @@
       "bytes": 3811,
       "sha256": "2fe4928a903a2e3634cc86aa5cec9dc10bbfd5c871324e832842a356ac2dc779",
       "title": "Desktop user experience reconstruction"
+    },
+    {
+      "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
+      "shelf": "plans",
+      "extension": "md",
+      "bytes": 20342,
+      "sha256": "fe04f53527a6667a3da81a81fd4394e3984ac6e4b8f5013f0c930ff7cc5a5b9c",
+      "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {
       "path": "docs/plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md",

@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T17:04:48.969Z",
+  "updatedAt": "2026-11-10T17:32:21.940Z",
   "version": "0.10.1-dev.6",
-  "phase": "SOURCE_FIXED_OWNER_DEFERRED_BUILD_TEST",
-  "status": "SOURCE_FIXED_BUILD_TEST_DEFERRED_BY_OWNER",
+  "phase": "RMV2_RESEARCH_COMPLETE_BUILD_DEFERRED",
+  "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -359,7 +359,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Wait for Owner instruction to build. Then build/test the exact new GitHub work source once: all six native views/Google Sans/title bottom margins, DPI/keyboard, five tray states/reduced motion, fresh/upgrade/quiet uninstall/data preservation, X/Agent/ConPTY and real rollback/watchdog. Independently verify artifact source/tree/SHA/manifests; only then synchronize Lab through isolated verified runtime with backups/rollback. Owner self-installs/tests; no public release/feed.",
+  "nextAction": "Owner may request implementing cursor preservation/AI badge/border and bounded input contract/timing/instrumentation first. Retain GDI/semantic/A-B/local-policy behavior; add optional DXGI capture only after measurements, and video viewer as a separate later phase. Do not build/test native/deploy until Owner asks; next accepted build must include the deferred dev6 installer/tray/X/Agent/ConPTY/migration/rollback checks plus scoped RM acceptance.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -450,11 +450,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-owner-defer-build-test",
-    "status": "SOURCE_FIXED_BUILD_TEST_DEFERRED_BY_OWNER",
-    "summary": "Owner explicitly requested fix-only, no further build, and note everything for the next combined build/test. All requested native source/design fixes are published through0397d871. CI72 cancellation requested; no final installer accepted/delivered, no dev6 Lab deployment. CI71 source302c662 remains a separate verified9/9 baseline with six native UI views. Final heading102px/margin correction has no native acceptance yet.",
-    "verification": "ARM permanent work HEAD and origin/work both0397d871, clean; heading102px and margin assertion confirmed read-only. CI71 API completed/success9/9 and UI artifact13783997596 six-view summaries independently downloaded/digested and visually reviewed. CI72 cancel requested per Owner; its final conclusion will be checked. Only mandatory documentation/checkpoint gates are run for this receipt; no native build/test or installer execution.",
-    "nextAction": "Wait for Owner instruction to build. Then build/test the exact new GitHub work source once: all six native views/Google Sans/title bottom margins, DPI/keyboard, five tray states/reduced motion, fresh/upgrade/quiet uninstall/data preservation, X/Agent/ConPTY and real rollback/watchdog. Independently verify artifact source/tree/SHA/manifests; only then synchronize Lab through isolated verified runtime with backups/rollback. Owner self-installs/tests; no public release/feed.",
+    "taskId": "20261111-rmv2-cursor-latency-gpu-research",
+    "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
+    "summary": "Read-only RMv2 source research completed at work764e1d7. Old startup/all-resize cursor report is partially obsolete, but normal system override during observation/input and restore-while-alive gaps remain. Confirmed dropped move duration/steps, explicit0 observation interval, synthetic easing/click delays, serial native RPC and CPU GDI/JPEG capture. Proposed native cursor plus AI badge/border, staged responsiveness improvements, optional DXGI JPEG and later authorized GPU video viewer. No implementation, benchmark, native build/test or deployment.",
+    "verification": "Verified immutable Git archive SHA256b5b9e07a77902ddaf3980ea69f1bf67bec17813ff054412ca4f084918c683d86, exact12-file byte equality with preceding snapshot and same cursor source on actual GitHub main8ac6273. Source line evidence and official Microsoft/Sunshine/NVIDIA references reviewed. Programmed165ms is a source timing estimate, not a measured end-to-end result; cursor timer race is explicitly a hypothesis. CI72 completed/cancelled; prior CI73 docs success with all core/native jobs skipped. Only mandatory docs/checkpoint gates for this research receipt.",
+    "nextAction": "Owner may request implementing cursor preservation/AI badge/border and bounded input contract/timing/instrumentation first. Retain GDI/semantic/A-B/local-policy behavior; add optional DXGI capture only after measurements, and video viewer as a separate later phase. Do not build/test native/deploy until Owner asks; next accepted build must include the deferred dev6 installer/tray/X/Agent/ConPTY/migration/rollback checks plus scoped RM acceptance.",
     "sourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "sourceFileCount": 1672
   },
@@ -1311,7 +1311,16 @@
       "runNumber": 72,
       "sourceCommit": "0397d87114d51944f4918a68889e90bc9b6cc483",
       "cancelRequested": true,
-      "nativeBuildTestResumeRequiresOwnerInstruction": true
+      "nativeBuildTestResumeRequiresOwnerInstruction": true,
+      "cancellationConfirmed": true,
+      "cancelledRunConclusion": "cancelled",
+      "documentationOnlyFollowup": {
+        "runId": 42861198956,
+        "runNumber": 73,
+        "sourceCommit": "764e1d7ce7670c9e95690fca26b58dd2e3c86f02",
+        "result": "success",
+        "nativeAndCoreJobs": "skipped"
+      }
     },
     "nextBuildChecks": [
       "exact GitHub source/tree/clean dependency lock",
@@ -1325,5 +1334,30 @@
       "independent local+ARM artifact SHA/source manifests, private-backed Lab sync after acceptance"
     ],
     "nativeUiEvidence": "docs/evidence/distribution-redesign/CI71_NATIVE_UI.json"
+  },
+  "rmv2Research": {
+    "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
+    "sourceCommit": "764e1d7ce7670c9e95690fca26b58dd2e3c86f02",
+    "sourceTree": "41a48add6e01f3e4f6d28271a59b77f92a8acaca",
+    "sourceArchiveSha256": "b5b9e07a77902ddaf3980ea69f1bf67bec17813ff054412ca4f084918c683d86",
+    "document": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
+    "documentSha256": "fe04f53527a6667a3da81a81fd4394e3984ac6e4b8f5013f0c930ff7cc5a5b9c",
+    "normalCursorOverrideStillPresent": true,
+    "resizeOverrideInCurrentCursorList": false,
+    "constructorCursorAcquire": false,
+    "moveDurationAndStepsDropped": true,
+    "zeroObserveIntervalDefaultsTo250": true,
+    "captureBackend": "GDI_CPU_JPEG",
+    "gpuCaptureImplementedByThisTask": false,
+    "runtimeMeasurementPerformed": false,
+    "nativeBuildTestPerformed": false,
+    "implementationChanged": false,
+    "deploymentChanged": false,
+    "nextPhases": [
+      "cursor preservation + AI badge/border + input contract/timing and instrumentation",
+      "existing GDI response/capture/mapping improvements",
+      "optional DXGI capture with compatible JPEG and GDI fallback",
+      "separate optional GPU video and authorized viewer"
+    ]
   }
 }
