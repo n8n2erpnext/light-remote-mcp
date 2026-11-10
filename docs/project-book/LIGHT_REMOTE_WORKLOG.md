@@ -248,3 +248,8 @@ All nine Desktop routes and login/link/confirm/consent now use task-oriented use
 - Source audit: confirmed Agent-initiated account-scoped Discovery and exact online six-character Short ID -> B Owner approval path (public UI calls it A/B, not legacy A-code first). Audited desktop semantic/live tools, UIA/read-only browser CDP, native bounded OS input and lazy RM companion; audited eight permission groups, dynamic supported vs local/effective rights and separately saved filesystem volumes/roots.
 - Replaced `README.md`/`README.en.md` with detailed product-oriented architecture, RM V2, permissions, ChatGPT plugin link, Claude web/Desktop custom remote MCP, Claude Code CLI and generic remote MCP sample. Official public site/endpoint retained; test host excluded.
 - Pre-change `work`/`main` source `0457ab1`, annotated tag `checkpoint/20261110-before-shortid-readme-0457ab1`. Local Markdown/relative links/diff checks PASS; CI and main promotion pending. Documentation only; no binary rebuild, runtime/DB/Owner installation/feed changes and no new physical acceptance.
+
+## 2026-11-10 — README Short ID/RM V2/Permissions promoted to main
+- Receipt: 20261110-shortid-rmv2-readme-main-closure
+- Commit `f8a8b56` containing both public READMEs and atomic project docs passed [GitHub CI42749798491](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42749798491): `truth` and `baseline-required` PASS; native jobs skipped for docs-only source.
+- Git SSH verified non-forced promotion to protected `main`, same ref as permanent `work`. This closeout does not rebuild Windows dev.4, deploy runtime, modify Owner installed devices or issue a signed public feed. Physical Owner acceptance remains separate.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T03:29:26.293Z",
+  "updatedAt": "2026-11-10T03:31:29.624Z",
   "version": "0.10.1-dev.4",
   "phase": "DESKTOP_USER_EXPERIENCE_INTERNAL_CANDIDATE_ACCEPTED",
   "status": "DESKTOP_UX_IMPLEMENTED_CI45_PASS_INTERNAL_ARTIFACT_VERIFIED_LAB_DEPLOYED",
@@ -363,11 +363,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-shortid-ab-rmv2-permissions-readme",
-    "status": "DOCS_REVISED_FROM_CURRENT_CODE_LOCAL_CHECKS_PASS_CI_PENDING",
-    "summary": "Correct both public README languages from the active source. Replace obsolete A-code-first onboarding with Agent-initiated Short ID discovery and Owner B approval; use A/B public naming. Document eight new permission groups, dynamic per-device capability/effective/local policy, read/write filesystem roots, and detailed RM V2 semantic/live/native mouse+keyboard behaviors. Add official ChatGPT plugin and Claude/Claude Code/remote MCP setup. Keep only public homepage and /mcp as official URLs and retain separate dev.4 CI/physical release scope. Documentation only, no runtime changes.",
-    "verification": "Audited active main/work source 0457ab1 including plugin-server/tools.mjs, operator-adapter.mjs, operator-host/gold-ab-v2-helper-target.mjs, lib/gold-device-short-id.mjs, plugin-server/tool-helper.mjs, device-agent/local-wall.mjs permissions group UI, plugin-server/server.mjs, mcp.json, Windows RM robot source/docs, project truth and CI evidence; official Claude custom connector/MCP CLI docs. Both README local links valid, 8 balanced code fences per file, git diff --check PASS, no test hostname or historic bridge references. No new native build and dev.4 Owner physical acceptance remains pending.",
-    "nextAction": "Stamp/check atomic docs and truth, commit/push only on work, verify GitHub baseline-required then fast-forward protected main without force. Keep binaries, DB, runtime, live Owner installation and signed public feed unchanged.",
+    "taskId": "20261110-shortid-rmv2-readme-main-closure",
+    "status": "DOCS_F8A8B56_MAIN_PUBLISHED_CI42749798491_PASS_CLOSURE",
+    "summary": "Short ID A/B + detailed Real Remote V2 and new Permissions README corrections have been committed as f8a8b56acb91035652438551bb59c516351a0332, published on work, verified by GitHub Actions 42749798491 with truth/changes/baseline-required PASS, then promoted by non-forced fast-forward to protected main. Vietnamese and English documentation now link official ChatGPT plugin and Claude/Claude Code MCP setup. This is documentation-only closeout.",
+    "verification": "GitHub run42749798491 at f8a8b56: truth, changes, baseline-required all SUCCESS; Windows/Desktop/Core native jobs SKIPPED as expected for docs-only. VPS-ARM git ls-remote main/work both f8a8b56; local Project Truth PASS, Project Book PASS links393 routeChecks12, atomic commit-sync PASS, relative links and code fences validated, no test hostname or Vercel text. No executable changes, Owner Windows dev4 physical UAT pending, no public release/feed activation.",
+    "nextAction": "Finish closure docs commit on authorized work, verify its own baseline-required then fast-forward main without force. Future product step is Owner physical acceptance of pinned internal dev.4; do not touch production or signing feed without explicit approval.",
     "sourceDigest": "98fd17c91f46f5be46e931427c46e25b1043d2e830ae260cb90f3af705d7134f",
     "sourceFileCount": 1646
   },
