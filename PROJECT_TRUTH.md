@@ -174,3 +174,7 @@ CI63 macOS failed a 150ms wall-clock assertion in the async native-work fixture 
 ## Implement fresh Moryqa Windows setup uninstall and five-state primary tray
 
 Internal dev6 source implements the fresh Moryqa Windows distribution V3, real five-state unified tray, privately packaged Google Sans and empty-only legacy directory cleanup. [Design/code mapping](docs/design/windows-distribution-v3/README.md). Exact-source native CI/artifact is PENDING; previous dev5 accepted build and deployed Lab evidence remain pinned. No Owner install/public Release/feed.
+
+## Inno6.7.1 native distribution compile follow-up
+
+CI68 Windows native app and48 Rust tests PASS; Inno installer compilation stopped on unsupported NativeUInt. The source uses released UINT_PTR pointer/handle types and an early compile-only Actions fixture, which is never executed or uploaded. New full exact-source CI and actual six native views remain pending. Previous dev5 Lab/runtime/artifact and rollback are preserved; no Owner install or public release.

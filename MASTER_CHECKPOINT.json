@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T15:34:24.600Z",
+  "updatedAt": "2026-11-10T15:52:24.013Z",
   "version": "0.10.1-dev.6",
   "phase": "DISTRIBUTION_V3_DEV6_NATIVE_IMPLEMENTED",
   "status": "IMPLEMENTED_NATIVE_CI_PENDING",
@@ -450,12 +450,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-distribution-exact-export-checkout",
-    "status": "CI67_WINDOWS_CHECKOUT_HASH_FIXED_NATIVE_PENDING",
-    "summary": "CI67 passed source/core/backend and dependency checks but Windows stopped before native build: Git autocrlf altered the exported SVG bytes covered by provenance. Reproduced its exact failing SHA with LF-to-CRLF conversion. Mark only provenance-bound Moryqa SVG/raw pixels/raw exports as byte-exact; retain strict hash checks.",
-    "verification": "Reproduced CI67 actual SVG hash exactly from committed SVG plus Windows CRLF conversion; no asset content/hash or test assertion was changed. Local strict asset/source test PASS. CI67 native Windows was not built; rerun from this new clean work commit required.",
+    "taskId": "20261110-inno-671-abi-preflight",
+    "status": "CI68_NATIVE_APP_PASS_INSTALLER_COMPILER_FIX",
+    "summary": "CI68 strict asset gate, Windows Rust48 tests and app native build passed; full/core/web/macOS/Linux also passed. Installer parser stopped at unsupported NativeUInt in Inno6.7.1. Use its registered UINT_PTR ABI type for OS pointers/handles and compile the same Inno source early before expensive native jobs. Compile-only fixture is never run, installed or uploaded.",
+    "verification": "CI68 logs identify Inno6.7.1 exact compiler and unknown NativeUInt line29. Verified released is-6_7_1 official ScriptFunc registers UINT_PTR. Windows Rust48/48 plus complete app/native host proof passed; full installer/UI artifact remains unaccepted. Source regression and native ABI guard pass before commit.",
     "nextAction": "Follow full exact-source Actions; resolve compile/real Windows UI failures, verify internal dev6 installer and native evidence independently, synchronize Lab from accepted source if necessary, then canonical docs/handoff with Owner physical test pending.",
-    "sourceDigest": "b4ec64efeff81b4c16c83b10e72e9179bb4d25a85ff8f38163047eb03ff9da23",
+    "sourceDigest": "25a9db181537d64c4c1a660c9d784f80a772dd745165222420559f0a8d159599",
     "sourceFileCount": 1672
   },
   "legacyFilesystemCleanup": {
@@ -1257,7 +1257,7 @@
     },
     "plannedCandidateVersion": "0.10.1-dev.6",
     "ownerScreenshot": "dev5 Agent and one LightRemote.exe observed; not blanket physical acceptance",
-    "newNativeBuild": "CI67_BLOCKED_BEFORE_NATIVE_BUILD_CHECKOUT_HASH_FIX",
+    "newNativeBuild": "CI68_APP_NATIVE_PASS_INSTALLER_ABI_FIX",
     "publicReleaseOrFeed": false,
     "tray": {
       "projection": "native VisualFor",
@@ -1272,9 +1272,15 @@
       {
         "runId": 42829575184,
         "sourceCommit": "9c738c4e12da5dd7fec14ccc9c970c3c6731e72e",
-        "windows": "FAIL_before_native_compile",
-        "reason": "Git autocrlf changed byte-exact SVG export; exact SHA reproduced",
-        "assetIntegrityGatePreserved": true
+        "reason": "autocrlf byte-exact SVG guard fixed"
+      },
+      {
+        "runId": 42845761914,
+        "sourceCommit": "0cf72c9a6238dd36540302d0979d0df148b68e6e",
+        "windowsRustTests": 48,
+        "nativeApp": "PASS",
+        "reason": "Inno6.7.1 unsupported NativeUInt; released UINT_PTR ABI and early compile preflight added",
+        "installer": "NOT_BUILT"
       }
     ]
   }

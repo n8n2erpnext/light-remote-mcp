@@ -26,17 +26,17 @@ var
   LRPage: Integer;
   LRScale: Integer;
 
-function LRAddFont(FileName: String; Flags: Cardinal; Reserved: NativeUInt): Integer;
+function LRAddFont(FileName: String; Flags: Cardinal; Reserved: UINT_PTR): Integer;
 external 'AddFontResourceExW@gdi32.dll stdcall';
-function LRRemoveFont(FileName: String; Flags: Cardinal; Reserved: NativeUInt): Boolean;
+function LRRemoveFont(FileName: String; Flags: Cardinal; Reserved: UINT_PTR): Boolean;
 external 'RemoveFontResourceExW@gdi32.dll stdcall';
-function LRRoundRegion(X1, Y1, X2, Y2, W, H: Integer): THandle;
+function LRRoundRegion(X1, Y1, X2, Y2, W, H: Integer): UINT_PTR;
 external 'CreateRoundRectRgn@gdi32.dll stdcall';
-function LRSetRegion(Wnd: HWND; Region: THandle; Repaint: Boolean): Integer;
+function LRSetRegion(Wnd: UINT_PTR; Region: UINT_PTR; Repaint: Boolean): Integer;
 external 'SetWindowRgn@user32.dll stdcall';
-function LRDeleteObject(Obj: THandle): Boolean;
+function LRDeleteObject(Obj: UINT_PTR): Boolean;
 external 'DeleteObject@gdi32.dll stdcall';
-function LRSetWindowTheme(Wnd: HWND; SubApp, SubId: String): Integer;
+function LRSetWindowTheme(Wnd: UINT_PTR; SubApp, SubId: String): Integer;
 external 'SetWindowTheme@uxtheme.dll stdcall';
 
 function LRHasFlag(Flag: String): Boolean;
@@ -140,7 +140,7 @@ begin
 end;
 
 procedure LRSurface(Parent: TWinControl; X, Y, W, H: Integer; Color: TColor; Rounded: Boolean);
-var P: TPanel; Region: THandle;
+var P: TPanel; Region: UINT_PTR;
 begin
   P := TPanel.Create(Parent);
   P.Parent := Parent;

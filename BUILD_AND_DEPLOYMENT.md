@@ -163,3 +163,7 @@ New internal dev6 source requires full Actions including Rust state/security tes
 ## Preserve exact Moryqa asset bytes on Windows checkout
 
 CI67 Windows stopped before compiling because autocrlf changed a Moryqa SVG covered by strict provenance hashes. Exact failure hash reproduced by LF→CRLF conversion. Scoped .gitattributes preserves the original export bytes and embedded raw RGBA. Hash checks remain byte-exact; a new full exact-source run is required.
+
+## Use released Inno pointer types and compile installer early
+
+CI68 passed all components except Windows installer parse. Inno6.7.1 exposes UINT_PTR, not the NativeUInt type in later unreleased docs. Native pointer/handle imports now use the released compiler type. Windows workflow compiles the exact full Inno script before expensive native jobs using a never-executed, never-uploaded placeholder stage. Final installer still requires proven native stage and full installation/migration/watchdog tests.

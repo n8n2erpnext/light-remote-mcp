@@ -25,6 +25,31 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: client/desktop-v4/src-tauri -> target
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup install failed' }
+          }
+          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Compile installer script before expensive native builds
+        shell: pwsh
+        run: |
+          # Compile-only fixture: never executed, installed or uploaded.
+          $preflight = Join-Path $env:RUNNER_TEMP 'light-remote-inno-compile-only'
+          $stage = Join-Path $preflight 'stage'
+          $out = Join-Path $preflight 'out'
+          New-Item -ItemType Directory -Force -Path (Join-Path $stage 'Assets'),$out | Out-Null
+          Copy-Item -LiteralPath 'assets/branding/light-remote.ico' -Destination (Join-Path $stage 'Assets/light-remote.ico')
+          Copy-Item -LiteralPath 'VERSION' -Destination (Join-Path $stage 'VERSION')
+          $watchdog = Join-Path $preflight 'never-execute-watchdog-placeholder.bin'
+          Set-Content -LiteralPath $watchdog -Value 'Compile-only placeholder. Never execute.'
+          $version = (Get-Content VERSION -Raw).Trim()
+          & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=$version" "/DWatchdogExe=$watchdog" '/DUnifiedDesktopV4=1' '/DSinglePrimaryExe=1' '/DOutputBaseName=COMPILE-ONLY-DO-NOT-RUN' client/windows-native/installer/GptOperator.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Inno compile preflight failed; native build is blocked' }
+          Remove-Item -LiteralPath (Join-Path $out 'COMPILE-ONLY-DO-NOT-RUN.exe')
       - name: Verify Windows Tray UI contract (native V4, legacy V3 elsewhere)
         shell: pwsh
         run: |
@@ -830,15 +855,6 @@ jobs:
           Copy-Item -LiteralPath 'dist/windows/stage/config/primary-executable-inventory.json' -Destination 'dist/windows/primary-executable-inventory.json'
           "WINDOWS_V4_DESKTOP=$(Join-Path $PWD 'dist/windows/stage/LightRemote.exe')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Install Inno Setup
-        shell: pwsh
-        run: |
-          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
-          if (-not (Test-Path $iscc)) {
-            choco install innosetup -y --no-progress
-            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup install failed' }
-          }
-          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - name: Build per-user installer
         shell: pwsh
         run: |
