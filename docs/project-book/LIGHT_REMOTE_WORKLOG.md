@@ -242,3 +242,9 @@ All nine Desktop routes and login/link/confirm/consent now use task-oriented use
 - Receipt: 20261110-direct-readme-main-closure
 - README pair commit `0e4015e` reached both official `work` and protected `main` via normal fast-forward after [run42747025126](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42747025126) succeeded. `truth` and `baseline-required` PASS; native jobs skipped for docs-only change.
 - Source, internal dev.4 CI45 and independent Operator/Plugin/Agent runtime remain unchanged. This closure entry records verified publication and exact scope; physical Owner acceptance/public signed feed remain pending/HOLD.
+
+## 2026-11-10 — Short ID A/B, RM V2 and new Permissions README correction
+- Receipt: 20261110-shortid-ab-rmv2-permissions-readme
+- Source audit: confirmed Agent-initiated account-scoped Discovery and exact online six-character Short ID -> B Owner approval path (public UI calls it A/B, not legacy A-code first). Audited desktop semantic/live tools, UIA/read-only browser CDP, native bounded OS input and lazy RM companion; audited eight permission groups, dynamic supported vs local/effective rights and separately saved filesystem volumes/roots.
+- Replaced `README.md`/`README.en.md` with detailed product-oriented architecture, RM V2, permissions, ChatGPT plugin link, Claude web/Desktop custom remote MCP, Claude Code CLI and generic remote MCP sample. Official public site/endpoint retained; test host excluded.
+- Pre-change `work`/`main` source `0457ab1`, annotated tag `checkpoint/20261110-before-shortid-readme-0457ab1`. Local Markdown/relative links/diff checks PASS; CI and main promotion pending. Documentation only; no binary rebuild, runtime/DB/Owner installation/feed changes and no new physical acceptance.

@@ -1,197 +1,242 @@
 # Light Remote MCP
 
+<p align="center"><img src="assets/branding/light-remote-mark.svg" width="128" alt="Light Remote"></p>
+<p align="center"><strong>AI can observe, understand and operate a real computer — while the device owner retains final control.</strong></p>
+<p align="center"><a href="README.md">Tiếng Việt</a> · <a href="README.en.md"><b>English</b></a></p>
 <p align="center">
-  <img src="assets/branding/light-remote-mark.svg" alt="Light Remote MCP" width="128">
-</p>
-<p align="center">
-  <strong>Let ChatGPT, Codex and AI agents work on your own devices over MCP — with final control retained locally.</strong>
-</p>
-<p align="center">
-  <a href="README.md">Tiếng Việt</a> · <a href="README.en.md"><b>English</b></a>
-</p>
-<p align="center">
-  <img alt="Internal candidate" src="https://img.shields.io/badge/candidate-0.10.1--dev.4-f59e0b">
-  <img alt="CI" src="https://img.shields.io/badge/CI%20%2345-9%2F9%20PASS-2e7d32">
-  <img alt="Windows" src="https://img.shields.io/badge/Windows-one%20primary%20EXE-2563eb">
-  <img alt="Linux" src="https://img.shields.io/badge/Linux-x64%20%7C%20arm64-059669">
-  <img alt="macOS" src="https://img.shields.io/badge/macOS-native%20source%20tested-555555">
-  <img alt="Transport" src="https://img.shields.io/badge/MCP-direct%20HTTPS-171717">
+  <img alt="Protocol" src="https://img.shields.io/badge/MCP-Streamable%20HTTP-2563eb">
+  <img alt="Access" src="https://img.shields.io/badge/Access-Short%20ID%20%2B%20A%2FB-059669">
+  <img alt="Real Remote" src="https://img.shields.io/badge/Real%20Remote-V2-2563eb">
+  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.4-f59e0b">
+  <img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-555555">
 </p>
 
-**Light Remote** provides governed remote computing for AI agents: **direct HTTPS MCP, local A/B V2 approval, device-local policy, durable sessions, real PTY/ConPTY terminals, filesystem/search/process/SCP tools, Fleet and Real Remote V2 desktop interaction**.
+**Light Remote** brings governed remote computing to ChatGPT, Claude, Codex and other compatible MCP AI agents. Instead of providing only a shell or screenshots, it combines **Real Remote V2 (RM V2)**, PTY/ConPTY, files, Git, processes, transfers, container/host administration and Fleet, bound to **account → exact device → Agent → session → local policy**.
 
-**The current path is direct Plugin → private Operator → authenticated outbound Device Agent. Vercel bridge is no longer needed.** Historical Vercel-related source files or dependencies may remain in the repository, but they are not a required hop in the current MCP connection.
+- **Official site:** [light-remote.thaiduy.digital](https://light-remote.thaiduy.digital/)
+- **Official remote MCP endpoint:** [https://light-remote.thaiduy.digital/mcp](https://light-remote.thaiduy.digital/mcp)
+- **ChatGPT plugin:** [Connect Light Remote in ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e)
+- **Source:** [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp)
 
-> **Release scope:** `0.10.1-dev.4` is an **internal development/testing candidate**, not a public binary GitHub Release or promoted signed update feed. Passing CI does not establish physical Owner acceptance. See [Current status](#current-status) before upgrading any installed system.
+> **Build status:** Windows `0.10.1-dev.4` is an **internal testing candidate**, not a publicly published binary Release. Source implementation, CI passing, internal deployment and physical Owner acceptance are separate levels of evidence. See [Project status](#project-status).
 
-## Why Light Remote instead of a conventional remote shell?
+## What makes Light Remote different?
 
-- **Local-first authority:** Owner OAuth login does not grant AI device execution rights. Device-specific A/B approval and effective local policy are separate checks.
-- **Outbound-first Agent:** Windows/Linux/macOS devices connect outward; leaf devices do not need inbound SSH exposed to AI.
-- **Exact target routing:** Jobs are bound to the chosen device/session/Agent; an offline or denied target never silently falls back to a different device.
-- **Durable work:** Recover process, session and job output across requests without rerunning a previous operation.
-- **Real terminals and desktop:** PTY/ConPTY, semantic/live Real Remote V2 observation and bounded UI input are distinct permissions, not shell emulation.
-- **Visibility and revocation:** Local Wall shows activity, sessions and approvals and keeps final policy denial at the device.
-- **Controlled updates:** Independent updater/helper, signed manifests, SHA-256 checks, health gates and rollback. The new candidate's public feed is **on hold**.
+- **Real GUI operation:** RM V2 observes windows, reads semantic UI elements, streams changes and performs bounded native mouse/keyboard actions.
+- **Outbound-first connectivity:** Enrolled Windows/Linux/macOS Agents connect outward; no need to expose inbound SSH on every leaf device.
+- **Stable six-character Short ID:** Each device is identified by a stable ID bound to its identity. The AI cannot silently substitute the Main device or another machine.
+- **Agent-initiated A/B connection:** The AI discovers the account device, selects its exact Short ID and asks for **B approval**. The new Short-ID flow **does not require the owner to generate or send an A code**.
+- **Final device-local policy:** An approved connection does not authorize every command; account grants, operating-system capabilities and Local Wall limits still apply.
+- **Durable sessions and observable jobs:** Continue tasks and recover outputs rather than rerunning potentially destructive commands.
+- **Fleet-wide governance:** Multiple devices, exact-device routing and independent permissions, without silent fallback.
 
-## Architecture at a glance — direct, without Vercel
+## System architecture
 
 ```text
-ChatGPT / Codex / compatible MCP client
-              |
-              | OAuth / HTTPS Streamable HTTP
-              v
-    Public Light Remote Plugin
-          POST /mcp
-              |
-              | private Unix socket
-              v
-      Light Remote Operator
-      identity / A-B grants / sessions
-          |              |
-     PostgreSQL 17     Redis 8
-       durable       coordination
-              |
-              | signed enrolled outbound channel
-              v
-      Exact authorized Device Agent
-      Windows / Linux / macOS
-              |
-      Local Wall (final deny)
-      files · search · exec · PTY · process · SCP
-      Real Remote V2 · optional modules
+           ChatGPT · Claude · Codex · MCP Clients
+                           |
+                      HTTPS / OAuth
+                           |
+                  Light Remote Plugin
+                  Streamable HTTP /mcp
+                           |
+                   Private Unix socket
+                           |
+                  Light Remote Operator
+                identity · grants · sessions
+                   /                \
+             PostgreSQL 17         Redis 8
+             durable state       coordination
+                           |
+              Signed outbound device channel
+                           |
+                   Exact enrolled device
+              /            |             \
+          Windows        Linux          macOS
+              \            |             /
+                         Local Wall
+                   A/B · policy · activity
+                           |
+          RM V2 · Files · PTY · Processes · SCP · Fleet
 ```
 
-- The current [`mcp.json`](mcp.json) declares **`https://light-remote.thaiduy.digital/mcp`** as the public Streamable HTTP MCP endpoint.
-- [`plugin-server/server.mjs`](plugin-server/server.mjs) handles OAuth, tool exposure and `POST /mcp`. It rejects `GET/DELETE /mcp` rather than offering a stateful HTTP session API.
-- [`plugin-server/operator-client.mjs`](plugin-server/operator-client.mjs) calls the Operator over a **private Unix socket**, without a Vercel proxy hop.
-- [`operator-host/`](operator-host/), [`device-agent/`](device-agent/), [`client/`](client/) and PostgreSQL/Redis implement authority, durable state and remote execution.
-- [`config/endpoints.json`](config/endpoints.json) is a package endpoint/profile declaration, **not evidence that every listed profile or route is deployed or enabled**.
-- Owner Desktop V4 retains native credential storage/PKCE and a separate read-only Owner scope. Owner `desktop:read` is not an Agent execution grant.
+The MCP server exposes `POST /mcp` and sends trusted internal Operator requests over a **private Unix socket**. The Operator handles account/device identity, grants and durable sessions; the enrolled Agent executes only within effective local policy. An Owner `desktop:read` scope is **not** an Agent execution grant.
 
-See [Architecture](ARCHITECTURE.md) and [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md) for source ownership and trust boundaries.
+Read the [Plugin server](plugin-server/server.mjs), [Operator client](plugin-server/operator-client.mjs), [Operator source](operator-host/), [Device Agent](device-agent/), [Architecture](ARCHITECTURE.md) and [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md).
 
-## What an Agent can do
+## Real Remote V2 (RM V2) — real desktop computer use
 
-| Tool family | Capability |
+**RM V2 is much more than taking screenshots and guessing coordinates.** It combines bounded visual observation, semantic UI understanding and native OS input. The AI can choose a named UI element when possible, falling back to bounded physical input only when needed.
+
+### Desktop observation
+
+- Attach, resume and detach desktop observation sessions.
+- Enumerate visible windows, read an on-demand frame and obtain bounded desktop observations.
+- Use limited-size screenshots for initial context or resynchronization, without having to take a new full frame after every action.
+
+### Semantic UI — act on elements rather than pixels
+
+- **Windows UI Automation (UIA):** structured element trees, names, state and change events exposed by the native provider.
+- **Browser CDP:** connects only to an explicitly selected loopback endpoint for target metadata, accessibility trees and navigation/DOM updates. Its browser semantic provider is **read-only**; it does not grant arbitrary browser JavaScript evaluation or launch browsers.
+- Targeted `invoke`, `click`, `focus`, `value`, `toggle`, `select`, `expand` and `collapse` actions on a named element/node.
+
+### Live semantic observation
+
+- Open a **live lane**, read cached semantic deltas and snapshots by sequence number, and resynchronize when necessary.
+- After a mutation, optionally await a bounded, declared UI condition such as an expected window title or focused control.
+- Close the live lane after work. The Windows companion is designed to start **lazily on demand**, avoiding an always-running desktop sensor when RM is idle.
+
+### Native physical input
+
+- Move the cursor, click (left/right/middle), scroll and drag.
+- Enter Unicode text, press named keys with supported modifiers, and operate a real foreground application.
+- Input is bound to the authorized device/session/policy. It does not bypass Windows UIPI, UAC consent or the secure desktop.
+
+**Example:** The Agent can launch or focus an application, inspect the Settings UI, select a control semantically, enter a value, observe the result and record the task. This is useful for graphical installers, troubleshooting applications and workflows with no API/CLI.
+
+**Platform scope:** Windows has the native UIA and input companion with dedicated source/test boundaries; macOS includes its own Real Remote implementation and scoped native source testing. The existence of common MCP tool names **does not prove identical desktop features or full physical acceptance on Linux/macOS**. See [RM V2 design](docs/real-remote-v2/README.md), [Windows robot source](client/windows-native/GptOperator.RealRemoteV2/) and [Feature Status](FEATURE_STATUS_MATRIX.md).
+
+## Other Agent capabilities
+
+| Area | Tools and tasks |
 | --- | --- |
-| Files | Bounded list/read/write/edit/stat/move/delete |
-| Search | Search paths or contents with paginated results |
-| Git and development | Inspect repositories, run build/tests if policy allows |
-| Exec | One-shot shell/PowerShell/zsh commands with timeouts |
-| Processes | Managed stdin/stdout, progress offsets and stop |
-| Terminal | Real Linux/macOS PTY or Windows ConPTY, signals and resize |
-| Transfer | Chunked, resumable, SHA-256-verified SCP |
-| Jobs | Durable work and output recovery |
-| Fleet | Exact-device selection/routing and per-device policy |
-| Real Remote V2 | Semantic/live desktop observation and bounded input |
-| Optional modules | Long Memory, Codex Bridge and activity history, subject to actual enablement |
+| Files | Bounded list/read/write/edit/stat/move/delete under allowed filesystem roots |
+| Search | Recursive name/content search with result paging |
+| Git & development | Inspect code, diffs, run builds/tests with permission |
+| Exec | One logical bash/zsh/PowerShell/CMD invocation with timeout and capability inference |
+| Managed processes | Start/stop, stdin/stdout lifecycle and offset-based output |
+| Terminal | Real Linux/macOS PTY or Windows ConPTY, keystrokes, resize and signals |
+| SCP | Chunked binary upload/download with SHA-256 integrity checks |
+| Durable jobs | Continue or recover job status/output without blindly rerunning |
+| Infrastructure | Docker, LXD, Podman, Incus, Kubernetes, virtual machines, services and package managers according to OS and policy |
+| Main/Fleet | Exact-device routing, account-owned device inventory, sessions and leases |
+| Optional modules | Long Memory, Codex Bridge and activity history subject to actual enablement |
 
-**Implemented source does not mean enabled production functionality or physical acceptance.** Read [Feature Status](FEATURE_STATUS_MATRIX.md) and [Known Issues](KNOWN_ISSUES.md).
+The Tool Helper prefers structured file/search tools to shell, managed processes/jobs for long work, and RM V2 for actual GUI interaction.
 
-### Real PTY/ConPTY, not a fake terminal
+## Local Wall & the new Permissions interface
 
-Terminals can keep interactive shells and TUI applications alive, receive typed input, resize, handle Ctrl-C and stream output. Terminal privileges must be granted separately by the device policy.
+<p align="center"><img src="assets/screenshots/device-wall-demo.png" width="760" alt="Local Device Wall"></p>
 
-## Device Wall — device-side permissions and history
+**Local Wall → Permissions** presents **expandable groups and individual capability switches**. It reads supported OS capabilities and the installed tool inventory rather than treating Full Access as an unrestricted universal switch.
 
-<p align="center">
-  <img src="assets/screenshots/device-wall-demo.png" alt="Local Device Wall" width="760">
-</p>
+### Eight permission groups
 
-Local Wall belongs to a particular device. It exposes A/B pending approval, sessions, work activity and effective policy. Closing the Wall UI does not automatically stop the Agent or revoke all sessions.
+| UI group | Representative permissions |
+| --- | --- |
+| **Files & Development** | Filesystem, Git, build/test, Windows shell |
+| **PTY / Interactive Terminal** | Separately granted interactive PTY/ConPTY |
+| **Desktop & Real Remote** | `desktop` viewing and `desktop-input` native input, independently |
+| **Containers & Virtualization** | Docker, LXD, Podman, Incus, Kubernetes, VMs |
+| **System & Packages** | Services, package tools, sudo, Windows UAC, scheduled tasks, launchd |
+| **Network & Firewall** | Network administration, firewall, Defender, process/network information |
+| **Storage & Provisioning** | Disks, volumes, mounts, Terraform/OpenTofu/Ansible |
+| **OS Security & Logs** | Windows Registry/Credential Manager/Event Log, macOS logs |
 
-<p align="center">
-  <img src="assets/screenshots/permissions-demo.png" alt="Local Device Policy" width="760">
-</p>
+Capability totals are **device-specific**. A Windows device may show `23/23 locally allowed · 23 effective`; this is its own current supported capability set, **not** a product-wide fixed limit. New capabilities not yet in a named group appear in an additional group.
 
-Execution requires the intersection of hardware/runtime capabilities, approved account/device grants and **device-local policy**. A broad profile does not automatically imply sudo/UAC. Device-local denial remains final.
+### Profiles and effective access
 
-## Fleet Wall — many devices, one exact target per operation
+Select **Safe, Developer, Remote Support, Infra / Ops, Full access or Custom**. Each group or individual permission can be toggled; the UI also provides **Allow all supported**, **Block all** and **Save local policy**.
 
-The Main/Fleet model supports account-owned devices, their online/offline status, per-device authority and sessions, subject to entitlements and deployed features. Pairing with one machine does **not** authorize another machine. Offline/expired/denied targets fail rather than silently rerouting a command.
+- **Main device:** Its Local Wall acts as its permission authority within supported capabilities.
+- **Fleet leaf:** Effective access is the intersection of server/Owner approval **and** local policy. A locally checked capability may still require Owner approval through Account.
+- **Installed tool ≠ approved tool:** Tool discovery and authorization are independent.
+- **Terminal, desktop viewing and desktop input** are separately scoped.
+- Sudo/Windows UAC remain real OS elevation boundaries; toggling a capability does not bypass them.
 
-## The three Helpers
+### Filesystem read and write locations
 
-### 1. Connection Helper — A/B V2
+Even **Full access does not open every drive automatically**. **Filesystem access locations** lets the Owner choose detected volumes and additional absolute read/write roots. A write root must be within a read root.
 
-1. Open the **Local Wall of the intended target device** and obtain its one-time **A code**.
-2. Give that A code to the official Light Remote plugin's `light_remote_connection_helper`.
-3. The helper responds `approval_required` with a **B code**.
-4. On the **same Local Wall**, enter B at `/approve` and select **Approve**.
-5. After the Owner approves, call the helper again **without reusing A**. Only the `ready` response authorizes working with that exact returned device/session context.
+For example, the Owner can allow `C:\Users\Admin` for reading/writing while leaving removable drive `E:\` unavailable. The file, search and SCP tools respect those roots. Future operations use the saved policy without requiring a new Agent pairing.
 
-Owner OAuth by itself cannot skip A/B device authorization. Never post private continuation tokens, device keys or session capabilities in issues or chat examples.
+**Refresh capabilities and inventory** rescans eligible devices; trusted Main obtains its catalog from the Operator and may disable the rescan control. Rights changes update device policy revisions. See the [Local Wall implementation](device-agent/local-wall.mjs) and [Security policy](SECURITY.md).
 
-### 2. Tool Helper — choose the correct tool
+## Device connection — Short ID + A/B approval
 
-After `ready`, use dedicated files/search tools for structured operations, exec for one-shot commands, process/job for longer work, terminal for real PTY/ConPTY, transfer for binary files and desktop tools for Real Remote V2. Do not force every task through a raw shell.
+**Short ID** is a stable **six-character** per-device identifier; already allocated IDs are not reused for a different device.
 
-### 3. Updater Helper — independent recovery
+1. The Owner enrolls/links the Agent and connects the device to the account.
+2. After OAuth sign-in, the AI calls `light_remote_discover_devices` to **read account-scoped device status**. Discovery does **not** authorize execution.
+3. Pick the exact online Short ID (example `R01KAP`). The AI invokes `light_remote_connection_helper` with that target and `startAbV2=true` (*internal MCP parameter name; the product UI calls the feature **A/B***).
+4. The server issues a **B approval code**. The Owner checks the intended target/Agent and approves B on the authenticated **Local Wall `/approve`** or supported Account approval page.
+5. The AI resumes the Connection Helper and proceeds only when it returns `ready` for that exact authorized device/session.
 
-Independent helpers validate signed update manifests and artifact hashes, stage a candidate, check health and roll back on failure. Historical `0.9.x` manifests are **not** a signed public feed for `0.10.1-dev.4`.
+**No A code is required in the current Short-ID flow.** OAuth account login, read-only discovery, human B approval and remote execution remain independent gates. Never silently switch to another target if one is denied/offline.
 
-## Quick start — the direct MCP path
+If a client lacks the `light_remote_discover_devices` tool, refresh its tool/plugin metadata. The Helper may expose compatible read-only target discovery; a granted-device list is not the full account inventory.
 
-**Current availability:** this README documents the internal development candidate. It is **not** a claim of a ready-made public one-command production self-host installer.
+## Connect ChatGPT, Claude and other MCP clients
 
-### Step 1 — use the official source and verified candidate
+### ChatGPT — official Light Remote plugin
 
-- Official source: [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp).
-- Historical reference only: [light-remote-mcp-archive-20261108](https://github.com/n8n2erpnext/light-remote-mcp-archive-20261108). Its Vercel/RC26 instructions are obsolete.
-- Windows internal candidate: `0.10.1-dev.4`, compiled source `947a117`, [CI #45 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851), [internal Actions artifact](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851/artifacts/13679554745). **Not a public release.**
-- Windows now packages **one primary `LightRemote.exe`**, while Node, Real Remote V2, private .NET framework DLLs and updater/recovery helpers remain separate. Older incompatible helpers must take the [pinned compatibility bridge](config/windows-core-migration.json).
-- Linux/macOS native source checks passed CI, but full current-source installers are not yet verified as built.
+1. Open [**Light Remote in ChatGPT**](https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e) and connect it in the ChatGPT UI.
+2. Sign in to the Light Remote account via OAuth.
+3. Ask the Agent to discover online devices and connect to the exact **Short ID** with A/B approval.
+4. Approve **B** on the selected device's Wall/Account and continue when the Helper reports `ready`.
 
-Read [Build and Deployment](BUILD_AND_DEPLOYMENT.md) and verify manifest/hash evidence before running a candidate.
+### Claude / Claude Desktop — custom remote MCP
 
-### Step 2 — direct Plugin/Operator service
+Following [Claude's custom connector guide](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp):
 
-The intended path is **HTTPS reverse proxy → Plugin `/mcp` → private Operator Unix socket → PostgreSQL/Redis → enrolled outbound Agent**. **No Vercel account/project/deployment or legacy `VPS_MCP_*` environment variables are required.**
+1. Open **Customize → Connectors → Add → Custom → Web** (or **Add custom connector**, depending on account/UI).
+2. Name it `Light Remote` and enter **`https://light-remote.thaiduy.digital/mcp`**.
+3. Continue through authentication settings, choose the detected **Sign in/OAuth** flow, then connect with the Light Remote account.
+4. Enable the connector in the conversation, discover the device and complete **Short ID → B approval → ready**.
 
-Developers should inspect [plugin config](plugin-server/config.mjs), [Architecture](ARCHITECTURE.md), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md) and [Build/Deployment](BUILD_AND_DEPLOYMENT.md). Expose only the intended public HTTPS routes. Never expose private Operator sockets, PostgreSQL, Redis, Local Wall or credential files to the Internet.
+Claude's remote connectors originate from Anthropic infrastructure, so the MCP endpoint must be publicly reachable over HTTPS. **Do not use the device's localhost Local Wall URL as the MCP server.** Team/Enterprise organizations may require an administrator to add the connector first.
 
-### Step 3 — install/link the target
+### Claude Code — CLI
 
-Install an Owner-authorized build appropriate for the device, complete its native Owner/device linking and confirm the Agent is connected. Open the device's **Local Wall**. In the bundled lab profile, Wall is on `127.0.0.1:5491` and Fleet Wall on `5492`; these are local services, not public endpoints. The Windows client includes GUI/tray and a background Agent; other platform packaging depends on the verified build.
+Follow the [official Claude Code MCP guide](https://code.claude.com/docs/en/mcp):
 
-### Step 4 — approve an AI client
+```bash
+claude mcp add --transport http light-remote https://light-remote.thaiduy.digital/mcp
+```
 
-Connect the official Light Remote plugin to ChatGPT/Codex or another supported client. Generate A at the target Wall, pass it to the helper, enter B on that **same Wall**, then resume the helper until `ready`. You may then ask for source inspection, builds, Docker checks, a PTY session, SHA-verified file transfer or allowed Real Remote V2 UI operations.
+Run `/mcp` in Claude Code to inspect the connection and complete OAuth when prompted. Then connect to the selected Short ID and approve B on Light Remote Wall/Account.
 
-### Step 5 — add another device
+### Other MCP clients
 
-Enroll and approve A/B separately for each additional target. One session never silently grants a whole Fleet.
+Use **Streamable HTTP** and the official HTTPS endpoint. A commonly accepted MCP configuration is:
 
-## Updates, rollback and releases
+```json
+{
+  "mcpServers": {
+    "light-remote": {
+      "type": "streamable-http",
+      "url": "https://light-remote.thaiduy.digital/mcp"
+    }
+  }
+}
+```
 
-The update architecture supports signatures, SHA-256/size integrity, health-gated promotion and rollback. Scope matters:
+Exact configuration syntax and OAuth support vary by client. Do not commit bearer tokens or passwords to public config files.
 
-- **CI PASS:** Source and exact Windows install/reinstall/migration/rollback/watchdog/uninstall tests passed; this is not blanket live deployment proof.
-- **Internal Lab deployment:** Plugin/Operator services were verified running a pinned source, not a general production rollout.
-- **Physical Owner acceptance:** still pending for the exact dev.4 Windows installer.
-- **Public binary release and new signed feed:** **NOT PUBLISHED**; legacy signed `0.9.x` metadata remains historical.
+## Updates and recovery
 
-Do not republish old release URLs or promote public update feeds without deliberate Owner approval and fresh verification.
+Windows now packages one primary **`LightRemote.exe`**: Tauri/Rust owns GUI/tray and worker dispatch and hosts a fixed-path private WindowsHost/.NET component. Node, RM V2, private .NET libraries and updater/watchdog/recovery tools remain separate. Updates are designed around signed manifests, hash/size verification, health gates and rollback; the **dev.4 public signed feed has not been promoted**.
 
-## Security model
+Older incompatible helpers must take the [pinned compatibility bridge](config/windows-core-migration.json) before installing the one-primary layout. Do not republish signed manifests or use unverified upgrade artifacts.
 
-OAuth/Owner scopes are separate from device-level AI execution. A/B approval is one-time and device-bound; server/device checks bind operations to account, Agent, session and exact target. Device-local final policy, capability inference, signed enrolled channels, private Unix socket transport and separately controlled PTY/desktop permissions reduce unauthorized execution paths.
+## Security and limitations
 
-- Local browser Wall SSO backend exists and has scoped tests, but full native Agent/browser bootstrap is **not complete**.
-- Guest/Pro Share, restored prototype modules and full current-source Linux/macOS installers retain documented gaps.
-- Review [SECURITY.md](SECURITY.md), [Feature Status](FEATURE_STATUS_MATRIX.md) and [Known Issues](KNOWN_ISSUES.md). Keep signing material, Owner tokens and local state out of Git/logs.
+- Owner OAuth login is separate from A/B authorization and device-local execution policy.
+- Every command must target the approved device; no automatic cross-device fallback.
+- RM V2 requires separate observation/input permissions; OS UIPI, secure desktop and physical consent still apply.
+- File roots are constrained separately from Full Access capability selection.
+- Optional Long Memory, Codex Bridge, browser Wall SSO, Guest/Pro Share and restored modules have different enablement/testing states. See [Known Issues](KNOWN_ISSUES.md).
+- Device grants/sessions are revocable. Private keys and session capabilities do not belong in public docs.
 
-## Developers and repository governance
+## Development and source evidence
 
-The official Git SSH remote on VPS-ARM is `git@github.com:n8n2erpnext/light-remote-mcp.git`.
+- Official source: [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp), Git SSH: `git@github.com:n8n2erpnext/light-remote-mcp.git`.
+- The Owner-approved permanent development branch is **`work`**; `main` is protected by `baseline-required`. No extra branches or force-push.
+- All newly created VPS-ARM development directories must stay under `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/`. Active checkout: `implementation-20261108/single-primary-exe`.
+- Every commit atomically updates the sole `MASTER_CHECKPOINT.json`, `PROJECT_HANDOFF.md`, Worklog and generated documentation status.
 
-- The single Owner-authorized development branch is **`work`**; `main` is protected and requires `baseline-required` before fast-forward promotion. No new branches, force pushes or relaxed protections without Owner permission.
-- Newly created Light Remote development paths on VPS-ARM must stay under `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/`. The current development checkout is `implementation-20261108/single-primary-exe`; conversion and archive are reference sources.
-- Every commit atomically updates the sole [Master Checkpoint](MASTER_CHECKPOINT.json), [Handoff](PROJECT_HANDOFF.md), [Worklog](docs/project-book/LIGHT_REMOTE_WORKLOG.md) and generated docs status. The commit-sync hook and CI enforce this.
-- Read [Project Truth](PROJECT_TRUTH.md), [Project Book](docs/project-book/README.md), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md) and [Build and Deployment](BUILD_AND_DEPLOYMENT.md).
-
-Portable development validation (Node 22 and suitable DEV dependencies):
+Read [Project Truth](PROJECT_TRUTH.md), [Master Checkpoint](MASTER_CHECKPOINT.json), [Project Book](docs/project-book/README.md), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md), [Feature Status](FEATURE_STATUS_MATRIX.md) and [Build/Deployment](BUILD_AND_DEPLOYMENT.md).
 
 ```bash
 npm ci --ignore-scripts
@@ -200,23 +245,21 @@ npm run check:docs
 npm test
 ```
 
-Native Windows builds and acceptance require clean exact GitHub commit CI; running portable tests locally is not equivalent to a verified physical installer.
-
-## Current status
+## Project status
 
 | Component | Verified scope |
 | --- | --- |
-| Windows Desktop | Internal `0.10.1-dev.4`; one primary `LightRemote.exe`; native installed lifecycle CI PASS |
-| CI | [#45](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851) **9/9 PASS**, React 121, consent/token 36, browser 170, private backend 25 and native Windows migration/rollback |
-| Internal Plugin / Operator | Same pinned source `947a117` deployed and health-checked in internal Lab |
-| PTY / Fleet / Real Remote | Source and scoped historical/CI evidence; physical cross-device proof for this candidate remains separate |
-| Owner physical dev.4 | **PENDING** |
-| Current Linux/macOS full installers | **NOT VERIFIED BUILT** (native source tests passed) |
-| Public binary Release / signed dev.4 feed | **HOLD / NOT PUBLISHED** |
-| Local browser Wall SSO, Guest and restored modules | **INCOMPLETE** |
+| Windows Desktop | Internal `0.10.1-dev.4`, one primary `LightRemote.exe`, Windows build/installer/migration/rollback tested in CI |
+| GitHub CI | [CI #45, 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851): React 121, consent/token 36, browser 170, backend checks 25 |
+| Internal Operator/Plugin Lab | Pinned source `947a117` has been tested/deployed in the private Lab |
+| Short ID / A/B | Current Agent-initiated Short ID and Owner B approval flow; grant required before control |
+| RM V2 / Fleet / PTY | Source/tool capabilities and scoped tests; exact physical/platform acceptance varies |
+| Physical Owner UAT for dev.4 | **Not yet accepted as PASS** |
+| Full current macOS/Linux installers | **Not verified built/released**; native source checks passed |
+| Public binary Release / signed dev.4 feed | **NOT PUBLISHED / HOLD** |
 
-For exact evidence see [dev.4 acceptance](docs/evidence/desktop-user-experience/ACCEPTANCE.json), [Build manifest](docs/evidence/desktop-user-experience/BUILD_MANIFEST.json) and [Known Issues](KNOWN_ISSUES.md).
+An automated test or source implementation is not a claim of universal physical acceptance. See [dev.4 acceptance evidence](docs/evidence/desktop-user-experience/ACCEPTANCE.json) and [Known Issues](KNOWN_ISSUES.md).
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE), [NOTICE](NOTICE) and [THIRD_PARTY_DISTRIBUTION_NOTICES.md](THIRD_PARTY_DISTRIBUTION_NOTICES.md).
+Apache-2.0 — [LICENSE](LICENSE), [NOTICE](NOTICE), [THIRD_PARTY_DISTRIBUTION_NOTICES.md](THIRD_PARTY_DISTRIBUTION_NOTICES.md).

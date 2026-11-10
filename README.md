@@ -1,228 +1,273 @@
 # Light Remote MCP
 
 <p align="center">
-  <img src="assets/branding/light-remote-mark.svg" alt="Light Remote MCP" width="128">
+  <img src="assets/branding/light-remote-mark.svg" width="128" alt="Light Remote">
 </p>
 
+<p align="center"><strong>AI có thể nhìn, hiểu và thao tác trên máy thật — nhưng quyền điều khiển vẫn thuộc chủ thiết bị.</strong></p>
+<p align="center"><a href="README.md"><b>Tiếng Việt</b></a> · <a href="README.en.md">English</a></p>
 <p align="center">
-  <strong>Cho ChatGPT, Codex và AI Agent làm việc trên thiết bị của bạn qua MCP — quyền quyết định cuối cùng vẫn nằm tại máy.</strong>
+  <img alt="MCP" src="https://img.shields.io/badge/MCP-Streamable%20HTTP-2563eb">
+  <img alt="Access" src="https://img.shields.io/badge/Access-Short%20ID%20%2B%20A%2FB-059669">
+  <img alt="Real Remote" src="https://img.shields.io/badge/Real%20Remote-V2-2563eb">
+  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.4-f59e0b">
+  <img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-555555">
 </p>
 
-<p align="center">
-  <a href="README.md"><b>Tiếng Việt</b></a> · <a href="README.en.md">English</a>
-</p>
+**Light Remote** là nền tảng remote computing có kiểm soát cho ChatGPT, Claude, Codex và các AI Agent tương thích MCP. Thay vì chỉ đưa cho AI một shell hoặc một ảnh chụp màn hình, Light Remote kết hợp **Real Remote V2 (RM V2)**, terminal PTY/ConPTY, filesystem, Git, process, file transfer, container/OS administration và Fleet dưới cùng một lớp phân quyền theo **tài khoản → thiết bị → Agent → session → Local Policy**.
 
-<p align="center">
-  <img alt="Development candidate" src="https://img.shields.io/badge/candidate-0.10.1--dev.4-f59e0b">
-  <img alt="CI" src="https://img.shields.io/badge/CI%20%2345-9%2F9%20PASS-2e7d32">
-  <img alt="Windows" src="https://img.shields.io/badge/Windows-one%20primary%20EXE-2563eb">
-  <img alt="Linux" src="https://img.shields.io/badge/Linux-x64%20%7C%20arm64-059669">
-  <img alt="macOS" src="https://img.shields.io/badge/macOS-native%20source%20tested-555555">
-  <img alt="MCP" src="https://img.shields.io/badge/MCP-direct%20HTTPS-171717">
-</p>
+- **Website:** [light-remote.thaiduy.digital](https://light-remote.thaiduy.digital/)
+- **MCP endpoint chính thức:** [https://light-remote.thaiduy.digital/mcp](https://light-remote.thaiduy.digital/mcp)
+- **ChatGPT plugin:** [Cài hoặc mở Light Remote trong ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e)
+- **Source:** [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp)
 
-**Light Remote** là nền tảng điều khiển thiết bị từ xa dành cho AI, kết hợp **MCP qua HTTPS, phê duyệt A/B tại Local Wall, chính sách quyền áp tại thiết bị, session bền, terminal PTY/ConPTY thật, filesystem, process, file transfer và Real Remote V2**. AI có thể làm việc trên VPS, PC và các máy trong Fleet mà không cần mở inbound SSH trên từng máy đích.
+> **Trạng thái bản build:** Windows `0.10.1-dev.4` là ứng viên **kiểm thử nội bộ**, không phải bản phát hành nhị phân công khai. Tính năng có trong source, đã qua CI, đã deploy nội bộ và đã được Owner nghiệm thu trên máy vật lý là **những trạng thái khác nhau**. Xem [Trạng thái dự án](#trạng-thái-dự-án).
 
-**Kiến trúc hiện tại kết nối trực tiếp với Plugin/Operator do Light Remote vận hành, không còn dùng Vercel bridge.** Các file hoặc dependency Vercel lịch sử còn lưu trong repository **không** phải đường kết nối bắt buộc của sản phẩm hiện tại.
+## Vì sao Light Remote khác công cụ remote thông thường?
 
-> **Trạng thái phân phối:** `0.10.1-dev.4` là **bản thử nghiệm nội bộ**, chưa có GitHub Release nhị phân công khai hoặc signed update feed cho bản này. Các bằng chứng CI không thay thế kiểm thử trực tiếp trên máy của chủ sở hữu. Xem [trạng thái phát triển](#trạng-thái-hiện-tại) trước khi cài đặt hoặc nâng cấp.
+- **AI làm việc được trên giao diện đồ họa thật:** RM V2 quan sát cửa sổ, đọc phần tử giao diện, theo dõi thay đổi và thực hiện thao tác chuột/bàn phím có giới hạn.
+- **Không cần SSH inbound cho từng thiết bị:** Agent duy trì kênh kết nối outbound đã xác thực.
+- **Chọn máy bằng Short ID:** Mỗi thiết bị có mã sáu ký tự ổn định, ràng buộc với device identity; AI không tự chọn nhầm máy Main hoặc nhảy sang máy khác.
+- **A/B do Agent khởi tạo:** AI tìm thiết bị được phép xem, yêu cầu kết nối đến đúng Short ID và nhận mã **B** để chủ máy duyệt. **Luồng hiện hành không yêu cầu chủ máy tạo/gửi A code.**
+- **Local Wall quyết định quyền cuối:** Phê duyệt kết nối không đồng nghĩa cho phép mọi lệnh. Local policy, quyền server và giới hạn tài nguyên vẫn được áp dụng.
+- **Công việc bền và kiểm toán được:** Sessions, job IDs, output offsets, managed processes, terminal và activity trail cho phép tiếp tục công việc mà không tùy tiện chạy lại.
+- **Nhiều hệ điều hành, nhiều thiết bị:** Windows, Linux, macOS với công cụ và giới hạn tính năng tùy hệ điều hành; Fleet không có fallback âm thầm.
 
-## Vì sao Light Remote khác remote shell thông thường?
-
-- **Quyền ở đúng thiết bị:** Đăng nhập OAuth/Owner không tự tạo quyền thực thi. Agent phải được chủ máy phê duyệt A/B và vẫn bị chặn bởi local policy.
-- **Không SSH inbound trên máy leaf:** Agent Windows/Linux/macOS chủ động thiết lập kênh outbound có xác thực tới dịch vụ, không để AI trực tiếp cầm SSH key của từng máy.
-- **Định danh đích tuyệt đối:** Mỗi session và lệnh được ràng buộc với đúng device + Agent; thiết bị offline/deny thì báo lỗi, không âm thầm chạy trên máy khác.
-- **Giữ phiên và công việc dài:** Có durable session, managed process và job/output để lấy kết quả tiếp mà không cần lặp lệnh khi HTTP timeout.
-- **Điều khiển thực:** PTY trên Linux/macOS, ConPTY trên Windows, cùng Real Remote V2 để quan sát/giao tiếp với desktop thật theo quyền được cấp.
-- **Quan sát và thu hồi:** Local Wall cho chủ thiết bị thấy request, activity, các session/lệnh và quyền đang có; chủ máy giữ quyền deny cuối.
-- **Cập nhật có rào chắn:** Independent updater/helper và quy trình signed manifest, hash, health gate, rollback; bản dev.4 chưa được đưa vào feed phát hành công khai.
-
-## Kiến trúc hiện tại — trực tiếp, không Vercel
+## Kiến trúc hệ thống
 
 ```text
-ChatGPT / Codex / MCP client
-          |
-          | HTTPS + OAuth / MCP
-          v
-  Public Light Remote Plugin
-  /mcp (Streamable HTTP)
-          |
-          | private Unix socket
-          v
-    Light Remote Operator
-    identity · grants · sessions
-          |                 |
-     PostgreSQL 17        Redis 8
-     durable authority    coordination
-          |
-          | signed, enrolled outbound device channel
-          v
-   Exact authorized Agent / Device
-   ├── Windows: LightRemote.exe + supporting runtimes
-   ├── Linux Agent + Local Wall
-   └── macOS Agent + Local Wall
-          |
-          ├── Local policy / A-B V2 / audit
-          ├── Files, search, Git, exec, jobs, PTY/ConPTY, SCP
-          └── Real Remote V2 · optional Long Memory / Codex
+          ChatGPT · Claude · Codex · MCP Clients
+                         |
+                    OAuth / HTTPS
+                         |
+                 Light Remote Plugin
+                 Streamable HTTP /mcp
+                         |
+                Private Unix socket
+                         |
+                 Light Remote Operator
+              identity · grants · sessions
+                  /               \
+           PostgreSQL 17         Redis 8
+           durable records      coordination
+                         |
+           Signed outbound device channel
+                         |
+                Exact enrolled device
+            /             |             \
+      Windows Agent    Linux Agent    macOS Agent
+            \             |             /
+                    Local Wall
+              A/B · policy · activity
+                         |
+       RM V2 · Files · PTY · Processes · SCP · Fleet
 ```
 
-- Endpoint MCP công khai trong [`mcp.json`](mcp.json): **`https://light-remote.thaiduy.digital/mcp`**. Plugin phục vụ `POST /mcp` và sử dụng Stateless Streamable HTTP theo triển khai hiện tại; `GET/DELETE /mcp` không phải API session mở.
-- [`plugin-server/server.mjs`](plugin-server/server.mjs) xử lý endpoint, OAuth, portal và tool exposure; [`plugin-server/operator-client.mjs`](plugin-server/operator-client.mjs) giao tiếp với Operator qua **Unix socket riêng**, không phải một Vercel hop.
-- [`operator-host/`](operator-host/) giữ quyền điều phối, account, grant và session; PostgreSQL lưu trạng thái bền, Redis điều phối tạm thời.
-- [`device-agent/`](device-agent/) và [`client/`](client/) xử lý kết nối Agent, Local Wall, Windows native và khả năng thực thi.
-- [`config/endpoints.json`](config/endpoints.json) chứa profile/route khai báo trong package. Profile Lab và URL trong file này **không chứng minh tất cả endpoint đang public hoặc được bật ở production**.
+MCP server nhận công cụ qua `POST /mcp` và kết nối với Operator bằng **Unix socket nội bộ**; Operator giữ quyền điều phối, session và định danh thiết bị. Agent trên máy đích chỉ thực hiện trong quyền đã được cấp và trong chính sách Local Wall. Owner login (ví dụ scope `desktop:read`) **không tự cấp Agent execution grant**.
 
-Owner Desktop V4 là một giao diện khác của cùng hệ thống: Tauri/native vault giữ Owner login và token, xem thiết bị/trạng thái qua API có ràng buộc account; **`desktop:read` không cấp quyền Agent**. Cấu trúc nguồn và ranh giới tin cậy nằm trong [Architecture](ARCHITECTURE.md) và [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md).
+Đối chiếu source: [MCP server](plugin-server/server.mjs), [Operator client](plugin-server/operator-client.mjs), [Operator](operator-host/), [Device Agent](device-agent/), [Architecture](ARCHITECTURE.md), [API Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md).
 
-## Những gì AI Agent có thể làm
+## Real Remote V2 (RM V2) — AI điều khiển máy tính thật
 
-| Nhóm | Khả năng |
+**RM V2 không phải chỉ gửi screenshot rồi đoán tọa độ.** Nó kết hợp quan sát hình ảnh, **semantic UI** và thao tác input hệ điều hành; Agent có thể ưu tiên phần tử giao diện có tên/ngữ nghĩa, chỉ dùng tọa độ khi cần.
+
+### 1. Nhìn và quan sát trạng thái desktop
+
+- Gắn vào desktop session, liệt kê các cửa sổ đang hiển thị, lấy frame giới hạn kích thước/chất lượng, đọc observation theo yêu cầu.
+- Tạm rời hoặc kết nối lại observation session mà không đồng nghĩa khởi động lại Core Agent.
+- Lấy một frame để đồng bộ ban đầu hoặc khi UI thay đổi quá lớn; không nhất thiết chụp toàn màn hình sau mỗi lệnh.
+
+### 2. Hiểu giao diện qua Semantic UI
+
+- **Windows UI Automation (UIA):** đọc cây phần tử UI có cấu trúc, tên, trạng thái, vị trí và sự kiện thay đổi theo khả năng provider.
+- **Browser CDP:** kết nối đến một endpoint CDP **loopback được cho phép rõ ràng** để đọc metadata, accessibility tree và các thay đổi DOM/navigation. Provider CDP trong thiết kế này chỉ đọc; không tùy ý chạy JavaScript/evaluate hoặc tự khởi động browser.
+- Các thao tác có cấu trúc: `invoke`, `click`, `focus`, `value`, `toggle`, `select`, `expand`, `collapse`; dùng node ID từ quan sát phù hợp thay vì click mù.
+
+### 3. Live observation — theo dõi thay đổi thay vì liên tục quét lại
+
+- Mở một live semantic lane, đọc **event delta/snapshot theo sequence** từ bộ đệm của Hub; snapshot lại khi cần resync.
+- Có thể chờ một điều kiện UI được chỉ định sau thao tác (ví dụ cửa sổ đích xuất hiện, tiêu đề hoặc phần tử đang focus khớp).
+- Đóng lane khi xong để giải phóng hoạt động quan sát. Companion/robot trên Windows được thiết kế **khởi động theo yêu cầu**, không chạy vòng quét RM liên tục khi chưa sử dụng.
+
+### 4. Thao tác chuột/bàn phím thật
+
+- Di chuyển trỏ chuột, click trái/phải/giữa, click nhiều lần có giới hạn, cuộn và kéo-thả.
+- Gõ Unicode, nhập văn bản vào ứng dụng đang focus, nhấn phím và các modifier được hỗ trợ.
+- Các lệnh input được ràng buộc session, policy và điều kiện màn hình/foreground; Windows UIPI, UAC và secure desktop không bị bỏ qua.
+- Không cần tạo script automation riêng cho mỗi chương trình: AI có thể quan sát, chọn phần tử và tương tác theo đúng quyền chủ máy đã cho.
+
+**Ví dụ:** một AI Agent có thể mở phần mềm Windows, tìm cửa sổ cấu hình, chọn mục bằng semantic UI, nhập dữ liệu, quan sát thông báo kết quả, rồi ghi hoạt động vào session. Với phần mềm không có API hoặc CLI, RM V2 cung cấp đường thao tác trực tiếp trên GUI.
+
+**Giới hạn theo nền tảng:** Windows có companion UIA/native input và các bài kiểm thử riêng; mã macOS có nhánh Real Remote native và kiểm thử nguồn; **không suy diễn đầy đủ tính năng desktop trên mọi Linux/macOS chỉ vì tool xuất hiện trong MCP**. Xem [RM V2 source/design](docs/real-remote-v2/README.md), [Native Windows Robot](client/windows-native/GptOperator.RealRemoteV2/) và [Feature Status](FEATURE_STATUS_MATRIX.md).
+
+## Agent có thể làm những gì khác?
+
+| Nhóm | Công cụ / tác vụ |
 | --- | --- |
-| Filesystem | List/read/write/edit/stat, tạo/chuyển/xóa file theo policy |
-| Search | Tìm đường dẫn và nội dung có giới hạn, lấy kết quả theo trang |
-| Git / developer | Kiểm tra source, diff, build và chạy test khi máy cho phép |
-| Exec | Shell/PowerShell/zsh một lần, timeout, capability inference |
-| Managed process | Spawn, stdin/stdout, đọc output theo offset và dừng có kiểm soát |
-| PTY/ConPTY | Terminal tương tác thật: input, resize, signal, stop |
-| SCP | Truyền file nhị phân/dung lượng lớn theo chunk, kiểm SHA-256 |
-| Durable job | Tiếp tục job/output qua nhiều lời gọi, hạn chế chạy trùng |
-| Fleet | Tìm/định tuyến tới đúng máy, state và policy riêng theo device |
-| Real Remote V2 | Semantic/live desktop observation, thao tác UI có giới hạn và quyền rõ ràng |
-| Module tùy chọn | Long Memory, Codex Bridge, activity history theo cấu hình và trạng thái triển khai |
+| Filesystem | List, stat, đọc/ghi/edit/copy/move/xóa trong **allowlisted roots** |
+| Search | Tìm tên và nội dung file, giới hạn kết quả, phân trang |
+| Developer & Git | Kiểm tra Git, sửa source, chạy build/test theo quyền |
+| Exec | Chạy một lệnh bash/zsh/PowerShell/CMD có timeout và capability inference |
+| Managed processes | Bắt đầu/dừng tiến trình, stdin/stdout theo offset |
+| Terminal | PTY Linux/macOS, ConPTY Windows, nhập lệnh, resize, Ctrl-C/signal |
+| SCP | Upload/download nhị phân, chunk và SHA-256 để kiểm tính toàn vẹn |
+| Durable jobs | Theo dõi trạng thái và đọc kết quả tiếp qua nhiều MCP call |
+| Infrastructure | Docker, LXD, Podman, Incus, Kubernetes, virtual machines, services, package tools… tùy quyền và khả năng máy |
+| Main / Fleet | Quan sát và điều phối exact device, quyền riêng từng máy, session/lease |
+| Optional modules | Long Memory, Codex Bridge, activity history theo cấu hình được bật |
 
-Khả năng **có trong source** không có nghĩa mọi feature đều **đã deploy, bật mặc định hoặc vượt physical acceptance**. Xem [Feature Status](FEATURE_STATUS_MATRIX.md) và [Known Issues](KNOWN_ISSUES.md).
+Tool Helper hướng dẫn chọn structured files/search trước shell, process/job cho tác vụ dài và RM V2 khi phải tương tác với desktop.
 
-### PTY/ConPTY không phải `exec` giả lập
-
-Terminal giữ phiên shell tương tác thực, hỗ trợ ứng dụng TUI, lệnh nhập nhiều bước, resize, Ctrl-C và thu hồi output. Quyền terminal được kiểm soát riêng; không mặc nhiên đi kèm quyền filesystem hay lệnh đọc thông thường.
-
-## Local Device Wall — chủ thiết bị giữ quyền cuối
+## Local Wall & Permissions — chủ máy quyết định
 
 <p align="center">
-  <img src="assets/screenshots/device-wall-demo.png" alt="Local Device Wall" width="760">
+  <img src="assets/screenshots/device-wall-demo.png" width="760" alt="Light Remote Device Wall">
 </p>
 
-Local Wall là bề mặt cấp quyền và quan sát **ngay tại máy**: kết nối, A/B Pending, session, command/job, hoạt động và policy. Đóng giao diện Wall không tương đương dừng service hoặc xóa session.
+Trang **Local Wall → Permissions** hiện dùng **các nhóm quyền có thể mở rộng, bật/tắt từng capability hoặc cả nhóm**, không phải chỉ một công tắc Full Access. Giao diện lấy catalog khả năng của hệ điều hành và tool được cài thật trên máy.
 
-<p align="center">
-  <img src="assets/screenshots/permissions-demo.png" alt="Local Device Policy" width="760">
-</p>
+### 8 nhóm quyền trên giao diện mới
 
-Quyền thực thi là giao của quyền máy thực sự hỗ trợ, quyền server/account cấp và **local device policy**. Local Wall có quyền từ chối cuối cùng. Bật một profile rộng không tự cấp sudo/UAC hay quyền nâng cao khác. Không gửi khóa bí mật, token Owner, opaque continuation hoặc session capability vào README, issue hay log công khai.
+| Nhóm | Ví dụ quyền điều khiển |
+| --- | --- |
+| **Files & Development** | Filesystem, Git, build/test, Windows shells |
+| **PTY / Interactive Terminal** | Quyền shell PTY/ConPTY tương tác riêng |
+| **Desktop & Real Remote** | `desktop` (xem) và `desktop-input` (chuột/bàn phím) độc lập |
+| **Containers & Virtualization** | Docker, LXD, Podman, Incus, Kubernetes, VM |
+| **System & Packages** | System services, package manager, sudo, Windows Services/UAC, scheduled tasks, launchd |
+| **Network & Firewall** | Network administration, firewall, Defender, process/network diagnostics |
+| **Storage & Provisioning** | Quản lý đĩa/volume/mount, Terraform/OpenTofu/Ansible |
+| **OS Security & Logs** | Windows Registry/Credential Manager/Event Log, macOS unified logs |
 
-## Fleet Wall — nhiều máy, vẫn đúng đích
+**Số quyền thay đổi theo máy.** Ví dụ giao diện Windows có thể báo `23/23 locally allowed · 23 effective`; đó là **quyền hiện có của máy ấy**, không phải Light Remote chỉ hỗ trợ cố định 23 capability trên tất cả hệ điều hành. Các capability mới chưa có trong nhóm định sẵn xuất hiện ở nhóm bổ sung.
 
-Main và Fleet hỗ trợ các máy đã enroll, online/offline state, chính sách từng máy, session/job theo exact device, quản trị quyền và các luồng cập nhật khi entitlement tương ứng cho phép. Một Agent đã được phép truy cập máy A **không tự động có quyền sang máy B**.
+### Profile và quyền thực sự có hiệu lực
 
-Khi đích offline, hết lease, bị thu hồi hoặc bị policy từ chối, operation phải thất bại có thể quan sát được — không fallback âm thầm. Fleet Wall và Device Wall là hai bề mặt khác nhau.
+Profile gồm **Safe, Developer, Remote Support, Infra / Ops, Full access và Custom**. Bạn có thể chọn profile, chỉnh checkbox từng quyền hoặc dùng **Allow all supported / Block all / Save local policy**.
 
-## Ba Helper của Light Remote
+- **Main device:** Local Wall là bề mặt quản lý quyền của máy chính trong phạm vi capability được hỗ trợ.
+- **Fleet leaf:** Quyền có hiệu lực là phần được server/account Owner phê duyệt **và** được Local Wall cho phép; bật checkbox chưa chắc đã là `effective`. Quyền mới có thể cần Owner duyệt qua Account.
+- **Tool detected ≠ permission granted:** Có cài Docker/kubectl không đồng nghĩa AI được phép quản trị; ngược lại cấp quyền cho tool chưa cài cũng không làm tool xuất hiện.
+- **Terminal**, **desktop view** và **desktop input** là ba ranh giới riêng; không suy ra quyền điều khiển màn hình từ quyền xem.
+- Sudo/UAC vẫn đòi cơ chế nâng quyền thật của OS; không có quyền nào tự vượt Windows UAC hoặc policy hệ thống.
 
-### 1. Connection Helper — A/B V2
+### Quyền filesystem theo ổ đĩa/thư mục
 
-1. Mở **Local Wall của đúng máy**, lấy **A code một lần**.
-2. Gửi A qua official Light Remote plugin cho `light_remote_connection_helper`.
-3. Plugin trả **B code** và trạng thái `approval_required`; chủ thiết bị xem/nhập B ở **chính Wall đã tạo A**.
-4. Chủ thiết bị chọn **Approve**; Agent gọi lại Connection Helper **không lặp A code** để phục hồi đúng yêu cầu đang chờ.
-5. Chỉ khi Helper trả `ready`, Agent mới làm việc bằng đúng session/device context được cấp.
+Ngay cả **Full access** cũng **không tự cho phép đọc/ghi mọi ổ đĩa**. Local Wall có phần **Filesystem access locations**, cho phép chọn ổ đã phát hiện và khai báo thêm **Additional read locations / Additional write locations**.
 
-A/B không phải mã đăng nhập Owner và không thể được bypass bằng OAuth. Một lần ghép nối chỉ có hiệu lực cho đúng target/Agent được phê duyệt. Không đưa continuation hay capability bí mật vào nội dung chat để chia sẻ thủ công.
+Đường dẫn Write phải nằm trong Read. Ví dụ có thể cấp đọc/ghi cho `C:\Users\Admin` nhưng để ổ USB `E:\` chưa được cấp; các structured Files, Search và SCP phải tôn trọng phạm vi này. Thay đổi root được áp cho các thao tác mới mà không buộc ghép nối Agent lại.
 
-### 2. Tool Helper — chọn đúng lệnh
+Nút **Refresh capabilities and inventory** quét lại tool/OS ở các thiết bị hỗ trợ quét; với **trusted Main**, catalog được quản lý qua Operator và nút quét có thể bị vô hiệu. Các thay đổi quyền có thể được ghi nhận cùng policy revision.
 
-Sau khi `ready`, Helper hướng dẫn chọn đúng công cụ: `files` cho tập tin, `search` cho tìm kiếm, `exec` cho lệnh một lần, `process`/`job` cho tác vụ dài, `terminal` cho PTY/ConPTY, `transfer` cho file lớn và `desktop` cho Real Remote. Agent không phải dùng shell cho mọi thao tác.
+Xem [policy source](device-agent/local-wall.mjs) và [security model](SECURITY.md).
 
-### 3. Updater Helper — phục hồi tách khỏi Core
+## Kết nối thiết bị — Short ID và phê duyệt A/B
 
-Updater/helper độc lập với Core giữ đường nâng cấp/khôi phục, xác thực manifest/chữ ký và SHA-256/size, kiểm tra health trước khi chuyển phiên bản, rollback khi thất bại. **Kênh signed public cho dev.4 vẫn HOLD**; không coi các manifest Beta `0.9.x` lịch sử là feed của `0.10.1-dev.4`.
+**Short ID là định danh ngắn, ổn định gồm 6 ký tự** được lưu/ràng buộc với đúng thiết bị. Mã đã cấp không được tự tái sử dụng cho một thiết bị khác.
 
-## Quick start — kết nối qua MCP trực tiếp
+1. Chủ máy cài/link Agent vào tài khoản Light Remote và kết nối thiết bị.
+2. AI client đăng nhập OAuth, dùng `light_remote_discover_devices` để **xem danh sách/trạng thái thiết bị thuộc tài khoản**. Đây chỉ là Discovery read-only, **chưa có quyền điều khiển**.
+3. Chọn chính xác **Short ID** của máy online (ví dụ `R01KAP`). AI gọi `light_remote_connection_helper` với Short ID đã chọn và `startAbV2=true` (*tên tham số nội bộ của MCP; giao diện người dùng gọi tính năng này là A/B*).
+4. Server phát sinh **B code** cho yêu cầu đó. Chủ thiết bị mở **Approve B** tại Local Wall `/approve` hoặc trang Account hỗ trợ phê duyệt, kiểm tra đúng thiết bị/Agent rồi chọn **Approve**.
+5. AI gọi lại Connection Helper để phục hồi yêu cầu và nhận context `ready`. Chỉ lúc này mới được dùng session/permissions được cấp.
 
-**Điều kiện:** Một hệ thống Plugin/Operator Light Remote hợp lệ, thiết bị đã cài Agent, tài khoản Owner và ứng dụng ChatGPT/Codex/MCP client đã kết nối official Light Remote plugin. Đây hiện là đường **internal candidate / developer**, chưa phải bộ cài production public self-host một lệnh.
+**Luồng Short ID hiện tại không yêu cầu tạo hay gửi A code.** Không trộn việc *đăng nhập tài khoản*, *tra cứu máy*, *phê duyệt B* và *thực thi lệnh* thành một quyền. Không được tự ý chuyển đích nếu máy được chọn offline hoặc deny.
 
-### Bước 1 — xác định đúng nguồn và bản phát hành
+Nếu một AI client chưa thấy `light_remote_discover_devices`, cần làm mới metadata công cụ/plugin; Helper có đường tra cứu tương thích, nhưng không được coi danh sách *granted devices* là toàn bộ thiết bị online.
 
-Source chính thức: [`n8n2erpnext/light-remote-mcp`](https://github.com/n8n2erpnext/light-remote-mcp). Bản [archive](https://github.com/n8n2erpnext/light-remote-mcp-archive-20261108) chỉ để đối chiếu lịch sử; các hướng dẫn Vercel/RC26 trong archive **đã lỗi thời**.
+## Cách kết nối với ChatGPT, Claude và các AI client
 
-- Windows **internal test** hiện tại: `0.10.1-dev.4` từ source `947a117`, [CI #45](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851) PASS 9/9; [Actions artifact nội bộ](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851/artifacts/13679554745). Đây **không** phải public Release.
-- Cài mới/upgrader Windows: một primary **`LightRemote.exe`**, giữ Node, RM V2, thư viện .NET riêng và updater/watchdog riêng. Máy dùng helper cũ không tương thích phải qua [compatibility bridge](config/windows-core-migration.json); không cài đè tùy tiện.
-- Linux/macOS: source native đã kiểm thử trong CI, nhưng **bộ installer đầy đủ cho source hiện tại chưa được chứng minh là phát hành**.
+### ChatGPT — official plugin
 
-Đối chiếu hash/manifest trước khi chạy bất kỳ binary nào. Xem [Build and Deployment](BUILD_AND_DEPLOYMENT.md).
+1. Mở [**Light Remote trên ChatGPT**](https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e), chọn kết nối/cấp quyền theo giao diện ChatGPT.
+2. Đăng nhập tài khoản Light Remote bằng luồng OAuth chính thức.
+3. Yêu cầu AI **liệt kê thiết bị online**, chọn Short ID, rồi **gửi yêu cầu kết nối A/B**.
+4. Xác nhận **B** trên Wall/Account của thiết bị đúng đích và tiếp tục khi Helper báo `ready`.
 
-### Bước 2 — dịch vụ MCP/Operator
+### Claude / Claude Desktop — custom Remote MCP
 
-Đường triển khai trực tiếp gồm HTTPS reverse proxy → Plugin `/mcp` → private Operator Unix socket → PostgreSQL/Redis → enrolled outbound Agent. **Không cần tài khoản, project, environment variable hoặc Vercel deployment.**
+Theo [hướng dẫn chính thức của Claude](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp):
 
-Nếu tự triển khai ở DEV, trước tiên đọc [Architecture](ARCHITECTURE.md), [`plugin-server/config.mjs`](plugin-server/config.mjs), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md) và [Build/Deployment](BUILD_AND_DEPLOYMENT.md). Plugin mặc định bind localhost; chỉ reverse proxy endpoint công khai cần thiết qua HTTPS, **không public Operator socket, PostgreSQL, Redis, Local Wall hay file state/private key**. Không lấy lệnh `--vercel-team` hoặc bộ biến `VPS_MCP_*` từ archive để cấu hình bản này.
+1. Mở **Customize → Connectors → Add → Custom → Web** (hoặc **Add custom connector**, tùy giao diện/tài khoản).
+2. Đặt tên `Light Remote` và nhập URL **`https://light-remote.thaiduy.digital/mcp`**.
+3. Tiếp tục bước xác thực, chọn **Sign in** / OAuth khi Claude nhận diện và đăng nhập tài khoản Light Remote.
+4. Bật connector cho cuộc trò chuyện, dùng **Discovery → Short ID → Approve B → ready** như trên.
 
-### Bước 3 — cài và link thiết bị
+Claude remote connector kết nối từ máy chủ Anthropic, vì vậy endpoint MCP phải truy cập được qua HTTPS từ hạ tầng của họ. **Không dùng URL `127.0.0.1:5491` của Local Wall làm MCP endpoint.** Tổ chức Team/Enterprise có thể cần quản trị viên thêm connector trước.
 
-Cài đúng installer/candidate được chủ hệ thống cấp, link thiết bị bằng luồng Owner/device của client, xác nhận kết nối Agent và mở **Local Wall**. Windows là Desktop V4 có GUI/tray và background Agent; Linux/macOS có Agent/Wall theo gói và trạng thái hỗ trợ thực tế. Đường Local Wall thường được cấu hình trên loopback (profile hiện khai báo `127.0.0.1:5491`; Fleet `5492`), không phải endpoint để public tùy tiện.
+### Claude Code — CLI
 
-### Bước 4 — phê duyệt ChatGPT/AI vào đúng máy
+Theo [Claude Code MCP docs](https://code.claude.com/docs/en/mcp), thêm remote HTTP MCP:
 
-Mở official Light Remote plugin trong AI client, tạo A code từ đúng Local Wall và gửi yêu cầu. Khi nhận B, nhập vào `/approve` của **cùng** Wall; sau Approve, Agent gọi lại Helper để nhận `ready`. Từ đây có thể yêu cầu: “đọc repo và chạy test”, “kiểm tra Docker trên VPS”, “mở PTY”, “sao chép file có kiểm SHA” hoặc “quan sát ứng dụng Windows bằng Real Remote V2” trong phạm vi quyền.
+```bash
+claude mcp add --transport http light-remote https://light-remote.thaiduy.digital/mcp
+```
 
-### Bước 5 — thêm máy khác
+Mở Claude Code, chạy `/mcp` để kiểm tra và hoàn tất OAuth khi được yêu cầu. Sau đó chọn đúng Short ID và duyệt B trên Light Remote Wall/Account.
 
-Enroll và phê duyệt A/B riêng cho **mỗi máy**. Không suy diễn thiết bị khác được cấp quyền chỉ vì cùng Owner/Fleet.
+### Các MCP client khác
 
-## Cập nhật, phục hồi và phát hành
+Chọn giao thức **Streamable HTTP**, URL **`https://light-remote.thaiduy.digital/mcp`**, hoàn tất OAuth (nếu client hỗ trợ). Ví dụ cấu hình MCP theo dạng thông dụng:
 
-Cơ chế được thiết kế với signed manifests, kiểm chữ ký, SHA-256/size, health gate và rollback; native Windows migration đã có CI thực tế. Nhưng cần phân biệt:
+```json
+{
+  "mcpServers": {
+    "light-remote": {
+      "type": "streamable-http",
+      "url": "https://light-remote.thaiduy.digital/mcp"
+    }
+  }
+}
+```
 
-- **Source/CI PASS:** build, contract/integration, Windows lifecycle, Linux/macOS source proof.
-- **Internal Lab deployed:** Plugin/Operator nội bộ đã thử trên source xác định, không phải production/direct UAT được nâng cấp hàng loạt.
-- **Owner physical:** chưa xác nhận đầy đủ cho đúng installer `dev.4`.
-- **Public release/feed:** **chưa phát hành** cho `dev.4`; feed Beta `0.9.x` chỉ là tương thích/lịch sử.
+Định dạng file và tính năng OAuth/remote MCP tùy phần mềm; không phải AI client nào cũng hỗ trợ toàn bộ. Tránh nhúng bearer token hoặc mật khẩu trong file công khai.
 
-Không tự áp public update manifest mới, không đổi môi trường production và không hồi sinh URL release asset cũ mà chưa được kiểm chứng.
+## Cập nhật và phục hồi
 
-## Bảo mật
+Windows hiện dùng **một chương trình chính `LightRemote.exe`**: Tauri/Rust phụ trách GUI/tray và thực thi worker role, gọi private WindowsHost/.NET component theo đường cố định. Node, RM V2, private .NET libraries, updater/watchdog và thành phần rollback vẫn độc lập. Signed manifests, hash/size và health-gated rollback là thiết kế của kênh cập nhật; **bản dev.4 chưa có public feed được phát hành**.
 
-Light Remote không biến HTTPS thành quyền `root` tự động. Các lớp quan trọng: OAuth/Owner scope tách Agent grants; phê duyệt B tại máy; signed enrolled device channel; account/device/session/Agent binding; local policy final deny; tool capability inference; exact device routing; private Operator Unix socket; signed update và rollback. Owner/agent secrets không đặt trong Git, logs công khai, browser UI hay ví dụ README.
+Các bản helper quá cũ cần đi theo [pinned compatibility bridge](config/windows-core-migration.json) trước khi nâng cấp dạng one-primary EXE. Không tự chỉnh manifest đã ký hoặc dùng artifact chưa xác minh.
 
-- Local Wall SSO backend đã có bằng chứng kiểm thử nhưng **bootstrap Agent/browser đầy đủ chưa hoàn tất**; không tuyên bố feature đã sẵn sàng production.
-- Guest/Pro Share, các prototype phục hồi và full installer Linux/macOS vẫn có scope chưa hoàn thiện.
-- Xem [SECURITY.md](SECURITY.md), [Feature Status](FEATURE_STATUS_MATRIX.md), [Known Issues](KNOWN_ISSUES.md).
+## Bảo mật và giới hạn hiện tại
 
-## Developer, nguồn chuẩn và checkpoint
+- OAuth Owner ≠ quyền điều khiển thiết bị; A/B và policy ở thiết bị là bắt buộc.
+- Phiên phải trỏ đúng Short ID/device ID; lệnh không fallback sang thiết bị khác.
+- RM V2 cần quyền quan sát và input riêng; **UIPI, secure desktop, OS permission** vẫn là giới hạn thật.
+- Quyền file có danh sách ổ/thư mục đọc/ghi riêng, không suy ra từ profile Full Access.
+- Long Memory/Codex Bridge, browser Wall SSO, Guest/Pro Share và một số module có trạng thái triển khai khác nhau; xem [Known Issues](KNOWN_ISSUES.md).
+- Chủ máy có thể thu hồi quyền/đóng phiên; khóa riêng và token session không được đưa vào tài liệu công khai.
 
-- **Repo chính thức:** [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp); SSH từ VPS-ARM: `git@github.com:n8n2erpnext/light-remote-mcp.git`.
-- **Nhánh phát triển duy nhất đã được Owner phê duyệt:** `work`; `main` là baseline được bảo vệ bởi `baseline-required`. Không tự tạo nhánh, force-push hoặc tắt protection.
-- **Thư mục tạo mới trên VPS-ARM:** chỉ bên trong `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/`; checkout phát triển là `implementation-20261108/single-primary-exe`. Archive/checkout conversion chỉ để tham chiếu.
-- **Mỗi commit:** `MASTER_CHECKPOINT.json` + `PROJECT_HANDOFF.md` + `docs/project-book/LIGHT_REMOTE_WORKLOG.md` + generated `PROJECT_TRUTH_STATUS.json` cùng commit; chạy stamp/check gate. Không commit code/docs trước rồi ghi checkpoint sau.
-- **Điểm đọc chính:** [Project Truth](PROJECT_TRUTH.md), [Project Book](docs/project-book/README.md), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md), [Handoff](PROJECT_HANDOFF.md), [Master Checkpoint](MASTER_CHECKPOINT.json), [Build/Deployment](BUILD_AND_DEPLOYMENT.md).
+## Developer & nguồn kiểm chứng
 
-Kiểm tra portable (Node 22, môi trường DEV đúng dependency):
+- **Mã nguồn:** [repository chính thức](https://github.com/n8n2erpnext/light-remote-mcp), SSH: `git@github.com:n8n2erpnext/light-remote-mcp.git`.
+- **Nhánh:** `work` là nhánh phát triển được Owner cho phép; `main` được bảo vệ bằng `baseline-required`. Không tạo nhánh hoặc force-push ngoài phê duyệt.
+- **Workspace:** mọi thư mục phát triển mới trên VPS-ARM thuộc `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/`; checkout đang sử dụng là `implementation-20261108/single-primary-exe`.
+- **Checkpoint:** mỗi commit gồm `MASTER_CHECKPOINT.json`, `PROJECT_HANDOFF.md`, Worklog và generated docs status trong **cùng commit**.
+
+Đọc [Project Truth](PROJECT_TRUTH.md), [Master Checkpoint](MASTER_CHECKPOINT.json), [Project Book](docs/project-book/README.md), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md), [Feature Status](FEATURE_STATUS_MATRIX.md), [Build and Deployment](BUILD_AND_DEPLOYMENT.md).
 
 ```bash
 npm ci --ignore-scripts
 npm run check:truth
 npm run check:docs
 npm test
-# chỉ với fixture / host phù hợp; không phải lệnh triển khai production
 ```
 
-Windows native installer và các bài kiểm thử thực tế phải build từ exact clean GitHub commit qua GitHub Actions; không suy diễn từ chạy Node tests trên VPS-ARM.
+## Trạng thái dự án
 
-## Trạng thái hiện tại
-
-| Hạng mục | Trạng thái và phạm vi bằng chứng |
+| Thành phần | Phạm vi đã kiểm chứng |
 | --- | --- |
-| Windows Desktop V4 | `0.10.1-dev.4`, **1 primary LightRemote.exe**, internal build/installed lifecycle CI PASS |
-| CI / nội dung | [#45](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851) **9/9 PASS**: React 121, consent/token 36, browser 170, backend private 25, native Windows migration/rollback |
-| Internal Operator + Plugin | Same-source `947a117` đã triển khai và kiểm health trên môi trường Lab có kiểm soát |
-| Agent PTY/Fleet/Real Remote | Có implementation/source và bằng chứng từng phạm vi; physical cross-device cho candidate hiện tại cần kiểm riêng |
-| Owner physical dev.4 | **PENDING** |
-| Mac/Linux current installers | **NOT BUILT/NOT VERIFIED** (native source tests PASS) |
-| Public GitHub Release / signed update feed dev.4 | **HOLD / NOT PUBLISHED** |
-| Local Wall browser SSO, Guest, một số module phục hồi | **INCOMPLETE** |
+| Windows Desktop | `0.10.1-dev.4`, một `LightRemote.exe` chính, build/installer/migration/rollback chạy qua Windows CI |
+| GitHub CI | [CI #45 — 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851): React 121, consent/token 36, browser 170, backend integration 25 |
+| Internal Operator/Plugin Lab | Đã kiểm thử và triển khai bản source `947a117` trong Lab nội bộ |
+| Short ID / A/B | Luồng hiện hành theo Short ID + B; quyền điều khiển chỉ sau Owner approval |
+| RM V2 / Fleet / PTY | Tool/source và kiểm thử theo phạm vi; trạng thái tính năng vật lý tùy nền tảng/phiên bản |
+| Windows dev.4 Owner physical UAT | **Chưa kết luận PASS** |
+| macOS/Linux full current installers | **Chưa chứng minh build/phát hành đầy đủ**, native source CI có kiểm thử |
+| Public Release / signed update feed dev.4 | **Chưa phát hành / HOLD** |
 
-Đọc [Acceptance dev.4](docs/evidence/desktop-user-experience/ACCEPTANCE.json) và [Build manifest](docs/evidence/desktop-user-experience/BUILD_MANIFEST.json) để xem chứng cứ đúng source; không dùng bằng chứng release archive RC26 như chứng cứ cho bản này.
+Không coi CI hoặc source implementation là bằng chứng toàn bộ tính năng đã được nghiệm thu vật lý. [Evidence dev.4](docs/evidence/desktop-user-experience/ACCEPTANCE.json) · [Known Issues](KNOWN_ISSUES.md).
 
 ## License
 
-Apache-2.0. Xem [LICENSE](LICENSE), [NOTICE](NOTICE), [THIRD_PARTY_DISTRIBUTION_NOTICES.md](THIRD_PARTY_DISTRIBUTION_NOTICES.md).
+Apache-2.0 — [LICENSE](LICENSE), [NOTICE](NOTICE), [THIRD_PARTY_DISTRIBUTION_NOTICES.md](THIRD_PARTY_DISTRIBUTION_NOTICES.md).
