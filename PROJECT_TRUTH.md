@@ -178,3 +178,7 @@ Internal dev6 source implements the fresh Moryqa Windows distribution V3, real f
 ## Inno6.7.1 native distribution compile follow-up
 
 CI68 Windows native app and48 Rust tests PASS; Inno installer compilation stopped on unsupported NativeUInt. The source uses released UINT_PTR pointer/handle types and an early compile-only Actions fixture, which is never executed or uploaded. New full exact-source CI and actual six native views remain pending. Previous dev5 Lab/runtime/artifact and rollback are preserved; no Owner install or public release.
+
+## Measure installer Google Sans in its owning GDI process
+
+CI69 compiled the full dev6 installer; native UI acceptance stopped at an invalid external GDI font measurement. The observer is replaced by an in-process GetTextFaceW measurement using the exact title TFont, with strict Google Sans requirement retained. No installer is accepted until fresh six-view UI/lifecycle/migration CI passes. Server5 and Owner installation remain unchanged.

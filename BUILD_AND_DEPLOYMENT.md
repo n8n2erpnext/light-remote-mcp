@@ -167,3 +167,7 @@ CI67 Windows stopped before compiling because autocrlf changed a Moryqa SVG cove
 ## Use released Inno pointer types and compile installer early
 
 CI68 passed all components except Windows installer parse. Inno6.7.1 exposes UINT_PTR, not the NativeUInt type in later unreleased docs. Native pointer/handle imports now use the released compiler type. Windows workflow compiles the exact full Inno script before expensive native jobs using a never-executed, never-uploaded placeholder stage. Final installer still requires proven native stage and full installation/migration/watchdog tests.
+
+## Measure installer Google Sans in its owning GDI process
+
+CI69 source299c31d built the complete installer but UI font verification was invalid: GDI handles are process-private. New proof logs in-process GetTextFaceW output selected from the exact title TFont; CI still rejects anything other than Google Sans and saves sanitized failure diagnostics and screenshots. The uninstall-finished wait uses its full unique multiline title, avoiding matching an earlier header. Final artifact acceptance still requires a new exact-source full run.

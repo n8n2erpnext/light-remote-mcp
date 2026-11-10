@@ -198,3 +198,7 @@ New distribution plan: [tray/setup redesign](../plans/windows-distribution/TRAY_
 ## Implement fresh Moryqa Windows setup uninstall and five-state primary tray
 
 New tray_visual.rs owns pure fail-closed display projection and five exact embedded32px RGBA exports; unified_tray.rs updates its existing TrayIcon on the bounded status worker, no idle pulse. TrayApplicationContext.DesktopBridgeJsonAsync(status) exports its existing VisualFor result. Native LightRemote.Wizard.iss replaces old Windows V2 setup presentation; GptOperator.iss retains installer transaction/recovery and includes the new views. stage-primary-core.ps1 plus Inno dirifempty remove only the empty legacy directory. test-distribution-ui.ps1 exercises actual native six-view flow, font, progress, controls and unrelated-file preservation in isolated Windows Actions. [Moryqa exports](../design/windows-distribution-v3/README.md).
+
+## Native title font measurement in the owning installer
+
+LightRemote.Wizard.iss LRText copies the actual LRTitle TFont to a process-local bitmap Canvas, selects it through TextWidth and resolves it with GetTextFaceW. Only sanitized face/width are logged. test-distribution-ui.ps1 reads that native measurement and retains the strict Google Sans assertion; invalid external HFONT/DC imports are removed. It retains rendered failure PNG/JSON diagnostics and uniquely waits for the final uninstall title. No font fallback is accepted by CI; Owner installation is unchanged.

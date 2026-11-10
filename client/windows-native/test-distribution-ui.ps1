@@ -27,15 +27,10 @@ public static class LRSetupUi {
  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h,out RECT r);
  [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h,IntPtr dc,uint flags);
  [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr h);
- [DllImport("user32.dll")] static extern IntPtr GetDC(IntPtr h);
- [DllImport("user32.dll")] static extern int ReleaseDC(IntPtr h,IntPtr dc);
- [DllImport("gdi32.dll")] static extern IntPtr SelectObject(IntPtr dc,IntPtr obj);
- [DllImport("gdi32.dll",CharSet=CharSet.Unicode)] static extern int GetTextFace(IntPtr dc,int count,StringBuilder face);
  public static IntPtr[] Windows(){var a=new List<IntPtr>();EnumWindows((h,p)=>{if(IsWindowVisible(h))a.Add(h);return true;},IntPtr.Zero);return a.ToArray();}
  public static IntPtr[] Children(IntPtr root){var a=new List<IntPtr>();EnumChildWindows(root,(h,p)=>{if(IsWindowVisible(h))a.Add(h);return true;},IntPtr.Zero);return a.ToArray();}
  public static string Text(IntPtr h){var s=new StringBuilder(4096);GetWindowText(h,s,s.Capacity);return s.ToString();}
  public static string Class(IntPtr h){var s=new StringBuilder(256);GetClassName(h,s,s.Capacity);return s.ToString();}
- public static string Face(IntPtr h){var font=SendMessage(h,0x31,IntPtr.Zero,IntPtr.Zero);var dc=GetDC(h);var old=SelectObject(dc,font);try{var s=new StringBuilder(128);GetTextFace(dc,s.Capacity,s);return s.ToString();}finally{SelectObject(dc,old);ReleaseDC(h,dc);}}
 }
 '@
 $script:owned=[Collections.Generic.HashSet[uint32]]::new()
@@ -87,8 +82,10 @@ function Invoke-Button($View,[string]$Caption){
     if(-not [LRSetupUi]::PostMessage($h,0xF5,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'Native button message failed'} # BM_CLICK, native handler
 }
 function Capture-View($View,[string]$Name){
-    $face=[LRSetupUi]::Face($View.title)
-    if($face -notlike '*Google Sans*'){throw "Native title font is not packaged Google Sans: $face"}
+    # In-process GetTextFace uses the title's actual TFont. Cross-process
+    # HFONT selection is invalid on Windows and only observes a default DC.
+    $fontLine=Get-Content -LiteralPath $script:nativeLog|Where-Object{$_ -match 'light-remote-title-font='}|Select-Object -Last 1
+    $face=if($fontLine -match 'light-remote-title-font=([^;]+);width=([1-9][0-9]*)'){$Matches[1]}else{'unresolved'}
     $rect=[LRSetupUi+RECT]::new();[void][LRSetupUi]::GetWindowRect($View.window,[ref]$rect)
     if($rect.Right-$rect.Left -lt 500 -or $rect.Bottom-$rect.Top -lt 350){throw 'Distribution window unexpectedly small'}
     $b=[Drawing.Bitmap]::new($rect.Right-$rect.Left,$rect.Bottom-$rect.Top)
@@ -97,8 +94,9 @@ function Capture-View($View,[string]$Name){
         try{if(-not [LRSetupUi]::PrintWindow($View.window,$dc,0)){throw 'Native wizard could not render'}}finally{$g.ReleaseHdc($dc);$g.Dispose()}
         $gold=0
         for($y=0;$y -lt $b.Height;$y+=3){for($x=0;$x -lt $b.Width;$x+=3){$c=$b.GetPixel($x,$y);if($c.R -gt 170 -and $c.G -gt 130 -and $c.B -lt 70){$gold++}}}
-        if($gold -lt 100){throw 'Canonical gold logo/brand art missing from actual native wizard'}
         $b.Save((Join-Path $evidence ($Name+'.png')),[Drawing.Imaging.ImageFormat]::Png)
+        if($face -notlike '*Google Sans*'){throw "Native title font is not packaged Google Sans: $face"}
+        if($gold -lt 100){throw 'Canonical gold logo/brand art missing from actual native wizard'}
         return [ordered]@{view=$Name;title=$View.text;font=$face;dpi=[LRSetupUi]::GetDpiForWindow($View.window);width=$b.Width;height=$b.Height;brandPixels=$gold;rendered=$true}
     }finally{$b.Dispose()}
 }
@@ -106,6 +104,7 @@ $proof=[Collections.Generic.List[object]]::new()
 $process=$null
 try{
     if($Mode -eq 'Install'){
+        $script:nativeLog=$SetupLog
         $arguments=@('/NORESTART',('/DIR="'+$root+'"'),('/LOG="'+$SetupLog+'"'))
         $process=Start-Setup $Installer $arguments
         $welcome=Wait-View 'Your AI workspace,'
@@ -141,7 +140,8 @@ try{
         $command=(Get-ItemProperty -LiteralPath $key).UninstallString
         $expected='"'+$Installer+'" /SILENT /NORESTART /LIGHTREMOTEINTERACTIVE'
         if($command -ne $expected){throw 'Windows Apps does not use the new same-uninstaller interactive flow'}
-        $arguments=@('/SILENT','/NORESTART','/LIGHTREMOTEINTERACTIVE')
+        $script:nativeLog=Join-Path $env:RUNNER_TEMP 'light-remote-ui-uninstall.log'
+        $arguments=@('/SILENT','/NORESTART','/LIGHTREMOTEINTERACTIVE',('/LOG="'+$script:nativeLog+'"'))
         $process=Start-Setup $Installer $arguments
         $confirm=Wait-View 'Remove the app.'
         $proof.Add((Capture-View $confirm '04-uninstall-confirm'))
@@ -157,9 +157,9 @@ try{
         $removing=Wait-View 'Leaving things' 30
         $proof.Add((Capture-View $removing '05-removing'))
         if(-not @([LRSetupUi]::Children($removing.window)|Where-Object{[LRSetupUi]::Class($_) -match 'Progress'})){throw 'Real native uninstall progress control missing'}
-        $done=Wait-View 'Light Remote' 90
-        # Header wordmark also says Light Remote: require the multiline title.
-        if($done.text -notmatch 'is uninstalled'){ $done=Wait-View "Light Remote`r`nis uninstalled." 10 }
+        # The header also says Light Remote; wait for the unique finished
+        # multiline title for the full deadline, not an earlier wordmark.
+        $done=Wait-View "Light Remote`r`nis uninstalled." 90
         $proof.Add((Capture-View $done '06-removed'))
         Invoke-Button $done 'Close'
         if(-not $process.WaitForExit(20000) -or $process.ExitCode -ne 0){throw 'Interactive uninstaller did not finish successfully'}
@@ -169,6 +169,12 @@ try{
     [ordered]@{result='PASS';sourceCommit=$env:GITHUB_SHA;mode=$Mode;views=$proof;physicalOwnerAcceptance=$false;publicRelease=$false}|
         ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $evidence ($Mode.ToLowerInvariant()+'-summary.json')) -Encoding utf8NoBOM
     Write-Host "WINDOWS_DISTRIBUTION_NATIVE_UI=PASS mode=$Mode views=$($proof.Count)"
+}catch{
+    [ordered]@{result='FAIL';sourceCommit=$env:GITHUB_SHA;mode=$Mode;error=$_.Exception.Message;
+        nativeFontDiagnostics=@(if($script:nativeLog -and (Test-Path -LiteralPath $script:nativeLog)){
+            Get-Content -LiteralPath $script:nativeLog|Where-Object{$_ -match 'light-remote-title-font=|light-remote-wizard-private-font-unavailable'}
+        })}|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $evidence ($Mode.ToLowerInvariant()+'-failure.json')) -Encoding utf8NoBOM
+    throw
 }finally{
     if($process){if(-not $process.HasExited){foreach($ownedId in $script:owned){Stop-Process -Id $ownedId -Force -ErrorAction SilentlyContinue}};$process.Dispose()}
 }

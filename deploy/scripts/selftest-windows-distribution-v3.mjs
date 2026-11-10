@@ -60,7 +60,9 @@ assert.match(stage,/if\(-not\(Get-ChildItem -LiteralPath \$obsoleteDir -Force\)\
 assert.doesNotMatch(stage,/Remove-Item -LiteralPath \$obsoleteDir[^\n]*-Recurse/);
 const proof=text('client/windows-native/test-distribution-ui.ps1');
 for(const view of ['01-welcome','02-installing','03-ready','04-uninstall-confirm','05-removing','06-removed'])assert.ok(proof.includes(view));
-assert.match(proof,/GetTextFace/);assert.match(proof,/PrintWindow/);
+assert.match(wizard,/Probe\.Canvas\.Font\.Assign\(Result\.Font\)/);
+assert.match(wizard,/Count := LRGetTextFace\(Probe\.Canvas\.Handle/);
+assert.match(proof,/light-remote-title-font=/);assert.match(proof,/PrintWindow/);
 assert.match(proof,/Invoke-Button \$confirm 'Keep app'/);
 assert.match(proof,/ci-preserve-user-data\.txt/);
 console.log('WINDOWS_DISTRIBUTION_V3_SOURCE=PASS five verified assets, native tray projection, private font and real setup/uninstall boundaries, empty-only cleanup');

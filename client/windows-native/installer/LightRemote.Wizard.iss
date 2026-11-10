@@ -38,6 +38,8 @@ function LRDeleteObject(Obj: UINT_PTR): Boolean;
 external 'DeleteObject@gdi32.dll stdcall';
 function LRSetWindowTheme(Wnd: UINT_PTR; SubApp, SubId: String): Integer;
 external 'SetWindowTheme@uxtheme.dll stdcall';
+function LRGetTextFace(DC: UINT_PTR; Count: Integer; Buffer: String): Integer;
+external 'GetTextFaceW@gdi32.dll stdcall';
 
 function LRHasFlag(Flag: String): Boolean;
 var I: Integer;
@@ -128,6 +130,7 @@ end;
 
 function LRText(Parent: TWinControl; Name, Text: String;
   X, Y, W, H, Pixels: Integer; Bold: Boolean; Color: TColor): TNewStaticText;
+var Probe: TBitmap; Face: String; Count, Width: Integer;
 begin
   Result := TNewStaticText.Create(Parent);
   Result.Parent := Parent;
@@ -137,6 +140,27 @@ begin
   Result.SetBounds(LRX(X), LRY(Y), LRX(W), LRY(H));
   Result.Caption := Text;
   LRFont(Result.Font, Pixels, Bold, Color);
+  if Name = 'LRTitle' then
+  begin
+    // GDI objects are process-private. Resolve the exact title's TFont in
+    // this process; a CI observer must not select our HFONT in its own DC.
+    Probe := TBitmap.Create;
+    try
+      Probe.Width := 1; Probe.Height := 1;
+      Probe.Canvas.Font.Assign(Result.Font);
+      Width := Probe.Canvas.TextWidth('Light Remote'); // Select the real font.
+      Face := StringOfChar(#0, 128);
+      Count := LRGetTextFace(Probe.Canvas.Handle, 128, Face);
+      if Count > 0 then
+      begin
+        if Pos(#0, Face) > 0 then Face := Copy(Face, 1, Pos(#0, Face) - 1);
+        Log('light-remote-title-font=' + Face + ';width=' + IntToStr(Width));
+      end
+      else Log('light-remote-title-font=unresolved');
+    finally
+      Probe.Free;
+    end;
+  end;
 end;
 
 procedure LRSurface(Parent: TWinControl; X, Y, W, H: Integer; Color: TColor; Rounded: Boolean);

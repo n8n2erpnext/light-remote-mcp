@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T15:52:24.013Z",
+  "updatedAt": "2026-11-10T16:12:36.178Z",
   "version": "0.10.1-dev.6",
   "phase": "DISTRIBUTION_V3_DEV6_NATIVE_IMPLEMENTED",
   "status": "IMPLEMENTED_NATIVE_CI_PENDING",
@@ -450,12 +450,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-inno-671-abi-preflight",
-    "status": "CI68_NATIVE_APP_PASS_INSTALLER_COMPILER_FIX",
-    "summary": "CI68 strict asset gate, Windows Rust48 tests and app native build passed; full/core/web/macOS/Linux also passed. Installer parser stopped at unsupported NativeUInt in Inno6.7.1. Use its registered UINT_PTR ABI type for OS pointers/handles and compile the same Inno source early before expensive native jobs. Compile-only fixture is never run, installed or uploaded.",
-    "verification": "CI68 logs identify Inno6.7.1 exact compiler and unknown NativeUInt line29. Verified released is-6_7_1 official ScriptFunc registers UINT_PTR. Windows Rust48/48 plus complete app/native host proof passed; full installer/UI artifact remains unaccepted. Source regression and native ABI guard pass before commit.",
+    "taskId": "20261110-native-font-process-proof",
+    "status": "CI69_INSTALLER_BUILT_FONT_OBSERVER_FIXED_UI_PENDING",
+    "summary": "CI69 compiled the full dev6 installer and passed all other jobs. Interactive UI proof stopped at font verification because the external observer selected a process-private HFONT in another process and saw its own System DC font. Measure the exact title TFont with in-process GetTextFaceW, keep the strict Google Sans assertion, preserve failure screenshots/sanitized font diagnostics, and wait for a unique uninstall-finished title for the full deadline.",
+    "verification": "CI69 full Inno output built; core/backend/web/macOS/Linux PASS, Windows Rust48/native app PASS. Microsoft GDI documentation confirms process-private object handles. In-process probe copies the actual title TFont to a local Canvas then resolves selected typeface through GetTextFaceW. Source regression and PowerShell AST parse PASS locally. New actual six-view installer proof remains pending; no fallback font is accepted by CI.",
     "nextAction": "Follow full exact-source Actions; resolve compile/real Windows UI failures, verify internal dev6 installer and native evidence independently, synchronize Lab from accepted source if necessary, then canonical docs/handoff with Owner physical test pending.",
-    "sourceDigest": "25a9db181537d64c4c1a660c9d784f80a772dd745165222420559f0a8d159599",
+    "sourceDigest": "e050094ad328cdd10042625eb7b41ebd6f7cca57769bb91fa9630f6339889e9b",
     "sourceFileCount": 1672
   },
   "legacyFilesystemCleanup": {
@@ -1257,7 +1257,7 @@
     },
     "plannedCandidateVersion": "0.10.1-dev.6",
     "ownerScreenshot": "dev5 Agent and one LightRemote.exe observed; not blanket physical acceptance",
-    "newNativeBuild": "CI68_APP_NATIVE_PASS_INSTALLER_ABI_FIX",
+    "newNativeBuild": "CI69_FULL_INSTALLER_BUILT_FONT_OBSERVER_FIXED",
     "publicReleaseOrFeed": false,
     "tray": {
       "projection": "native VisualFor",
@@ -1279,8 +1279,15 @@
         "sourceCommit": "0cf72c9a6238dd36540302d0979d0df148b68e6e",
         "windowsRustTests": 48,
         "nativeApp": "PASS",
-        "reason": "Inno6.7.1 unsupported NativeUInt; released UINT_PTR ABI and early compile preflight added",
-        "installer": "NOT_BUILT"
+        "reason": "Inno6.7.1 unsupported NativeUInt fixed with UINT_PTR"
+      },
+      {
+        "runId": 42848917668,
+        "sourceCommit": "299c31dfa10a9a12cc6a694a158abfa5e31fc0b9",
+        "installerCompile": "PASS",
+        "otherComponentJobs": "PASS",
+        "reason": "External cross-process HFONT selection is invalid; in-process GDI font proof added",
+        "interactiveUi": "NOT_ACCEPTED"
       }
     ]
   }
