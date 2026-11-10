@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T10:20:11.124Z",
+  "updatedAt": "2026-11-10T10:35:04.181Z",
   "version": "0.10.1-dev.5",
-  "phase": "codex-wall-followup-recovery-revision",
-  "status": "FEATURES_NATIVE_PASS_RECOVERY_REVISION_REPAIRED_CI_PENDING",
+  "phase": "codex-wall-followup-recovery-guard",
+  "status": "FEATURES_NATIVE_PASS_RECOVERY_FULL_SOURCE_GATE",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -272,7 +272,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Run exact repaired full Actions, require all existing migration/watchdog and feature tests without bypass. Verify internal artifact/hash/source/manifests, deploy same-source Lab only after success, then canonical closeout/main promotion.",
+  "nextAction": "Require full portable source suite and exact-source full Actions including real watchdog rollback. Verify internal artifact/hash, then same-source Lab and canonical closeout/main.",
   "receiptNote": "Compiled source947a117/CI45/internal artifact are pinned independently from this documentation receipt. The receipt does not rebuild the installer. No new public Release/feed or Owner installation change. Source publication uses normal protected work-to-main fast-forward after checks.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -363,12 +363,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-codex-wall-followup-recovery-revision",
-    "status": "FEATURES_NATIVE_PASS_RECOVERY_REVISION_REPAIRED_CI_PENDING",
-    "summary": "CI61 passed actual native Close3cycles/WM_NULL/shortcut/background/Agent lifetime and real packaged ConPTY output, then exposed watchdog recovery across config revisions: helper rev3 rejected restored bridge rev2. Recovery-only Updater/watchdog health now binds fresh HMAC to a bounded, same-product/profile installed marker revision. Normal GUI/client proof remains compiled-revision strict. Nonce, constant-time MAC, exact listener PID/Node path, fixed loopback URL, Host and profile checks remain. Add native current/legacy marker, wrong-profile and oversized-marker fixtures.",
-    "verification": "CI61 real Close3cycles each hidden/responsive with same GUI/Agent, ConPTY executed Unicode/byte offsets PASS; bridge upgrade/reinstall/downgrade and real health-failure rollback passed. Only final manual watchdog health failed with restored healthy rev2 and helper rev3. Local four native source/package/deadline guards PASS. Actual repaired cross-revision watchdog and full exact-source Actions remain pending.",
-    "nextAction": "Run exact repaired full Actions, require all existing migration/watchdog and feature tests without bypass. Verify internal artifact/hash/source/manifests, deploy same-source Lab only after success, then canonical closeout/main promotion.",
-    "sourceDigest": "beca6d9b224476e9f59707ad5c74a4baf0e82adde8d4c651d7f0f7a2b526d6e9",
+    "taskId": "20261110-codex-wall-followup-recovery-guard",
+    "status": "FEATURES_NATIVE_PASS_RECOVERY_FULL_SOURCE_GATE",
+    "summary": "CI62 exposed a stale ownership source assertion after the recovery-only API split. Update Updater/watchdog assertions to IsInstalledWall and explicitly retain ordinary GUI compiled-revision checks plus installed-revision and PID/MAC proof paths. Run the entire portable source suite before publishing; no production implementation or acceptance gate removed.",
+    "verification": "CI61 installed Close3cycles/WM_NULL/shortcut/Agent lifetime and real ConPTY PASS. CI62 Node284 tests passed; one portable guard expected the obsolete recovery call. Updated ownership guard passes locally; full portable source and exact-source native Actions remain required.",
+    "nextAction": "Require full portable source suite and exact-source full Actions including real watchdog rollback. Verify internal artifact/hash, then same-source Lab and canonical closeout/main.",
+    "sourceDigest": "9e2276da3ea6de6c5eb34c7b78fd74708fddc975a183c127e7b0caf24d4bb906",
     "sourceFileCount": 1662
   },
   "legacyFilesystemCleanup": {
@@ -885,6 +885,14 @@
         "result": "FAIL",
         "passed": "Core284/70, React125/browser170+Wall4, Linux/macOS native; installed Close3cycles/background/Agent/WM_NULL and actual ConPTY; seven migration checks including real bridge upgrade/reinstall/rollback",
         "failure": "Native watchdog revision3 rejected restored revision2 Wall proof; actual old Wall healthy, manual watchdog final verified health not recorded."
+      },
+      {
+        "runId": 42798278392,
+        "runNumber": 62,
+        "sourceCommit": "718254a56ffa652656590c1053367c05109f8cd8",
+        "result": "FAIL",
+        "passed": "Node284 unit tests; standalone web validation",
+        "failure": "One stale portable ownership guard expected IsExpectedWall in recovery consumers; Windows stopped at the same source assertion before compile. Guard aligned retaining ordinary strict proof and all rollback gates."
       }
     ],
     "nextGate": "Exact-source full9job CI; never deliver failed artifact",

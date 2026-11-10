@@ -178,3 +178,7 @@ unified_tray.rs::show_main worker queries window.is_visible (native OS), normali
 ## Bind recovery Wall health proof to validated installed package revision
 
 Shared/WallListenerOwnership.TryInstalledRevision bounds and validates the installed product/profile marker. IsInstalledWall is used only by Updater/InstallWatchdog recovery health; normal IsExpectedWall stays compiled-revision strict. Shared/LocalWallChallengeProof adds explicit expected-revision overload while retaining default compiled revision and nonce/MAC/PID validation. Native fixture Program.cs covers current/legacy marker selection plus wrong profile/oversized marker. CI61 installed Close and real ConPTY were PASS; final cross-revision watchdog must pass on the repaired exact source.
+
+## Align recovery ownership guard with installed revision proof
+
+selftest-goldabv2-wall-listener-ownership-t11.mjs distinguishes normal GUI compiled-revision IsExpectedWall from Updater/InstallWatchdog IsInstalledWall recovery. It still asserts listener PID, exact runtime path, product/profile marker, default strict probe and explicit revision MAC proof.

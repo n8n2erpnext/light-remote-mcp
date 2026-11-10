@@ -26,9 +26,15 @@ assert.match(tray,/#if LIGHT_REMOTE_GOLDABV2_V4\s+return WallListenerOwnership\.
 assert.match(tray,/WallListenerOwnership\.HasLoopbackListener\(WallPort\)/);
 assert.match(tray,/Local Wall port is occupied by a different process/);
 assert.match(tray,/var killed = false;[\s\S]*?#else[\s\S]*?var killed = KillStaleWallListener\(\)/);
-assert.match(updater,/WallListenerOwnership\.IsExpectedWall\(WallPort,installDir\)/);
+// Recovery may validate a restored older package; ordinary GUI ownership keeps
+// the compiled-revision probe above. Both paths retain PID/runtime/MAC checks.
+assert.match(updater,/WallListenerOwnership\.IsInstalledWall\(WallPort,installDir\)/);
 assert.match(updater,/WaitForWallStateAsync\(bool listening,TimeSpan timeout,string installDir\)/);
-assert.match(watchdog,/WallListenerOwnership\.IsExpectedWall\(CanonicalEndpoints\.Gold\.LocalPort\("wall"\),installRoot\)/);
+assert.match(watchdog,/WallListenerOwnership\.IsInstalledWall\(CanonicalEndpoints\.Gold\.LocalPort\("wall"\),installRoot\)/);
+assert.match(ownership,/IsExpectedWall\(int port,string installDir\)\s*=> IsExpectedWallCore\(port,installDir,null\)/);
+assert.match(ownership,/IsInstalledWall\(int port,string installDir\)\s*=> TryInstalledRevision\(installDir,out var revision\)&&IsExpectedWallCore\(port,installDir,revision\)/);
+assert.match(ownership,/LocalWallChallengeProof\.Probe\(port,pid,installedRevision\.Value\)/);
+assert.match(ownership,/LocalWallChallengeProof\.Probe\(port,pid\)/);
 assert.match(watchdog,/Updater", "GoldABV2", "rollback"/);
 assert.match(program,/--wall-listener-self-test-output/);
 assert.match(program,/wrongProductRejected/);

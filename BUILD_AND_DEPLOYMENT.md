@@ -141,3 +141,7 @@ CI60 initial shortcut restore failed after the unchanged installed raw Win32 hid
 ## Bind recovery Wall health proof to validated installed package revision
 
 CI61 feature/install/Close3cycle/ConPTY checks passed, but the required real manual watchdog rollback failed when helper configRevision3 compared a restored rev2 Wall to its own compiled revision. Recovery-only proof selection now follows validated installed marker revision without relaxing other proof checks. Keep the existing rollback_restore_wall_healthy assertion, real pinned bridge, identity canaries and full native Actions; no failed candidate delivery or runtime rollout.
+
+## Align recovery ownership guard with installed revision proof
+
+CI62 stopped before native compilation because the portable ownership guard still required the old IsExpectedWall name for recovery. Update only that assertion and add explicit compiled/installed revision split checks. Full test:source now runs before this commit; retain real bridge/watchdog rollback, Close3cycles and ConPTY acceptance unchanged. No failed installer delivery or runtime rollout.

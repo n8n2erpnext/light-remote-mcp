@@ -174,3 +174,7 @@ CI60 is not accepted: core/browser/Linux/macOS and Windows compile/install passe
 ## Bind recovery Wall health proof to validated installed package revision
 
 CI61 verified actual installed Close/shortcut/background3cycles, same GUI/Agent and WM_NULL responsiveness; real packaged ConPTY executed output/Unicode/offset/EOF PASS. Full run still failed final manual watchdog rollback health across revisions3->2. Source repair binds recovery-only health to the validated installed package marker revision, with all nonce/MAC/PID/path/profile checks retained and normal GUI/client compiled revision strict. Full repaired CI pending; Lab947a117 unchanged.
+
+## Align recovery ownership guard with installed revision proof
+
+CI62 exposed a stale ownership source assertion after the recovery-only API split. Update Updater/watchdog assertions to IsInstalledWall and explicitly retain ordinary GUI compiled-revision checks plus installed-revision and PID/MAC proof paths. Run the entire portable source suite before publishing; no production implementation or acceptance gate removed.
