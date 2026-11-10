@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T10:35:04.181Z",
+  "updatedAt": "2026-11-10T10:57:35.333Z",
   "version": "0.10.1-dev.5",
-  "phase": "codex-wall-followup-recovery-guard",
-  "status": "FEATURES_NATIVE_PASS_RECOVERY_FULL_SOURCE_GATE",
+  "phase": "codex-wall-followup-liveness-ordering",
+  "status": "LIVENESS_ORDERING_REPAIRED_NATIVE_ACTIONS_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -272,7 +272,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Require full portable source suite and exact-source full Actions including real watchdog rollback. Verify internal artifact/hash, then same-source Lab and canonical closeout/main.",
+  "nextAction": "Publish synchronized auth liveness fixture and require exact-source full9job Actions including all existing Windows rollback/Close/ConPTY gates. Verify artifact, same-source Lab and canonical closeout/main only after all pass.",
   "receiptNote": "Compiled source947a117/CI45/internal artifact are pinned independently from this documentation receipt. The receipt does not rebuild the installer. No new public Release/feed or Owner installation change. Source publication uses normal protected work-to-main fast-forward after checks.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -363,12 +363,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-codex-wall-followup-recovery-guard",
-    "status": "FEATURES_NATIVE_PASS_RECOVERY_FULL_SOURCE_GATE",
-    "summary": "CI62 exposed a stale ownership source assertion after the recovery-only API split. Update Updater/watchdog assertions to IsInstalledWall and explicitly retain ordinary GUI compiled-revision checks plus installed-revision and PID/MAC proof paths. Run the entire portable source suite before publishing; no production implementation or acceptance gate removed.",
-    "verification": "CI61 installed Close3cycles/WM_NULL/shortcut/Agent lifetime and real ConPTY PASS. CI62 Node284 tests passed; one portable guard expected the obsolete recovery call. Updated ownership guard passes locally; full portable source and exact-source native Actions remain required.",
-    "nextAction": "Require full portable source suite and exact-source full Actions including real watchdog rollback. Verify internal artifact/hash, then same-source Lab and canonical closeout/main.",
-    "sourceDigest": "9e2276da3ea6de6c5eb34c7b78fd74708fddc975a183c127e7b0caf24d4bb906",
+    "taskId": "20261110-codex-wall-followup-liveness-ordering",
+    "status": "LIVENESS_ORDERING_REPAIRED_NATIVE_ACTIONS_PENDING",
+    "summary": "CI63 macOS failed a 150ms wall-clock assertion in the async native-work fixture while core, web and Linux passed. Replace that scheduler-sensitive elapsed sample with causal synchronization: the blocked worker cannot finish until the async25ms timer releases it; a separate5s emergency release makes an inline-blocking regression fail without hanging. Keep real Windows Close3cycles/3s, responsiveness, Agent lifetime, ConPTY and watchdog recovery gates unchanged. Production implementation is unchanged.",
+    "verification": "Exact CI63 Core284/70, React125/browser170+Wall4, Linux native and complete Windows build/install/Close3cycles/WM_NULL/Agent/real ConPTY/bridge upgrade/reinstall/rollback/manual watchdog recovery PASS. Only macOS44/45 failed the150ms elapsed liveness assertion. Updated test changes only test code; native execution remains exact-source GitHub Actions pending.",
+    "nextAction": "Publish synchronized auth liveness fixture and require exact-source full9job Actions including all existing Windows rollback/Close/ConPTY gates. Verify artifact, same-source Lab and canonical closeout/main only after all pass.",
+    "sourceDigest": "3d5fe3e834be7f4421ef0a43f92f43789a34097bd70707d3e3a1e81ccfa6bf84",
     "sourceFileCount": 1662
   },
   "legacyFilesystemCleanup": {
@@ -893,6 +893,14 @@
         "result": "FAIL",
         "passed": "Node284 unit tests; standalone web validation",
         "failure": "One stale portable ownership guard expected IsExpectedWall in recovery consumers; Windows stopped at the same source assertion before compile. Guard aligned retaining ordinary strict proof and all rollback gates."
+      },
+      {
+        "runId": 42800400272,
+        "runNumber": 63,
+        "sourceCommit": "aa2be210735e070c9d7805f5f0bfb23d56dfef93",
+        "result": "FAIL",
+        "passed": "Core284/70, React125/browser170+Wall4, Linux native and complete Windows build/install/Close3cycles/WM_NULL/Agent/real ConPTY/bridge upgrade/reinstall/rollback/manual watchdog recovery PASS",
+        "failure": "macOS44/45: native auth liveness fixture exceeded a150ms wall-clock sample. Replace sample with deterministic async timer/worker release ordering; retain real installed Close3s and recovery tests."
       }
     ],
     "nextGate": "Exact-source full9job CI; never deliver failed artifact",
@@ -919,10 +927,22 @@
       "physicalOwnerAcceptance": false
     },
     "recoveryRevisionRepair": {
-      "status": "IMPLEMENTED_FULL_CI_PENDING",
+      "status": "WINDOWS_REAL_WATCHDOG_CI63_PASS_FULL_CI_PENDING",
       "selection": "bounded installed package marker revision, exact compiled product/profile; recovery-only consumer",
       "normalClient": "compiled revision strict",
-      "preserved": "fresh nonce, constant-time HMAC, exact PID/installed Node path, fixed loopback/Host/profile, known revision2/3 vectors and tamper checks"
+      "preserved": "fresh nonce, constant-time HMAC, exact PID/installed Node path, fixed loopback/Host/profile, known revision2/3 vectors and tamper checks",
+      "verifiedWindowsCI63": {
+        "sourceCommit": "aa2be210735e070c9d7805f5f0bfb23d56dfef93",
+        "runId": 42800400272,
+        "result": "PASS",
+        "manualInstallerWatchdogRollback": "PASS"
+      }
+    },
+    "authUiLivenessFixture": {
+      "status": "REPAIRED_EXACT_NATIVE_ACTIONS_PENDING",
+      "proof": "blocked worker released by independent25ms async timer;5s emergency release must not be used",
+      "removed": "150ms elapsed host scheduling assertion",
+      "unchanged": "production owner_work spawn_blocking and actual Windows3s/3cycle Close/responsiveness/Agent lifetime gates"
     }
   }
 }

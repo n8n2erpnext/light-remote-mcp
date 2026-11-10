@@ -182,3 +182,7 @@ Shared/WallListenerOwnership.TryInstalledRevision bounds and validates the insta
 ## Align recovery ownership guard with installed revision proof
 
 selftest-goldabv2-wall-listener-ownership-t11.mjs distinguishes normal GUI compiled-revision IsExpectedWall from Updater/InstallWatchdog IsInstalledWall recovery. It still asserts listener PID, exact runtime path, product/profile marker, default strict probe and explicit revision MAC proof.
+
+## Prove native auth UI liveness with synchronized worker release
+
+owner_login.rs auth_ui_liveness_tests now holds native work until an independent async timer releases it. The helper must return the timer-origin signal; emergency release fails the test. This catches inline vault/mutex blocking while avoiding a150ms elapsed threshold affected by shared-runner scheduling. Existing begin/restore/logout owner_work spawn_blocking boundary is unchanged.

@@ -1353,15 +1353,21 @@ mod tests {
 #[cfg(test)] mod auth_ui_liveness_tests {
  use super::*;
  #[test] fn pending_vault_or_mutex_does_not_block_async_window_dispatch(){
-  let (send,receive)=std::sync::mpsc::channel();
-  let release=thread::spawn(move||{thread::sleep(Duration::from_millis(250));let _=send.send(());});
+  let (release_work,wait_release)=std::sync::mpsc::channel();
+  let (timer_fired,wait_timer)=std::sync::mpsc::channel();
+  // The worker cannot finish until the async/UI timer releases it. The
+  // independent fallback bounds an inline-blocking regression without making
+  // correctness depend on a loaded CI host meeting a 150ms wall-clock sample.
+  let release=thread::spawn(move||{
+   let released_by_ui=wait_timer.recv_timeout(Duration::from_secs(5)).is_ok();
+   let _=release_work.send(released_by_ui);
+  });
   let runtime=tokio::runtime::Builder::new_current_thread().enable_time().build().unwrap();
   runtime.block_on(async{
-   let started=Instant::now();
-   let mut pending=Box::pin(owner_work(move||{receive.recv().unwrap();Ok::<_,String>(())}));
+   let mut pending=Box::pin(owner_work(move||Ok::<_,String>(wait_release.recv().unwrap())));
    assert!(tokio::time::timeout(Duration::from_millis(25),pending.as_mut()).await.is_err());
-   assert!(started.elapsed()<Duration::from_millis(150),"UI timer was blocked by native work");
-   pending.await.unwrap();
+   timer_fired.send(()).unwrap();
+   assert!(pending.await.unwrap(),"native work required emergency release before UI timer progressed");
   });
   release.join().unwrap();
  }

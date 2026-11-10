@@ -14,8 +14,8 @@
   "officialRepositoryId": 1450214328,
   "verifiedBuiltSourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
   "verifiedBuiltSourceTree": "0ef2892ae2b8ecf253e35510548a1493673d21ee",
-  "checkpointUpdatedAt": "2026-11-10T10:35:04.181Z",
-  "migrationPhase": "codex-wall-followup-recovery-guard",
+  "checkpointUpdatedAt": "2026-11-10T10:57:35.333Z",
+  "migrationPhase": "codex-wall-followup-liveness-ordering",
   "ci": {
     "status": "success",
     "runId": 42628405851,

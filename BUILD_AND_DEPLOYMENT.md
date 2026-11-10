@@ -145,3 +145,7 @@ CI61 feature/install/Close3cycle/ConPTY checks passed, but the required real man
 ## Align recovery ownership guard with installed revision proof
 
 CI62 stopped before native compilation because the portable ownership guard still required the old IsExpectedWall name for recovery. Update only that assertion and add explicit compiled/installed revision split checks. Full test:source now runs before this commit; retain real bridge/watchdog rollback, Close3cycles and ConPTY acceptance unchanged. No failed installer delivery or runtime rollout.
+
+## Prove native auth UI liveness with synchronized worker release
+
+CI63 core/web/Linux passed; macOS failed the isolated auth fixture150ms elapsed assertion. Replace elapsed sampling with causal synchronization between the async25ms timer and blocked native worker. A5s independent emergency release prevents test hangs and must never supply the successful result. Production code and actual Windows3s/3cycle Close, WM_NULL responsiveness, same Agent and real ConPTY/watchdog checks are unchanged. Native repair validation remains Actions-only. CI63 complete Windows lane later passed including real bridge/watchdog recovery, Close3cycles and packaged ConPTY. Full run remains failed due the macOS fixture only; do not deliver that failed-run installer.
