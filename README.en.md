@@ -3,311 +3,220 @@
 <p align="center">
   <img src="assets/branding/light-remote-mark.svg" alt="Light Remote MCP" width="128">
 </p>
-
 <p align="center">
-  <strong>Let ChatGPT Web and AI agents work on your machines over HTTP — without exposing inbound SSH on every target.</strong>
+  <strong>Let ChatGPT, Codex and AI agents work on your own devices over MCP — with final control retained locally.</strong>
 </p>
-
 <p align="center">
   <a href="README.md">Tiếng Việt</a> · <a href="README.en.md"><b>English</b></a>
 </p>
-
 <p align="center">
-  <img alt="Beta" src="https://img.shields.io/badge/beta-v0.9.0--rc.26-f59e0b">
-  <img alt="Windows" src="https://img.shields.io/badge/Windows-x64-2563eb">
+  <img alt="Internal candidate" src="https://img.shields.io/badge/candidate-0.10.1--dev.4-f59e0b">
+  <img alt="CI" src="https://img.shields.io/badge/CI%20%2345-9%2F9%20PASS-2e7d32">
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-one%20primary%20EXE-2563eb">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-x64%20%7C%20arm64-059669">
-  <img alt="macOS" src="https://img.shields.io/badge/macOS-Intel%20%7C%20Apple%20Silicon-555555">
-  <img alt="Transport" src="https://img.shields.io/badge/device%20transport-outbound--first-171717">
+  <img alt="macOS" src="https://img.shields.io/badge/macOS-native%20source%20tested-555555">
+  <img alt="Transport" src="https://img.shields.io/badge/MCP-direct%20HTTPS-171717">
 </p>
 
-**Light Remote MCP** is a governed remote-execution layer for ChatGPT Web, agents, and other AI models. Instead of giving an AI direct SSH access to every VPS or PC, Light Remote exposes filesystem, process, terminal PTY/ConPTY, Git, Docker, system services, and infrastructure operations through an HTTP path bound to an exact **device + session + Agent + policy**.
+**Light Remote** provides governed remote computing for AI agents: **direct HTTPS MCP, local A/B V2 approval, device-local policy, durable sessions, real PTY/ConPTY terminals, filesystem/search/process/SCP tools, Fleet and Real Remote V2 desktop interaction**.
 
-The practical goal is to replace much of the “open SSH and operate manually” workflow with an auditable AI connection that can be scoped per device, kept alive without an open terminal, and revoked.
+**The current path is direct Plugin → private Operator → authenticated outbound Device Agent. Vercel bridge is no longer needed.** Historical Vercel-related source files or dependencies may remain in the repository, but they are not a required hop in the current MCP connection.
 
-> **Beta:** `0.9.0-rc.26` is a release candidate for testing. Start with low privileges on non-critical machines before enabling terminal, sudo/UAC, package-manager, or system-service permissions.
-## Why Light Remote instead of a normal remote shell?
+> **Release scope:** `0.10.1-dev.4` is an **internal development/testing candidate**, not a public binary GitHub Release or promoted signed update feed. Passing CI does not establish physical Owner acceptance. See [Current status](#current-status) before upgrading any installed system.
 
-- **No inbound SSH requirement on leaf clients.** Windows/Linux/macOS agents maintain an outbound-first device channel to the Hub.
-- **No terminal needs to stay open.** Windows runs a background Agent behind the tray app, Linux uses systemd, and macOS uses launchd.
-- **Real PTY/ConPTY.** Agents can keep an interactive shell, send Ctrl-C, resize terminals, and run installers, TUIs, or curses applications.
-- **Local Wall is the final local authority.** You can see sessions, jobs, command/output, PTY operations, A/B pairing, and choose `Safe / Developer / Infra / Full / Custom` permission profiles.
-- **Fleet never silently jumps to another machine.** Every operation is bound to an exact target; offline or denied targets fail closed.
-- **Signed updates with rollback.** Manifests are signed, artifacts are checked by SHA-256/size, and the independent Updater Helper health-checks a new Core before committing it.
-- **Agents get a canonical tool contract.** Connection Helper handles pairing/context and Tool Helper tells the Agent when to use filesystem, search, process, PTY, exec, SCP, or durable jobs.
+## Why Light Remote instead of a conventional remote shell?
 
-## Architecture at a glance
+- **Local-first authority:** Owner OAuth login does not grant AI device execution rights. Device-specific A/B approval and effective local policy are separate checks.
+- **Outbound-first Agent:** Windows/Linux/macOS devices connect outward; leaf devices do not need inbound SSH exposed to AI.
+- **Exact target routing:** Jobs are bound to the chosen device/session/Agent; an offline or denied target never silently falls back to a different device.
+- **Durable work:** Recover process, session and job output across requests without rerunning a previous operation.
+- **Real terminals and desktop:** PTY/ConPTY, semantic/live Real Remote V2 observation and bounded UI input are distinct permissions, not shell emulation.
+- **Visibility and revocation:** Local Wall shows activity, sessions and approvals and keeps final policy denial at the device.
+- **Controlled updates:** Independent updater/helper, signed manifests, SHA-256 checks, health gates and rollback. The new candidate's public feed is **on hold**.
+
+## Architecture at a glance — direct, without Vercel
 
 ```text
-ChatGPT Web / Agent / AI model
-            |
-            | HTTPS
-            v
-      Vercel bridge
-            |
-            v
-   Light Remote Server / Hub
-     session · policy · audit
-            |
-     +------+------+------+
-     |             |      |
-   Main         Windows  Linux/macOS
-   Host          leaf      leaf
+ChatGPT / Codex / compatible MCP client
+              |
+              | OAuth / HTTPS Streamable HTTP
+              v
+    Public Light Remote Plugin
+          POST /mcp
+              |
+              | private Unix socket
+              v
+      Light Remote Operator
+      identity / A-B grants / sessions
+          |              |
+     PostgreSQL 17     Redis 8
+       durable       coordination
+              |
+              | signed enrolled outbound channel
+              v
+      Exact authorized Device Agent
+      Windows / Linux / macOS
+              |
+      Local Wall (final deny)
+      files · search · exec · PTY · process · SCP
+      Real Remote V2 · optional modules
 ```
 
-**Vercel is only a thin HTTP bridge.** The durable Hub remains on your Linux Server/VPS. Device clients connect outbound to the Hub; Vercel does not hold private device keys or the private update-signing key.
+- The current [`mcp.json`](mcp.json) declares **`https://light-remote.thaiduy.digital/mcp`** as the public Streamable HTTP MCP endpoint.
+- [`plugin-server/server.mjs`](plugin-server/server.mjs) handles OAuth, tool exposure and `POST /mcp`. It rejects `GET/DELETE /mcp` rather than offering a stateful HTTP session API.
+- [`plugin-server/operator-client.mjs`](plugin-server/operator-client.mjs) calls the Operator over a **private Unix socket**, without a Vercel proxy hop.
+- [`operator-host/`](operator-host/), [`device-agent/`](device-agent/), [`client/`](client/) and PostgreSQL/Redis implement authority, durable state and remote execution.
+- [`config/endpoints.json`](config/endpoints.json) is a package endpoint/profile declaration, **not evidence that every listed profile or route is deployed or enabled**.
+- Owner Desktop V4 retains native credential storage/PKCE and a separate read-only Owner scope. Owner `desktop:read` is not an Agent execution grant.
+
+See [Architecture](ARCHITECTURE.md) and [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md) for source ownership and trust boundaries.
+
 ## What an Agent can do
 
-| Area | Current capability |
+| Tool family | Capability |
 | --- | --- |
-| Filesystem | structured read/write/edit/stat/list/mkdir/copy/move/delete |
-| Search | recursive file/content search with paging |
-| Git / build | repositories, diffs, branches, build and test within policy |
-| Exec | bounded one-shot shell/PowerShell/zsh with timeout and capability inference |
-| Process | long-running stdin/stdout processes with incremental output and independent stop |
-| Terminal | PTY on Linux/macOS, ConPTY on Windows; input/output/resize/Ctrl-C/terminate/kill |
-| File transfer | SCP-style large/binary upload/download with per-chunk and whole-file SHA-256 checks |
-| Infrastructure | Docker, LXD, systemd, Windows Services/Registry/Tasks/Firewall, macOS launchd/log where supported and allowed |
-| Durable work | jobs can outlive one HTTP response; output can be fetched later |
-| Multi-device | Fleet Wall, Main device, leaf routing, per-device policy and update orchestration when entitled |
+| Files | Bounded list/read/write/edit/stat/move/delete |
+| Search | Search paths or contents with paginated results |
+| Git and development | Inspect repositories, run build/tests if policy allows |
+| Exec | One-shot shell/PowerShell/zsh commands with timeouts |
+| Processes | Managed stdin/stdout, progress offsets and stop |
+| Terminal | Real Linux/macOS PTY or Windows ConPTY, signals and resize |
+| Transfer | Chunked, resumable, SHA-256-verified SCP |
+| Jobs | Durable work and output recovery |
+| Fleet | Exact-device selection/routing and per-device policy |
+| Real Remote V2 | Semantic/live desktop observation and bounded input |
+| Optional modules | Long Memory, Codex Bridge and activity history, subject to actual enablement |
 
-### PTY/ConPTY when the Agent needs a real terminal
+**Implemented source does not mean enabled production functionality or physical acceptance.** Read [Feature Status](FEATURE_STATUS_MATRIX.md) and [Known Issues](KNOWN_ISSUES.md).
 
-Light Remote does not fake terminal behavior through `exec`. `terminal-*` creates a real PTY/ConPTY, keeps ownership bound to account/device/session/Agent, and supports:
+### Real PTY/ConPTY, not a fake terminal
 
-```text
-start → input → output → resize → signal → list → stop
-```
+Terminals can keep interactive shells and TUI applications alive, receive typed input, resize, handle Ctrl-C and stream output. Terminal privileges must be granted separately by the device policy.
 
-Because raw terminal input runs with the service-account authority and cannot be inferred command-by-command like `exec`, the `terminal` capability is **not included in Safe/Developer by default**. Enable it intentionally with `Infra`, `Full`, or `Custom` on the Wall.
+## Device Wall — device-side permissions and history
 
-## Device Wall — permissions and history stay on your side
+<p align="center">
+  <img src="assets/screenshots/device-wall-demo.png" alt="Local Device Wall" width="760">
+</p>
 
-![Light Remote Device Wall demo](assets/screenshots/device-wall-demo.png)
+Local Wall belongs to a particular device. It exposes A/B pending approval, sessions, work activity and effective policy. Closing the Wall UI does not automatically stop the Agent or revoke all sessions.
 
-Device Wall is the local control/observer surface for **one machine**. It shows cloud state, lease, session lanes, Agent, cwd, command/output, PTY operations, and the live operator stream. Closing the Wall does not stop the service, cloud lease, Agent session, or durable jobs.
-### Local Device Policy
+<p align="center">
+  <img src="assets/screenshots/permissions-demo.png" alt="Local Device Policy" width="760">
+</p>
 
-![Light Remote Local Device Policy demo](assets/screenshots/permissions-demo.png)
+Execution requires the intersection of hardware/runtime capabilities, approved account/device grants and **device-local policy**. A broad profile does not automatically imply sudo/UAC. Device-local denial remains final.
 
-Policy is applied fail-closed:
+## Fleet Wall — many devices, one exact target per operation
 
-```text
-Main device = device-supported capabilities ∩ Local Wall policy
-Fleet leaf  = device-supported capabilities ∩ server-approved policy ∩ Local Wall policy
-```
+The Main/Fleet model supports account-owned devices, their online/offline status, per-device authority and sessions, subject to entitlements and deployed features. Pairing with one machine does **not** authorize another machine. Offline/expired/denied targets fail rather than silently rerouting a command.
 
-Local Wall always keeps the **final deny**. `Infra` does not automatically mean sudo/UAC; elevated capabilities remain separately governed.
+## The three Helpers
 
-## Fleet Wall — many machines, still exact-target
+### 1. Connection Helper — A/B V2
 
-When Fleet entitlement is enabled, one Main device can manage multiple leaf devices in the same account. Fleet provides device presence, Main-device authority, exact `deviceId/nodeId` routing, per-leaf policy/revocation, and signed client-update orchestration.
+1. Open the **Local Wall of the intended target device** and obtain its one-time **A code**.
+2. Give that A code to the official Light Remote plugin's `light_remote_connection_helper`.
+3. The helper responds `approval_required` with a **B code**.
+4. On the **same Local Wall**, enter B at `/approve` and select **Approve**.
+5. After the Owner approves, call the helper again **without reusing A**. Only the `ready` response authorizes working with that exact returned device/session context.
 
-An offline, draining, or denied leaf never silently falls back to another machine. Fleet Wall itself is a **separately signed component**; Fleet, Core, and branding versions are not treated as one version plane.
+Owner OAuth by itself cannot skip A/B device authorization. Never post private continuation tokens, device keys or session capabilities in issues or chat examples.
 
-## The three Helpers users and Agents will see
+### 2. Tool Helper — choose the correct tool
 
-### 1. Connection Helper
+After `ready`, use dedicated files/search tools for structured operations, exec for one-shot commands, process/job for longer work, terminal for real PTY/ConPTY, transfer for binary files and desktop tools for Real Remote V2. Do not force every task through a raw shell.
 
-Connection Helper turns pairing into a short A/B flow instead of asking users to handle long tokens:
+### 3. Updater Helper — independent recovery
 
-1. Local Wall creates a short-lived **A code**.
-2. ChatGPT/Agent submits A to `connection-helper` through Vercel.
-3. The server returns a **B approval** bound to the exact Wall/device that created A.
-4. The device owner reviews and approves B on that Wall.
-5. The Agent polls again, receives `READY`, exact device/session context, and a private opaque client capability.
+Independent helpers validate signed update manifests and artifact hashes, stage a candidate, check health and roll back on failure. Historical `0.9.x` manifests are **not** a signed public feed for `0.10.1-dev.4`.
 
-Opaque client/continuation values must remain private to the Agent runtime. Every additional device must be paired independently.
-### 2. Tool Helper
+## Quick start — the direct MCP path
 
-Immediately after `READY`, the Agent loads Tool Helper. It describes the platform, shell modes, workspace, and canonical tool contract so the Agent can select the right mechanism:
+**Current availability:** this README documents the internal development candidate. It is **not** a claim of a ready-made public one-command production self-host installer.
 
-- `fs` for structured file/text work;
-- `search` for recursive discovery;
-- `terminal-*` only when true PTY/ConPTY is needed;
-- `process-*` for long-running non-TTY work;
-- `exec` for bounded one-shot shell work;
-- `scp` for large or binary files;
-- `job/output` when work outlives one HTTP response.
+### Step 1 — use the official source and verified candidate
 
-Tool Helper also preserves exact `deviceId + sessionId + agentId` context to reduce accidental cross-device execution.
+- Official source: [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp).
+- Historical reference only: [light-remote-mcp-archive-20261108](https://github.com/n8n2erpnext/light-remote-mcp-archive-20261108). Its Vercel/RC26 instructions are obsolete.
+- Windows internal candidate: `0.10.1-dev.4`, compiled source `947a117`, [CI #45 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851), [internal Actions artifact](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851/artifacts/13679554745). **Not a public release.**
+- Windows now packages **one primary `LightRemote.exe`**, while Node, Real Remote V2, private .NET framework DLLs and updater/recovery helpers remain separate. Older incompatible helpers must take the [pinned compatibility bridge](config/windows-core-migration.json).
+- Linux/macOS native source checks passed CI, but full current-source installers are not yet verified as built.
 
-### 3. Updater Helper
+Read [Build and Deployment](BUILD_AND_DEPLOYMENT.md) and verify manifest/hash evidence before running a candidate.
 
-Updater Helper is independent from Core. It verifies the signed manifest, artifact SHA-256/size, stages the new Core, performs a health check, and only then commits the update. If health fails, it can roll back instead of leaving the machine without a recovery path.
+### Step 2 — direct Plugin/Operator service
 
-## Quick start for low-tech users
+The intended path is **HTTPS reverse proxy → Plugin `/mcp` → private Operator Unix socket → PostgreSQL/Redis → enrolled outbound Agent**. **No Vercel account/project/deployment or legacy `VPS_MCP_*` environment variables are required.**
 
-You need a GitHub account, a Vercel account, one Linux x64/arm64 VPS for the **Server/Hub**, an HTTPS domain/subdomain pointing to that Hub, at least one Windows/Linux/macOS client, and ChatGPT Web or another AI client that can call the HTTP bridge.
+Developers should inspect [plugin config](plugin-server/config.mjs), [Architecture](ARCHITECTURE.md), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md) and [Build/Deployment](BUILD_AND_DEPLOYMENT.md). Expose only the intended public HTTPS routes. Never expose private Operator sockets, PostgreSQL, Redis, Local Wall or credential files to the Internet.
 
-> The simplest starting layout is **Linux VPS as Hub + Vercel as bridge + Windows as client**.
+### Step 3 — install/link the target
 
-### Step 1 — download the Beta from Releases
+Install an Owner-authorized build appropriate for the device, complete its native Owner/device linking and confirm the Agent is connected. Open the device's **Local Wall**. In the bundled lab profile, Wall is on `127.0.0.1:5491` and Fleet Wall on `5492`; these are local services, not public endpoints. The Windows client includes GUI/tray and a background Agent; other platform packaging depends on the verified build.
 
-Open [GitHub Releases](https://github.com/n8n2erpnext/light-remote-mcp/releases) and choose the latest release candidate. For `v0.9.0-rc.26`, the main assets are the Linux Server x64/arm64 bundles, Windows full/compact installers, Linux `.deb` or tar client packages, macOS `.pkg` installers, the exact Vercel bridge bundle, and `SHA256SUMS.txt`.
-### Step 2 — install the Linux Server / Hub
+### Step 4 — approve an AI client
 
-Extract the matching server bundle on the VPS. Example for arm64:
+Connect the official Light Remote plugin to ChatGPT/Codex or another supported client. Generate A at the target Wall, pass it to the helper, enter B on that **same Wall**, then resume the helper until `ready`. You may then ask for source inspection, builds, Docker checks, a PTY session, SHA-verified file transfer or allowed Real Remote V2 UI operations.
 
-```bash
-mkdir -p ~/light-remote && cd ~/light-remote
-tar -xzf Light-Remote-MCP-Server-Linux-arm64-0.9.0-rc.26.tar.gz
-cd package
-```
+### Step 5 — add another device
 
-The Hub requires Docker Compose v2. On Debian/Ubuntu, `--install-deps` can install supported prerequisites.
+Enroll and approve A/B separately for each additional target. One session never silently grants a whole Fleet.
 
-Create a public HTTPS URL such as `https://mcp.example.com` and reverse-proxy it to the Hub MCP listener. Use Caddy, Nginx, Cloudflare Tunnel, or another reverse proxy you already trust; Light Remote does not implicitly publish Wall to the Internet.
+## Updates, rollback and releases
 
-Install the Hub with a normal non-root executor user:
+The update architecture supports signatures, SHA-256/size integrity, health-gated promotion and rollback. Scope matters:
 
-```bash
-sudo ./install.sh \
-  --user ubuntu \
-  --vercel-team YOUR_VERCEL_TEAM_SLUG \
-  --vercel-project light-remote-mcp \
-  --public-mcp-url https://mcp.example.com \
-  --install-deps
-```
+- **CI PASS:** Source and exact Windows install/reinstall/migration/rollback/watchdog/uninstall tests passed; this is not blanket live deployment proof.
+- **Internal Lab deployment:** Plugin/Operator services were verified running a pinned source, not a general production rollout.
+- **Physical Owner acceptance:** still pending for the exact dev.4 Windows installer.
+- **Public binary release and new signed feed:** **NOT PUBLISHED**; legacy signed `0.9.x` metadata remains historical.
 
-The installer prints **`Vercel OPERATOR_PUBLIC_KEYS_JSON value:`**. Copy that public JSON for the Vercel step. The private operator key stays on the Hub.
-Defaults are:
-
-```text
-MCP listener  127.0.0.1:8080
-Wall          127.0.0.1:8081
-Server files  /opt/light-remote-mcp/server
-Config        /etc/light-remote-mcp
-State         /var/lib/light-remote-mcp
-```
-
-Keep a remote VPS Wall private. Either bind it to a private VPN address such as NetBird/Tailscale with the matching `--wall-url`, or keep localhost and use an SSH local forward only when you need owner approval.
-
-### Step 3 — deploy the Vercel bridge
-
-The lowest-friction path is to fork this repository and import the fork into Vercel:
-
-1. Choose **Add New → Project** in Vercel.
-2. Import your `light-remote-mcp` fork.
-3. Keep Root Directory at the repository root.
-4. Add these variables to both **Production** and **Preview**:
-
-```text
-VPS_MCP_BASE=https://mcp.example.com
-VPS_MCP_URL=https://mcp.example.com/mcp
-VPS_MCP_AUDIENCE=https://mcp.example.com
-OPERATOR_PUBLIC_KEYS_JSON={public JSON printed by the Hub installer}
-```
-
-Deploy and keep the Vercel URL, for example `https://your-light-remote.vercel.app`. The Vercel team slug and project name must match the values given to the Server installer because the Hub verifies Vercel OIDC identity.
-You can also deploy the exact `Light-Remote-MCP-Vercel-Bridge-0.9.0-rc.26.tar.gz` release bundle instead of forking the full repository. See [`deploy/vercel/README.md`](deploy/vercel/README.md).
-
-### Step 4 — install a client
-
-#### Windows x64 — easiest path
-
-1. Download and run `Light-Remote-MCP-Setup-x64-0.9.0-rc.26.exe`.
-2. Open Light Remote MCP.
-3. Open **Server settings…** and enter:
-
-```text
-Vercel bridge URL: https://your-light-remote.vercel.app
-Server / Hub URL:  https://mcp.example.com
-```
-
-4. Click **Enroll device**. The app creates a code and opens the approval page in your browser.
-5. Sign in and approve the exact device shown.
-6. When linked, switch **Connect** on if the app has not already connected.
-
-You may close the main app window afterwards. The tray/background Agent remains alive; no PowerShell window needs to stay open.
-
-#### Linux x64 / arm64
-
-Download `install-linux-client.sh` and run:
-
-```bash
-chmod +x install-linux-client.sh
-./install-linux-client.sh \
-  --base-url https://your-light-remote.vercel.app \
-  --hub-url https://mcp.example.com
-```
-Without `--bundle`, the Linux installer reads the signed Beta manifest, verifies its signature, selects x64/arm64, verifies SHA-256/size, and installs the package. If the device is not enrolled yet, the installer starts the approval flow during first install.
-
-When installation finishes, the terminal can be closed: systemd keeps the Agent alive, signed update availability is checked periodically, and Local Wall defaults to `http://127.0.0.1:5491/`.
-
-#### macOS Intel / Apple Silicon
-
-Download the matching `.pkg` (`x86_64` or `arm64`), install it, then use the Light Remote menu bar flow: **Sign in / Link device… → Open Local Wall → Connect**.
-
-Beta macOS packages may depend on external Apple signing/notarization credentials in the release pipeline. If macOS does not trust a package, verify its checksum and release provenance rather than disabling Gatekeeper for an unverified binary.
-
-### Step 5 — connect ChatGPT Web to the exact machine
-
-In a chat where the **official Light Remote plugin** is connected, open **Local Wall** on the exact machine you want the Agent to use, reveal/copy the **A code**, then send the capsule generated by Wall. It looks like:
-
-```text
-Light Remote connection request
-A code: ABCD-EFGH
-Agent instructions - execute immediately:
-
-1. Use the connected official Light Remote plugin directly.
-2. Call light_remote_connection_helper immediately with this A code.
-3. Do NOT enumerate devices, inspect account topology, or run preflight checks before pairing.
-4. If the helper returns approval_required, show only the B code to the owner and wait.
-5. The owner must enter B at this same Local Wall /approve and choose Approve.
-6. After approval, call light_remote_connection_helper again with no A code and no continuation. The server recovers the in-progress pairing for this exact account + agent.
-7. Keep continuation, session capabilities, and internal identifiers private.
-8. Continue only after the helper returns ready for this target device.
-```
-
-The Agent must follow official Connection Helper responses rather than inventing protocol calls: a valid A produces `approval_required` and B; approve B on the same Wall; after owner confirmation the Agent calls `light_remote_connection_helper` again without reusing the A code. Server-side recovery resumes the exact account + agent pairing, and only `ready` authorizes the target. The continuation argument remains supported for backward compatibility. The ready response includes the working context/session and an index-only tool-family menu. Detailed syntax is loaded only when needed with `helperGroup=workspace|files|shell|transfer|desktop`.
-
-From there you can ask naturally: “inspect this repo and fix the failing test”, “check Docker on the VPS”, “open a terminal for this TUI”, “copy this file to the Windows machine”, or “follow the build process”.
-
-> Do not manually paste continuation/session capabilities into chat. They are short-lived internal capabilities for the Agent runtime.
-### Step 6 — add another machine
-
-Install/enroll/Connect Light Remote on the new machine, create a fresh **A code on that machine's Wall**, and perform an independent A/B pairing. There is no pre-auth fleet discovery: an Agent only sees devices the owner has explicitly authorized into that Agent client.
-
-## Updates and Force Update
-
-Clients use the signed Beta channel under `channels/beta/`. An update is accepted only when the manifest signature is valid, version policy rejects unsafe rollback/sidegrade, the HTTPS artifact matches SHA-256/size, and the new Core passes its health gate.
-
-- Local Wall exposes **Check now / Update now** for independent-updater clients.
-- Account/Fleet control can send **Force update** to an outdated client through an authenticated helper lane.
-- Windows/Linux/macOS keep the updater independent from Core so a broken Core does not destroy the recovery path.
-- Server/Hub uses a separate deployment plane; server Wall does not install a client package into the Host.
+Do not republish old release URLs or promote public update feeds without deliberate Owner approval and fresh verification.
 
 ## Security model
 
-Light Remote is not “HTTP as unrestricted root SSH”. Its main trust layers include Vercel OIDC, per-device Ed25519 identity, signed heartbeat/outbound traffic, one-time A/B pairing, session/job ownership, device-side capability inference, local final-deny policy, a separate terminal capability, signed updates, artifact integrity checks, and rollback.
+OAuth/Owner scopes are separate from device-level AI execution. A/B approval is one-time and device-bound; server/device checks bind operations to account, Agent, session and exact target. Device-local final policy, capability inference, signed enrolled channels, private Unix socket transport and separately controlled PTY/desktop permissions reduce unauthorized execution paths.
 
-Private device keys and the private update-signing key are not sent in client payloads or stored in Vercel/GitHub Actions. Read [`SECURITY.md`](SECURITY.md) before exposing a Hub/Wall or granting elevated capabilities.
+- Local browser Wall SSO backend exists and has scoped tests, but full native Agent/browser bootstrap is **not complete**.
+- Guest/Pro Share, restored prototype modules and full current-source Linux/macOS installers retain documented gaps.
+- Review [SECURITY.md](SECURITY.md), [Feature Status](FEATURE_STATUS_MATRIX.md) and [Known Issues](KNOWN_ISSUES.md). Keep signing material, Owner tokens and local state out of Git/logs.
 
-## For developers and testers
+## Developers and repository governance
 
-Public `main` keeps the current code and release contracts clean. Pre-Beta handoffs/plans are frozen on [`before-beta`](https://github.com/n8n2erpnext/light-remote-mcp/tree/before-beta).
-- Development/test guide: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
-- Repository lanes: [`REPO_LANES.md`](REPO_LANES.md)
-- Vercel bridge: [`deploy/vercel/README.md`](deploy/vercel/README.md)
-- Host executor: [`operator-host/README.md`](operator-host/README.md)
-- Signed Beta channel: [`channels/beta/README.md`](channels/beta/README.md)
-- Release notes: [`docs/releases/`](docs/releases/)
+The official Git SSH remote on VPS-ARM is `git@github.com:n8n2erpnext/light-remote-mcp.git`.
 
-Quick validation:
+- The single Owner-authorized development branch is **`work`**; `main` is protected and requires `baseline-required` before fast-forward promotion. No new branches, force pushes or relaxed protections without Owner permission.
+- Newly created Light Remote development paths on VPS-ARM must stay under `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/`. The current development checkout is `implementation-20261108/single-primary-exe`; conversion and archive are reference sources.
+- Every commit atomically updates the sole [Master Checkpoint](MASTER_CHECKPOINT.json), [Handoff](PROJECT_HANDOFF.md), [Worklog](docs/project-book/LIGHT_REMOTE_WORKLOG.md) and generated docs status. The commit-sync hook and CI enforce this.
+- Read [Project Truth](PROJECT_TRUTH.md), [Project Book](docs/project-book/README.md), [Code Map](docs/project-book/LIGHT_REMOTE_CODE_MAP.md) and [Build and Deployment](BUILD_AND_DEPLOYMENT.md).
+
+Portable development validation (Node 22 and suitable DEV dependencies):
 
 ```bash
-npm ci
+npm ci --ignore-scripts
+npm run check:truth
+npm run check:docs
 npm test
-# only on a real Linux host with the matching systemd/runtime environment
-npm run test:host
 ```
 
-## Beta status
+Native Windows builds and acceptance require clean exact GitHub commit CI; running portable tests locally is not equivalent to a verified physical installer.
 
-`v0.9.0-rc.26` is the current Beta prerelease. Windows x64, Linux x64/arm64, macOS Intel/Apple Silicon, Linux Server, and the Vercel bridge have separate build lanes; the active signed client-update channel currently points to RC26.
+## Current status
 
-Light Remote remains pre-stable software. Test with low privileges first, back up important data, and only enable terminal/sudo/UAC/system-service permissions when you understand the Agent's authority boundary.
+| Component | Verified scope |
+| --- | --- |
+| Windows Desktop | Internal `0.10.1-dev.4`; one primary `LightRemote.exe`; native installed lifecycle CI PASS |
+| CI | [#45](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42628405851) **9/9 PASS**, React 121, consent/token 36, browser 170, private backend 25 and native Windows migration/rollback |
+| Internal Plugin / Operator | Same pinned source `947a117` deployed and health-checked in internal Lab |
+| PTY / Fleet / Real Remote | Source and scoped historical/CI evidence; physical cross-device proof for this candidate remains separate |
+| Owner physical dev.4 | **PENDING** |
+| Current Linux/macOS full installers | **NOT VERIFIED BUILT** (native source tests passed) |
+| Public binary Release / signed dev.4 feed | **HOLD / NOT PUBLISHED** |
+| Local browser Wall SSO, Guest and restored modules | **INCOMPLETE** |
+
+For exact evidence see [dev.4 acceptance](docs/evidence/desktop-user-experience/ACCEPTANCE.json), [Build manifest](docs/evidence/desktop-user-experience/BUILD_MANIFEST.json) and [Known Issues](KNOWN_ISSUES.md).
 
 ## License
 
-Apache-2.0. See [`LICENSE`](LICENSE), [`NOTICE`](NOTICE), and [`THIRD_PARTY_DISTRIBUTION_NOTICES.md`](THIRD_PARTY_DISTRIBUTION_NOTICES.md).
+Apache-2.0 — see [LICENSE](LICENSE), [NOTICE](NOTICE) and [THIRD_PARTY_DISTRIBUTION_NOTICES.md](THIRD_PARTY_DISTRIBUTION_NOTICES.md).

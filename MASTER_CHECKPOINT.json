@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-09T14:22:27.978Z",
+  "updatedAt": "2026-11-10T03:04:21.780Z",
   "version": "0.10.1-dev.4",
   "phase": "DESKTOP_USER_EXPERIENCE_INTERNAL_CANDIDATE_ACCEPTED",
   "status": "DESKTOP_UX_IMPLEMENTED_CI45_PASS_INTERNAL_ARTIFACT_VERIFIED_LAB_DEPLOYED",
@@ -363,11 +363,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261109-desktop-ux-ci45-verified-closeout",
-    "status": "DONE_CI45_INTERNAL_ARTIFACT_AND_LAB_VERIFIED_OWNER_PHYSICAL_PENDING",
-    "summary": "All nine Desktop routes and login/link/confirm/consent now use task-oriented user presentation. B overlap/table spacing fixed, friendly activity first, filters and bounded history, technical metadata on demand. Exact dev.4/source947a117 CI45 PASS9/9, installer/manifests verified on ARM and locally, same-source internal Lab Operator/Plugin/consent deployed with retained state and independent processes. No public release/feed or Owner installation change.",
-    "verification": "CI45/42628405851 source947a11763161aca6856ffc1e8e18dc8fc446ede7 tree0ef2892ae2b8ecf253e35510548a1493673d21ee PASS9/9. React121, consent/token36, browser170 (132 populated+8 dialogs+30 entry/unavailable; synthetic only), real backend25 including both B flows and native API. Windows installed GUI/private CLR/idempotent Start/Agent restart/real bridge/reinstall/rollback/watchdog/uninstall; Mac/Linux native source PASS. Installer SHA256a59e94e98c2581def5a9f622a3551e57a9ecc2071f7994f5a30db3850729ad5e, bytes167128810, artifact13679554745; ZIP/source/profile/run/one-primary identity independently verified twice. Internal Lab private/public health/api PASS, unauthenticated snapshot401, persisted counts equal and Agent/Wall/supervisor/mTLS PIDs/dependency graph/home ACL unchanged. No SQL migration. Physical dev.4 Owner acceptance NOT_RUN; prior dev.3 functional report is not transferred.",
-    "nextAction": "Owner installs the exact internal dev.4 artifact and validates all screens, feature actions and a fresh B on their physical PC. Retain old source/runtime/recovery, continue on permanent work and keep public release/feed HOLD.",
+    "taskId": "20261110-direct-mcp-readme-refresh",
+    "status": "DOCS_REWRITTEN_LOCAL_VERIFIED_CI_PENDING",
+    "summary": "Rewrite README.md and README.en.md to archive-style public product documentation grounded in current 0.10.1-dev.4 unified source, direct HTTPS MCP Plugin/Operator over Unix socket, no Vercel bridge dependency, correct one-primary Windows app, A/B V2, Fleet/PTY/Real Remote and precise internal-only build limitations. No executable/runtime/SQL/Owner machine changes.",
+    "verification": "Read main and work refs, mcp.json, plugin-server/server.mjs, operator-client.mjs, ARCHITECTURE.md, Code Map, endpoint catalog, Feature Status, Known Issues, installed-candidate CI45, and archived README. Local git diff --check and local relative Markdown link verification PASS. Existing pinned source947a117 CI45 9/9 remains historical evidence for compiled dev.4; this README commit has not rebuilt native artifacts and has no physical Owner acceptance.",
+    "nextAction": "Finish same-commit truth/docs/staged gate checks; commit/push on work; verify baseline-required and fast-forward to protected main only after success, with no production or feed promotion.",
     "sourceDigest": "98fd17c91f46f5be46e931427c46e25b1043d2e830ae260cb90f3af705d7134f",
     "sourceFileCount": 1646
   },
