@@ -129,3 +129,7 @@ Follow-up CI57 stopped at stale SSO heading and catalog revision-vector fixtures
 ## Defer Windows close hide beyond callback and preserve installed responsiveness checks
 
 CI58 built and installed the dev5 one-primary package but failed the real WM_CLOSE3cycle gate; no artifact from it is accepted. Retain the original3s deadline and all Agent/singleton checks. The installed test additionally records bounded native-close.json/WM_NULL responsiveness on every cycle. Native builds remain Actions-only.
+
+## Restore singleton window through owning Tauri runtime to synchronize visibility
+
+CI59 failed second Close after shortcut reopen while responsive; no failed candidate accepted. Keep <=3s hide,3cycles, same GUI/background Agent and WM_NULL checks. Require native show event and <=3s asynchronous restore before subsequent Close; the Close deadline is unchanged. Native builds remain Actions-only.

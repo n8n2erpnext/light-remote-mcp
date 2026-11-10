@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T09:08:41.422Z",
+  "updatedAt": "2026-11-10T09:32:33.483Z",
   "version": "0.10.1-dev.5",
-  "phase": "codex-wall-followup-native-close-repair",
-  "status": "INSTALLED_CLOSE_FAILURE_REPAIRED_NATIVE_CI_PENDING",
+  "phase": "codex-wall-followup-singleton-visibility",
+  "status": "SINGLETON_VISIBILITY_SOURCE_REPAIRED_NATIVE_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -272,7 +272,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Run exact repaired source full Actions without skipping Close or relaxing deadline; verify native ConPTY and installer/source hashes; only after full success prepare same-source internal Lab with rollback, then close docs/checkpoint and protected main.",
+  "nextAction": "Complete full exact-source Actions without bypass, verify actual Close/reopen3cycles and packaged ConPTY plus installer/source/hash/manifests; only then same-source Lab and final docs/main promotion.",
   "receiptNote": "Compiled source947a117/CI45/internal artifact are pinned independently from this documentation receipt. The receipt does not rebuild the installer. No new public Release/feed or Owner installation change. Source publication uses normal protected work-to-main fast-forward after checks.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -363,12 +363,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261110-codex-wall-followup-deferred-close",
-    "status": "INSTALLED_CLOSE_FAILURE_REPAIRED_NATIVE_CI_PENDING",
-    "summary": "CI58 reproduced Owner X failure on the actual installed native GUI. Defer window.hide to the existing blocking-worker runtime after prevent_close so the window-event callback returns before visibility/focus processing. Preserve the same3s,3cycle Close/reopen test and add a bounded WM_NULL responsiveness receipt and failure diagnostics. Also include the missing canonical font-face CSS in the retained Gateway OAuth renderer.",
-    "verification": "CI58 core PASS284/284 plus70 suite entries and PostgreSQL/Redis; native build/layout/install PASS then actual Close FAILED. Local PowerShell parser, one-primary native contract and Gateway syntax PASS. Published Tauri runtime source shows close listener lock and synchronous same-thread hide dispatch; reentrant visibility/focus is the source-based diagnosis, not a captured native stack. Full repaired native/installed test remains required.",
-    "nextAction": "Run exact repaired source full Actions without skipping Close or relaxing deadline; verify native ConPTY and installer/source hashes; only after full success prepare same-source internal Lab with rollback, then close docs/checkpoint and protected main.",
-    "sourceDigest": "59789e4a6d3dbe9685940de9dd0d68077130e7efe9d53a41cddbf77cdbcb71a2",
+    "taskId": "20261110-codex-wall-followup-singleton-visibility",
+    "status": "SINGLETON_VISIBILITY_SOURCE_REPAIRED_NATIVE_CI_PENDING",
+    "summary": "CI59 narrowed X failure to the second Close after shortcut restore: UI responsive, native window visible, process alive. Secondary used raw ShowWindow while Tao cached VISIBLE=false, so hide became a no-op. A fixed OS-user/session native auto-reset show event now lets the existing GUI restore through its owning Tauri worker. Background relaunch never signals. Raw Win32 restore remains only for old compatibility binaries. No Agent/session/authorization change.",
+    "verification": "Local one-primary native source contract and PowerShell parser PASS. Pinned Tao0.37.2 visibility cache/apply_diff no-op matches CI59 Close0 PASS then Close1 visible+responsive. Actual installed3cycle <=3s hide/WM_NULL assertions remain; asynchronous restore has bounded3s wait and required native event existence. Full repaired CI and ConPTY remain pending.",
+    "nextAction": "Complete full exact-source Actions without bypass, verify actual Close/reopen3cycles and packaged ConPTY plus installer/source/hash/manifests; only then same-source Lab and final docs/main promotion.",
+    "sourceDigest": "1ddd76e02fa8ca85fb050456eba67d75d9e560685e1666c74fe6a594649e8a05",
     "sourceFileCount": 1662
   },
   "legacyFilesystemCleanup": {
@@ -852,22 +852,30 @@
         "runNumber": 57,
         "sourceCommit": "25fc208b9f8cace90f1e96300b15609a43ea690f",
         "result": "FAIL",
-        "failure": "Stale Desktop V4 presentation assertion and revision2 HMAC fixture applied to current revision3; repaired without weakening security validation."
+        "failure": "Stale Desktop V4 and revision2 HMAC expectations; repaired retaining revision2/tamper coverage."
       },
       {
         "runId": 42760608591,
         "runNumber": 58,
         "sourceCommit": "8959681e3696c0ade25a7f798ff14be3dddc79ad",
         "result": "FAIL",
-        "core": "PASS284 Node tests,70 suite entries and PostgreSQL/Redis integration",
-        "failure": "Actual installed WM_CLOSE did not hide within unchanged3s deadline; browser matrix cancelled after Windows failure. No accepted artifact or runtime rollout."
+        "core": "PASS284 Node tests,70 suite entries and backend integration",
+        "failure": "Actual installed Close failed; no accepted artifact or runtime rollout."
+      },
+      {
+        "runId": 42788237266,
+        "runNumber": 59,
+        "sourceCommit": "d6f8eb875a30b081c1b9a3ab1969a44f92bb61e7",
+        "result": "FAIL",
+        "passed": "Core/integration/browser/Linux/macOS; Windows build/install and Close0",
+        "failure": "Close1 after shortcut restore visible=true, responsive=true, guiExited=false; reentrancy-only repair insufficient."
       }
     ],
-    "nextGate": "Exact repaired source full nine-job CI and internal artifact verification",
+    "nextGate": "Exact-source full9job CI; never deliver failed artifact",
     "nativeClose": {
-      "sourceRepair": "Defer hide after prevent_close on the existing blocking-worker runtime; no synchronous visibility transition in CloseRequested callback",
-      "diagnosis": "Source-based reentrant event/listener-lock inference; actual installed failure confirmed, native stack not captured",
-      "requiredAcceptance": "WM_CLOSE3cycles <=3s, WM_NULL responsive, singleton reopens, unchanged Agent PIDs; real packaged ConPTY HTTP proof"
+      "sourceRepair": "Fixed native auto-reset show event routes shortcut through existing GUI Tauri runtime. Deferred hide retained; raw Win32 restore only for older binaries lacking event.",
+      "diagnosis": "CI59 Close0 PASS then Close1 after raw shortcut restore visible+responsive. Tao0.37.2 caches VISIBLE and unchanged apply_diff skips native hide.",
+      "requiredAcceptance": "Native show event exists; background remains hidden; asynchronous restore <=3s; actual Close3cycles <=3s and WM_NULL responsive; same GUI/Agent PIDs; real packaged ConPTY HTTP proof"
     }
   }
 }

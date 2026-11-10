@@ -9,21 +9,47 @@ use std::io::Read;
 use std::time::Instant;
 use std::thread;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::OnceLock;
 use std::time::Duration;
 use tauri::{Manager, menu::{Menu, MenuItem, PredefinedMenuItem}, tray::TrayIconBuilder};
 
 static LINK_UI_REQUESTED: AtomicBool = AtomicBool::new(false);
+static GUI_SHOW_EVENT: OnceLock<usize> = OnceLock::new();
+const GUI_SHOW_EVENT_NAME:&str="Local\\LightRemoteDesktopV4UnifiedOwner.Show";
+type Handle = *mut c_void;
+#[link(name="kernel32")]
+extern "system" {
+    fn CreateMutexW(attributes:*const c_void, initial_owner:i32, name:*const u16)->Handle;
+    fn GetLastError()->u32;
+    fn CloseHandle(handle:Handle)->i32;
+    fn CreateEventW(attributes:*const c_void, manual_reset:i32, initial_state:i32, name:*const u16)->Handle;
+    fn OpenEventW(access:u32, inherit:i32, name:*const u16)->Handle;
+    fn SetEvent(handle:Handle)->i32;
+    fn WaitForSingleObject(handle:Handle, timeout:u32)->u32;
+}
+fn gui_show_event_name()->Vec<u16>{
+    OsStr::new(GUI_SHOW_EVENT_NAME).encode_wide().chain(Some(0)).collect()
+}
+fn signal_existing_gui()->bool{
+    // The first process publishes this fixed user/session-scoped event before
+    // Tauri initialization. Auto-reset retains a signal until setup is ready.
+    // No command, path, identity or authorization payload crosses this channel.
+    let name=gui_show_event_name();
+    for _ in 0..40 {
+        let event=unsafe{OpenEventW(0x0002,0,name.as_ptr())}; // EVENT_MODIFY_STATE
+        if !event.is_null(){
+            let signaled=unsafe{SetEvent(event)}!=0;
+            unsafe{CloseHandle(event);}
+            return signaled;
+        }
+        thread::sleep(Duration::from_millis(25));
+    }
+    false
+}
 
 /// An OS-user/session-bound single GUI instance. Later shortcut launches
 /// raise the existing (possibly hidden-to-Tray) window and exit immediately.
 pub(crate) fn already_running() -> bool {
-    type Handle = *mut c_void;
-    #[link(name="kernel32")]
-    extern "system" {
-        fn CreateMutexW(attributes:*const c_void, initial_owner:i32, name:*const u16)->Handle;
-        fn GetLastError()->u32;
-        fn CloseHandle(handle:Handle)->i32;
-    }
     #[link(name="user32")]
     extern "system" {
         fn FindWindowW(class:*const u16,title:*const u16)->Handle;
@@ -36,17 +62,25 @@ pub(crate) fn already_running() -> bool {
     if mutex.is_null(){return false;}
     let existing=unsafe{GetLastError()}==183;
     if existing {
+        let background=std::env::args_os().any(|a|a=="--background");
+        if !background&&!signal_existing_gui(){
         // Retain the previous title only as a compatibility-bridge fallback.
-        // The mutex identity stays unchanged across the display-name upgrade.
+        // Current instances restore through Tauri on their owning process:
+        // raw ShowWindow bypasses Tao's cached VISIBLE flag and makes a later
+        // hide a no-op after close -> shortcut -> close. Only old binaries
+        // without the new native event use this compatibility fallback.
         let mut window=std::ptr::null_mut();
         for name in ["Light Remote Desktop","Light Remote Desktop V4"] {
             let title:Vec<u16>=OsStr::new(name).encode_wide().chain(std::iter::once(0)).collect();
             window=unsafe{FindWindowW(std::ptr::null(),title.as_ptr())};
             if !window.is_null(){break;}
         }
-        let background=std::env::args_os().any(|a|a=="--background");
-        if !window.is_null()&&!background{unsafe{ShowWindow(window,9);SetForegroundWindow(window);}}
+        if !window.is_null(){unsafe{ShowWindow(window,9);SetForegroundWindow(window);}}
+        }
         unsafe{CloseHandle(mutex);}
+    }else{
+        let event=unsafe{CreateEventW(std::ptr::null(),0,0,gui_show_event_name().as_ptr())};
+        if !event.is_null()&&GUI_SHOW_EVENT.set(event as usize).is_err(){unsafe{CloseHandle(event);}}
     }
     // The initial process owns its mutex handle until process termination.
     existing
@@ -120,12 +154,24 @@ pub(crate) fn desktop_link_ui_intent()->bool{
 }
 
 fn show_main(app:&tauri::AppHandle){
-    if let Some(window)=app.get_webview_window("main"){
-        let _=window.show();let _=window.unminimize();let _=window.set_focus();
-    }
+    let app=app.clone();
+    tauri::async_runtime::spawn_blocking(move||{
+        if let Some(window)=app.get_webview_window("main"){
+            let _=window.show();let _=window.unminimize();let _=window.set_focus();
+        }
+    });
 }
 
 pub(crate) fn attach(app:&mut tauri::App)->tauri::Result<()>{
+    let show_event=*GUI_SHOW_EVENT.get().expect("Light Remote native window show channel is required");
+    let show_app=app.handle().clone();
+    std::thread::spawn(move||{
+        while unsafe{WaitForSingleObject(show_event as Handle,u32::MAX)}==0{
+            // Restore on the existing owning runtime, updating Tao visibility
+            // and minimized flags before the next Close request.
+            show_main(&show_app);
+        }
+    });
     let handle=app.handle();
     let header=MenuItem::with_id(handle,"header","Windows PC - Short ID : ------",false,None::<&str>)?;
     let state=MenuItem::with_id(handle,"state","Checking Agent…",false,None::<&str>)?;

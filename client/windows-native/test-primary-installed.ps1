@@ -34,12 +34,19 @@ function Start-Core([string[]]$Arguments){
     foreach($arg in $Arguments){$psi.ArgumentList.Add($arg)}
     return [Diagnostics.Process]::Start($psi)
 }
+function Wait-WindowVisible([IntPtr]$Handle){
+    $deadline=[DateTime]::UtcNow.AddSeconds(3)
+    while(-not [LRPrimaryWindow]::IsWindowVisible($Handle) -and [DateTime]::UtcNow -lt $deadline){Start-Sleep -Milliseconds 50}
+    return [LRPrimaryWindow]::IsWindowVisible($Handle)
+}
 $gui=Start-Core @()
 try{
     $deadline=[DateTime]::UtcNow.AddSeconds(15)
     do{$gui.Refresh();if($gui.HasExited){throw 'Primary GUI exited unexpectedly'};if($gui.MainWindowHandle -ne 0){break};Start-Sleep -Milliseconds 150}while([DateTime]::UtcNow -lt $deadline)
     $window=$gui.MainWindowHandle
     if($window -eq 0){throw 'Primary native GUI window did not appear'}
+    $showEvent=[Threading.EventWaitHandle]::OpenExisting('Local\LightRemoteDesktopV4UnifiedOwner.Show')
+    $showEvent.Dispose()
     $runtime=[IO.Path]::GetFullPath((Join-Path $root 'windows-host/runtime'))+[IO.Path]::DirectorySeparatorChar
     $deadline=[DateTime]::UtcNow.AddSeconds(15)
     do{
@@ -81,7 +88,7 @@ try{
     foreach($daemonId in $currentDaemon){if(-not (Get-Process -Id $daemonId -ErrorAction SilentlyContinue)){throw 'Explicit Start stopped or replaced the running Agent'}}
     $open=Start-Core @()
     try{if(-not $open.WaitForExit(10000)){throw 'Shortcut relaunch singleton did not return'}}finally{if(-not $open.HasExited){$open.Kill($true)};$open.Dispose()}
-    if(-not [LRPrimaryWindow]::IsWindowVisible($window)){throw 'Shortcut relaunch did not restore the existing native window'}
+    if(-not (Wait-WindowVisible $window)){throw 'Shortcut relaunch did not restore the existing native window'}
     # Exercise the actual close event repeatedly while native status/Owner
     # restore polling is active. It must hide the window, retain the same GUI
     # PID and never stop the background Agent/session lifetime.
@@ -104,7 +111,7 @@ try{
         foreach($daemonId in $currentDaemon){if(-not (Get-Process -Id $daemonId -ErrorAction SilentlyContinue)){throw 'Closing Desktop stopped its background Agent'}}
         $again=Start-Core @()
         try{if(-not $again.WaitForExit(10000) -or $again.ExitCode -ne 0){throw 'Close/reopen singleton failed'}}finally{if(-not $again.HasExited){$again.Kill($true)};$again.Dispose()}
-        if(-not [LRPrimaryWindow]::IsWindowVisible($window)){throw 'Close/reopen failed to restore the same window'}
+        if(-not (Wait-WindowVisible $window)){throw 'Close/reopen failed to restore the same window'}
     }
     $conptyProof=Join-Path $PSScriptRoot '../../deploy/scripts/selftest-wall-conpty-roundtrip.mjs'
     & $node $conptyProof --install-root $root --evidence (Join-Path $EvidenceDir 'real-conpty-wall.json')
@@ -112,7 +119,7 @@ try{
     [ordered]@{result='PASS';sourceCommit=$env:GITHUB_SHA;ciRunId=$env:GITHUB_RUN_ID
         checks=@('one-primary-layout','same-native-exe-task','same-native-exe-autostart-shortcut','private-clr-loaded-in-gui-with-global-dotnet-disabled',
         'background-preserves-hidden-window','agent-only-restart-preserves-gui-and-hidden-state',
-        'old-daemon-exit-new-wall-health','explicit-start-is-idempotent-preserves-running-agent','shortcut-restores-existing-window','native-close-reopen-three-cycles-retains-agent','real-conpty-local-wall-output')
+        'old-daemon-exit-new-wall-health','explicit-start-is-idempotent-preserves-running-agent','native-singleton-owner-show-event','shortcut-restores-existing-window','native-close-reopen-three-cycles-retains-agent','real-conpty-local-wall-output')
         physicalOwnerAcceptance=$false}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath (Join-Path $EvidenceDir 'installed-lifecycle.json') -Encoding utf8NoBOM
     Write-Host 'WINDOWS_PRIMARY_INSTALLED_GUI_AGENT_RESTART=PASS'
 }finally{

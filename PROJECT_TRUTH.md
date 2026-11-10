@@ -162,3 +162,7 @@ CI57 rejected stale presentation and HMAC-vector fixtures after the intentional 
 ## Defer Windows close hide beyond callback and preserve installed responsiveness checks
 
 CI58 passed all284 Node units,70 portable suite entries and backend integration; Windows built/installed but actual WM_CLOSE failed, so the candidate is not accepted. A native repair now queues hide from a worker after the close callback returns. The same3s/3cycle integration assertion remains, with bounded WM_NULL responsiveness evidence. Full repaired Actions/native acceptance is pending; runtime947a117 is preserved.
+
+## Restore singleton window through owning Tauri runtime to synchronize visibility
+
+CI59 d6f8eb8 is not an accepted candidate: core/browser/Linux/macOS passed, actual Windows Close0 hid and remained responsive, but Close1 after shortcut stayed visible and responsive. Native singleton show now goes through the existing GUI runtime; background relaunch never signals. Exact-source installed acceptance remains pending; Lab947a117 unchanged.

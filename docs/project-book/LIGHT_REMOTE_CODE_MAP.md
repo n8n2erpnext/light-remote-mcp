@@ -166,3 +166,7 @@ HMAC fixture revisions live in selftest-goldabv2-local-instance-proof-t11.mjs, R
 ## Defer Windows close hide beyond callback and preserve installed responsiveness checks
 
 unified_tray.rs::hide_on_close prevents destruction and defers hide outside the window event callback. test-primary-installed.ps1 retains3 Close/reopen cycles and adds bounded WM_NULL responsiveness receipts native-close.json, even when visibility fails. Gateway oauth.mjs now actually emits the canonical @font-face already imported by its retained OAuth page.
+
+## Restore singleton window through owning Tauri runtime to synchronize visibility
+
+unified_tray.rs publishes/consumes fixed native singleton show event while preserving mutex/title compatibility. signal_existing_gui sends no payload, skips --background, and owning runtime restores via show_main worker to keep cached visibility/minimize state coherent. Installed test requires event existence and bounded restore, then same3s/3cycle hide/WM_NULL/Agent PID proof.
