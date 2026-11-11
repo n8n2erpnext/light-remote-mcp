@@ -270,3 +270,7 @@ RMv2 native proof lives in client/windows-native/test-rmv2-phase1.ps1 and now ha
 ## Fence Owner input at operation start and repair hosted Ubuntu mirror
 
 ControlActivity.cs now captures generation before quiet preflight, closing the start race, and marks paused-local-input only for actual recent/in-flight control. Native source-only self-test covers passive vs interrupted state. Hosted CI mirror helper is .github/scripts/hosted-apt-mirror.py; only desktop-v4-native-ci.yml invokes it on disposable hosted Linux runners. No product routes/permission boundary weakened.
+
+## Keep RMv2 input hooks independent of overlay rendering
+
+ControlActivity.cs additionally owns a dedicated hook message-pump thread and bounded startup/teardown, separate from CursorGlowOverlay WPF dispatcher. No new endpoints/authority or cross-device routing. Existing generation guards and own injected markers remain.

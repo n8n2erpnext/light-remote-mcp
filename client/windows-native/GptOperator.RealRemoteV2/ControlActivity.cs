@@ -11,6 +11,9 @@ internal sealed class ControlActivity : IDisposable
     private delegate nint HookProc(int code,nint message,nint data);
     private readonly HookProc _mouseCallback,_keyboardCallback;
     private nint _mouseHook,_keyboardHook;
+    private readonly Thread? _hookThread;
+    private readonly ManualResetEventSlim _hooksReady=new(false);
+    private uint _hookThreadId;
     private long _generation,_startedGeneration,_lastLocalAt,_until;
     private long _desktopCheckedAt;
     private int _running,_paused,_locked,_disposed;
@@ -19,7 +22,7 @@ internal sealed class ControlActivity : IDisposable
     private System.Drawing.Rectangle? _screen;
     public System.Drawing.Rectangle? TargetScreen { get { lock(_targetGate)return _screen; } set { lock(_targetGate)_screen=value; } }
     public event Action? Changed;
-    public bool Available => _mouseHook!=0 && _keyboardHook!=0;
+    public bool Available => _hookThread is {IsAlive:true} && _mouseHook!=0 && _keyboardHook!=0;
     public bool Active => Volatile.Read(ref _disposed)==0 && Volatile.Read(ref _paused)==0
         && Volatile.Read(ref _locked)==0 && Environment.TickCount64<Volatile.Read(ref _until);
     public string State => Volatile.Read(ref _disposed)!=0?"disconnected":Volatile.Read(ref _paused)!=0?_pauseReason:Active?"controlling":"idle";
@@ -29,9 +32,31 @@ internal sealed class ControlActivity : IDisposable
     {
         _mouseCallback=OnMouse; _keyboardCallback=OnKeyboard;
         if(!installHooks)return;
-        _mouseHook=SetWindowsHookEx(14,_mouseCallback,GetModuleHandle(null),0);
-        _keyboardHook=SetWindowsHookEx(13,_keyboardCallback,GetModuleHandle(null),0);
+        // Low-level callbacks must not wait behind WPF rendering/font loading.
+        _hookThread=new Thread(RunHooks) { IsBackground=true,Name="LightRemote input observer" };
+        _hookThread.SetApartmentState(ApartmentState.MTA);
+        _hookThread.Start();
+        _hooksReady.Wait(TimeSpan.FromSeconds(3));
         SystemEvents.SessionSwitch+=OnSessionSwitch;
+    }
+    private void RunHooks()
+    {
+        try {
+            _hookThreadId=GetCurrentThreadId();
+            _=PeekMessage(out _,0,0,0,0); // create this thread's message queue
+            if(Volatile.Read(ref _disposed)!=0)return;
+            _mouseHook=SetWindowsHookEx(14,_mouseCallback,GetModuleHandle(null),0);
+            _keyboardHook=SetWindowsHookEx(13,_keyboardCallback,GetModuleHandle(null),0);
+            _hooksReady.Set();
+            if(_mouseHook==0||_keyboardHook==0)return;
+            while(Volatile.Read(ref _disposed)==0 && GetMessage(out var message,0,0,0)>0) {
+                _=TranslateMessage(ref message); _=DispatchMessage(ref message);
+            }
+        } finally {
+            if(_mouseHook!=0) { UnhookWindowsHookEx(_mouseHook); _mouseHook=0; }
+            if(_keyboardHook!=0) { UnhookWindowsHookEx(_keyboardHook); _keyboardHook=0; }
+            _hooksReady.Set();
+        }
     }
     public void Begin()
     {
@@ -113,8 +138,9 @@ internal sealed class ControlActivity : IDisposable
     {
         if(Interlocked.Exchange(ref _disposed,1)!=0)return;
         Stop(); SystemEvents.SessionSwitch-=OnSessionSwitch;
-        if(_mouseHook!=0) { UnhookWindowsHookEx(_mouseHook); _mouseHook=0; }
-        if(_keyboardHook!=0) { UnhookWindowsHookEx(_keyboardHook); _keyboardHook=0; }
+        if(_hookThread is null) { _hooksReady.Dispose(); return; }
+        if(_hookThreadId!=0)_=PostThreadMessage(_hookThreadId,0x0012,0,0);
+        if(_hookThread!=Thread.CurrentThread && _hookThread.Join(1000))_hooksReady.Dispose();
     }
     internal static bool SelfTest()
     {
@@ -130,6 +156,13 @@ internal sealed class ControlActivity : IDisposable
     }
     [StructLayout(LayoutKind.Sequential)] private struct MouseHook { public int X,Y; public uint Data,Flags,Time; public nint Extra; }
     [StructLayout(LayoutKind.Sequential)] private struct KeyHook { public uint Key,Scan,Flags,Time; public nint Extra; }
+    [StructLayout(LayoutKind.Sequential)] private struct NativeMessage { public nint Window; public uint Id; public nuint WParam; public nint LParam; public uint Time; public int X,Y; public uint Private; }
+    [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
+    [DllImport("user32.dll")] private static extern int GetMessage(out NativeMessage message,nint hwnd,uint min,uint max);
+    [DllImport("user32.dll")] private static extern bool PeekMessage(out NativeMessage message,nint hwnd,uint min,uint max,uint remove);
+    [DllImport("user32.dll")] private static extern bool TranslateMessage(ref NativeMessage message);
+    [DllImport("user32.dll")] private static extern nint DispatchMessage(ref NativeMessage message);
+    [DllImport("user32.dll")] private static extern bool PostThreadMessage(uint thread,uint message,nuint wParam,nint lParam);
     [DllImport("user32.dll",SetLastError=true)] private static extern nint SetWindowsHookEx(int id,HookProc callback,nint module,uint thread);
     [DllImport("user32.dll")] private static extern nint CallNextHookEx(nint hook,int code,nint message,nint data);
     [DllImport("user32.dll")] private static extern bool UnhookWindowsHookEx(nint hook);

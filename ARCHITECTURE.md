@@ -68,3 +68,7 @@ The unified Tauri tray currently uses a static default icon while managed TrayIc
 ## Preserve native RMv2 cursors and honor precise input timing
 
 Windows RMv2 uses ControlActivity metadata hooks and tagged native input for Owner takeover; WPF badge/four edge windows are activity-only. System cursor component is recovery-only; no automatic guardian/reload. Native request lane remains serial in phase1; independent pipe watch cancels disconnected input. No GPU/video backend added.
+
+## Keep RMv2 input hooks independent of overlay rendering
+
+ControlActivity owns one dedicated metadata hook thread with a Win32 message loop; callbacks update atomic generation/timestamps and immediately continue the hook chain. WPF badge/edge rendering remains on the GUI thread. Initialization wait is bounded3s; missing monitor denies input. Stop/dispose posts WM_QUIT, unhooks in its owning thread and waits at most1s. https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelmouseproc

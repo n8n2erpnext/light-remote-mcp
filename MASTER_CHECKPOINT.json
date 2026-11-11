@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-11T14:11:26.063Z",
+  "updatedAt": "2026-11-11T14:19:12.503Z",
   "version": "0.10.1-dev.7",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "RMV2_DEV7_NATIVE_BASELINE_HARDENED_FULL_CI_PENDING",
+  "status": "RMV2_DEV7_INPUT_RENDER_ISOLATION_FULL_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -360,7 +360,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow new exact-source full CI including native generation self-test and real cursor/input acceptance, browser/native packaging and all9 baseline jobs. Verify internal installer and deploy isolated Lab backend only; then Owner physical takeover/DPI/UAT before tuning profiles/typing/capture/GPU.",
+  "nextAction": "Finish exact-source full CI with actual RMv2 native functional report and complete installer/browser/regression matrix, verify artifacts, then update only isolated Lab Operator/Plugin. Owner physical takeover/custom-cursor/DPI tests remain pending; stage2 verified long typing/capture and optional GPU/video later.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -451,12 +451,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-rmv2-owner-start-race-hosted-mirror",
-    "status": "CI87_NATIVE_PASS_OWNER_START_RACE_HARDENED_FULL_RETRY_PENDING",
-    "summary": "CI87 native cursor/precision/observation/badge/idle/restore and duplex/lazy/push acceptance PASS, report pinned to7f29e2a. Harden a review-found start race: capture local-input generation before checking quiet time, so Owner input between checks cannot be adopted as the new baseline. Idle observation remains observing after Owner motion instead of falsely paused. Preserve new-command-only resume. Hosted Ubuntu runner mirror DNS failure is isolated from product; replace only azure.archive.ubuntu.com URI host with official archive.ubuntu.com and retain signed apt/package checks and all UI tests.",
-    "verification": "Native CI87 Windows26100:11 cursor bitmap/hotspot roles,11 tiny moves, observer/control/idle timer, restore while alive PASS; p50 handler1.6513ms/p95 134.9879ms for11 mixed cold/warm samples, no before/after benchmark or network latency claim. Native self-test/lifecycle/push PASS. CI86 browser dependency install failed DNS azure.archive.ubuntu.com; no test bypass. New generation/observer guards require fresh native acceptance.",
-    "nextAction": "Follow new exact-source full CI including native generation self-test and real cursor/input acceptance, browser/native packaging and all9 baseline jobs. Verify internal installer and deploy isolated Lab backend only; then Owner physical takeover/DPI/UAT before tuning profiles/typing/capture/GPU.",
-    "sourceDigest": "a25eb6772e059c6ca1e6a7c501087b73e68f03ea30aacedcc5aff8b8e7298f7d",
+    "taskId": "20261111-rmv2-input-hook-render-isolation",
+    "status": "INPUT_HOOK_THREAD_ISOLATED_NATIVE_RETEST_PENDING",
+    "summary": "Move metadata-only mouse/keyboard hooks from WPF UI thread to a dedicated bounded message-pump thread. Overlay/font rendering can no longer queue the Owner-input observer behind UI work; generation cancellation and own-injection markers unchanged. Monitor init fails closed, disposal posts quit/unhooks/joins with bounded wait.",
+    "verification": "Microsoft LowLevelMouseProc specifies callbacks run on the installing thread and recommends a dedicated thread. CI87 native functional PASS is retained only as prior-source proof;11 mixed cold/warm samples were not a benchmark and no speedup is inferred. New thread compile/native/lifecycle acceptance remains pending fresh exact-source CI. Final mapper/cursor source contracts PASS.",
+    "nextAction": "Finish exact-source full CI with actual RMv2 native functional report and complete installer/browser/regression matrix, verify artifacts, then update only isolated Lab Operator/Plugin. Owner physical takeover/custom-cursor/DPI tests remain pending; stage2 verified long typing/capture and optional GPU/video later.",
+    "sourceDigest": "7c08c0de035832b7e5d5fa64345107ac79d8a4fd2bfe743b4727ac21415b297a",
     "sourceFileCount": 1681
   },
   "legacyFilesystemCleanup": {
@@ -1546,7 +1546,7 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "CI87_NATIVE_PASS_NEW_HARDENING_RETEST_PENDING",
+    "nativeCi": "PENDING_FINAL_HOOK_THREAD_SOURCE",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
@@ -1560,6 +1560,8 @@
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
     "fullCi": "PENDING_FINAL_SOURCE",
-    "beforeAfterBenchmark": false
+    "beforeAfterBenchmark": false,
+    "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
+    "supersededCiRunId": 43036093867
   }
 }

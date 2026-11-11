@@ -250,3 +250,7 @@ CI86 product RMv2 compile and native self-tests PASS; cursor probe failed before
 ## Fence Owner input at operation start and repair hosted Ubuntu mirror
 
 CI87 actual RMv2 native acceptance PASS at7f29e2a; evidence docs/evidence/rmv2/phase1-ci87.json is native-only, not full artifact acceptance. Review hardening now captures input generation before quiet-time check and keeps passive Owner motion observational. New full CI required. Hosted runner apt mirror DNS failure is repaired without package trust or UI-test changes.
+
+## Keep RMv2 input hooks independent of overlay rendering
+
+RMv2 hooks now have their own message-pump thread instead of WPF UI thread, following the Win32 low-level-hook contract. Input observer cannot wait behind our overlay/font rendering. No measured before/after speed claim; final source needs native/lifecycle/full CI again. Prior7f29e2a native functional evidence remains separately pinned.
