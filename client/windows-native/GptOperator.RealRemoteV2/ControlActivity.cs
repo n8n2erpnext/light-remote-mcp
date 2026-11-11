@@ -38,11 +38,12 @@ internal sealed class ControlActivity : IDisposable
         if(!Available)throw new InvalidOperationException("local_input_monitor_unavailable");
         if(Volatile.Read(ref _disposed)!=0 || Volatile.Read(ref _locked)!=0 || !InputDesktopAvailable())
             throw new InvalidOperationException("input_desktop_unavailable");
+        var generation=Volatile.Read(ref _generation);
         if(Environment.TickCount64-Volatile.Read(ref _lastLocalAt)<750)
             throw new InvalidOperationException("input_paused_local_activity_observe_before_retry");
-        _startedGeneration=Volatile.Read(ref _generation);
+        _startedGeneration=generation;
         Volatile.Write(ref _paused,0); Volatile.Write(ref _running,1);
-        Touch(); Check();
+        try { Check(); Touch(); } catch { End(); throw; }
     }
     public void Touch()
     {
@@ -72,10 +73,11 @@ internal sealed class ControlActivity : IDisposable
     }
     private void LocalInput()
     {
-        _pauseReason="paused-local-input";
+        var controlling=Volatile.Read(ref _running)!=0 || Active;
         Volatile.Write(ref _lastLocalAt,Environment.TickCount64);
         Interlocked.Increment(ref _generation);
-        Volatile.Write(ref _until,0); Volatile.Write(ref _paused,1);
+        Volatile.Write(ref _until,0);
+        if(controlling) { _pauseReason="paused-local-input"; Volatile.Write(ref _paused,1); }
         // Hook stays bounded; no SendInput, UIA, dispatcher wait or blocking cleanup here.
     }
     private nint OnMouse(int code,nint message,nint data)
@@ -118,6 +120,8 @@ internal sealed class ControlActivity : IDisposable
     {
         if(!IsPhysical(0,1,0)||IsPhysical(1,1,0)||IsPhysical(0,1,InputMarker)||IsPhysical(0x10,0x10,0))return false;
         using var activity=new ControlActivity(false);
+        activity.LocalInput();
+        if(activity.State!="idle"||activity.Active)return false;
         activity._running=1; activity._startedGeneration=activity._generation;
         activity.Touch(); activity.LocalInput(); activity.LocalInput();
         if(activity.Active||activity.State!="paused-local-input")return false;

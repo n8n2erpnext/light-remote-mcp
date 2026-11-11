@@ -266,3 +266,7 @@ Native Windows ownership: client/windows-native/GptOperator.RealRemoteV2/Control
 ## Read native cursor bitmap proof without PowerShell GDIplus coupling
 
 RMv2 native proof lives in client/windows-native/test-rmv2-phase1.ps1 and now hashes GetIconInfo/GetBitmapBits data directly; .github/workflows/windows-native-client.yml archives phase1 JSON. Product boundaries remain those of the preceding phase1 implementation.
+
+## Fence Owner input at operation start and repair hosted Ubuntu mirror
+
+ControlActivity.cs now captures generation before quiet preflight, closing the start race, and marks paused-local-input only for actual recent/in-flight control. Native source-only self-test covers passive vs interrupted state. Hosted CI mirror helper is .github/scripts/hosted-apt-mirror.py; only desktop-v4-native-ci.yml invokes it on disposable hosted Linux runners. No product routes/permission boundary weakened.

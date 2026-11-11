@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 278 (230 Markdown, 48 JSON).
+Documents: 279 (230 Markdown, 49 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -44,6 +44,7 @@ Documents: 278 (230 Markdown, 48 JSON).
 | evidence | [docs/evidence/preconversion-windows-build-manifest.json](../evidence/preconversion-windows-build-manifest.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | b486549a5eb5bb85642cc16c86afaee35e04caa58d338e1e4a5a35821de401f0 |
 | evidence | [docs/evidence/preservation-check.json](../evidence/preservation-check.json) | checkedAt, oldPrimaryRefs, oldPrimaryRefsUnchanged, oldCanonicalHeads, oldSourceRuntimeAndBusine | c2191da9cc0680c2afc056afaf3a3ac3ff6ceace3e62a5541cdb1af5419c6940 |
 | evidence | [docs/evidence/repository-conversion.json](../evidence/repository-conversion.json) | authorizedByOwner, startedAt, strategy, deleteUnavailableReason, oldRepositoryId, oldArchiveFull | 27c8494632a4c0e1f53e86e3f1cd9d5f7af7dafdb67e374c9813fa9cc5f6432e |
+| evidence | [docs/evidence/rmv2/phase1-ci87.json](../evidence/rmv2/phase1-ci87.json) | sourceCommit, ciRunId, artifactId, artifactSha256, handlerP50Ms, observationNoOverride, handlerP | 80bdea2870305ae0ae568354f4eae8265d53b26119f4a5c98467164fb3514f6e |
 | evidence | [docs/evidence/runtime-source-comparison.json](../evidence/runtime-source-comparison.json) |  | 6e06831f60deff0905ec9c0e54cd7c0e8e24b1de3e5a6e5b0c9d5fbca01f1759 |
 | evidence | [docs/evidence/windows-artifact-verification.json](../evidence/windows-artifact-verification.json) | artifactId, name, zipSha256, zipBytes, repositoryId, sourceCommit, ciRunId, verified, verifiedOn | 2f546e90951ad16efde6690412b9216ec9cd74155d1a699b9f85579f1a1f1f81 |
 | evidence | [docs/evidence/windows-build-manifest.json](../evidence/windows-build-manifest.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | 4c879edf3ceae517f0c31a41ab5eaa8dfc938753308d8d1431cb999fbf17c983 |

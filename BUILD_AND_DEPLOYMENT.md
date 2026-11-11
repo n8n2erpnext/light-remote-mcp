@@ -229,3 +229,7 @@ Internal dev7 native Actions adds test-rmv2-phase1.ps1 after RM publish: actual 
 ## Read native cursor bitmap proof without PowerShell GDIplus coupling
 
 test-rmv2-phase1.ps1 uses direct Win32 bitmap hashing, independent of PowerShell System.Drawing/.NET10 private GDIPlus references. Same11 cursor roles and hotspot proof retained. CI uploads light-remote-rmv2-phase1-SHA receipt. Product binary behavior unchanged at this test fix.
+
+## Fence Owner input at operation start and repair hosted Ubuntu mirror
+
+.github/scripts/hosted-apt-mirror.py is guarded to disposable GitHub-hosted runners; it replaces only the Azure Ubuntu mirror URI hostname with official archive.ubuntu.com in existing apt configuration. Suites/keys/security mirror/package verification stay intact; apt index refresh precedes Chromium/GTK dependencies. ARM/production never execute this script. Full native/browser tests remain required.

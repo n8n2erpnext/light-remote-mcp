@@ -33,7 +33,10 @@ jobs:
       - name: Desktop Owner PKCE callback security contract tests (default OFF)
         run: node --test ../../plugin-server/desktop-auth-v4-contract.test.mjs ../../plugin-server/desktop-auth-v4-server.test.mjs ../../plugin-server/desktop-owner-token-v4.test.mjs
       - name: Install Chromium on GitHub runner (never VPS-ARM)
-        run: npx playwright install --with-deps chromium
+        run: |
+          sudo --preserve-env=GITHUB_ACTIONS,RUNNER_ENVIRONMENT python3 ../../.github/scripts/hosted-apt-mirror.py
+          sudo apt-get update -o Acquire::Retries=3
+          npx playwright install --with-deps chromium
       - name: Pixel/browser QA for exact Figma sizes and intermediate widths
         run: npm run test:visual
         env:
@@ -86,7 +89,8 @@ jobs:
       - name: Linux GTK and WebKit dependencies on hosted runner only
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
+          sudo --preserve-env=GITHUB_ACTIONS,RUNNER_ENVIRONMENT python3 ../../.github/scripts/hosted-apt-mirror.py
+          sudo apt-get update -o Acquire::Retries=3
           sudo apt-get install -y --no-install-recommends \
             build-essential pkg-config libdbus-1-dev libwebkit2gtk-4.1-dev \
             libgtk-3-dev libssl-dev libxdo-dev librsvg2-dev \

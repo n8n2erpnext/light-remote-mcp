@@ -246,3 +246,7 @@ Lab Operator/Plugin remains GitHub3064f21/dev6; independent Agent/Wall and produ
 ## Read native cursor bitmap proof without PowerShell GDIplus coupling
 
 CI86 product RMv2 compile and native self-tests PASS; cursor probe failed before assertions from .NET10 GDIPlus reference coupling. Probe now hashes real Win32 cursor masks/colors/hotspots directly; all11role, tiny endpoint and indicator/idle/restore assertions retained. Full exact-source native/installer acceptance pending; no artifact/deployment claim.
+
+## Fence Owner input at operation start and repair hosted Ubuntu mirror
+
+CI87 actual RMv2 native acceptance PASS at7f29e2a; evidence docs/evidence/rmv2/phase1-ci87.json is native-only, not full artifact acceptance. Review hardening now captures input generation before quiet-time check and keeps passive Owner motion observational. New full CI required. Hosted runner apt mirror DNS failure is repaired without package trust or UI-test changes.

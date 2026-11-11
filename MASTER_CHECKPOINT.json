@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-11T13:58:31.824Z",
+  "updatedAt": "2026-11-11T14:11:26.063Z",
   "version": "0.10.1-dev.7",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "RMV2_DEV7_CI86_PROBE_FAILURE_RETRY_PENDING",
+  "status": "RMV2_DEV7_NATIVE_BASELINE_HARDENED_FULL_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -360,7 +360,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow fresh exact-source full CI through actual cursor/tiny-move/control/idle/restore and installer regressions; verify artifacts before Lab-only backend rollout. Stage2 typing/capture/cancel and GPU/video remain later.",
+  "nextAction": "Follow new exact-source full CI including native generation self-test and real cursor/input acceptance, browser/native packaging and all9 baseline jobs. Verify internal installer and deploy isolated Lab backend only; then Owner physical takeover/DPI/UAT before tuning profiles/typing/capture/GPU.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -451,13 +451,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-rmv2-native-probe-win32-bitmap",
-    "status": "CI86_PRODUCT_COMPILE_PASS_NATIVE_PROBE_FIXED_RETRY_PENDING",
-    "summary": "CI86 compiled RMv2 dev7 and all native self-tests PASS. The new cursor acceptance probe failed before executing assertions because PowerShell runner .NET10 exposes an additional private GDIPlus interface. Replace probe-only System.Drawing rendering with direct Win32 GetIconInfo/GetBitmapBits hashes, preserving bitmap/hotspot checks for11roles. Upload the native phase1 receipt separately. Product input/indicator behavior unchanged.",
-    "verification": "CI86 sourcee3c0126: core/contracts/PG/Redis PASS, Windows .NET RM publish/self-test PASS on interactive Windows26100; acceptance Add-Type CS0012 IImage/System.Private.Windows.GdiPlus failure. No new installer accepted. All299 portable unit cases/71 source groups and final mapper/lifecycle/cursor checks remain scoped prior evidence.",
-    "nextAction": "Follow fresh exact-source full CI through actual cursor/tiny-move/control/idle/restore and installer regressions; verify artifacts before Lab-only backend rollout. Stage2 typing/capture/cancel and GPU/video remain later.",
-    "sourceDigest": "cabcafacd2fb98df4e0db81af66a1ff370d70fb473bdcadc6c9a0d21c249d17f",
-    "sourceFileCount": 1680
+    "taskId": "20261111-rmv2-owner-start-race-hosted-mirror",
+    "status": "CI87_NATIVE_PASS_OWNER_START_RACE_HARDENED_FULL_RETRY_PENDING",
+    "summary": "CI87 native cursor/precision/observation/badge/idle/restore and duplex/lazy/push acceptance PASS, report pinned to7f29e2a. Harden a review-found start race: capture local-input generation before checking quiet time, so Owner input between checks cannot be adopted as the new baseline. Idle observation remains observing after Owner motion instead of falsely paused. Preserve new-command-only resume. Hosted Ubuntu runner mirror DNS failure is isolated from product; replace only azure.archive.ubuntu.com URI host with official archive.ubuntu.com and retain signed apt/package checks and all UI tests.",
+    "verification": "Native CI87 Windows26100:11 cursor bitmap/hotspot roles,11 tiny moves, observer/control/idle timer, restore while alive PASS; p50 handler1.6513ms/p95 134.9879ms for11 mixed cold/warm samples, no before/after benchmark or network latency claim. Native self-test/lifecycle/push PASS. CI86 browser dependency install failed DNS azure.archive.ubuntu.com; no test bypass. New generation/observer guards require fresh native acceptance.",
+    "nextAction": "Follow new exact-source full CI including native generation self-test and real cursor/input acceptance, browser/native packaging and all9 baseline jobs. Verify internal installer and deploy isolated Lab backend only; then Owner physical takeover/DPI/UAT before tuning profiles/typing/capture/GPU.",
+    "sourceDigest": "a25eb6772e059c6ca1e6a7c501087b73e68f03ea30aacedcc5aff8b8e7298f7d",
+    "sourceFileCount": 1681
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1546,12 +1546,20 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "CI86_PROBE_COMPILE_FAILURE_FIXED_RETRY_PENDING",
+    "nativeCi": "CI87_NATIVE_PASS_NEW_HARDENING_RETEST_PENDING",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
     "nativeSelfTest": "PASS_CI86",
     "nativeFirstFailure": "POWERSHELL_NET10_GDIPLUS_REFERENCE_IN_PROBE_BEFORE_ASSERTIONS",
-    "nativeProbeFix": "WIN32_CURSOR_BITMAP_AND_HOTSPOT_HASHES_SAME11_ROLES"
+    "nativeProbeFix": "WIN32_CURSOR_BITMAP_AND_HOTSPOT_HASHES_SAME11_ROLES",
+    "nativeVerifiedSource": "7f29e2ae03324bb8116a419b06df3d27ba47895f",
+    "nativeVerifiedCiRunId": 43034030554,
+    "nativeArtifactId": 13862383020,
+    "nativeEvidence": "docs/evidence/rmv2/phase1-ci87.json",
+    "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
+    "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
+    "fullCi": "PENDING_FINAL_SOURCE",
+    "beforeAfterBenchmark": false
   }
 }

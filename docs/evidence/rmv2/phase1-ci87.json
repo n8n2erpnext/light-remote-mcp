@@ -1,0 +1,20 @@
+{
+  "sourceCommit": "7f29e2ae03324bb8116a419b06df3d27ba47895f",
+  "ciRunId": 43034030554,
+  "artifactId": 13862383020,
+  "artifactSha256": "6949a2ebba5e00508a2d7f74fa5895f33e5e82361baa69ecd9b8baacceb1972b",
+  "handlerP50Ms": 1.6513,
+  "observationNoOverride": true,
+  "handlerP95Ms": 134.9879,
+  "mixedDpiPhysical": "PENDING_OWNER",
+  "restoreWhileAlive": true,
+  "systemCursorRoles": 11,
+  "tinyMoves": 11,
+  "result": "PASS",
+  "performanceComparison": "NO_BEFORE_AFTER_BENCHMARK",
+  "physicalLocalTakeover": "PENDING_OWNER",
+  "idleTimerStopped": true,
+  "controlBadge": true,
+  "scope": "isolated_windows_ci_not_owner_physical",
+  "fullBaselineAcceptance": "NOT_ESTABLISHED_BY_THIS_NATIVE_ONLY_REPORT"
+}
