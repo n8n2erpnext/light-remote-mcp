@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-11T08:28:36.056Z",
+  "updatedAt": "2026-11-11T08:33:18.564Z",
   "version": "0.10.1-dev.6",
   "phase": "LOCAL_MEMORY_EXTENSION_API_WORKER_RESEARCH_COMPLETE_BUILD_DEFERRED",
-  "status": "NATIVE_INK_FIX_CI_PENDING",
+  "status": "NATIVE_WORDMARK_MEASUREMENT_DIAGNOSIS",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -359,7 +359,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Inspect corrected native Welcome, then full exact-source six-view setup/uninstall and lifecycle. Verify installer hashes/full CI before Lab-only backend/config staging. Keep original production callback and production runtime untouched.",
+  "nextAction": "Inspect exact wordmark capture coordinates, fix the measured cause without weakening ink/descender checks, then full source-pinned CI and artifact/Lab acceptance.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -450,12 +450,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-native-google-sans-ink-metrics",
-    "status": "NATIVE_INK_FIX_CI_PENDING",
-    "summary": "Early native probe measured71px title/45px body boxes from oversized Windows font metrics, body ending26px below card. Use exact GDI caption/font/wrapping raster ink height plus8 logical pixels; preserve top bearing, descenders, unchanged font and accessible native text controls.",
-    "verification": "CI80 rejected actual Welcome layout and captured rectangles/PNG artifact13839099123. Font units1000, hhea966/-286, Windows1323/1079 inspected from unchanged asset. Portable71 groups and focused42 PASS; corrected native probe/full product acceptance pending.",
-    "nextAction": "Inspect corrected native Welcome, then full exact-source six-view setup/uninstall and lifecycle. Verify installer hashes/full CI before Lab-only backend/config staging. Keep original production callback and production runtime untouched.",
-    "sourceDigest": "cefab3e95eec3e4cbd5d6ffd3140dc4427a98b603d956fef5c17ad9f511e3108",
+    "taskId": "20261111-native-wordmark-measurement-diagnostics",
+    "status": "NATIVE_WORDMARK_MEASUREMENT_DIAGNOSIS",
+    "summary": "CI81 corrected native heading/body/card geometry and produced visible wordmark screenshot, but wordmark ink-region check rejected it. Add exact wordmark/window/sample rectangle and count diagnostics; retain every assertion and original product code.",
+    "verification": "CI81 early native probe compiled actual Wizard and geometry PASS; wordmark ink check FAIL. Artifact13839923991 contains actual PNG and layout. Corrected full installer is not accepted; diagnostic task changes test output only.",
+    "nextAction": "Inspect exact wordmark capture coordinates, fix the measured cause without weakening ink/descender checks, then full source-pinned CI and artifact/Lab acceptance.",
+    "sourceDigest": "c95b2b0c2c3acda7c2404ed2296f47cd4318df8878273de0d582ff927696a5e6",
     "sourceFileCount": 1677
   },
   "legacyFilesystemCleanup": {
@@ -1463,7 +1463,7 @@
   },
   "installerGoogleFollowup": {
     "taskId": "20261111-installer-tray-google-integration",
-    "status": "NATIVE_INK_FIX_CI_PENDING",
+    "status": "NATIVE_WORDMARK_MEASUREMENT_DIAGNOSIS",
     "preChangeCommit": "d0251392ae7b440f98087f36b471aaff48b5ba04",
     "preChangeTag": "checkpoint/20261111-before-installer-google-d025139",
     "archiveRestore": "PASS_BUNDLE_VERIFY_INDEPENDENT_CLONE_FSCK",
@@ -1494,6 +1494,9 @@
     "nativeDiagnosis": "FULL_GDI_FONT_BOX71_TITLE45_BODY_CARD_OVERLAP26PX",
     "nativeFix": "EXACT_RASTER_INK_BOTTOM_PLUS8_SCALED_PADDING",
     "fontAssetModified": false,
-    "nativeFixVerification": "PENDING"
+    "nativeFixVerification": "PENDING",
+    "nativeLayoutAfterInkSizing": "GEOMETRY_PASS_CI81",
+    "nativeWordmarkInkCheck": "FAIL_DIAGNOSING_COORDINATES",
+    "diagnosticWordmarkArtifact": 13839923991
   }
 }

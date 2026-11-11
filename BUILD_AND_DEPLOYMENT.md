@@ -199,3 +199,7 @@ The early `LightRemote.LayoutProbe.iss` includes the same production Wizard and 
 ## Fit native Google Sans labels to actual GDI ink while retaining descender padding
 
 Rejected native source/run/artifact and measured font/control metrics are in docs/evidence/windows-distribution/20261111-layout-diagnosis.json. Same-font GDI ink sizing avoids unused Windows descent space. Full six native views, pixel backgrounds, descender padding and lifecycle remain required.
+
+## Record native wordmark capture coordinates while retaining ink assertions
+
+Native screenshot diagnostics now include wordmark/window/sample coordinates and pixel counts when ink checks fail. This does not alter thresholds or accept a failed screenshot.

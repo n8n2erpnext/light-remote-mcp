@@ -468,3 +468,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: CI80 rejected actual Welcome layout and captured rectangles/PNG artifact13839099123. Font units1000, hhea966/-286, Windows1323/1079 inspected from unchanged asset. Portable71 groups and focused42 PASS; corrected native probe/full product acceptance pending.
 - Next: Inspect corrected native Welcome, then full exact-source six-view setup/uninstall and lifecycle. Verify installer hashes/full CI before Lab-only backend/config staging. Keep original production callback and production runtime untouched.
 - Runtime: No runtime/config DB/production/Owner installation change; original Google config privately staged and pending domain rotation.
+
+## Task Receipt: 20261111-native-wordmark-measurement-diagnostics
+- Status: NATIVE_WORDMARK_MEASUREMENT_DIAGNOSIS. CI81 corrected native heading/body/card geometry and produced visible wordmark screenshot, but wordmark ink-region check rejected it. Add exact wordmark/window/sample rectangle and count diagnostics; retain every assertion and original product code.
+- Source: permanent work after `bb3f068635d85239d09b00ec5a3a2162852cadb5`; exact staged source digest stamped in this same commit.
+- Verification: CI81 early native probe compiled actual Wizard and geometry PASS; wordmark ink check FAIL. Artifact13839923991 contains actual PNG and layout. Corrected full installer is not accepted; diagnostic task changes test output only.
+- Next: Inspect exact wordmark capture coordinates, fix the measured cause without weakening ink/descender checks, then full source-pinned CI and artifact/Lab acceptance.
+- Runtime: No runtime/config DB/production/Owner installation change; original Google config privately staged and pending domain rotation.

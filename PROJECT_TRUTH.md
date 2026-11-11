@@ -218,3 +218,7 @@ Native installer compile is distinct from visual acceptance. CI78 failed actual 
 ## Fit native Google Sans labels to actual GDI ink while retaining descender padding
 
 CI80 native probe measured actual overlap from oversized full GDI font boxes. Corrected Wizard measures exact raster ink plus8 logical pixels; preserves original Google Sans file and native controls. Corrected native proof is pending; no installer accepted.
+
+## Record native wordmark capture coordinates while retaining ink assertions
+
+CI81 GDI ink sizing fixed native layout geometry. Actual screenshot is visible; wordmark ink-region check still fails and remains enforced. Exact coordinate/count diagnostics added; no installer accepted.

@@ -98,7 +98,7 @@ function Text-Ink($Bitmap,$WindowRect,[IntPtr]$Control,[string]$Label){
         $c=$Bitmap.GetPixel($x,$y)
         if($c.R -lt 100 -and $c.G -lt 110 -and $c.B -lt 130){$count++;$last=$y}
     }}
-    if($count -lt 25){throw "Native text is clipped or not painted: $Label"}
+    if($count -lt 25){throw ("Native text is clipped or not painted: $Label count=$count control="+(@($r.Left,$r.Top,$r.Right,$r.Bottom)-join ',')+" window="+(@($WindowRect.Left,$WindowRect.Top,$WindowRect.Right,$WindowRect.Bottom)-join ',')+" sample="+(@($left,$top,$right,$bottom)-join ','))}
     $margin=$bottom-1-$last
     if($margin -lt 3){throw "Native descenders touch the clipping boundary: $Label"}
     return [ordered]@{label=$Label;text=[LRSetupUi]::Text($Control);inkPixels=$count;bottomMargin=$margin;height=$r.Bottom-$r.Top}
@@ -164,7 +164,8 @@ function Capture-View($View,[string]$Name){
     if($bodyFirst.Count -ne 1 -or $bodyLast.Count -ne 1){throw 'Native body lines are missing'}
     $firstRect=Text-Rect $first[-1];$secondRect=Text-Rect $second[0]
     $bodyTopRect=Text-Rect $bodyFirst[0];$bodyBottomRect=Text-Rect $bodyLast[0];$cardRect=Text-Rect $cardParent
-    $layout=[ordered]@{view=$Name;first=@($firstRect.Left,$firstRect.Top,$firstRect.Right,$firstRect.Bottom);
+    $brandRect=Text-Rect $brand[0]
+    $layout=[ordered]@{view=$Name;wordmark=@($brandRect.Left,$brandRect.Top,$brandRect.Right,$brandRect.Bottom);window=@($rect.Left,$rect.Top,$rect.Right,$rect.Bottom);first=@($firstRect.Left,$firstRect.Top,$firstRect.Right,$firstRect.Bottom);
         second=@($secondRect.Left,$secondRect.Top,$secondRect.Right,$secondRect.Bottom);
         bodyFirst=@($bodyTopRect.Left,$bodyTopRect.Top,$bodyTopRect.Right,$bodyTopRect.Bottom);
         bodyLast=@($bodyBottomRect.Left,$bodyBottomRect.Top,$bodyBottomRect.Right,$bodyBottomRect.Bottom);

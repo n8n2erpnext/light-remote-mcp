@@ -242,3 +242,7 @@ Read-only typing follow-up maps Plugin tools.mjs text/value schema -> shared lib
 ## Fit native Google Sans labels to actual GDI ink while retaining descender padding
 
 Production Wizard LRTextInkHeight uses private GDI bitmap/DrawText/GetPixel with exact caption/font/wrapping; LRText and LRMeasureBlock both consume ink height plus scaled padding. Font asset, native accessibility and transaction callbacks unchanged.
+
+## Record native wordmark capture coordinates while retaining ink assertions
+
+test-distribution-ui.ps1 records wordmark/root/sample coordinates to diagnose native PrintWindow mapping while retaining all ink/geometry/background checks.
