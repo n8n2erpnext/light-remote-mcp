@@ -38,6 +38,17 @@ const CLIENT_ID: &str = "light-remote-desktop-v4";
 const SCOPE: &str = "desktop:read";
 const CALLBACK_PATH: &str = "/desktop/v4/callback";
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum OwnerLoginProvider { Default, Google }
+
+fn parse_login_provider(value: Option<&str>) -> Result<OwnerLoginProvider,String> {
+    match value {
+        None | Some("default") => Ok(OwnerLoginProvider::Default),
+        Some("google") => Ok(OwnerLoginProvider::Google),
+        _ => Err("owner_login_provider_invalid".into()),
+    }
+}
+
 fn secret() -> String {
     let mut raw = [0u8; 32];
     OsRng.fill_bytes(&mut raw);
@@ -263,7 +274,8 @@ fn refresh_from_vault() -> Result<TokenSet,String> {
     // Storage is handled by OwnerRuntime.finish only if still current.
     Ok(received)
 }
-fn auth_url(redirect:&str, verifier:&str, state:&str, install_nonce:&str)
+fn auth_url(redirect:&str, verifier:&str, state:&str, install_nonce:&str,
+            provider:OwnerLoginProvider)
         -> Result<String,String> {
     let mut url=Url::parse(authorize_url()).map_err(|_|"owner_url_invalid")?;
     url.query_pairs_mut()
@@ -276,6 +288,11 @@ fn auth_url(redirect:&str, verifier:&str, state:&str, install_nonce:&str)
         .append_pair("redirect_uri",redirect)
         .append_pair("state",state)
         .append_pair("install_nonce",install_nonce);
+    // Select only the Portal's existing Google login entry. The native PKCE,
+    // loopback callback, issuer, Owner consent and vault flow stay unchanged.
+    if provider==OwnerLoginProvider::Google {
+        url.query_pairs_mut().append_pair("login_provider","google");
+    }
     Ok(url.to_string())
 }
 fn system_browser(url:&str) -> Result<(),String> {
@@ -378,18 +395,20 @@ async fn owner_work<T:Send+'static>(work:impl FnOnce()->Result<T,String>+Send+'s
 }
 
 #[tauri::command]
-pub(crate) async fn desktop_owner_begin(state:State<'_,OwnerRuntime>) -> Result<OwnerView,String> {
+pub(crate) async fn desktop_owner_begin(state:State<'_,OwnerRuntime>,
+                                       login_provider:Option<String>) -> Result<OwnerView,String> {
+    let provider=parse_login_provider(login_provider.as_deref())?;
     let runtime=OwnerRuntime {inner:Arc::clone(&state.inner)};
-    owner_work(move||begin_owner(&runtime)).await
+    owner_work(move||begin_owner(&runtime,provider)).await
 }
-fn begin_owner(state:&OwnerRuntime) -> Result<OwnerView,String> {
+fn begin_owner(state:&OwnerRuntime, provider:OwnerLoginProvider) -> Result<OwnerView,String> {
     let listener=TcpListener::bind("127.0.0.1:0")
         .map_err(|_|"owner_callback_unavailable")?;
     let port=listener.local_addr().map_err(|_|"owner_callback_unavailable")?.port();
     if port<1024 {return Err("owner_callback_unavailable".into());}
     let redirect=format!("http://127.0.0.1:{}{}",port,CALLBACK_PATH);
     let verifier=secret();let csrf_state=secret();let install_nonce=secret();
-    let url=auth_url(&redirect,&verifier,&csrf_state,&install_nonce)?;
+    let url=auth_url(&redirect,&verifier,&csrf_state,&install_nonce,provider)?;
     let generation=state.transition("browser_pending")?;
     let runtime=OwnerRuntime { inner:Arc::clone(&state.inner) };
     if let Err(error)=system_browser(&url) {
@@ -1123,13 +1142,34 @@ mod tests {
     #[test]
     fn url_is_exact_account_desktop_not_mcp_or_wall() {
         let u=auth_url("http://127.0.0.1:49152/desktop/v4/callback",
-            &"V".repeat(43),&"S".repeat(43),&"I".repeat(43)).unwrap();
+            &"V".repeat(43),&"S".repeat(43),&"I".repeat(43),OwnerLoginProvider::Default).unwrap();
         let parsed=Url::parse(&u).unwrap();
         assert_eq!(parsed.origin().ascii_serialization(),auth_origin());
         assert_eq!(parsed.path(),"/account/desktop/v4/authorize");
         assert!(!parsed.path().contains("/mcp"));
         assert!(u.contains("code_challenge_method=S256"));
         assert!(!u.contains("code_verifier"));
+        assert!(!u.contains("login_provider"));
+    }
+    #[test]
+    fn google_hint_preserves_exact_native_pkce_and_rejects_arbitrary_provider_urls() {
+        let redirect="http://127.0.0.1:49152/desktop/v4/callback";
+        let verifier="V".repeat(43);let state="S".repeat(43);let nonce="I".repeat(43);
+        let original=Url::parse(&auth_url(redirect,&verifier,&state,&nonce,
+            OwnerLoginProvider::Default).unwrap()).unwrap();
+        let google=Url::parse(&auth_url(redirect,&verifier,&state,&nonce,
+            parse_login_provider(Some("google")).unwrap()).unwrap()).unwrap();
+        assert_eq!(google.origin(),original.origin());
+        assert_eq!(google.path(),original.path());
+        let original_pairs:Vec<_>=original.query_pairs().collect();
+        let google_pairs:Vec<_>=google.query_pairs().filter(|(key,_)|key!="login_provider").collect();
+        assert_eq!(google_pairs,original_pairs);
+        assert_eq!(google.query_pairs().filter(|(key,value)|key=="login_provider"&&value=="google").count(),1);
+        assert_eq!(parse_login_provider(None).unwrap(),OwnerLoginProvider::Default);
+        assert_eq!(parse_login_provider(Some("default")).unwrap(),OwnerLoginProvider::Default);
+        for invalid in ["", "Google", "https://evil.example", "google&scope=remote:execute", "apple"] {
+            assert_eq!(parse_login_provider(Some(invalid)).unwrap_err(),"owner_login_provider_invalid");
+        }
     }
     #[test]
     fn exact_pkce_and_callback_prevent_replay_and_redirect_spoof() {

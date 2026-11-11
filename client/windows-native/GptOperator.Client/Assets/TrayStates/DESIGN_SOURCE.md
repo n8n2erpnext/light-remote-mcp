@@ -1,5 +1,16 @@
 # Moryqa → Windows Tray V3 integration (2026-10-31)
 
+## 2026-11-11 — Connected glyph palette adjustment
+
+Owner requested a darker, less vivid Connected LR glyph. The product SVG is derived
+from Moryqa node40:896 with only fill `#1DA473` changed to `#167A58`; geometry,
+yellow STOCK background, four other states and native state projection are retained.
+Connected16/32/128 PNGs and embedded32px RGBA were regenerated from this product SVG.
+`PROVENANCE.json` records the original export hash, derivation and actual renderer;
+this is not a new Moryqa export. Build/native and physical acceptance are separate.
+
+The sections below retain historical design/build evidence for their original sources.
+
 Source: connected **Moryqa Studio MCP for Figma**, file **Light Remote - Logo - UI/UX**, page **Light Remote UI/UX**. This is read-only design extraction and Windows client source implementation; no Figma nodes were edited.
 
 ## Verified Figma sources

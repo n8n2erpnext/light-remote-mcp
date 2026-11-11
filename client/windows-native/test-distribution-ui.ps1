@@ -27,6 +27,7 @@ public static class LRSetupUi {
  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h,out RECT r);
  [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h,IntPtr dc,uint flags);
  [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr h);
+ [DllImport("user32.dll")] public static extern IntPtr GetParent(IntPtr h);
  public static IntPtr[] Windows(){var a=new List<IntPtr>();EnumWindows((h,p)=>{if(IsWindowVisible(h))a.Add(h);return true;},IntPtr.Zero);return a.ToArray();}
  public static IntPtr[] Children(IntPtr root){var a=new List<IntPtr>();EnumChildWindows(root,(h,p)=>{if(IsWindowVisible(h))a.Add(h);return true;},IntPtr.Zero);return a.ToArray();}
  public static string Text(IntPtr h){var s=new StringBuilder(4096);GetWindowText(h,s,s.Capacity);return s.ToString();}
@@ -81,6 +82,54 @@ function Invoke-Button($View,[string]$Caption){
     $h=Find-Control $View $Caption
     if(-not [LRSetupUi]::PostMessage($h,0xF5,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'Native button message failed'} # BM_CLICK, native handler
 }
+function Text-Rect([IntPtr]$Control){
+    $r=[LRSetupUi+RECT]::new()
+    if(-not [LRSetupUi]::GetWindowRect($Control,[ref]$r)){throw 'Native control rectangle unavailable'}
+    return $r
+}
+function Text-Ink($Bitmap,$WindowRect,[IntPtr]$Control,[string]$Label){
+    $r=Text-Rect $Control
+    $left=[Math]::Max(0,$r.Left-$WindowRect.Left);$top=[Math]::Max(0,$r.Top-$WindowRect.Top)
+    $right=[Math]::Min($Bitmap.Width,$r.Right-$WindowRect.Left);$bottom=[Math]::Min($Bitmap.Height,$r.Bottom-$WindowRect.Top)
+    $count=0;$last=-1
+    # Inspect every row: the previous three-pixel sampling could miss a thin
+    # final descender row on the first heading or the smaller wordmark.
+    for($y=$top;$y -lt $bottom;$y++){for($x=$left;$x -lt $right;$x++){
+        $c=$Bitmap.GetPixel($x,$y)
+        if($c.R -lt 100 -and $c.G -lt 110 -and $c.B -lt 130){$count++;$last=$y}
+    }}
+    if($count -lt 25){throw "Native text is clipped or not painted: $Label"}
+    $margin=$bottom-1-$last
+    if($margin -lt 3){throw "Native descenders touch the clipping boundary: $Label"}
+    return [ordered]@{label=$Label;text=[LRSetupUi]::Text($Control);inkPixels=$count;bottomMargin=$margin;height=$r.Bottom-$r.Top}
+}
+function Card-Background($Bitmap,$WindowRect,[IntPtr]$Card,[IntPtr[]]$Children){
+    $r=Text-Rect $Card
+    if($r.Right-$r.Left -ge ($WindowRect.Right-$WindowRect.Left)*0.95){throw 'Card controls still inherit the white root surface'}
+    $proof=[Collections.Generic.List[object]]::new()
+    foreach($h in $Children){
+        if([LRSetupUi]::GetParent($h) -ne $Card){continue}
+        if([LRSetupUi]::Class($h) -notmatch 'Static|Button|CheckBox|List'){continue}
+        # Percent is right-aligned within a narrow box; it has no reliably
+        # empty right tail. Wide status/notes/checkbox/list rows do.
+        $c=Text-Rect $h
+        if($c.Right-$c.Left -lt 100){continue}
+        $x=$c.Right-$WindowRect.Left-5
+        $samples=0
+        foreach($fraction in @(0.2,0.5,0.8)){
+            $y=$c.Top-$WindowRect.Top+[int](($c.Bottom-$c.Top-1)*$fraction)
+            if($x -lt 0 -or $x -ge $Bitmap.Width -or $y -lt 0 -or $y -ge $Bitmap.Height){throw 'Card child escaped screenshot bounds'}
+            $pixel=$Bitmap.GetPixel($x,$y)
+            if([Math]::Abs([int]$pixel.R-246) -gt 2 -or [Math]::Abs([int]$pixel.G-247) -gt 2 -or [Math]::Abs([int]$pixel.B-249) -gt 2){
+                throw ('Opaque native child background breaks the card: '+[LRSetupUi]::Class($h)+' / '+[LRSetupUi]::Text($h))
+            }
+            $samples++
+        }
+        $proof.Add([ordered]@{class=[LRSetupUi]::Class($h);text=[LRSetupUi]::Text($h);backgroundSamples=$samples})
+    }
+    if($proof.Count -lt 2){throw 'Actual information-card child backgrounds were not inspected'}
+    return ,$proof.ToArray()
+}
 function Capture-View($View,[string]$Name){
     # In-process GetTextFace uses the title's actual TFont. Cross-process
     # HFONT selection is invalid on Windows and only observes a default DC.
@@ -91,29 +140,53 @@ function Capture-View($View,[string]$Name){
         '04-uninstall-confirm'='Keep your work.';'05-removing'='in good order.';'06-removed'='is uninstalled.'}[$Name]
     $second=@([LRSetupUi]::Children($View.window)|Where-Object{[LRSetupUi]::Text($_) -eq $secondText})
     if($second.Count -ne 1){throw "Second title line must be visible: $secondText"}
-    $secondRect=[LRSetupUi+RECT]::new();[void][LRSetupUi]::GetWindowRect($second[0],[ref]$secondRect)
+    $children=@([LRSetupUi]::Children($View.window))
+    $firstText=@{'01-welcome'='Your AI workspace,';'02-installing'='Making room for';'03-ready'='Ready when';
+        '04-uninstall-confirm'='Remove the app.';'05-removing'='Leaving things';'06-removed'='Light Remote'}[$Name]
+    $brand=@($children|Where-Object{[LRSetupUi]::Text($_) -eq 'Light Remote'}|Sort-Object{(Text-Rect $_).Top})
+    if(-not $brand){throw 'Native wordmark label is missing'}
+    $first=@($children|Where-Object{[LRSetupUi]::Text($_) -eq $firstText}|Sort-Object{(Text-Rect $_).Top})
+    if(-not $first){throw 'First native title line is missing'}
+    $detailText=@{'01-welcome'='Your linked devices and saved settings stay yours.';'02-installing'='Setting up your workspace';
+        '03-ready'='Your linked devices and saved settings are kept.';'04-uninstall-confirm'='Device identity, saved settings and local activity are kept.';
+        '05-removing'='Saved settings will remain on this PC.';'06-removed'='Reinstall to use this PC with Light Remote again.'}[$Name]
+    $detail=@($children|Where-Object{[LRSetupUi]::Text($_) -eq $detailText})
+    if($detail.Count -ne 1){throw 'Native information-card detail is missing'}
+    $cardParent=[LRSetupUi]::GetParent($detail[0])
+    $bodyFirstText=@{'01-welcome'='Connect your AI to files, terminals and desktop apps.';'02-installing'='Light Remote is being installed.';
+        '03-ready'='Light Remote is installed.';'04-uninstall-confirm'='The app will stop and be removed from this PC.';
+        '05-removing'='Removing Light Remote from this PC.';'06-removed'='Your saved settings and local work are still here.'}[$Name]
+    $bodyLastText=@{'01-welcome'='You choose what it can access.';'02-installing'='Keep this window open until setup finishes.';
+        '03-ready'='Open the app to link this PC and choose permissions.';'04-uninstall-confirm'='Your saved settings and local work will stay.';
+        '05-removing'='Your saved work is being kept.';'06-removed'='Thanks for making room for Light Remote.'}[$Name]
+    $bodyFirst=@($children|Where-Object{[LRSetupUi]::Text($_) -eq $bodyFirstText})
+    $bodyLast=@($children|Where-Object{[LRSetupUi]::Text($_) -eq $bodyLastText})
+    if($bodyFirst.Count -ne 1 -or $bodyLast.Count -ne 1){throw 'Native body lines are missing'}
+    $firstRect=Text-Rect $first[-1];$secondRect=Text-Rect $second[0]
+    $bodyTopRect=Text-Rect $bodyFirst[0];$bodyBottomRect=Text-Rect $bodyLast[0];$cardRect=Text-Rect $cardParent
+    if($firstRect.Bottom -gt $secondRect.Top -or $secondRect.Bottom+3 -gt $bodyTopRect.Top -or $bodyBottomRect.Bottom+4 -gt $cardRect.Top){
+        throw 'Measured native heading/body layout overlaps another text line or the information card'
+    }
     if($rect.Right-$rect.Left -lt 500 -or $rect.Bottom-$rect.Top -lt 350){throw 'Distribution window unexpectedly small'}
     $b=[Drawing.Bitmap]::new($rect.Right-$rect.Left,$rect.Bottom-$rect.Top)
     try{
         $g=[Drawing.Graphics]::FromImage($b);$dc=$g.GetHdc()
         try{if(-not [LRSetupUi]::PrintWindow($View.window,$dc,0)){throw 'Native wizard could not render'}}finally{$g.ReleaseHdc($dc);$g.Dispose()}
-        $gold=0;$card=0;$secondInk=0;$lastSecondInk=-1
+        $gold=0;$card=0
         for($y=0;$y -lt $b.Height;$y+=3){for($x=0;$x -lt $b.Width;$x+=3){
             $c=$b.GetPixel($x,$y)
             if($c.R -gt 170 -and $c.G -gt 130 -and $c.B -lt 70){$gold++}
             if([Math]::Abs([int]$c.R-246) -le 1 -and [Math]::Abs([int]$c.G-247) -le 1 -and [Math]::Abs([int]$c.B-249) -le 1){$card++}
-            if($x -ge $secondRect.Left-$rect.Left -and $x -lt $secondRect.Right-$rect.Left -and
-               $y -ge $secondRect.Top-$rect.Top -and $y -lt $secondRect.Bottom-$rect.Top -and
-               $c.R -lt 100 -and $c.G -lt 110 -and $c.B -lt 130){$secondInk++;$lastSecondInk=$y}
         }}
         $b.Save((Join-Path $evidence ($Name+'.png')),[Drawing.Imaging.ImageFormat]::Png)
         if($face -notlike '*Google Sans*'){throw "Native title font is not packaged Google Sans: $face"}
         if($gold -lt 100){throw 'Canonical gold logo/brand art missing from actual native wizard'}
         if($card -lt 100){throw 'Native information card background is missing'}
-        if($secondInk -lt 25){throw 'Second title line is clipped or not painted'}
-        $secondBottomMargin=$secondRect.Bottom-$rect.Top-1-$lastSecondInk
-        if($secondBottomMargin -lt 3){throw 'Second title descenders touch the clipping boundary'}
-        return [ordered]@{view=$Name;title=$View.text;secondTitle=$secondText;secondTitleInkPixels=$secondInk;secondTitleBottomMargin=$secondBottomMargin;cardPixels=$card;font=$face;dpi=[LRSetupUi]::GetDpiForWindow($View.window);width=$b.Width;height=$b.Height;brandPixels=$gold;rendered=$true}
+        $brandInk=Text-Ink $b $rect $brand[0] 'wordmark'
+        $firstInk=Text-Ink $b $rect $first[-1] 'first heading'
+        $secondProof=Text-Ink $b $rect $second[0] 'second heading'
+        $cardProof=Card-Background $b $rect $cardParent $children
+        return [ordered]@{view=$Name;title=$View.text;secondTitle=$secondText;secondTitleInkPixels=$secondProof.inkPixels;secondTitleBottomMargin=$secondProof.bottomMargin;wordmark=$brandInk;firstTitle=$firstInk;cardChildBackgrounds=$cardProof;cardPixels=$card;font=$face;dpi=[LRSetupUi]::GetDpiForWindow($View.window);width=$b.Width;height=$b.Height;brandPixels=$gold;rendered=$true}
     }finally{$b.Dispose()}
 }
 $proof=[Collections.Generic.List[object]]::new()

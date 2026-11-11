@@ -5,12 +5,12 @@
  * from a trusted, enabled Device Agent after secure bootstrap acceptance.
  * It makes a fresh enrolled Ed25519 request on EVERY protected Wall request.
  * No browser/React route, A/B grant, token, cookie or dynamic URL.
- * Source-only: operator-agent.mjs does not mount this callback yet.
+ * Composed only by the exact-profile, OS-private Agent runtime adapter.
  */
 export const GOLDABV2_WALL_SSO_FAMILY_URL_V4=
   'https://goldabv2.light-remote.thaiduy.digital/device-channel/desktop-wall-sso-family-current';
-import {WALL_SSO_FAMILY_CURRENT_ACTION_V4}
-  from '../operator-host/desktop-wall-sso-family-current-v4.mjs';
+// Keep the client package independent of server authority implementations.
+const WALL_SSO_FAMILY_CURRENT_ACTION_V4='desktop-wall-sso-family-current';
 
 const ID=/^[A-Za-z0-9._:-]{1,160}$/;
 const ACCOUNT=/^[A-Za-z0-9._:-]{1,128}$/;

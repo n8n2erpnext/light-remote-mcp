@@ -186,3 +186,9 @@ Không có build/test được chạy trong nghiên cứu. CI72 đã xác minh c
 ## Điểm nối tiếp
 
 Đọc kế hoạch này cùng [Project Truth](../../PROJECT_TRUTH.md), [Master Checkpoint](../../MASTER_CHECKPOINT.json) và [rolling handoff](../../PROJECT_HANDOFF.md). Chờ chỉ thị implementation/build riêng; đề xuất bắt đầu bằng cursor nguyên bản + input contract/timing, sau đó thêm verified typing/long logical write theo capability mà giữ luồng native cũ. Đo baseline trước khi quyết định backendGPU mặc định. Không tự build, deploy hoặc cài bản thử từ kết quả nghiên cứu.
+
+## 2026-11-11 installer, tray and Google-login follow-up
+
+Owner explicitly authorized build/test of this follow-up. The existing RMv2 cursor/latency/GPU/typing proposals remain research-only. This cross-cutting batch fixes native setup/uninstall card backgrounds and Google Sans descender space, darkens only the Connected tray glyph to #167A58, and adds explicit Google account sign-in to Desktop plus Google-via-Desktop Wall SSO. Native screenshot coverage must inspect all six setup/uninstall views, real card-child backgrounds, wordmark and both title lines.
+
+Full pre-change checkpoint: `checkpoint/20261111-before-installer-google-d025139`, verified restorable all-refs bundle on ARM. Implementation and subsequent exact-source CI/artifact/runtime outcomes are recorded in the existing `PROJECT_HANDOFF.md` receipt `20261111-installer-tray-google-integration` and the single Master Checkpoint. Google Cloud must allow the exact Gold callback; saved credentials alone do not establish external readiness. Physical DPI100/150/200 and real Google account round-trip remain Owner acceptance items. No public release/feed or Owner installation is authorized by this internal build.

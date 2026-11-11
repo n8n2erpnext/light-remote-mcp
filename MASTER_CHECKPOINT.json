@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-11T02:50:58.158Z",
+  "updatedAt": "2026-11-11T07:55:08.680Z",
   "version": "0.10.1-dev.6",
   "phase": "LOCAL_MEMORY_EXTENSION_API_WORKER_RESEARCH_COMPLETE_BUILD_DEFERRED",
-  "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
+  "status": "INSTALLER_TRAY_GOOGLE_PORTABLE_PASS_NATIVE_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -359,7 +359,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Wait for Owner implementation/build instruction. Prioritize Memory payload retention audit/fix across MCP exec logs, one validated local-first extension with ChatGPT/Claude/manual restore and isolated test harness, then enabled-provider metadata warmup/force-refresh/source-scoped usage. Add one authorized read-only MCP reasoning worker with job/progress/cancel before Claude/Gemini adapters and bounded multiworker. Preserve A/B/local-policy/workspace/approval/session boundaries; no login, billed inference, native build/deploy until requested. Keep all deferred RMtyping/cursor/GPU and dev6 installer/tray/X/Agent/ConPTY/migration/rollback acceptance checklists.",
+  "nextAction": "Follow exact-source full Actions CI; fix failures; inspect six native screenshots and verified internal installer manifests. Reuse production Google credentials privately in Lab only, register/verify Lab callback and update isolated Lab backend from the accepted GitHub commit. Keep research-only RMv2/API Worker plans separate; no public release or Owner install.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -450,13 +450,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-local-memory-extension-api-worker-research",
-    "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
-    "summary": "Owner explicitly selected research/plan only. Audited Memory local storage and encrypted TTL relay separately from MCP exec bridge whose script/stdout can persist Memory bodies in Operator JSONL. Recovered extension variants are ChatGPT-only with fixed local/Lab endpoints and no restore-to-chat; four executable ZIP files match normalized source. Identified Desktop cold metadata bootstrap and non-force30s refresh; screenshots69remaining/31used are compatible, lifetime tokens not quota. Local single-worker Codex supervisor exists; dedicated MCP reasoning delegation and Claude/Gemini adapters are not yet implemented. Proposed API Worker naming, independent officialCLI/API auth/setup, staged bounded multiworker and synthetic/physical acceptance plan. No implementation/runtime/build/test.",
-    "verification": "Read unchanged product source at ad3db2f, digest537a0a47. Confirmed source paths for local Memory/relay/logging, extensioncapture/staging, Codex metadata/usage/localdelegate. No live logs/DB/credentials read and no claim specific Owner content leaked. Extension ZIP28095bytes SHA25676a3649a4fb7704cb930f4a1912f70b80d8387128f69aff023e9a306f3fd0dcd; four executable files match normalized CRLF. Official OpenAI Docs, ClaudeSDK/auth and GeminiCLI/headless/auth/policy reviewed. Peer reviews passed after qualifying hiddenDOM exclusion. Previous RMtyping CI76 run42947462735 exactad3db2f completed/success docs-only with native/core skipped. Only mandatory documentation/stamp gates for this plan.",
-    "nextAction": "Wait for Owner implementation/build instruction. Prioritize Memory payload retention audit/fix across MCP exec logs, one validated local-first extension with ChatGPT/Claude/manual restore and isolated test harness, then enabled-provider metadata warmup/force-refresh/source-scoped usage. Add one authorized read-only MCP reasoning worker with job/progress/cancel before Claude/Gemini adapters and bounded multiworker. Preserve A/B/local-policy/workspace/approval/session boundaries; no login, billed inference, native build/deploy until requested. Keep all deferred RMtyping/cursor/GPU and dev6 installer/tray/X/Agent/ConPTY/migration/rollback acceptance checklists.",
-    "sourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
-    "sourceFileCount": 1672
+    "taskId": "20261111-installer-tray-google-integration",
+    "status": "IMPLEMENTED_PORTABLE_PASS_NATIVE_CI_PENDING",
+    "summary": "Parent actual native card controls to gray cards, measure Google Sans text with descender padding, preserve installer/uninstall transactions; tune Connected LR glyph to #167A58 without geometry/state changes; add explicit Desktop Google hint and exact-profile enrolled-Agent Wall SSO, profile-bound Google configuration and safe admin readiness wording.",
+    "verification": "Isolated ARM candidate:37 OAuth/Owner/Wall SSO tests PASS; native distribution source regression PASS. Test coverage includes provider allowlist, original PKCE/state preservation, explicit consent, config rotation/inflight revocation, current-profile callback, IPC bind failure/revoked enrollment and six-view native proof assertions. Windows sandbox could not spawn Node tests (EPERM); ARM candidate is actual portable evidence. Native compile/screenshots/full CI and real Google/physical acceptance remain pending.",
+    "nextAction": "Follow exact-source full Actions CI; fix failures; inspect six native screenshots and verified internal installer manifests. Reuse production Google credentials privately in Lab only, register/verify Lab callback and update isolated Lab backend from the accepted GitHub commit. Keep research-only RMv2/API Worker plans separate; no public release or Owner install.",
+    "sourceDigest": "3c4668a848897031ce8f47dbec87f2e7dd35c3a86482fc1eca1c2d376e1bd5a1",
+    "sourceFileCount": 1675
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1460,5 +1460,23 @@
     "deploymentChanged": false,
     "peerReview": "PASS_WITH_HIDDEN_DOM_COVERAGE_LIMIT_EXPLICIT",
     "nativeBuildStillDeferredByOwner": true
+  },
+  "installerGoogleFollowup": {
+    "taskId": "20261111-installer-tray-google-integration",
+    "status": "IMPLEMENTED_PORTABLE_PASS_NATIVE_CI_PENDING",
+    "preChangeCommit": "d0251392ae7b440f98087f36b471aaff48b5ba04",
+    "preChangeTag": "checkpoint/20261111-before-installer-google-d025139",
+    "archiveRestore": "PASS_BUNDLE_VERIFY_INDEPENDENT_CLONE_FSCK",
+    "archiveSha256": "997957edb62938b3e53e8e200fc1444eda9f768cb610948456945d7adb32ae4c",
+    "portableTests": 37,
+    "distributionSourceGuard": "PASS",
+    "nativeCi": "PENDING",
+    "googleCredentials": "PRODUCTION_VALID_FORMAT_LAB_UNCONFIGURED_NOT_COPIED_YET",
+    "googleExternalCallback": "UNVERIFIED",
+    "wallGoogleFlow": "VIA_NATIVE_DESKTOP_EXPLICIT_LOCAL_CHALLENGE",
+    "physicalOwnerAcceptance": false,
+    "productionChanged": false,
+    "runtimeChanged": false,
+    "publicRelease": false
   }
 }

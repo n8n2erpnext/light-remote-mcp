@@ -202,3 +202,7 @@ The existing [RMv2 plan](docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) now 
 ## Plan local Memory retention, ChatGPT Claude extension and multi-provider API Worker
 
 Owner chose research/plan only for [local Memory, extension and API Worker](docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md). Source confirms dedicated encrypted device sync uses volatile TTL relay, while MCP Memory exec script/stdout can place content in Operator event logs; no live Owner log/DB inspected. Recovered extensions are ChatGPT-only with fixed profile targets and no restore-to-chat. Desktop cached metadata needs explicit account bootstrap; Refresh may use30s cache.69remaining/31used screenshots are consistent; token lifetime is separate. Local single-worker Codex delegation exists; public MCP reasoning tool and Claude/Gemini/multiworker adapters are proposals. No implementation, functional/native test/build, authentication/inference, install or deployment performed. RMv2 typing planad3db2f/CI76 docs-only and deferred dev6 acceptance remain retained.
+
+## Fix native installer surfaces and typography, tune tray and integrate Google sign-in
+
+Installer/tray/Google follow-up is implemented; portable37 tests and distribution source guard PASS. Exact-source native CI/artifact, six rendered native views, Lab configuration/rollout and physical acceptance are pending. Connected glyph is now product-tuned #167A58 with honest derived-asset provenance. Production is read-only; no public release/feed.

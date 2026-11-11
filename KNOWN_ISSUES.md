@@ -79,3 +79,7 @@ RMv2 typing research: Windows SendInput event count/applied does not prove corre
 ## Plan local Memory retention, ChatGPT Claude extension and multi-provider API Worker
 
 Research atad3db2f identifies potential durable Memory-body copies through MCP exec script/stdout event logs despite volatile encrypted dedicated sync relay. No actual Owner log/DB inspected. Extension current source lacks Claude/restore and has fixed local/Lab endpoints; hidden/virtualized DOM and double-staging need tests. Desktop cold metadata bootstrap and nonforce30s usage refresh explain UX gaps; screenshots69remaining/31used do not establish inversion. Dedicated MCP reasoning/multiworker/provider adapters remain missing. See [plan and staged tests](docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md); research only, no fixes/tests claimed.
+
+## Fix native installer surfaces and typography, tune tray and integrate Google sign-in
+
+Current installer/tray/Google fixes await exact-source native CI and physical acceptance. Wall Google sign-in intentionally uses the existing signed-in Desktop and one-time local challenge, with password/recovery retained when native IPC unavailable. The exact Gold callback must be allowed in Google Cloud; no saved-config status is evidence of real account round-trip. RMv2 research and Memory/API Worker proposals are not implemented by this change.

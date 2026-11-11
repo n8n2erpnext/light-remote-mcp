@@ -18,8 +18,8 @@ internal static class TrayIconFactory
 {
     public static Icon Create(TrayVisualState visual)
     {
-        // Render the exact Moryqa/Figma state-specific vector export (rasterized
-        // to 32px with Chromium Canvas; see Assets/TrayStates/PROVENANCE.json). Do not overlay
+        // Render the Moryqa-derived state artwork with reviewed product palette
+        // adjustments (32px Chromium Canvas; see Assets/TrayStates/PROVENANCE.json). Do not overlay
         // another status dot: the Figma artwork already encodes that state.
         var name = "LightRemoteTray." + visual.ToString().ToLowerInvariant() + ".png";
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);

@@ -8,7 +8,29 @@ describe('V4 Owner Login gate: UI preview vs feature-enabled native browser flow
   it('keeps Continue in browser disabled in ordinary UI pilot',()=>{
     render(<AuthEntry allowDesignPreview={false} onPreviewWorkspace={()=>{}} />);
     expect((screen.getByRole('button',{name:'Continue in browser'}) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button',{name:'Continue with Google'}) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByRole('navigation')).toBeNull();
+  });
+  it('Google entry invokes only the trusted Google callback and leaves browser sign-in available',()=>{
+    const begin=vi.fn(),google=vi.fn();
+    render(<AuthEntry allowDesignPreview={false} onPreviewWorkspace={()=>{}}
+      nativePhase="signed_out" onBrowserSignIn={begin} onGoogleSignIn={google} />);
+    fireEvent.click(screen.getByRole('button',{name:'Continue with Google'}));
+    expect(google).toHaveBeenCalledTimes(1);
+    expect(google.mock.calls[0]).toHaveLength(0);
+    expect(begin).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button',{name:'Continue in browser'}));
+    expect(begin).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('textbox')).toBeNull();
+  });
+  it('a Google callback cannot enable sign-in in the UI-only pilot',()=>{
+    const google=vi.fn();
+    render(<AuthEntry allowDesignPreview={false} onPreviewWorkspace={()=>{}}
+      onGoogleSignIn={google} />);
+    const button=screen.getByRole('button',{name:'Continue with Google'});
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(button);
+    expect(google).not.toHaveBeenCalled();
   });
   it('fires only a trusted native Owner begin callback with no user credentials',()=>{
     const begin=vi.fn();

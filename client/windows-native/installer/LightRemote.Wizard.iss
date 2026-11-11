@@ -16,6 +16,7 @@ var
   LRWelcome: TWizardPage;
   LRDesktopShortcut: TNewCheckBox;
   LRWelcomePanel, LRInstallingPanel, LRFinishedPanel: TPanel;
+  LRWelcomeCard, LRInstallingCard, LRFinishedCard, LRRemovingCard: TPanel;
   LRNext, LRCancel: TBitmapButton;
   LRPercent: TNewStaticText;
   LRFontFile, LRMarkFile: String;
@@ -130,29 +131,29 @@ end;
 
 function LRText(Parent: TWinControl; Name, Text: String;
   X, Y, W, H, Pixels: Integer; Bold: Boolean; Color: TColor): TNewStaticText;
-var Probe: TBitmap; Face, Tail: String; Count, Width, BreakAt, Pitch: Integer;
+var Probe: TBitmap; Face: String; Count, Width, MinimumHeight: Integer;
 begin
   Result := TNewStaticText.Create(Parent);
   Result.Parent := Parent;
   Result.Name := Name;
   Result.AutoSize := False;
   Result.WordWrap := True;
+  Result.ShowAccelChar := False;
   Result.SetBounds(LRX(X), LRY(Y), LRX(W), LRY(H));
-  BreakAt := Pos(#13#10, Text);
-  if BreakAt > 0 then
-  begin
-    // Google Sans has large GDI line metrics. Use native accessible labels
-    // with explicit line placement so the second title cannot be clipped.
-    if Pixels >= 30 then Pitch := 46 else Pitch := 26;
-    Result.Caption := Copy(Text, 1, BreakAt - 1);
-    Result.Height := LRY(Pitch);
-  end
-  else Result.Caption := Text;
+  Result.Caption := Text;
   Result.StyleElements := [];
-  Result.Color := clWhite;
-  if (Y >= 322) and (Y < 438) then Result.Color := LRCard;
-  if Y >= 480 then Result.Color := LRFooter;
+  Result.ParentBackground := False;
+  Result.ParentColor := True;
+  Result.ParentFont := False;
   LRFont(Result.Font, Pixels, Bold, Color);
+  // AdjustHeight is an exported Inno 6.7.1 API. It measures DrawText using
+  // this control's real font, width and wrapping; nominal Font.Height is not
+  // a safe line box for the packaged Google Sans font. Reserve ink padding
+  // for EVERY line, including the brand and first heading, not only line two.
+  MinimumHeight := Result.Height;
+  Result.AdjustHeight();
+  Result.Height := Result.Height + LRY(8);
+  if Result.Height < MinimumHeight then Result.Height := MinimumHeight;
   if Name = 'LRTitle' then
   begin
     // GDI objects are process-private. Resolve the exact title's TFont in
@@ -174,14 +175,62 @@ begin
       Probe.Free;
     end;
   end;
-  if BreakAt > 0 then
-  begin
-    Tail := Copy(Text, BreakAt + 2, Length(Text));
-    LRText(Parent, Name + 'NextLine', Tail, X, Y + Pitch, W, H - Pitch, Pixels, Bold, Color);
-  end;
 end;
 
-procedure LRSurface(Parent: TWinControl; X, Y, W, H: Integer; Color: TColor; Rounded: Boolean);
+function LRMeasureBlock(Parent: TWinControl; Text: String; W, Pixels: Integer;
+  Bold: Boolean): Integer;
+var Line: TNewStaticText; Part: String; BreakAt: Integer;
+begin
+  Result := 0;
+  repeat
+    BreakAt := Pos(#13#10, Text);
+    if BreakAt > 0 then Part := Copy(Text, 1, BreakAt - 1) else Part := Text;
+    Line := TNewStaticText.Create(Parent);
+    try
+      Line.Visible := False;
+      Line.Parent := Parent;
+      Line.AutoSize := False;
+      Line.WordWrap := True;
+      Line.ShowAccelChar := False;
+      Line.Width := LRX(W);
+      LRFont(Line.Font, Pixels, Bold, LRInk);
+      Line.Caption := Part;
+      Line.AdjustHeight();
+      Result := Result + Line.Height + LRY(8);
+    finally
+      Line.Free;
+    end;
+    if BreakAt > 0 then
+    begin
+      Result := Result + LRY(2);
+      Text := Copy(Text, BreakAt + 2, Length(Text));
+    end;
+  until BreakAt = 0;
+end;
+
+function LRTextBlock(Parent: TWinControl; Name, Text: String; X, W, TopPx,
+  Pixels: Integer; Bold: Boolean; Color: TColor): Integer;
+var Line: TNewStaticText; Part: String; BreakAt: Integer;
+begin
+  // TopPx/result are already device pixels. Keep measured line placement in
+  // that space to avoid a second DPI conversion and rounding at 150/200%.
+  Result := TopPx;
+  repeat
+    BreakAt := Pos(#13#10, Text);
+    if BreakAt > 0 then Part := Copy(Text, 1, BreakAt - 1) else Part := Text;
+    Line := LRText(Parent, Name, Part, X, 0, W, 0, Pixels, Bold, Color);
+    Line.Top := Result;
+    Result := Line.Top + Line.Height;
+    if BreakAt > 0 then
+    begin
+      Result := Result + LRY(2);
+      Text := Copy(Text, BreakAt + 2, Length(Text));
+      Name := Name + 'NextLine';
+    end;
+  until BreakAt = 0;
+end;
+
+function LRSurface(Parent: TWinControl; X, Y, W, H: Integer; Color: TColor; Rounded: Boolean): TPanel;
 var P: TPanel; Region: UINT_PTR;
 begin
   P := TPanel.Create(Parent);
@@ -196,6 +245,7 @@ begin
     Region := LRRoundRegion(0, 0, P.Width + 1, P.Height + 1, LRX(32), LRY(32));
     if LRSetRegion(P.Handle, Region, True) = 0 then LRDeleteObject(Region);
   end;
+  Result := P;
 end;
 
 procedure LRLogo(Parent: TWinControl; X, Y, Size: Integer);
@@ -212,6 +262,7 @@ end;
 
 function LRView(Form: TSetupForm; Phase: Integer): TPanel;
 var Title, Body, Role, Note, Detail, Footer: String;
+  Card, FooterPanel: TPanel; TitlePixels, BodyPixels, BodyTop: Integer;
 begin
   // No inherited Windows V2 sidebar, numbered steps, fake LR or blue theme.
   Role := 'Windows Setup';
@@ -275,23 +326,40 @@ begin
   Result.StyleElements := [];
   Result.Color := clWhite;
   LRSurface(Result, 0, 78, 800, 1, LRLine, False);
-  LRSurface(Result, 40, 322, 720, 116, LRCard, True);
-  LRSurface(Result, 0, 480, 800, 80, LRFooter, False);
+  // Native child controls must have the actual colored surface as parent.
+  // A sibling painted behind a STATIC/checkbox does not supply its erase
+  // background and can leave white bands even when Color is assigned.
+  Card := LRSurface(Result, 40, 322, 720, 116, LRCard, True);
+  FooterPanel := LRSurface(Result, 0, 480, 800, 80, LRFooter, False);
+  case Phase of
+    1: LRWelcomeCard := Card;
+    2: LRInstallingCard := Card;
+    3: LRFinishedCard := Card;
+    5: LRRemovingCard := Card;
+  end;
   LRSurface(Result, 0, 480, 800, 1, LRLine, False);
   LRLogo(Result, 28, 22, 28);
   LRLogo(Result, 580, 124, 128);
   LRText(Result, 'LRWordmark', 'Light Remote', 68, 24, 210, 30, 20, True, LRInk);
   LRText(Result, 'LRRole', Role, 620, 30, 150, 22, 12, False, LRMuted);
-  LRText(Result, 'LRTitle', Title, 40, 116, 470, 102, 32, True, LRInk);
-  LRText(Result, 'LRBody', Body, 40, 218, 480, 70, 15, False, LRMuted);
-  if Note <> '' then LRText(Result, 'LRNote', Note, 58, 342, 660, 26, 15, True, LRInk);
+  TitlePixels := 32;
+  BodyPixels := 15;
+  // Fit by the installed font's measured line boxes, then flow the body
+  // below the complete heading. Never reduce label height to fit the art.
+  while (TitlePixels > 26) and
+    (LRMeasureBlock(Result, Title, 470, TitlePixels, True) + LRY(8) +
+     LRMeasureBlock(Result, Body, 480, BodyPixels, False) > LRY(194)) do
+    TitlePixels := TitlePixels - 1;
+  BodyTop := LRTextBlock(Result, 'LRTitle', Title, 40, 470, LRY(104), TitlePixels, True, LRInk) + LRY(8);
+  LRTextBlock(Result, 'LRBody', Body, 40, 480, BodyTop, BodyPixels, False, LRMuted);
+  if Note <> '' then LRText(Card, 'LRNote', Note, 18, 16, 660, 0, 15, True, LRInk);
   if (Phase = 2) or (Phase = 5) then
-    LRText(Result, 'LRDetail', Detail, 58, 400, 660, 24, 13, False, LRMuted)
+    LRText(Card, 'LRDetail', Detail, 18, 78, 660, 0, 13, False, LRMuted)
   else
-    LRText(Result, 'LRDetail', Detail, 58, 371, 675, 23, 13, False, LRMuted);
-  if Phase = 4 then LRText(Result, 'LRKeepNote', 'Reinstall later to use your saved setup.', 58, 398, 675, 24, 13, False, LRMuted);
-  if Phase = 6 then LRText(Result, 'LRAccountNote', 'Your online account has not been changed.', 58, 398, 675, 24, 13, False, LRMuted);
-  LRText(Result, 'LRFooterNote', Footer, 32, 515, 440, 22, 12, False, LRMuted);
+    LRText(Card, 'LRDetail', Detail, 18, 49, 675, 0, 13, False, LRMuted);
+  if Phase = 4 then LRText(Card, 'LRKeepNote', 'Reinstall later to use your saved setup.', 18, 78, 675, 0, 13, False, LRMuted);
+  if Phase = 6 then LRText(Card, 'LRAccountNote', 'Your online account has not been changed.', 18, 78, 675, 0, 13, False, LRMuted);
+  LRText(FooterPanel, 'LRFooterNote', Footer, 32, 35, 440, 0, 12, False, LRMuted);
 end;
 
 function LRButton(Parent: TWinControl; Name, Caption: String;
@@ -374,16 +442,18 @@ begin
   LRInstallingPanel.Visible := False;
   LRFinishedPanel.Visible := False;
   LRDesktopShortcut := TNewCheckBox.Create(WizardForm);
-  LRDesktopShortcut.Parent := LRWelcomePanel;
+  LRDesktopShortcut.Parent := LRWelcomeCard;
   LRDesktopShortcut.Name := 'LRDesktopShortcut';
-  LRDesktopShortcut.SetBounds(LRX(58), LRY(393), LRX(650), LRY(30));
+  LRDesktopShortcut.SetBounds(LRX(18), LRY(78), LRX(650),
+    LRMeasureBlock(LRWelcomeCard, 'Create a desktop shortcut', 650, 14, False));
   LRDesktopShortcut.Caption := 'Create a desktop shortcut';
   LRDesktopShortcut.Checked := True;
   LRDesktopShortcut.Color := LRCard;
   LRDesktopShortcut.ParentBackground := False;
   LRDesktopShortcut.StyleElements := [];
   LRFont(LRDesktopShortcut.Font, 14, False, LRInk);
-  LRPercent := LRText(LRInstallingPanel, 'LRPercent', '', 690, 342, 52, 24, 13, False, LRMuted);
+  LRPercent := LRText(LRInstallingCard, 'LRPercent', '100%', 650, 16, 52, 0, 13, False, LRMuted);
+  LRPercent.Caption := '';
   LRPercent.Alignment := taRightJustify;
   // Buttons belong to the form so they stay above whichever view is shown.
   LRCancel := LRButton(WizardForm, 'LRCancel', 'Cancel', 516, 104, clWhite, LRInk, @LRForwardCancel);
@@ -426,20 +496,31 @@ begin
   if CurPageID = LRWelcome.ID then LRWelcomePanel.BringToFront();
   if CurPageID = wpInstalling then
   begin
-    WizardForm.ProgressGauge.Parent := LRInstallingPanel;
-    WizardForm.ProgressGauge.SetBounds(LRX(58), LRY(378), LRX(684), LRY(10));
+    WizardForm.ProgressGauge.Parent := LRInstallingCard;
+    WizardForm.ProgressGauge.SetBounds(LRX(18), LRY(56), LRX(684), LRY(10));
     LRProgressStyle(WizardForm.ProgressGauge);
-    WizardForm.StatusLabel.Parent := LRInstallingPanel;
-    WizardForm.StatusLabel.SetBounds(LRX(58), LRY(342), LRX(620), LRY(28));
+    WizardForm.StatusLabel.Parent := LRInstallingCard;
+    WizardForm.StatusLabel.AutoSize := False;
+    WizardForm.StatusLabel.WordWrap := False;
+    WizardForm.StatusLabel.SetBounds(LRX(18), LRY(16), LRX(620),
+      LRMeasureBlock(LRInstallingCard, 'Installing Light Remote', 620, 15, True));
+    WizardForm.StatusLabel.StyleElements := [];
+    WizardForm.StatusLabel.ParentBackground := False;
+    WizardForm.StatusLabel.ParentColor := True;
+    WizardForm.StatusLabel.ShowAccelChar := False;
     LRFont(WizardForm.StatusLabel.Font, 15, True, LRInk);
     WizardForm.FilenameLabel.Visible := False;
     LRInstallingPanel.BringToFront();
   end;
   if CurPageID = wpFinished then
   begin
-    WizardForm.RunList.Parent := LRFinishedPanel;
-    WizardForm.RunList.SetBounds(LRX(58), LRY(393), LRX(684), LRY(32));
+    WizardForm.RunList.Parent := LRFinishedCard;
+    WizardForm.RunList.SetBounds(LRX(18), LRY(78), LRX(684),
+      LRMeasureBlock(LRFinishedCard, 'Open Light Remote', 684, 14, False));
+    WizardForm.RunList.MinItemHeight := WizardForm.RunList.Height;
     WizardForm.RunList.Color := LRCard;
+    WizardForm.RunList.ParentBackground := False;
+    WizardForm.RunList.StyleElements := [];
     WizardForm.RunList.BorderStyle := bsNone;
     LRFont(WizardForm.RunList.Font, 14, False, LRInk);
     LRFinishedPanel.BringToFront();
@@ -548,11 +629,18 @@ begin
   if UninstallSilent and not LRInteractiveUninstall then Exit;
   LRSizeForm(UninstallProgressForm);
   Surface := LRView(UninstallProgressForm, 5);
-  UninstallProgressForm.ProgressBar.Parent := Surface;
-  UninstallProgressForm.ProgressBar.SetBounds(LRX(58), LRY(378), LRX(684), LRY(10));
+  UninstallProgressForm.ProgressBar.Parent := LRRemovingCard;
+  UninstallProgressForm.ProgressBar.SetBounds(LRX(18), LRY(56), LRX(684), LRY(10));
   LRProgressStyle(UninstallProgressForm.ProgressBar);
-  UninstallProgressForm.StatusLabel.Parent := Surface;
-  UninstallProgressForm.StatusLabel.SetBounds(LRX(58), LRY(342), LRX(684), LRY(28));
+  UninstallProgressForm.StatusLabel.Parent := LRRemovingCard;
+  UninstallProgressForm.StatusLabel.AutoSize := False;
+  UninstallProgressForm.StatusLabel.WordWrap := False;
+  UninstallProgressForm.StatusLabel.SetBounds(LRX(18), LRY(16), LRX(684),
+    LRMeasureBlock(LRRemovingCard, 'Removing Light Remote', 684, 15, True));
+  UninstallProgressForm.StatusLabel.StyleElements := [];
+  UninstallProgressForm.StatusLabel.ParentBackground := False;
+  UninstallProgressForm.StatusLabel.ParentColor := True;
+  UninstallProgressForm.StatusLabel.ShowAccelChar := False;
   LRFont(UninstallProgressForm.StatusLabel.Font, 15, True, LRInk);
   UninstallProgressForm.CancelButton.Visible := False;
   Surface.BringToFront();

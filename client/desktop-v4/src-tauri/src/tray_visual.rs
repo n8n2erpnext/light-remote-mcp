@@ -1,5 +1,5 @@
 //! Presentation of the native Agent's existing five-state projection.
-//! These pixels are the Moryqa SVG exports, not a second status indicator.
+//! Moryqa-derived pixels include reviewed product palette adjustments; no extra status dot.
 use serde_json::Value;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

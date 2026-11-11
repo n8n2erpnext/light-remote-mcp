@@ -1,7 +1,7 @@
 /**
  * T04b9c1 — GoldABV2 Lab-only Agent HTTPS signed ticket redemption.
  *
- * PRIVATE Agent module, not imported by the live Agent runtime. A caller must
+ * PRIVATE Agent module, enabled only by the exact Lab runtime adapter. A caller must
  * be the existing enrolled Device Agent, never a web page. The URL is an
  * immutable HTTPS Lab endpoint, NOT supplied by the Owner, browser or Agent
  * request. TLS certificate verification is performed by Node fetch.
@@ -87,8 +87,7 @@ export function createDesktopWallSsoAgentHttpsTransportV4({
   return Object.freeze({sendSignedRedeem});
 }
 
-// This composition is not wired into operator-agent.mjs or Local Wall yet:
-// no browser can trigger it and no live Owner ticket is requested.
+// Composed only inside the enrolled Agent. Browser HTTP cannot supply tickets.
 export function createGoldAbv2AgentWallSsoBridgeV4({
   readEnrollment,signChannel,fetchImpl,clock=Date.now
 }={}){

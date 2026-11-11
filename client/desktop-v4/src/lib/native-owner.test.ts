@@ -6,7 +6,7 @@ import {
 
 afterEach(() => vi.unstubAllEnvs());
 
-function host(invoke?: (name:string)=>Promise<unknown>): Window {
+function host(invoke?: (name:string,args?:{loginProvider:'google'})=>Promise<unknown>): Window {
   return {__TAURI_INTERNALS__:invoke?{invoke}:undefined} as unknown as Window;
 }
 
@@ -59,6 +59,22 @@ describe('Native Owner V4 projection and trust boundary',()=>{
       ['desktop_owner_begin'],['desktop_owner_status'],
       ['desktop_owner_restore'],['desktop_owner_logout']
     ]);
+  });
+  it('Google begin passes only the fixed provider hint to the same native PKCE command',async()=>{
+    vi.stubEnv('VITE_LR_V4_OWNER_LOGIN','1');
+    const fn=vi.fn().mockResolvedValue({phase:'browser_pending',accountId:null,token:'hidden'});
+    expect(await nativeOwnerBegin(host(fn),'google')).toEqual({phase:'browser_pending',accountId:null});
+    expect(fn.mock.calls).toEqual([['desktop_owner_begin',{loginProvider:'google'}]]);
+  });
+  it('invalid providers and the disabled pilot never invoke Google login',async()=>{
+    const fn=vi.fn().mockResolvedValue({phase:'browser_pending',accountId:null});
+    vi.stubEnv('VITE_LR_V4_OWNER_LOGIN','1');
+    for(const invalid of ['', 'https://evil.example', 'google&scope=remote:execute', 'Google']){
+      expect(await nativeOwnerBegin(host(fn),invalid as never)).toEqual({phase:'unavailable',accountId:null});
+    }
+    vi.stubEnv('VITE_LR_V4_OWNER_LOGIN','0');
+    expect(await nativeOwnerBegin(host(fn),'google')).toEqual({phase:'unavailable',accountId:null});
+    expect(fn).not.toHaveBeenCalled();
   });
   it('any native error locks UI instead of granting Owner status',async()=>{
     vi.stubEnv('VITE_LR_V4_OWNER_LOGIN','1');

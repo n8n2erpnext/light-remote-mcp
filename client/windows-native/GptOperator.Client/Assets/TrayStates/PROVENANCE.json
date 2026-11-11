@@ -6,13 +6,24 @@
   "states": {
     "connected": {
       "nodeId": "40:896",
-      "svgSha256": "5fed6008e1d11152aaac58593c1a43860f18bd4e699c061f20002719a6b09f55",
+      "svgSha256": "17619a038ab7e4f21b6f94c4eaf84b40ab2c4fb300468fe53fa6d28e7945c479",
       "pngs": {
-        "16": "2ce427df06582bbc630f24ee160162544c50be97f74770970403edea89822a36",
-        "32": "5294ffeac971b28c71900edf79cd47ddb4781fb0d963744ed54ddc08d94ef795",
-        "128": "23da05b252ed1d619a4a8b66ad55157dee381afb895bbda55352b8d09613016e"
+        "16": "7c12e5363cbb0ab65cf17a95ae0af0a12f7b5ee4db3d70efd337beb459e7f30e",
+        "32": "1c634792c4759ca1031501c508298ff3b6cefe08517a3e26300a4db5c4c48570",
+        "128": "c7ae4b5f0ef38c811a44df1aad6fa0c84e1b46602943fe6e4e0559851ef26f15"
       },
-      "rgba32Sha256": "e2fab0beb0de3b47473b15d54865065be5154eea0ef5f6e0cf45d79256484b13"
+      "rgba32Sha256": "d232662e772ffb36fc2cc9536cdd7d41fc10ac70be21cbcdfc0e001b339f64a2",
+      "derivation": {
+        "type": "owner-reviewed-product-palette-adjustment",
+        "originalNodeId": "40:896",
+        "originalSvgSha256": "5fed6008e1d11152aaac58593c1a43860f18bd4e699c061f20002719a6b09f55",
+        "oldGlyphFill": "#1DA473",
+        "newGlyphFill": "#167A58",
+        "geometryChanged": false,
+        "stockYellowChanged": false,
+        "reason": "Connected LR glyph requested darker and less vivid; not a new Moryqa export"
+      },
+      "renderer": "Chromium 157.0.8103.50 / Canvas2D, transparent, high quality"
     },
     "disconnected": {
       "nodeId": "40:899",

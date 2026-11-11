@@ -252,6 +252,62 @@ test('anonymous GET is redirected only to same-origin Account Portal login',asyn
   assert.ok(res.redirectTo.startsWith('/account/login?next='));
   assert.ok(!res.redirectTo.includes('https://attacker.example'));
 });
+
+test('Google hint preserves the native authorization intent and still requires explicit Owner consent',async()=>{
+  const handlers={},redis=fakeRedis();
+  const registered=registerDesktopOwnerV4Authorization({
+    get:(_p,h)=>{handlers.get=h;},post:(_p,h)=>{handlers.post=h;}
+  },{enabled:true,redis,prefix:PREFIX,publicOrigin:ORIGIN,
+    verifyOwner:async req=>req.owner||null});
+  const {req,p}=query();
+  const selected={...req,login_provider:'google'};
+  const anonymous=fakeRes();
+  await handlers.get({query:selected},anonymous);
+  assert.equal(anonymous.code,303);
+  const login=new URL(anonymous.redirectTo,ORIGIN);
+  assert.equal(login.origin,ORIGIN);
+  assert.equal(login.pathname,'/account/google');
+  const next=new URL(login.searchParams.get('next'),ORIGIN);
+  assert.equal(next.origin,ORIGIN);
+  assert.equal(next.pathname,'/account/desktop/v4/authorize');
+  assert.deepEqual(Object.fromEntries(next.searchParams),selected);
+  assert.equal(redis.m.size,0,'provider selection is not a consent or code');
+  const consent=fakeRes();
+  await handlers.get({query:Object.fromEntries(next.searchParams),owner},consent);
+  assert.equal(consent.code,200);
+  assert.match(consent.body,/Continue to Desktop/);
+  assert.equal([...redis.m.keys()].filter(k=>k.includes(':code:')).length,0);
+  const csrf=consent.body.match(/name="csrf" value="([A-Za-z0-9_-]{43})"/)?.[1];
+  const approved=fakeRes();
+  await handlers.post({owner,headers:{origin:ORIGIN,'sec-fetch-site':'same-origin',
+    'content-type':'application/x-www-form-urlencoded'},body:{csrf,decision:'approve'}},approved);
+  assert.equal(approved.code,303);
+  const callback=new URL(approved.redirectTo);
+  const principal=await registered.consumeCode({code:callback.searchParams.get('code'),
+    verifier:p.verifier,redirectUri:req.redirect_uri,installNonce:p.installNonce,state:p.state});
+  assert.equal(principal.accountId,owner.accountId);
+  assert.equal(principal.scope,'desktop:read');
+  assert.equal(callback.searchParams.has('login_provider'),false);
+});
+
+test('invalid Google hints fail closed before login redirects or consent storage',async()=>{
+  const redis=fakeRedis(),verify=()=>{throw new Error('must reject hint before owner lookup');};
+  const svc=createDesktopOwnerAuthorization({redis,prefix:PREFIX,publicOrigin:ORIGIN,verifyOwner:verify});
+  for(const hint of ['', 'Google', 'default', 'https://evil.example', ['google','google'], {url:'google'}]){
+    const res=fakeRes();
+    await svc.getConsent({query:{...query().req,login_provider:hint}},res);
+    assert.equal(res.code,400);
+    assert.equal(res.body.error,'desktop_request_invalid');
+    assert.equal(res.redirectTo,null);
+    await assert.rejects(svc.begin({...query().req,login_provider:hint},owner),/desktop_request_invalid/);
+  }
+  const oversized=fakeRes();
+  const bounded=createDesktopOwnerAuthorization({redis,prefix:PREFIX,publicOrigin:ORIGIN,verifyOwner:async()=>null});
+  await bounded.getConsent({query:{...query().req,login_provider:'google',extra:'x'.repeat(1800)}},oversized);
+  assert.equal(oversized.code,400);
+  assert.equal(oversized.redirectTo,null);
+  assert.equal(redis.m.size,0);
+});
 test('missing browser cookie is not an Owner session',async () => {
   assert.equal(await browserOwnerFromOperator({headers:{}}),null);
 });

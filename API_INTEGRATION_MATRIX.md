@@ -68,3 +68,7 @@ Dev5 Lab Operator/Plugin now serve CI64/source8e0d932 with light-remote.api.v1 a
 ## Implement fresh Moryqa Windows setup uninstall and five-state primary tray
 
 The private native status response adds visualState from the existing VisualFor projection (stopped/unlinked/disconnected/dormant/connected). This additive presentation field changes no authorization/endpoint/issuer/profile or credential identity. Tauri independently rejects missing/contradictory connected status before rendering green; no cloud state is synthesized by the UI.
+
+## Fix native installer surfaces and typography, tune tray and integrate Google sign-in
+
+Desktop `desktop_owner_begin` accepts only absent/default or fixed Google presentation selection; `login_provider=google` routes anonymous same-origin consent requests through existing `/account/google`, preserving PKCE/state/install nonce and explicit consent. Wall exposes existing browser challenge only after OS-private Agent IPC readiness on exact loopback Gold profile; native Owner ticket redemption and live-family validation remain signed, single-use and enrolled-device bound. Google credentials remain server-side PostgreSQL; callback derives from running profile origin; inflight config rotations fail closed. Account login does not grant A/B access.

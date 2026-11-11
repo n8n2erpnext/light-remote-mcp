@@ -13,6 +13,7 @@ type Props = {
   // Native candidate only; the ordinary pilot never supplies these callbacks.
   nativePhase?: NativeOwnerPhase;
   onBrowserSignIn?: () => void;
+  onGoogleSignIn?: () => void;
   onCancelSignIn?: () => void;
   onLinkDevice?: () => void;
 };
@@ -68,7 +69,7 @@ const previews: { key: Exclude<AuthEntryMode, 'signed-out'>; label: string }[] =
 ];
 
 export function AuthEntry({ allowDesignPreview, onPreviewWorkspace,
-  nativePhase, onBrowserSignIn, onCancelSignIn, onLinkDevice }: Props) {
+  nativePhase, onBrowserSignIn, onGoogleSignIn, onCancelSignIn, onLinkDevice }: Props) {
   const [previewMode, setPreviewMode] = useState<AuthEntryMode>('signed-out');
   const nativeLogin = typeof onBrowserSignIn === 'function';
   const mode: AuthEntryMode = nativeLogin
@@ -112,6 +113,14 @@ export function AuthEntry({ allowDesignPreview, onPreviewWorkspace,
                   <p>Your password stays in the browser. We’ll bring you back to Desktop.</p>
                 </div>
               </div>
+              <button type="button" className="auth-google" disabled={!nativeLogin || !onGoogleSignIn}
+                title={nativeLogin && onGoogleSignIn
+                  ? 'Continue with Google in your system browser'
+                  : 'Google sign-in is not connected in this UI-only pilot'}
+                onClick={() => onGoogleSignIn?.()}>
+                Continue with Google
+              </button>
+              <div className="auth-sign-in-divider" aria-hidden="true"><span>or</span></div>
               <button type="button" className="auth-primary" disabled={!nativeLogin}
                 title={nativeLogin ? 'Open the verified Light Remote Account Portal in your system browser'
                   : 'Owner login callback is not connected in this UI-only pilot'}

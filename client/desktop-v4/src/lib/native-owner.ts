@@ -6,6 +6,7 @@
  */
 export type NativeOwnerPhase = 'signed_out' | 'browser_pending' | 'restoring' |
   'verified' | 'expired' | 'unavailable';
+export type NativeOwnerLoginProvider = 'default' | 'google';
 
 export type NativeOwnerView = Readonly<{
   phase: NativeOwnerPhase;
@@ -18,7 +19,7 @@ const phases = new Set<NativeOwnerPhase>([
 ]);
 type Host = Window & {
   __TAURI_INTERNALS__?: {
-    invoke?: (command: string) => Promise<unknown>;
+    invoke?: (command: string, args?: {loginProvider: 'google'}) => Promise<unknown>;
   }
 };
 
@@ -41,15 +42,21 @@ function validView(value: unknown): NativeOwnerView {
 }
 
 async function ownerCommand(command: 'desktop_owner_begin' | 'desktop_owner_status' |
-  'desktop_owner_restore' | 'desktop_owner_logout', host: Window): Promise<NativeOwnerView> {
+  'desktop_owner_restore' | 'desktop_owner_logout', host: Window,
+  args?: {loginProvider: 'google'}): Promise<NativeOwnerView> {
   if (!nativeOwnerAvailable(host)) return CLOSED;
   try {
-    const result = await (host as Host).__TAURI_INTERNALS__!.invoke!(command);
+    const invoke = (host as Host).__TAURI_INTERNALS__!.invoke!;
+    const result = args ? await invoke(command,args) : await invoke(command);
     return validView(result);
   } catch { return CLOSED; }
 }
-export function nativeOwnerBegin(host: Window = window) {
-  return ownerCommand('desktop_owner_begin', host);
+export function nativeOwnerBegin(host: Window = window,
+  loginProvider: NativeOwnerLoginProvider = 'default') {
+  // A fixed presentation hint, never a browser URL, credential or authority.
+  if (loginProvider !== 'default' && loginProvider !== 'google') return Promise.resolve(CLOSED);
+  return ownerCommand('desktop_owner_begin', host,
+    loginProvider === 'google' ? {loginProvider:'google'} : undefined);
 }
 export function nativeOwnerStatus(host: Window = window) {
   return ownerCommand('desktop_owner_status', host);

@@ -55,6 +55,7 @@ export async function browserOwnerFromOperator(req) {
   } catch { return null; }
 }
 function intentFromQuery(q) {
+  loginProviderFromQuery(q);
   for (const field of ['accountId','grantId','agentId','bCode','ownerConsentCode']) {
     if (Object.prototype.hasOwnProperty.call(q || {},field))
       fail('desktop_request_forbidden_authority');
@@ -65,6 +66,12 @@ function intentFromQuery(q) {
     codeChallengeMethod:q?.code_challenge_method, redirectUri:q?.redirect_uri,
     state:q?.state, installNonce:q?.install_nonce
   };
+}
+function loginProviderFromQuery(q) {
+  if (!Object.prototype.hasOwnProperty.call(q || {},'login_provider')) return null;
+  // Presentation hint only. No arbitrary provider URLs, arrays or auth scope.
+  if (q.login_provider !== 'google') fail('desktop_request_invalid');
+  return 'google';
 }
 function strictBrowserPost(req, origin) {
   const site = String(req.headers?.['sec-fetch-site'] || '').toLowerCase();
@@ -218,11 +225,13 @@ export function createDesktopOwnerAuthorization({
   async function getConsent(req,res) {
     setPrivate(res);
     try {
+      const provider = loginProviderFromQuery(req.query);
       const owner = await verifyOwner(req);
       if (!owner) {
         const path = '/account/desktop/v4/authorize?' + new URLSearchParams(req.query || {});
         if (path.length > 1800) fail('desktop_request_invalid');
-        return res.redirect(303,'/account/login?next='+encodeURIComponent(path));
+        const entry = provider === 'google' ? '/account/google' : '/account/login';
+        return res.redirect(303,entry+'?next='+encodeURIComponent(path));
       }
       const ready = await begin(req.query, owner);
       const page = consentHtml(ready);

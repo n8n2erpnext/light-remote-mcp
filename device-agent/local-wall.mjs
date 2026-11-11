@@ -51,7 +51,7 @@ function safeNext(value){const text=String(value||'').trim();return text.startsW
 function secureRequest(req){return Boolean(req.socket?.encrypted)||String(req.headers['x-forwarded-proto']||'').split(',')[0].trim().toLowerCase()==='https';}
 function sessionCookie(token,ttl,secure){return `${LOCAL_WALL_COOKIE}=${token}; Path=/; Max-Age=${ttl}; HttpOnly; ${secure?'Secure; ':''}SameSite=Strict; Priority=High`;}
 function clearSessionCookie(secure){return `${LOCAL_WALL_COOKIE}=; Path=/; Max-Age=0; HttpOnly; ${secure?'Secure; ':''}SameSite=Strict; Priority=High`;}
-function loginPage(brandSvg,message='',next='/',recoveryEnabled=true,csrf='',showDesktopSso=false){const ssoLink=showDesktopSso?'<a href="/auth/desktop/sso/browser" style="display:block;margin-top:20px;color:#c6d9f6;text-align:center">Sign in with Desktop</a>':'';const note=message?`<div class=\"error\">${String(message).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]))}</div>`:'';const n=safeNext(next).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));return `<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">${brandFaviconSvg()}<title>Light Remote — Wall login</title><style>${WALL_FONT_FACE_CSS}:root{color-scheme:dark;font-family:${WALL_UI_FONT};background:#080a0c;color:#d8dee7}body{margin:0;min-height:100vh;display:grid;place-items:center}.card{width:min(420px,calc(100vw - 32px));border:1px solid #252d36;border-radius:12px;background:#0a0e12;padding:22px}.brand{display:flex;align-items:center;gap:12px}.brand svg{width:44px;height:44px}.muted{color:#718096}.error{color:#ff8e8e;margin-top:12px}label{display:block;margin-top:14px}input,button{width:100%;margin-top:6px;border:1px solid #2b333d;background:#0e1216;color:#d8dee7;border-radius:7px;padding:10px;font:inherit;box-sizing:border-box}button{cursor:pointer;margin-top:18px}</style></head><body><main class=\"card\"><div class=\"brand\"><span>${brandSvg}</span><div><b>Light Remote</b><div class=\"muted\">Device Wall login</div></div></div>${note}<form method=\"post\" action=\"/auth/login\"><input type=\"hidden\" name=\"next\" value=\"${n}\"><input type=\"hidden\" name=\"csrf\" value=\"${csrf}\"><label>Email / recovery username<input name=\"username\" autocomplete=\"username\" required autofocus></label>${recoveryEnabled?'<div class="muted" style="font-size:13px;margin-top:7px;line-height:1.4">Use your Light Remote account email. Recovery login remains available with the local device credential.</div>':'<div class="muted" style="font-size:13px;margin-top:7px;line-height:1.4">Use your Light Remote account email.</div>'}<label>Password<input type=\"password\" name=\"password\" autocomplete=\"current-password\" required></label><button type=\"submit\">Sign in</button></form>${ssoLink}</main></body></html>`;}
+function loginPage(brandSvg,message='',next='/',recoveryEnabled=true,csrf='',showDesktopSso=false){const ssoLink=showDesktopSso?'<a href="/auth/desktop/sso/browser" style="display:block;margin-top:20px;color:#c6d9f6;text-align:center">Continue with Google via Desktop</a><p class="muted" style="font-size:13px;line-height:1.5;text-align:center">Sign in with Google in the Desktop app, then confirm this Wall’s one-time code there.</p>':'';const note=message?`<div class=\"error\">${String(message).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]))}</div>`:'';const n=safeNext(next).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));return `<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">${brandFaviconSvg()}<title>Light Remote — Wall login</title><style>${WALL_FONT_FACE_CSS}:root{color-scheme:dark;font-family:${WALL_UI_FONT};background:#080a0c;color:#d8dee7}body{margin:0;min-height:100vh;display:grid;place-items:center}.card{width:min(420px,calc(100vw - 32px));border:1px solid #252d36;border-radius:12px;background:#0a0e12;padding:22px}.brand{display:flex;align-items:center;gap:12px}.brand svg{width:44px;height:44px}.muted{color:#718096}.error{color:#ff8e8e;margin-top:12px}label{display:block;margin-top:14px}input,button{width:100%;margin-top:6px;border:1px solid #2b333d;background:#0e1216;color:#d8dee7;border-radius:7px;padding:10px;font:inherit;box-sizing:border-box}button{cursor:pointer;margin-top:18px}</style></head><body><main class=\"card\"><div class=\"brand\"><span>${brandSvg}</span><div><b>Light Remote</b><div class=\"muted\">Device Wall login</div></div></div>${note}<form method=\"post\" action=\"/auth/login\"><input type=\"hidden\" name=\"next\" value=\"${n}\"><input type=\"hidden\" name=\"csrf\" value=\"${csrf}\"><label>Email / recovery username<input name=\"username\" autocomplete=\"username\" required autofocus></label>${recoveryEnabled?'<div class="muted" style="font-size:13px;margin-top:7px;line-height:1.4">Use your Light Remote account email. Recovery login remains available with the local device credential.</div>':'<div class="muted" style="font-size:13px;margin-top:7px;line-height:1.4">Use your Light Remote account email.</div>'}<label>Password<input type=\"password\" name=\"password\" autocomplete=\"current-password\" required></label><button type=\"submit\">Sign in</button></form>${ssoLink}</main></body></html>`;}
 export function classifyLocalWallLoginFailure(error) {
   const code=String(error?.message||'');
   const status=Number(error?.status)||0;
@@ -2550,6 +2550,8 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
   // Native approval stays an in-process Device Agent method, never HTTP.
   const desktopSsoBootstrap=desktopSsoSession
     ?createDesktopWallSsoBrowserBootstrapV4({wallSession:desktopSsoSession}):null;
+  const desktopSsoReady=()=>Boolean(desktopSsoBootstrap)&&
+    (typeof desktopWallSso?.isNativeReady!=='function'||desktopWallSso.isNativeReady()===true);
   if(desktopSsoSession){
     const originalAuth=auth;
     auth={...auth,
@@ -2673,7 +2675,7 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
     // proof in HTML or JavaScript. Route before the unknown /browser/* 404.
     if(url.pathname===WALL_SSO_BROWSER_PAGE_V4||
        url.pathname===WALL_SSO_BROWSER_SCRIPT_V4){
-      if(!desktopSsoBootstrap||req.method!=='GET')
+      if(!desktopSsoReady()||req.method!=='GET')
         return json(res,404,{ok:false,error:'not_found'});
       const configuredHost=(String(host).includes(':')?'['+String(host)+']':String(host)).toLowerCase()+':'+String(server.address()?.port??port);
       if(String(req.headers.host||'').toLowerCase()!==configuredHost||
@@ -2695,7 +2697,7 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
     // native half is an IN-PROCESS method held by the trusted Device Agent.
     if(url.pathname==='/auth/desktop/sso/browser/begin'||
        url.pathname==='/auth/desktop/sso/browser/finish'){
-      if(!desktopSsoBootstrap)return json(res,404,{ok:false,error:'not_found'});
+      if(!desktopSsoReady())return json(res,404,{ok:false,error:'not_found'});
       if(req.method!=='POST')return json(res,405,{ok:false,error:'method_not_allowed'});
       const requestHost=String(req.headers.host||'').toLowerCase();
       const configuredHost=(String(host).includes(':')?'['+String(host)+']':String(host)).toLowerCase()+':'+String(server.address()?.port??port);
@@ -2757,11 +2759,11 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
     }
 
     if(req.method==='GET'&&['/assets/fonts/CascadiaMono.ttf','/assets/fonts/CascadiaCode.ttf','/assets/fonts/GoogleSans-Variable.ttf','/assets/fonts/GoogleSansCode-Variable.ttf'].includes(url.pathname)){try{const file=url.pathname.endsWith('GoogleSans-Variable.ttf')?DEFAULT_GOOGLE_SANS_FONT:url.pathname.endsWith('GoogleSansCode-Variable.ttf')?DEFAULT_GOOGLE_SANS_CODE_FONT:url.pathname.endsWith('CascadiaMono.ttf')?(fontPath||cascadiaMonoFontPath):cascadiaCodeFontPath,data=fs.readFileSync(file);res.writeHead(200,{'content-type':'font/ttf','content-length':data.length,'cache-control':'public, max-age=31536000, immutable','x-content-type-options':'nosniff'});res.end(data);}catch{return json(res,404,{ok:false,error:'font_not_found'});}return;}
-    if(auth?.enabled&&url.pathname==='/login'&&req.method==='GET'){if(auth.identity(req)){res.writeHead(303,{location:safeNext(url.searchParams.get('next')),'cache-control':'no-store'});return res.end();}const html=loginPage(brandSvg,'',url.searchParams.get('next'),auth.recoveryEnabled!==false,auth.issueLoginCsrf(),Boolean(desktopSsoBootstrap));res.writeHead(200,pageHeaders());res.end(html);return;}
+    if(auth?.enabled&&url.pathname==='/login'&&req.method==='GET'){if(auth.identity(req)){res.writeHead(303,{location:safeNext(url.searchParams.get('next')),'cache-control':'no-store'});return res.end();}const html=loginPage(brandSvg,'',url.searchParams.get('next'),auth.recoveryEnabled!==false,auth.issueLoginCsrf(),desktopSsoReady());res.writeHead(200,pageHeaders());res.end(html);return;}
     if(auth?.enabled&&url.pathname==='/auth/login'&&req.method==='POST'){
       const data=await formBody(req);
       if(!auth.verifyLoginCsrf(data.csrf)){
-        const html=loginPage(brandSvg,'Login session expired. Reload and try again.',data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf(),Boolean(desktopSsoBootstrap));
+        const html=loginPage(brandSvg,'Login session expired. Reload and try again.',data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf(),desktopSsoReady());
         res.writeHead(403,pageHeaders());
         res.end(html);
         return;
@@ -2769,7 +2771,7 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
       const key=String(req.socket.remoteAddress||'unknown'),now=Date.now();
       const recent=(loginFailures.get(key)||[]).filter(at=>now-at<10*60*1000);
       if(recent.length>=10){
-        const html=loginPage(brandSvg,'Too many failed attempts. Try again later.','/',auth.recoveryEnabled!==false,auth.issueLoginCsrf(),Boolean(desktopSsoBootstrap));
+        const html=loginPage(brandSvg,'Too many failed attempts. Try again later.','/',auth.recoveryEnabled!==false,auth.issueLoginCsrf(),desktopSsoReady());
         res.writeHead(429,{...pageHeaders(),'retry-after':'600'});
         res.end(html);
         return;
@@ -2790,7 +2792,7 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
       if(!verified){
         const failure=remoteFailure||classifyLocalWallLoginFailure({message:'invalid_account_credentials',status:401});
         if(failure.credentialFailure){recent.push(now);loginFailures.set(key,recent);}
-        const html=loginPage(brandSvg,failure.message,data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf(),Boolean(desktopSsoBootstrap));
+        const html=loginPage(brandSvg,failure.message,data.next,auth.recoveryEnabled!==false,auth.issueLoginCsrf(),desktopSsoReady());
         res.writeHead(failure.status,{...pageHeaders(),...(failure.retryAfterSeconds?{'retry-after':String(failure.retryAfterSeconds)}:{})});
         res.end(html);
         return;

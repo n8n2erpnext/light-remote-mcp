@@ -7,12 +7,12 @@ const text=p=>read(p).toString('utf8');
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const native='client/windows-native/GptOperator.Client/Assets/TrayStates/';
 const provenance=JSON.parse(text(native+'PROVENANCE.json'));
-const colors={connected:'#1DA473',disconnected:'#D31626',dormant:'#F85B00',unlinked:'#676767',stopped:'#A3A3A3'};
+const colors={connected:'#167A58',disconnected:'#D31626',dormant:'#F85B00',unlinked:'#676767',stopped:'#A3A3A3'};
 const pixels=[];
 for(const [state,color] of Object.entries(colors)){
  const asset=provenance.states[state];
  assert.equal(hash(read(native+state+'.svg')),asset.svgSha256);
- assert.ok(text(native+state+'.svg').toUpperCase().includes(color),`${state} must use current Moryqa glyph palette`);
+ assert.ok(text(native+state+'.svg').toUpperCase().includes(color),`${state} must use the reviewed tray glyph palette`);
  for(const size of [16,32,128]){
   const png=read(native+state+'-'+size+'.png');
   assert.equal(hash(png),asset.pngs[size]);
@@ -45,10 +45,10 @@ assert.match(wizard,/Image\.PngImage\.LoadFromFile\(LRMarkFile\)/);
 assert.doesNotMatch(wizard,/AddPhaseLabel|Font\.Name := 'Segoe|Caption := 'LR'/);
 assert.match(wizard,/TBitmapButton\.Create/);assert.match(wizard,/Result\.Caption := Caption/);assert.match(wizard,/Result\.TabStop := True/);
 assert.match(wizard,/WizardForm\.NextButton\.OnClick\(WizardForm\.NextButton\)/);
-assert.match(wizard,/WizardForm\.ProgressGauge\.Parent := LRInstallingPanel/);
-assert.match(wizard,/WizardForm\.RunList\.Parent := LRFinishedPanel/);
+assert.match(wizard,/WizardForm\.ProgressGauge\.Parent := LRInstallingCard/);
+assert.match(wizard,/WizardForm\.RunList\.Parent := LRFinishedCard/);
 assert.match(wizard,/procedure CurInstallProgressChanged/);
-assert.match(wizard,/UninstallProgressForm\.ProgressBar\.Parent := Surface/);
+assert.match(wizard,/UninstallProgressForm\.ProgressBar\.Parent := LRRemovingCard/);
 assert.match(wizard,/if CurUninstallStep = usAppMutexCheck then QuiesceInstalledRuntime\(\)/);
 assert.match(wizard,/LRInteractiveUninstall := LRHasFlag\('\/LIGHTREMOTEINTERACTIVE'\) and not LRHasFlag\('\/VERYSILENT'\)/);
 assert.match(wizard,/if LRInteractiveUninstall then Result := LRShowUninstallDialog\(True\)/);

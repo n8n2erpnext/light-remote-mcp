@@ -187,6 +187,9 @@ export function App() {
   const beginNativeOwner=()=>{
     if(nativeLoginAvailable)void nativeOwnerBegin().then(setNativeOwner);
   };
+  const beginGoogleOwner=()=>{
+    if(nativeLoginAvailable)void nativeOwnerBegin(window,'google').then(setNativeOwner);
+  };
   const cancelNativeOwner=()=>{
     if(nativeLoginAvailable)void nativeOwnerLogout().then(setNativeOwner);
   };
@@ -261,6 +264,7 @@ export function App() {
         onPreviewWorkspace={() => { if (UI_DESIGN_PREVIEW) setInDesignPreview(true); }}
         nativePhase={nativeLoginAvailable ? nativeOwner.phase : undefined}
         onBrowserSignIn={nativeLoginAvailable ? beginNativeOwner : undefined}
+        onGoogleSignIn={nativeLoginAvailable ? beginGoogleOwner : undefined}
         onCancelSignIn={nativeLoginAvailable ? cancelNativeOwner : undefined}
         onLinkDevice={nativeLinkAvailable()?()=>setShowDeviceLink(true):undefined} />
       {showDeviceLink&&nativeLinkAvailable()&&<DeviceLinkDialog onClose={closeDeviceLink}/>}
