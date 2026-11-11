@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][ValidateSet('Install','Uninstall')][string]$Mode,
+param([Parameter(Mandatory=$true)][ValidateSet('Install','Uninstall','LayoutProbe')][string]$Mode,
       [Parameter(Mandatory=$true)][string]$Installer,
       [Parameter(Mandatory=$true)][string]$InstallRoot,
       [Parameter(Mandatory=$true)][string]$EvidenceDir,
@@ -164,9 +164,13 @@ function Capture-View($View,[string]$Name){
     if($bodyFirst.Count -ne 1 -or $bodyLast.Count -ne 1){throw 'Native body lines are missing'}
     $firstRect=Text-Rect $first[-1];$secondRect=Text-Rect $second[0]
     $bodyTopRect=Text-Rect $bodyFirst[0];$bodyBottomRect=Text-Rect $bodyLast[0];$cardRect=Text-Rect $cardParent
-    if($firstRect.Bottom -gt $secondRect.Top -or $secondRect.Bottom+3 -gt $bodyTopRect.Top -or $bodyBottomRect.Bottom+4 -gt $cardRect.Top){
-        throw 'Measured native heading/body layout overlaps another text line or the information card'
-    }
+    $layout=[ordered]@{view=$Name;first=@($firstRect.Left,$firstRect.Top,$firstRect.Right,$firstRect.Bottom);
+        second=@($secondRect.Left,$secondRect.Top,$secondRect.Right,$secondRect.Bottom);
+        bodyFirst=@($bodyTopRect.Left,$bodyTopRect.Top,$bodyTopRect.Right,$bodyTopRect.Bottom);
+        bodyLast=@($bodyBottomRect.Left,$bodyBottomRect.Top,$bodyBottomRect.Right,$bodyBottomRect.Bottom);
+        card=@($cardRect.Left,$cardRect.Top,$cardRect.Right,$cardRect.Bottom)}
+    $layout|ConvertTo-Json -Depth 4|Set-Content -LiteralPath (Join-Path $evidence ($Name+'-layout.json')) -Encoding utf8NoBOM
+    $layoutValid=$firstRect.Bottom -le $secondRect.Top -and $secondRect.Bottom+3 -le $bodyTopRect.Top -and $bodyBottomRect.Bottom+4 -le $cardRect.Top
     if($rect.Right-$rect.Left -lt 500 -or $rect.Bottom-$rect.Top -lt 350){throw 'Distribution window unexpectedly small'}
     $b=[Drawing.Bitmap]::new($rect.Right-$rect.Left,$rect.Bottom-$rect.Top)
     try{
@@ -179,6 +183,7 @@ function Capture-View($View,[string]$Name){
             if([Math]::Abs([int]$c.R-246) -le 1 -and [Math]::Abs([int]$c.G-247) -le 1 -and [Math]::Abs([int]$c.B-249) -le 1){$card++}
         }}
         $b.Save((Join-Path $evidence ($Name+'.png')),[Drawing.Imaging.ImageFormat]::Png)
+        if(-not $layoutValid){throw ('Measured native heading/body layout overlaps: '+($layout|ConvertTo-Json -Compress))}
         if($face -notlike '*Google Sans*'){throw "Native title font is not packaged Google Sans: $face"}
         if($gold -lt 100){throw 'Canonical gold logo/brand art missing from actual native wizard'}
         if($card -lt 100){throw 'Native information card background is missing'}
@@ -192,6 +197,18 @@ function Capture-View($View,[string]$Name){
 $proof=[Collections.Generic.List[object]]::new()
 $process=$null
 try{
+    if($Mode -eq 'LayoutProbe'){
+        # CI-only payload-free installer: capture Welcome, then stop only its
+        # owned process tree in finally. Never invoke Install or touch the app.
+        $script:nativeLog=$SetupLog
+        $process=Start-Setup $Installer @('/SP-','/NORESTART',('/LOG="'+$SetupLog+'"'))
+        $welcome=Wait-View 'Your AI workspace,'
+        $proof.Add((Capture-View $welcome '01-welcome'))
+        [ordered]@{result='PASS';mode='LAYOUT_PROBE_ONLY';sourceCommit=$env:GITHUB_SHA;views=$proof;
+            fullInstallerAccepted=$false}|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $evidence 'layout-probe-summary.json') -Encoding utf8NoBOM
+        Write-Host 'WINDOWS_DISTRIBUTION_LAYOUT_PROBE=PASS; FULL_INSTALLER_NOT_ACCEPTED'
+        return
+    }
     if($Mode -eq 'Install'){
         $script:nativeLog=$SetupLog
         $arguments=@('/NORESTART',('/DIR="'+$root+'"'),('/LOG="'+$SetupLog+'"'))

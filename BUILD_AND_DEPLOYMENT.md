@@ -191,3 +191,7 @@ This internal source batch requires the full exact-source Actions pipeline, real
 ## Preserve production Google callback for domain rotation and verify explicit Wall SSO gates
 
 Owner callback decision: stage original production client/callback privately in Gold, no Google Cloud allowlist change. After domain-role rotation, running PUBLIC_ORIGIN must match the saved callback; verify authenticated round-trip then. Before enabling Wall SSO, accept issuer/operator flags, trusted TLS edge attestation, signed relay and physical native challenge flow. Existing Desktop flags alone must not enable Wall SSO. CI78 core failure was a historical source-only assertion, not permission to remove its browser/A/B guards; gated runtime tests replace only that obsolete assumption.
+
+## Capture native installer geometry before full builds without weakening UI checks
+
+The early `LightRemote.LayoutProbe.iss` includes the same production Wizard and font/logo, but contains no product payload, app directory or uninstall registration. CI only opens Welcome then stops its owned process tree; it never clicks Install. Its proof cannot accept an installer. Final full install/uninstall six-view proof remains unchanged, now capturing diagnostic rectangles and PNG before assertions.

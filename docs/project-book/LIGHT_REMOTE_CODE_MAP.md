@@ -234,3 +234,7 @@ Read-only typing follow-up maps Plugin tools.mjs text/value schema -> shared lib
 ## Preserve production Google callback for domain rotation and verify explicit Wall SSO gates
 
 `google-auth.mjs`: saved callback retained and checked against running origin; staged/active metadata contains no secrets. `account-portal.mjs`: unavailable provider retains native next intent. `desktop-wall-sso-agent-runtime-v4.mjs`: independent SSO feature flag; existing Desktop native flag alone creates no pipe or Wall login link. Tests exercise no implicit I/O and race/revocation/bind failures.
+
+## Capture native installer geometry before full builds without weakening UI checks
+
+`client/windows-native/installer/LightRemote.LayoutProbe.iss` and LayoutProbe mode of `test-distribution-ui.ps1` give early CI-only native geometry diagnostics. `windows-native-client.yml` runs it immediately after Inno compile preflight; existing full native installer/lifecycle checks retain authority.

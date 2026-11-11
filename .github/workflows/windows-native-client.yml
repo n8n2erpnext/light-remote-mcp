@@ -49,6 +49,16 @@ jobs:
           $version = (Get-Content VERSION -Raw).Trim()
           & $env:ISCC "/DStageDir=$stage" "/DOutputDir=$out" "/DAppVersion=$version" "/DWatchdogExe=$watchdog" '/DUnifiedDesktopV4=1' '/DSinglePrimaryExe=1' '/DOutputBaseName=COMPILE-ONLY-DO-NOT-RUN' client/windows-native/installer/GptOperator.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno compile preflight failed; native build is blocked' }
+
+      - name: Probe actual native welcome layout before expensive product builds
+        if: env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
+        shell: pwsh
+        run: |
+          $out=Join-Path $PWD 'dist/windows/layout-probe'
+          New-Item -ItemType Directory -Path $out -Force|Out-Null
+          & $env:ISCC "/DOutputDir=$out" client/windows-native/installer/LightRemote.LayoutProbe.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Native layout probe compile failed' }
+          & client/windows-native/test-distribution-ui.ps1 -Mode LayoutProbe -Installer (Join-Path $out 'LAYOUT-PROBE-DO-NOT-INSTALL.exe') -InstallRoot (Join-Path $env:RUNNER_TEMP 'LightRemote-CI-Layout-Probe') -SetupLog (Join-Path $env:RUNNER_TEMP 'light-remote-layout-probe.log') -EvidenceDir (Join-Path $PWD 'dist/windows/distribution-ui-evidence')
           Remove-Item -LiteralPath (Join-Path $out 'COMPILE-ONLY-DO-NOT-RUN.exe')
       - name: Verify Windows Tray UI contract (native V4, legacy V3 elsewhere)
         shell: pwsh

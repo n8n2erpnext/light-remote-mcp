@@ -210,3 +210,7 @@ Installer/tray/Google follow-up is implemented; portable37 tests and distributio
 ## Preserve production Google callback for domain rotation and verify explicit Wall SSO gates
 
 Owner supersedes temporary Gold OAuth callback proposal: keep production callback/client, preconfigure Gold only. Saved credentials stay inactive when callback and running public origin differ; `/admin` says awaiting domain switch. No additional Google callback requested, production untouched. Wall SSO now requires an independent explicit flag plus exact native/host/auth gates; do not infer ENABLED from implementation or Desktop login.
+
+## Capture native installer geometry before full builds without weakening UI checks
+
+Native installer compile is distinct from visual acceptance. CI78 failed actual Welcome geometry; no new installer accepted. A payload-free CI-only Welcome probe now captures geometry/screenshots before all visual assertions and expensive native build steps. Full six-view setup/uninstall and installed lifecycle remain required.
