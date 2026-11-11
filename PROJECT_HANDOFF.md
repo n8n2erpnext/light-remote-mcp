@@ -1,6 +1,6 @@
 # Project handoff — single-primary Windows candidate verified
 
-Current resume point: phase1 RMv2 native passes; CI89 full Windows PASS; CI90 full baseline failed stale native UI snapshot and archive DNS. CI-only bounded snapshot/DNS recovery now committed; exact-source all9 validation/artifact and Lab rollout still pending. Product source unchanged sincee4e376f.
+Current resume point: phase1 RMv2 implemented, final smooth-motion pacing now bounded8ms for Owner interruption. CI91 superseded by this product fix; follow new exact-source full9 CI/artifact before Lab rollout. Native previousCI89 andCI90 scoped proofs retained; physical acceptance pending.
 
 
 Read PROJECT_TRUTH.md and MASTER_CHECKPOINT.json first. Official repository: n8n2erpnext/light-remote-mcp, new ID1450214328. Candidate **0.10.1-dev.2** is built from `31f23393aacb89b6d541cebb2cd0c2e1afa64538`, [full CI #30: 9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811), pinned by annotated source tag [windows/0.10.1-dev.2](https://github.com/n8n2erpnext/light-remote-mcp/tree/windows/0.10.1-dev.2). Installer SHA-256 `aac78a063f0628eac2966052fa0cd9e6650b5c2c6a1deb5048939e9a7b83ab19`; [verified CI artifact](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42549642811/artifacts/13645690974). Owner clarified internal testing only on2026-11-09: no public binary release is requested or to be published. The final package has one primary LightRemote.exe; Node/RM/private framework DLLs/recovery helpers remain supporting components. The compiled source was promoted to protected main by normal fast-forward. This closeout is a documentation/evidence receipt; its own commit is not a rebuilt installer.
@@ -538,3 +538,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: CI89 full Windows PASS; CI90 RMv2 native functional proof PASS but Windows stale native HWND and browser DNS failed, no full artifact acceptance. Python mirror/schema/unsafe-answer fixtures and PowerShell parser required before exact-source full CI retry. Package signatures/TLS, six-view validation, main protections and full9 gate retained.
 - Next: Follow exact-source full9 CI and verify artifact SHA/source manifests; then Lab-only rollout from GitHub. Owner physical takeover/custom cursor/DPI still pending. Later phases2–4 remain separate.
 - Runtime: Lab3064f21/dev6, production and Owner Windows unchanged.
+
+## Task Receipt: 20261111-rmv2-bounded-smooth-wait
+- Status: RMV2_PHASE1_FINAL_MOTION_WAIT_CI_PENDING. Final phase1 review found smooth Move pacing could sleep most of an entire sparse frame (up to249ms for duration500/steps2), despite other input delays already using8ms slices. Cap only each sleep slice at8ms and keep monotonic deadlines/default90ms/8steps/endpoints unchanged. Dedicated physical Owner hook still interrupts without automatic replay. CI91 is superseded because exact source must include this fix.
+- Source: permanent work after `f740cd5bdab1b31d54bdfbbd24e5e43a513aded5`; exact staged source digest stamped in this same commit.
+- Verification: Previous CI89 full Windows/native acceptance PASS. CI90 native PASS; snapshot/DNS CI recovery committed in f740cd5 and is retained. New native wait change needs exact-source full9 build/acceptance, not inferred from prior artifacts.
+- Next: Follow new exact-source full9 CI; fix observed failures, verify internal installer/manifests, then Lab-only timing-contract rollout. Owner physical interruption/DPI matrix still required. Phases2–4 are subsequent measured work.
+- Runtime: Lab3064f21/dev6 and production/Owner installation unchanged.

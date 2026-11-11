@@ -282,3 +282,7 @@ Hosted-only apt helper now covers /etc/apt/apt-mirrors.txt identified in CI89 lo
 ## CI90 snapshot and DNS recovery
 
 The distribution UI probe filters the branded wordmark before geometry and retries only invalid HWND acquisition with a fresh view within6s. All acceptance assertions remain intact. Hosted apt helper includes actual apt-mirrors.txt, exact Ubuntu HTTPS hosts, upstream bounded acquire settings, and strictly validated two-host HTTPS DNS recovery only after system resolution fails on disposable GitHub runners. No product or ARM runtime path changed.
+
+## Bound smooth-motion wait slices for prompt Owner interruption
+
+NativeInput.Move keeps absolute monotonic pacing but caps individual Thread.Sleep calls at8ms, matching interruptible click/key/drag delays; activity generation is checked after each slice. Dedicated hooks remain independent of UI rendering.

@@ -95,3 +95,7 @@ Installer white bands/Google Sans descender clipping and overly bright Connected
 ## Bound hosted DNS recovery and refresh stale installer UI snapshots
 
 CI90 full baseline unaccepted: Windows probe transient native-control rectangle failure and hosted Ubuntu archive DNS. Native RMv2 functional checks PASS again; CI-only recovery retains full validation. No product/runtime regression inferred solely from these two infrastructure/probe failures.
+
+## Bound smooth-motion wait slices for prompt Owner interruption
+
+Phase1 final motion-wait change supersedes CI91. Actual physical local takeover between packets, mixedDPI/custom cursor/fullscreen remain Owner UAT items; do not infer them from selftest/tiny-move CI proof.

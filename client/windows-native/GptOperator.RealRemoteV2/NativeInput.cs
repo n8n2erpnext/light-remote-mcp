@@ -84,7 +84,8 @@ internal static class NativeInput
             while(clock.Elapsed.TotalMilliseconds<deadlineMs)
             {
                 var remaining=deadlineMs-clock.Elapsed.TotalMilliseconds;
-                if(remaining>=3d) Thread.Sleep(Math.Max(1,(int)remaining-1));
+                // Owner interruption must not wait for a whole sparse-motion frame.
+                if(remaining>=3d) Thread.Sleep(Math.Clamp((int)remaining-1,1,8));
                 else Thread.Yield();
                 Activity?.Check();
             }

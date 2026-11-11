@@ -262,3 +262,7 @@ CI89 e4e376f full Windows native/installer/migration/rollback/lifecycle PASS and
 ## CI90 recovery scope
 
 RMv2 phase1 native checks pass in CI90, but whole baseline is not accepted: hosted Ubuntu DNS and transient installer-probe HWND failed. CI-only snapshot and tightly scoped hosted DNS recovery retain package trust and every UI/layout assertion. Product source remains unchanged since CI89 full Windows acceptance e4e376f. Exact-source all9 CI and verified artifact are required before Lab rollout; production and Owner installation remain unchanged.
+
+## Bound smooth-motion wait slices for prompt Owner interruption
+
+Final phase1 review bounds Smooth Move sleep slices to8ms, correcting a sparse-frame cancellation delay up to249ms. Monotonic movement deadlines, easing, duration/defaults and exact endpoints remain unchanged. Exact-source full CI is required after this native change.
