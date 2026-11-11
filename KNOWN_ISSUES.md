@@ -91,3 +91,7 @@ Google credentials are intentionally preconfigured for the existing production c
 ## Record CI84 internal installer acceptance, Lab rollout and preserved Google callback
 
 Installer white bands/Google Sans descender clipping and overly bright Connected glyph are closed at CI84 native evidence scope (96DPI); Owner physical100/150/200% verification remains pending. Google is intentionally inactive on temporary Gold with original production callback saved; Owner domain/profile/TLS rotation and real Google login test remain pending. Wall SSO source composition is present but its independent activation/edge/physical flow is pending. No public release/feed or Owner vault acceptance inferred.
+
+## Bound hosted DNS recovery and refresh stale installer UI snapshots
+
+CI90 full baseline unaccepted: Windows probe transient native-control rectangle failure and hosted Ubuntu archive DNS. Native RMv2 functional checks PASS again; CI-only recovery retains full validation. No product/runtime regression inferred solely from these two infrastructure/probe failures.

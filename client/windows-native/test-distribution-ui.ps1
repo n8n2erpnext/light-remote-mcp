@@ -84,7 +84,7 @@ function Invoke-Button($View,[string]$Caption){
 }
 function Text-Rect([IntPtr]$Control){
     $r=[LRSetupUi+RECT]::new()
-    if(-not [LRSetupUi]::GetWindowRect($Control,[ref]$r)){throw 'Native control rectangle unavailable'}
+    if(-not [LRSetupUi]::GetWindowRect($Control,[ref]$r)){throw ("Native control rectangle unavailable: handle="+$Control.ToInt64())}
     return $r
 }
 function Text-Ink($Bitmap,$WindowRect,[IntPtr]$Control,[string]$Label){
@@ -130,7 +130,7 @@ function Card-Background($Bitmap,$WindowRect,[IntPtr]$Card,[IntPtr[]]$Children){
     if($proof.Count -lt 2){throw 'Actual information-card child backgrounds were not inspected'}
     return ,$proof.ToArray()
 }
-function Capture-View($View,[string]$Name){
+function Capture-ViewOnce($View,[string]$Name){
     # In-process GetTextFace uses the title's actual TFont. Cross-process
     # HFONT selection is invalid on Windows and only observes a default DC.
     $fontLine=Get-Content -LiteralPath $script:nativeLog|Where-Object{$_ -match 'light-remote-title-font='}|Select-Object -Last 1
@@ -148,9 +148,10 @@ function Capture-View($View,[string]$Name){
     # occluded stock label or the larger 'Light Remote' uninstall headline.
     $activeSurface=[LRSetupUi]::GetParent($second[0])
     $brand=@($children|Where-Object{
+        # Ignore transient stock controls before asking for their rectangle.
+        if([LRSetupUi]::Text($_) -ne 'Light Remote' -or [LRSetupUi]::GetParent($_) -ne $activeSurface){return $false}
         $bounds=Text-Rect $_
-        [LRSetupUi]::Text($_) -eq 'Light Remote' -and [LRSetupUi]::GetParent($_) -eq $activeSurface -and
-            ($bounds.Right-$bounds.Left) -lt ($rect.Right-$rect.Left)*0.4
+        ($bounds.Right-$bounds.Left) -lt ($rect.Right-$rect.Left)*0.4
     }|Sort-Object{(Text-Rect $_).Top})
     if(-not $brand){throw 'Native wordmark label is missing'}
     $first=@($children|Where-Object{[LRSetupUi]::Text($_) -eq $firstText}|Sort-Object{(Text-Rect $_).Top})
@@ -203,6 +204,18 @@ function Capture-View($View,[string]$Name){
         return [ordered]@{view=$Name;title=$View.text;secondTitle=$secondText;secondTitleInkPixels=$secondProof.inkPixels;secondTitleBottomMargin=$secondProof.bottomMargin;wordmark=$brandInk;firstTitle=$firstInk;cardChildBackgrounds=$cardProof;cardPixels=$card;font=$face;dpi=[LRSetupUi]::GetDpiForWindow($View.window);width=$b.Width;height=$b.Height;brandPixels=$gold;rendered=$true}
     }finally{$b.Dispose()}
 }
+function Capture-View($View,[string]$Name){
+    $deadline=[DateTime]::UtcNow.AddSeconds(6)
+    do{
+        try{return Capture-ViewOnce $View $Name}catch{
+            if($_.Exception.Message -notlike 'Native control rectangle unavailable:*' -or [DateTime]::UtcNow -ge $deadline){throw}
+            Write-Host ('Native view snapshot changed; reacquiring '+$Name+' / '+$_.Exception.Message)
+            Start-Sleep -Milliseconds 100
+            $View=Wait-View $View.text 5
+        }
+    }while($true)
+}
+
 $proof=[Collections.Generic.List[object]]::new()
 $process=$null
 try{
@@ -285,7 +298,7 @@ try{
         ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $evidence ($Mode.ToLowerInvariant()+'-summary.json')) -Encoding utf8NoBOM
     Write-Host "WINDOWS_DISTRIBUTION_NATIVE_UI=PASS mode=$Mode views=$($proof.Count)"
 }catch{
-    [ordered]@{result='FAIL';sourceCommit=$env:GITHUB_SHA;mode=$Mode;error=$_.Exception.Message;
+    [ordered]@{result='FAIL';sourceCommit=$env:GITHUB_SHA;mode=$Mode;error=$_.Exception.Message;scriptStackTrace=$_.ScriptStackTrace;
         nativeFontDiagnostics=@(if($script:nativeLog -and (Test-Path -LiteralPath $script:nativeLog)){
             Get-Content -LiteralPath $script:nativeLog|Where-Object{$_ -match 'light-remote-title-font=|light-remote-wizard-private-font-unavailable'}
         })}|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $evidence ($Mode.ToLowerInvariant()+'-failure.json')) -Encoding utf8NoBOM

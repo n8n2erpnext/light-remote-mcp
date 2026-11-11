@@ -258,3 +258,7 @@ RMv2 hooks now have their own message-pump thread instead of WPF UI thread, foll
 ## Handle observed hosted apt mirror list after Windows RMv2 acceptance
 
 CI89 e4e376f full Windows native/installer/migration/rollback/lifecycle PASS and RMv2 dedicated-thread acceptance PASS. Full baseline fails hosted browser apt DNS because mirror list is /etc/apt/apt-mirrors.txt, missed by the prior selector. Selector now covers observed path and an integration fixture. No product code change; all UI/package trust gates retained.
+
+## CI90 recovery scope
+
+RMv2 phase1 native checks pass in CI90, but whole baseline is not accepted: hosted Ubuntu DNS and transient installer-probe HWND failed. CI-only snapshot and tightly scoped hosted DNS recovery retain package trust and every UI/layout assertion. Product source remains unchanged since CI89 full Windows acceptance e4e376f. Exact-source all9 CI and verified artifact are required before Lab rollout; production and Owner installation remain unchanged.

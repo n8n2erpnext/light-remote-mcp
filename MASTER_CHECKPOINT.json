@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-11T14:43:41.433Z",
+  "updatedAt": "2026-11-11T15:12:28.286Z",
   "version": "0.10.1-dev.7",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "RMV2_DEV7_CI89_WINDOWS_PASS_BROWSER_INFRA_RETRY_PENDING",
+  "status": "RMV2_PHASE1_CI_INFRA_AND_PROBE_RETRY_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -360,7 +360,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow fresh exact-source full9 baseline; preserve Windows proof fromCI89 as scoped historical evidence, verify new installer/SHA and all manifests before Lab-only backend deployment. Owner physical takeover/DPI/custom cursor still pending; no public release or production changes.",
+  "nextAction": "Follow exact-source full9 CI and verify artifact SHA/source manifests; then Lab-only rollout from GitHub. Owner physical takeover/custom cursor/DPI still pending. Later phases2–4 remain separate.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -451,12 +451,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-ci89-windows-pass-real-apt-mirror-path",
-    "status": "CI89_FULL_WINDOWS_PASS_BROWSER_MIRROR_PATH_FIXED_FULL_RETRY_PENDING",
-    "summary": "CI89 exactsourcee4e376f full Windows build/install/migration/rollback/close-reopen/ConPTY and RMv2 native acceptance PASS. Browser apt dependency install failed because the disposable runner uses mirror+file:/etc/apt/apt-mirrors.txt, omitted by the prior selector (reported0 files updated). Include that observed file; integration self-test rewrites the real fixture shape while preserving security mirror and priorities. Product RMv2 source unchanged.",
-    "verification": "Native CI89 report:11 system cursor bitmap/hotspot roles and11 exact tiny moves, observation, badge/idle and restore PASS; dedicated hook native self-test/duplex/lazy/push PASS. Handler p50 .6624ms/p95 17.9737ms in11 cold/warm CI samples only, no controlled benchmark. Full Windows job130580730243 PASS; overall CI89 FAIL due Ubuntu apt Azure DNS, no full artifact accepted. New hosted-only mirror self-test and docs gates required, then full CI retry.",
-    "nextAction": "Follow fresh exact-source full9 baseline; preserve Windows proof fromCI89 as scoped historical evidence, verify new installer/SHA and all manifests before Lab-only backend deployment. Owner physical takeover/DPI/custom cursor still pending; no public release or production changes.",
-    "sourceDigest": "2664c142077d25b6ac341c812492b945fc658e318606f9d8f9eaf30889877f55",
+    "taskId": "20261111-rmv2-ci90-snapshot-dns-recovery",
+    "status": "CI90_NATIVE_PASS_UI_SNAPSHOT_AND_HOSTED_DNS_RETRY_PENDING",
+    "summary": "RMv2 native phase1 passes again in CI90; overall baseline remains unaccepted. UI probe asked every stock child for geometry, including transient HWNDs; filter wordmark controls before geometry and reacquire the entire view only for destroyed-handle failures within6 seconds. All font/ink/layout/background assertions remain unchanged. Hosted apt mirror path now rewrites (count1) but canonical archive DNS also failed; retain exact archive hosts over HTTPS, bound official1retry/15second apt policy, and recover only two failed Ubuntu hostnames through verified HTTPS DoH/public IPv4 answers in the disposable runner hosts file. No RMv2 product change.",
+    "verification": "CI89 full Windows PASS; CI90 RMv2 native functional proof PASS but Windows stale native HWND and browser DNS failed, no full artifact acceptance. Python mirror/schema/unsafe-answer fixtures and PowerShell parser required before exact-source full CI retry. Package signatures/TLS, six-view validation, main protections and full9 gate retained.",
+    "nextAction": "Follow exact-source full9 CI and verify artifact SHA/source manifests; then Lab-only rollout from GitHub. Owner physical takeover/custom cursor/DPI still pending. Later phases2–4 remain separate.",
+    "sourceDigest": "fccdbdd218fd041f434fcd98d49d58851cfabcbf3151331a11382eb691988a69",
     "sourceFileCount": 1681
   },
   "legacyFilesystemCleanup": {
@@ -1559,12 +1559,13 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci89.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "BROWSER_INFRA_FAILURE_PENDING_RETRY",
+    "fullCi": "CI90_FAIL_NATIVE_PASS_STALE_UI_SNAPSHOT_AND_UBUNTU_DNS",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
     "fullWindowsCi": "PASS_CI89",
     "browserFailure": "APT_MIRROR_LIST_OBSERVED_ETC_APT_APT_MIRRORS_TXT_OMITTED",
-    "productSourceChangedAfterCi89": false
+    "productSourceChangedAfterCi89": false,
+    "ciRecoveryScope": "DISPOSABLE_GITHUB_HOSTED_RUNNERS_ONLY"
   }
 }

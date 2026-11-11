@@ -237,3 +237,7 @@ test-rmv2-phase1.ps1 uses direct Win32 bitmap hashing, independent of PowerShell
 ## Handle observed hosted apt mirror list after Windows RMv2 acceptance
 
 Hosted apt mirror helper includes observed /etc/apt/apt-mirrors.txt (mirror+file source) in addition to standard sources and mirror lists. Fixture test reads/writes that exact layout and preserves security host/priority. CI89 Windows fullPASS remains scoped to e4e376f; final exact-source full baseline retry required.
+
+## Bound hosted DNS recovery and refresh stale installer UI snapshots
+
+CI90 actual mirror list was rewritten (count1); archive DNS still failed. Disposable hosted apt setup now follows upstream1retry/15s acquire timeouts, exact-host HTTPS, and if needed two-host DNS recovery via Google HTTPS JSON API with strict question/public IPv4/TTL validation. TLS/package signatures remain enabled; apt update fails on any repository error. Sources: https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/configure-apt.sh and https://developers.google.com/speed/public-dns/docs/doh/json . Native UI snapshot retries only stale HWND acquisition, not acceptance assertions.

@@ -278,3 +278,7 @@ ControlActivity.cs additionally owns a dedicated hook message-pump thread and bo
 ## Handle observed hosted apt mirror list after Windows RMv2 acceptance
 
 Hosted-only apt helper now covers /etc/apt/apt-mirrors.txt identified in CI89 logs; product/runtime entrypoints unchanged. Native final functional evidence is docs/evidence/rmv2/phase1-ci89.json, explicitly not whole-baseline acceptance.
+
+## CI90 snapshot and DNS recovery
+
+The distribution UI probe filters the branded wordmark before geometry and retries only invalid HWND acquisition with a fresh view within6s. All acceptance assertions remain intact. Hosted apt helper includes actual apt-mirrors.txt, exact Ubuntu HTTPS hosts, upstream bounded acquire settings, and strictly validated two-host HTTPS DNS recovery only after system resolution fails on disposable GitHub runners. No product or ARM runtime path changed.
