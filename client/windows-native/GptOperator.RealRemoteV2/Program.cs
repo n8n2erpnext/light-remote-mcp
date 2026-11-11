@@ -11,8 +11,7 @@ internal static class Program
     {
         if (args.Any(arg => String.Equals(arg, "--restore-cursors", StringComparison.OrdinalIgnoreCase)))
         {
-            SystemCursorOverride.ForceRestore();
-            Environment.ExitCode = 0;
+            Environment.ExitCode = SystemCursorOverride.ForceRestore()?0:1;
             return;
         }
 
@@ -45,64 +44,11 @@ internal static class Program
         }
 
         ApplicationConfiguration.Initialize();
-        StartCursorGuardian();
-        Application.ApplicationExit += (_, _) => SystemCursorOverride.ForceRestore();
-        Application.ThreadException += (_, _) => SystemCursorOverride.ForceRestore();
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => SystemCursorOverride.ForceRestore();
-        AppDomain.CurrentDomain.UnhandledException += (_, _) => SystemCursorOverride.ForceRestore();
-        try
-        {
-            Application.Run(new RobotContext(pipeName));
-        }
-        finally
-        {
-            SystemCursorOverride.ForceRestore();
-        }
+        Application.Run(new RobotContext(pipeName));
     }
 
-    private static void StartCursorGuardian()
-    {
-        try
-        {
-            var executable = Environment.ProcessPath;
-            if (String.IsNullOrWhiteSpace(executable)) return;
-
-            var start = new ProcessStartInfo
-            {
-                FileName = executable,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden
-            };
-            start.ArgumentList.Add("--cursor-guardian");
-            start.ArgumentList.Add(Environment.ProcessId.ToString());
-            using var guardian = Process.Start(start);
-        }
-        catch { }
-    }
-
-    private static int RunCursorGuardian(string parentPidText)
-    {
-        try
-        {
-            if (!Int32.TryParse(parentPidText, out var parentPid) || parentPid <= 0)
-                return 2;
-
-            using var parent = Process.GetProcessById(parentPid);
-            parent.WaitForExit();
-        }
-        catch (ArgumentException)
-        {
-            // Parent already exited before guardian opened the process handle.
-        }
-        catch
-        {
-            // Restoration is still safe and idempotent if waiting failed.
-        }
-
-        SystemCursorOverride.ForceRestore();
-        return 0;
-    }
+    // Legacy CLI switch retained without an automatic system-scheme reload.
+    private static int RunCursorGuardian(string parentPidText) => 0;
     private static bool RunSelfTest(string output)
     {
         try
@@ -115,7 +61,8 @@ internal static class Program
             var smoothMoveMathOk=NativeInput.SmoothMoveMathSelfTest();
             var agentCursorVisualOk=AgentCursorVisualState.SelfTest();
             var systemCursorOverrideOk=SystemCursorOverride.SelfTest();
-            var allOk=semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk && semanticScopeOk && smoothMoveMathOk && agentCursorVisualOk && systemCursorOverrideOk;
+            var controlActivityOk=ControlActivity.SelfTest() && CursorGlowOverlay.SelfTest();
+            var allOk=controlActivityOk && semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk && semanticScopeOk && smoothMoveMathOk && agentCursorVisualOk && systemCursorOverrideOk;
             var result = new
             {
                 ok = allOk,
@@ -131,7 +78,8 @@ internal static class Program
                 semanticScopeOk,
                 smoothMoveMathOk,
                 agentCursorVisualOk,
-                systemCursorOverrideOk
+                systemCursorOverrideOk,
+                controlActivityOk
             };
             File.WriteAllText(output, JsonSerializer.Serialize(result));
             return allOk;

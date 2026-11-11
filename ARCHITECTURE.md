@@ -64,3 +64,7 @@ Recovery helpers may survive a Core rollback to a different endpoint configurati
 ## Checkpoint fresh Windows distribution redesign and verified dev5 Lab deployment
 
 The unified Tauri tray currently uses a static default icon while managed TrayIconFactory and VisualFor retain five-state assets/semantics. New wiring will reuse that trusted sanitized snapshot projection and Moryqa exports. Dev5 Operator/Plugin deployment now serves canonical consent presentation; authorization/issuer/API identities and independent local runtime boundaries are unchanged.
+
+## Preserve native RMv2 cursors and honor precise input timing
+
+Windows RMv2 uses ControlActivity metadata hooks and tagged native input for Owner takeover; WPF badge/four edge windows are activity-only. System cursor component is recovery-only; no automatic guardian/reload. Native request lane remains serial in phase1; independent pipe watch cancels disconnected input. No GPU/video backend added.

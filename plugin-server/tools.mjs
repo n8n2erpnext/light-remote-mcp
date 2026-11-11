@@ -720,12 +720,12 @@ export function registerPluginTools(server,identity){
   const button=z.enum(['left','right','middle']);
   const physicalFields={sessionId:id,operationId:opId,displayTopologyId:z.string().min(1).max(160).optional(),...waitFields};
   const physicalActions=[
-    ['move','move','Move the pointer to one screen coordinate.',{x:coord,y:coord,screen,steps:z.number().int().min(1).max(32).optional(),durationMs:z.number().int().min(0).max(500).optional()}],
+    ['move','move','Move the native pointer to one screen coordinate. durationMs=0 or steps=1 requests immediate precise movement; omitted values retain smooth compatibility.',{x:coord,y:coord,screen,steps:z.number().int().min(1).max(32).optional(),durationMs:z.number().int().min(0).max(500).optional()}],
     ['click','click','Click the OS pointer once or a bounded number of times, optionally at given coordinates.',{x:coord.optional(),y:coord.optional(),screen,button:button.optional(),count:z.number().int().min(1).max(3).optional()}],
     ['scroll','wheel','Scroll the pointer wheel by a bounded signed delta.',{delta:z.number().int().min(-1200).max(1200),x:coord.optional(),y:coord.optional(),screen}],
     ['drag','drag','Drag the OS pointer from an explicit starting point to an ending point.',{x:coord,y:coord,toX:coord,toY:coord,screen,toScreen:screen,button:button.optional(),steps:z.number().int().min(1).max(32).optional(),durationMs:z.number().int().min(0).max(1000).optional()}],
     ['type_text','type','Type Unicode text using the native OS keyboard input.',{text:z.string().min(1).max(4096),intervalMs:z.number().int().min(25).max(100).optional()}],
-    ['write_text','text','Write Unicode text into the focused application using native OS input.',{text:z.string().min(1).max(4096),intervalMs:z.number().int().min(0).max(100).optional()}],
+    ['write_text','text','Write Unicode text into the focused application using native OS input. intervalMs=0 is unpaced. A sent-event receipt is not proof of complete text insertion; observe the target before retrying interrupted input.',{text:z.string().min(1).max(4096),intervalMs:z.number().int().min(0).max(100).optional()}],
     ['press_key','key','Press one native key with explicitly enumerated modifiers.',{key:z.string().min(1).max(48),modifiers:z.array(z.enum(['CTRL','ALT','SHIFT','WIN'])).max(4).optional()}],
     ['launch_app','app.launch','Launch one installed macOS application by bundle identifier (macOS only).',{bundleId:z.string().min(1).max(128)}]
   ];

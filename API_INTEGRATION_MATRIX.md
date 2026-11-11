@@ -80,3 +80,7 @@ Google config reports credentialsSaved/pendingDomainSwitch separately from confi
 ## Record CI84 internal installer acceptance, Lab rollout and preserved Google callback
 
 CI84 Google entry/provider allowlist and native intent/callback binding tests PASS. Lab public auth-capabilities now truthfully reports credentialsSaved=true, configured=false, pendingDomainSwitch=true with the existing production callback. This is preconfiguration for later domain-role rotation, not an authenticated Google round-trip. Wall SSO and Agent A/B grants stay independently gated. Public health/API contract and unauthenticated snapshot401 verified after backend rollout.
+
+## Preserve native RMv2 cursors and honor precise input timing
+
+Existing move durationMs/steps now survive both validators; explicit0 interval/timing retained. Additive nativeTiming/bridgeTiming carry per-process monotonic durations and requestId. Windows batch results preserve text contentVerification=unverified and verifiedInsertedUnits=null. Local interruption errors forbid blind replay; legacy applied is not content verification. A/B/grants/device targeting and api.v1 identity unchanged.

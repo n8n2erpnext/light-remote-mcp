@@ -2,6 +2,8 @@ using System.IO;
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace GptOperator.RealRemoteV2;
 
@@ -35,6 +37,15 @@ internal sealed class RobotRpcServer : IDisposable
             using var reader=new StreamReader(pipe,new UTF8Encoding(false),false,16*1024,leaveOpen:true);
             using var writer=new StreamWriter(pipe,new UTF8Encoding(false),16*1024,leaveOpen:true){AutoFlush=true};
             _writer=writer;
+            // The request lane remains ordered. Detect a vanished Agent while a
+            // synchronous input handler is busy, so its loop can stop immediately.
+            using var connectionWatch=new System.Threading.Timer(state=>{
+                try {
+                    if(!_disposed&&!pipe.SafePipeHandle.IsClosed &&
+                        !PeekNamedPipe(pipe.SafePipeHandle,IntPtr.Zero,0,IntPtr.Zero,out _,IntPtr.Zero))
+                        _disconnected();
+                } catch(ObjectDisposedException) {}
+            },null,50,50);
             await SendAsync(new {type="event",eventName="robot.ready",at=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),pid=Environment.ProcessId});
             while(!_disposed&&pipe.IsConnected)
             {
@@ -47,7 +58,13 @@ internal sealed class RobotRpcServer : IDisposable
                     var root=doc.RootElement.Clone();
                     id=root.TryGetProperty("id",out var idNode)?idNode.ToString():"";
                     if(string.IsNullOrWhiteSpace(id)) throw new InvalidOperationException("request_id_required");
+                    var clock=System.Diagnostics.Stopwatch.StartNew();
                     var data=await _handler(root);
+                    var receipt=JsonSerializer.SerializeToNode(data);
+                    if(receipt is System.Text.Json.Nodes.JsonObject obj) {
+                        obj["nativeTiming"]=JsonSerializer.SerializeToNode(new {requestId=id,handlerMs=clock.Elapsed.TotalMilliseconds,processId=Environment.ProcessId});
+                        data=obj;
+                    }
                     await SendAsync(new {type="response",id,ok=true,data});
                 }
                 catch(Exception ex)
@@ -90,4 +107,7 @@ internal sealed class RobotRpcServer : IDisposable
         _writer=null;
         _writeGate.Dispose();
     }
+
+    [DllImport("kernel32.dll",SetLastError=true)]
+    private static extern bool PeekNamedPipe(SafePipeHandle pipe,IntPtr buffer,uint size,IntPtr read,out uint available,IntPtr left);
 }

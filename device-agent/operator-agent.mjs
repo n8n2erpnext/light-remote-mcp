@@ -432,7 +432,7 @@ async function attachRealRemoteVisual(p,request){
   },{timeoutMs:10000});
   const desktopSessionId='desk_'+crypto.randomBytes(12).toString('base64url');
   const row={desktopSessionId,visualSessionId:String(native.visualSessionId||''),leaseToken:String(native.leaseToken||''),...owner,
-    idleTimeoutMs,minIntervalMs:Math.max(0,Math.min(Number(request.minIntervalMs)||250,5000)),omitUnchanged:request.omitUnchanged!==false,
+    idleTimeoutMs,minIntervalMs:Math.max(0,Math.min(Number.isFinite(Number(request.minIntervalMs))&&request.minIntervalMs!=null?Number(request.minIntervalMs):250,5000)),omitUnchanged:request.omitUnchanged!==false,
     screen:native.screen,maxWidth:native.maxWidth,maxHeight:native.maxHeight,quality:native.quality,
     displayTopologyId:String(native.displayTopologyId||''),nativeEpoch:String(native.epoch||''),nativeStale:false,recovering:null,
     lastFrameSha:null,lastObservedAt:0,expiresAt:0,timer:null,release:NATIVE_DESKTOP.retain(),stopping:null};

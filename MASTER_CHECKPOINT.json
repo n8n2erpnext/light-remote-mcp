@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-11T09:33:15.215Z",
-  "version": "0.10.1-dev.6",
-  "phase": "LOCAL_MEMORY_EXTENSION_API_WORKER_RESEARCH_COMPLETE_BUILD_DEFERRED",
-  "status": "INTERNAL_DEV6_CI84_PASS_LAB_DEPLOYED_OWNER_UAT_PENDING",
+  "updatedAt": "2026-11-11T13:49:23.192Z",
+  "version": "0.10.1-dev.7",
+  "phase": "RMV2_PHASE1_IMPLEMENTATION",
+  "status": "RMV2_DEV7_SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -360,7 +360,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Owner manually installs the verified CI84 setup and reports UI/tray/login/lifecycle at100/150/200% scaling. Keep this source/artifact pinned and old runtime/backup. Google stays inactive on temporary Gold until Owner promotion: align public origin, native endpoint/issuer profile and TLS bind, keep the existing production callback/client, then verify real login and A/B separation. Do not public-release/promote feed or retire archives. RMv2/API Worker remain research plans.",
+  "nextAction": "Follow exact-source full CI; fix actual failures, verify internal artifacts and native acceptance report. Deploy only isolated Lab backend from the accepted GitHub source to carry preserved timing across Operator. Then phase2 ordered cancel/status, target-verified long typing and capture cache; optional GPU/video remain later. Owner installs/tests only after accepted artifact; production/domain/Google activation unchanged.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -451,13 +451,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-installer-tray-google-ci84-closeout",
-    "status": "CI_PASS_LAB_DEPLOYED_OWNER_PHYSICAL_PENDING",
-    "summary": "Completed installer/tray/Google follow-up: actual card ancestry removes white bands; exact GDI ink sizing preserves Google Sans descenders without oversized line boxes; hide covered stock headings; Connected LR glyph is darker #167A58. CI84 full9/9 and six native views PASS, verified internal artifact, same-source Lab Operator/Plugin deployed. Original production OAuth client/callback saved in Gold PG and intentionally inactive until Owner domain-role rotation.",
-    "verification": "Source3064f21, tree d39c48f, version0.10.1-dev.6; CI42989298732 all9 PASS; native6 views at96DPI visually reviewed, descender margins8–9px, gray card child backgrounds; primary migration/rollback/close-reopen/ConPTY PASS. Installer170519556bytes SHA256187ab6bf9b6d5a5487b7898aaf03ef3b053fbad046afa2044aa13aca81a60938; artifactZIP169963254bytes SHA2565a875f96215216d972e2676b52b456cb0fb4b98149696fa8707710de629c1d8c. Independent ARM verification PASS. Lab public health/API contract PASS; counts2 accounts/8 devices/35 grants/1 Owner unchanged; independent PIDs preserved; no schema migration. Google public status saved=true/configured=false/pendingDomainSwitch=true; original callback retained, production equality HMAC PASS, no credential export. Physical Owner/real Google round-trip remain pending by design.",
-    "nextAction": "Owner manually installs the verified CI84 setup and reports UI/tray/login/lifecycle at100/150/200% scaling. Keep this source/artifact pinned and old runtime/backup. Google stays inactive on temporary Gold until Owner promotion: align public origin, native endpoint/issuer profile and TLS bind, keep the existing production callback/client, then verify real login and A/B separation. Do not public-release/promote feed or retire archives. RMv2/API Worker remain research plans.",
-    "sourceDigest": "839d035d648e81c78f32cba269d5e48ffd0ba4fb2c149b394d1d209b2b42b5bb",
-    "sourceFileCount": 1677
+    "taskId": "20261111-rmv2-phase1-native-cursor-input",
+    "status": "IMPLEMENTED_PORTABLE_VERIFIED_NATIVE_CI_PENDING",
+    "summary": "Implement RMv2 phase1: preserve all native Windows cursors, activity-only AI badge/four thin click-through edges with embedded product font, physical Owner interruption and owned-input cleanup, disconnect/desktop-switch stop, explicit restore only, move timing/steps/zero forwarding and additive timing/unverified-text receipts. Bump internal source to dev.7. Owner reported previous CI84 installer PASS; no unreported physical matrix inferred.",
+    "verification": "ARM portable71 source groups PASS; all299 unit cases PASS across path-compatible batches (292 regular units with contained short socket path,7 artifact preflight with canonical path). Security/path limits unchanged. Final local helper lifecycle, double-normalization/native mapper and cursor contract PASS. Native compile/actual Windows cursor, tiny moves, badge/timer and installer regression remain pending exact-source Actions. No before/after speedup or RM physical acceptance claimed.",
+    "nextAction": "Follow exact-source full CI; fix actual failures, verify internal artifacts and native acceptance report. Deploy only isolated Lab backend from the accepted GitHub source to carry preserved timing across Operator. Then phase2 ordered cancel/status, target-verified long typing and capture cache; optional GPU/video remain later. Owner installs/tests only after accepted artifact; production/domain/Google activation unchanged.",
+    "sourceDigest": "58a9386bf11b89f19671aec14ac3d577a63980003cbc04b4c538a1b0f89a1fe2",
+    "sourceFileCount": 1680
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1484,7 +1484,7 @@
     "googleCredentials": "SAVED_GOLD_POSTGRES_SAME_PRODUCTION_CLIENT_CALLBACK",
     "googleExternalCallback": "ORIGINAL_PRODUCTION_CALLBACK_UNCHANGED_PENDING_OWNER_ROLE_ROTATION",
     "wallGoogleFlow": "VIA_NATIVE_DESKTOP_EXPLICIT_LOCAL_CHALLENGE",
-    "physicalOwnerAcceptance": false,
+    "physicalOwnerAcceptance": true,
     "productionChanged": false,
     "runtimeChanged": true,
     "publicRelease": false,
@@ -1527,6 +1527,25 @@
     "labRuntimeSource": "3064f21adb402b1d3eb866405d5a81796789f1a2",
     "labRuntimeVersion": "0.10.1-dev.6",
     "ownerWindowsInstallationChanged": false,
-    "evidence": "docs/evidence/windows-distribution/20261111-acceptance.json"
+    "evidence": "docs/evidence/windows-distribution/20261111-acceptance.json",
+    "ownerReportedAcceptance": "2026-11-11 PASS; no inferred DPI/Google-domain acceptance"
+  },
+  "rmv2Implementation": {
+    "phase": 1,
+    "status": "IMPLEMENTED_NATIVE_CI_PENDING",
+    "version": "0.10.1-dev.7",
+    "beforeCommit": "a2173d525e67945843ecfa307304ce1228c7c096",
+    "beforeTag": "checkpoint/20261111-before-rmv2-phase1-a2173d5",
+    "bundleSha256": "52c4ed562287cce186f666697fb4c96d20e847129e0398bc913ea6503dffe474",
+    "restoreFsck": "PASS",
+    "physicalAccepted": false,
+    "gpuOrVideoImplemented": false,
+    "verifiedLongTypingImplemented": false,
+    "deployed": false,
+    "publicRelease": false,
+    "portableSourceGroups": 71,
+    "portableUnitCases": 299,
+    "portableUnitExecution": "two path-compatible batches; no limits weakened",
+    "nativeCi": "PENDING"
   }
 }

@@ -657,6 +657,12 @@ jobs:
           $json = Get-Content $result -Raw | ConvertFrom-Json
           if (-not $json.ok -or $json.runtime -ne 'real-remote-v2-companion') { throw "invalid self test: $(Get-Content $result -Raw)" }
 
+      - name: Real Remote V2 native cursor and precision acceptance
+        shell: pwsh
+        run: |
+          $out = Join-Path $PWD 'dist/windows/rmv2-phase1-acceptance.json'
+          ./client/windows-native/test-rmv2-phase1.ps1 -Exe $env:RMV2_EXE -Output $out
+
       - name: Real Remote V2 full duplex lifecycle
         shell: pwsh
         run: |

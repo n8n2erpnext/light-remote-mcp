@@ -258,3 +258,7 @@ Windows workflow separates compile-only output/cleanup from payload-free layout 
 ## Record CI84 internal installer acceptance, Lab rollout and preserved Google callback
 
 Current installer source uses actual GDI ink measurement plus scaled descender padding, actual colored card parents and hidden stock headings; native proof selects the active branded wordmark. CI84 six views/one primary/migration/lifecycle PASS. Runtime Operator/Plugin pin3064f21; evidence in windows-distribution/20261111-acceptance.json. No RMv2 cursor/typing/GPU or API Worker implementation is included.
+
+## Preserve native RMv2 cursors and honor precise input timing
+
+Native Windows ownership: client/windows-native/GptOperator.RealRemoteV2/ControlActivity.cs handles metadata-only hooks, generation cancellation/desktop fencing; CursorGlowOverlay.cs owns badge/4edges; NativeInput.cs tags packets/cleans only owned downs; RobotContext.cs scopes operations and text receipts; RobotRpcServer.cs adds timing and disconnect watch; SystemCursorOverride.cs is explicit recovery only. lib/real-remote-input.cjs + native-desktop.mjs preserve zero/timing and bridge receipt; Agent visual minInterval0 fixed. Native acceptance is client/windows-native/test-rmv2-phase1.ps1, portable mapper check deploy/scripts/selftest-rmv2-input-contract.mjs.

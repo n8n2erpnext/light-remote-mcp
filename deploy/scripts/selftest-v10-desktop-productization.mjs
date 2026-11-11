@@ -99,7 +99,7 @@ need(nativeDesktop.includes("const error=new Error('real_remote_helper_timeout')
 need(operatorAgent.includes("desktop_visual_cleanup_failed")&&operatorAgent.includes("stopRealRemoteVisual(row).catch")&&operatorAgent.includes("stopRealRemoteVisual(row,{detach:false}).catch"),'rmv2-visual-cleanup-rejection-contained');
 need(rmProject.includes('<AssemblyName>LightRemote.RM</AssemblyName>')&&rmProject.includes('<Product>Light Remote RM</Product>')&&rmProject.includes('<ApplicationIcon>Assets\\light-remote-rm.ico</ApplicationIcon>'),'rm-branding-project');
 need(robotContext.includes('Text="Agent Remote Active"')&&!robotContext.includes('ShowBalloonTip(')&&robotContext.includes('Icon.ExtractAssociatedIcon'),'rm-branding-tray-tooltip');
-need(systemCursor.includes('SetSystemCursor')&&systemCursor.includes('CreateCodexCursor')&&systemCursor.includes('SPI_SETCURSORS'),'rm-native-system-cursor');
+need(!systemCursor.includes('SetSystemCursor')&&systemCursor.includes('ForceRestore'),'rm-native-system-cursor-preserved-recovery-only');
 need(agentHost.includes('"LightRemote.RM.exe"'),'rm-branding-agent-host-path');
 need(windowsWorkflow.includes('LightRemote.RM.exe')&&!windowsWorkflow.includes('GptOperator.RealRemoteV2.exe'),'rm-branding-workflow-path');
 const rmMainWorkflowSteps=['RM V2 push live lane contract','Publish isolated Real Remote V2 companion','Real Remote V2 self test','Real Remote V2 full duplex lifecycle','Stage Real Remote V2 lazy companion','Real Remote V2 lazy broker smoke','Real Remote V2 push bridge smoke'];

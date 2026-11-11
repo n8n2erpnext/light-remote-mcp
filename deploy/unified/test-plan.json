@@ -76,7 +76,8 @@
     "deploy/scripts/selftest-v10-version-plane-parity.mjs",
     "deploy/scripts/selftest-v12-macos-physical-type-routing.mjs",
     "deploy/scripts/selftest-v12-rm-cursor-effect-parity.mjs",
-    "deploy/scripts/selftest-windows-distribution-v3.mjs"
+    "deploy/scripts/selftest-windows-distribution-v3.mjs",
+    "deploy/scripts/selftest-rmv2-input-contract.mjs"
   ],
   "notInPortableSuite": [
     {

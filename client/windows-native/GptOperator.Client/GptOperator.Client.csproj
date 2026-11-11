@@ -10,7 +10,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationIcon>Assets\light-remote.ico</ApplicationIcon>
-    <Version>0.10.1-dev.6</Version>
+    <Version>0.10.1-dev.7</Version>
     <FileVersion>0.10.1.0</FileVersion>
     <AssemblyVersion>0.10.1.0</AssemblyVersion>
     <PublishSingleFile>true</PublishSingleFile>

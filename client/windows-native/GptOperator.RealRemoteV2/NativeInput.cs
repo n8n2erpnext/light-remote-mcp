@@ -10,6 +10,9 @@ internal sealed record NativeStatus(CursorPoint Cursor, ScreenInfo[] Screens, Fo
 
 internal static class NativeInput
 {
+    internal static ControlActivity? Activity;
+    private static readonly object OwnedGate=new();
+    private static readonly Dictionary<string,INPUT> OwnedUps=new();
     private const uint INPUT_MOUSE = 0;
     private const uint INPUT_KEYBOARD = 1;
     private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
@@ -37,7 +40,7 @@ internal static class NativeInput
     [StructLayout(LayoutKind.Sequential)] private struct INPUT { public uint type; public INPUTUNION U; }
 
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT point);
-    [DllImport("user32.dll")] private static extern bool SetCursorPos(int x,int y);
+    [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int key);
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetWindowText(nint hwnd,StringBuilder text,int count);
     [DllImport("user32.dll", SetLastError=true)] private static extern uint SendInput(uint count, INPUT[] inputs, int size);
@@ -83,6 +86,7 @@ internal static class NativeInput
                 var remaining=deadlineMs-clock.Elapsed.TotalMilliseconds;
                 if(remaining>=3d) Thread.Sleep(Math.Max(1,(int)remaining-1));
                 else Thread.Yield();
+                Activity?.Check();
             }
             var point=SmoothPoint(start.X,start.Y,x,y,i,frameCount);
             MoveImmediate(point.X,point.Y);
@@ -99,13 +103,23 @@ internal static class NativeInput
         );
     }
 
+    internal static int AbsoluteCoordinate(int pixel,int origin,int length)
+        => (int)Math.Clamp(((long)(pixel-origin)*65536+32768)/Math.Max(1,length),0,65535);
+
     private static void MoveImmediate(int x,int y)
     {
-        if(!SetCursorPos(x,y)) throw new InvalidOperationException("cursor_move_failed");
+        var bounds=SystemInformation.VirtualScreen;
+        Send(new[]{new INPUT{type=INPUT_MOUSE,U=new INPUTUNION{mi=new MOUSEINPUT{
+            dx=AbsoluteCoordinate(x,bounds.X,bounds.Width),dy=AbsoluteCoordinate(y,bounds.Y,bounds.Height),
+            dwFlags=0x0001|0x8000|0x4000, dwExtraInfo=ControlActivity.InputMarker
+        }}}});
     }
 
     internal static bool SmoothMoveMathSelfTest()
     {
+        foreach(var width in new[]{1920,3840,7680})
+            for(var pixel=0;pixel<width;pixel++)
+                if((long)AbsoluteCoordinate(pixel-1920,-1920,width)*width/65536!=pixel)return false;
         var first=SmoothPoint(0,0,100,50,1,4);
         var last=SmoothPoint(0,0,100,50,4,4);
         return first.X>0 && first.X<100 && first.Y>0 && first.Y<50 && last==new CursorPoint(100,50);
@@ -118,13 +132,13 @@ internal static class NativeInput
         // Paint ribbon menus need the pointer hover to settle before down.
         // A zero-time SendInput down/up burst was intermittently interpreted
         // as hover only even though the RPC reported applied=true.
-        Thread.Sleep(35);
+        InterruptibleDelay(35);
         for(var i=0;i<count;i++)
         {
             SendMouseFlag(flags.Down);
-            Thread.Sleep(40);
-            SendMouseFlag(flags.Up);
-            if(i<count-1) Thread.Sleep(55);
+            InterruptibleDelay(40);
+            ReleaseOwnedInputs();
+            if(i<count-1) InterruptibleDelay(55);
         }
     }
 
@@ -144,7 +158,7 @@ internal static class NativeInput
     public static void Drag(int fromX,int fromY,int toX,int toY,string button="left",int durationMs=250,int steps=12)
     {
         durationMs=Math.Clamp(durationMs,0,5000);
-        steps=Math.Clamp(steps,2,120);
+        steps=Math.Clamp(steps,1,120);
         var flags=MouseFlags(button);
         MoveImmediate(fromX,fromY);
         SendMouseFlag(flags.Down);
@@ -158,12 +172,12 @@ internal static class NativeInput
                     (int)Math.Round(fromX+(toX-fromX)*t),
                     (int)Math.Round(fromY+(toY-fromY)*t)
                 );
-                if(delay>0) Thread.Sleep(delay);
+                if(delay>0) InterruptibleDelay(delay);
             }
         }
         finally
         {
-            SendMouseFlag(flags.Up);
+            ReleaseOwnedInputs();
         }
     }
 
@@ -176,7 +190,7 @@ internal static class NativeInput
             var down=new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{wScan=ch,dwFlags=KEYEVENTF_UNICODE}}};
             var up=new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{wScan=ch,dwFlags=KEYEVENTF_UNICODE|KEYEVENTF_KEYUP}}};
             Send(new[]{down,up});
-            if(intervalMs>0) Thread.Sleep(intervalMs);
+            if(intervalMs>0) InterruptibleDelay(intervalMs);
         }
     }
 
@@ -201,24 +215,17 @@ internal static class NativeInput
         foreach(var vk in mods)
         {
             ChordKey(vk,false);
-            Thread.Sleep(10);
+            InterruptibleDelay(10);
         }
 
         try
         {
             ChordKey(keyVk,false);
-            Thread.Sleep(15);
+            InterruptibleDelay(15);
             ChordKey(keyVk,true);
-            Thread.Sleep(10);
+            InterruptibleDelay(10);
         }
-        finally
-        {
-            for(var i=mods.Length-1;i>=0;i--)
-            {
-                ChordKey(mods[i],true);
-                if(i>0) Thread.Sleep(10);
-            }
-        }
+        finally { ReleaseOwnedInputs(); }
     }
 
     private static (uint Down,uint Up) MouseFlags(string button)
@@ -282,9 +289,68 @@ internal static class NativeInput
             dwFlags=flags
         }}}});
 
+    internal static void InterruptibleDelay(int milliseconds)
+    {
+        var until=Environment.TickCount64+milliseconds;
+        do { Activity?.Check(); var remaining=until-Environment.TickCount64;
+            if(remaining<=0)return; Thread.Sleep((int)Math.Min(remaining,8));
+        } while(true);
+    }
+
+    private static (string Id,INPUT Up,int Key)? ReleaseFor(INPUT input)
+    {
+        if(input.type==INPUT_MOUSE) {
+            var flags=input.U.mi.dwFlags;
+            var up=flags switch { MOUSEEVENTF_LEFTDOWN=>MOUSEEVENTF_LEFTUP,MOUSEEVENTF_RIGHTDOWN=>MOUSEEVENTF_RIGHTUP,MOUSEEVENTF_MIDDLEDOWN=>MOUSEEVENTF_MIDDLEUP,_=>0u };
+            if(up==0)return null;
+            input.U.mi.dwFlags=up;
+            return ("mouse:"+up,input,up==MOUSEEVENTF_LEFTUP?1:up==MOUSEEVENTF_RIGHTUP?2:4);
+        }
+        if(input.type!=INPUT_KEYBOARD || (input.U.ki.dwFlags&KEYEVENTF_KEYUP)!=0)return null;
+        var key=input.U.ki;
+        input.U.ki.dwFlags|=KEYEVENTF_KEYUP;
+        var vk=key.wVk!=0?key.wVk:(key.dwFlags&KEYEVENTF_UNICODE)!=0?0:
+            (int)MapVirtualKey((uint)(key.wScan|((key.dwFlags&KEYEVENTF_EXTENDEDKEY)!=0?0xE000:0)),3);
+        return ($"key:{key.wVk}:{key.wScan}:{key.dwFlags}",input,vk);
+    }
+
     private static void Send(INPUT[] items)
     {
-        var sent=SendInput((uint)items.Length,items,Marshal.SizeOf<INPUT>());
-        if(sent!=items.Length) throw new InvalidOperationException("send_input_failed");
+        Activity?.Check();
+        for(var i=0;i<items.Length;i++) {
+            if(items[i].type==INPUT_MOUSE)items[i].U.mi.dwExtraInfo=ControlActivity.InputMarker;
+            else if(items[i].type==INPUT_KEYBOARD)items[i].U.ki.dwExtraInfo=ControlActivity.InputMarker;
+        }
+        lock(OwnedGate) {
+            foreach(var item in items) {
+                var release=ReleaseFor(item);
+                if(release is {} row && row.Key!=0 && (GetAsyncKeyState(row.Key)&0x8000)!=0 && !OwnedUps.ContainsKey(row.Id))
+                    throw new InvalidOperationException("input_key_or_button_already_held_locally");
+            }
+            var sent=SendInput((uint)items.Length,items,Marshal.SizeOf<INPUT>());
+            for(var i=0;i<sent;i++) {
+                var release=ReleaseFor(items[i]);
+                if(release is {} row)OwnedUps[row.Id]=row.Up;
+                else {
+                    var current=items[i];
+                    foreach(var id in OwnedUps.Where(pair=>SameRelease(pair.Value,current)).Select(pair=>pair.Key).ToArray())OwnedUps.Remove(id);
+                }
+            }
+            if(sent!=items.Length) { ReleaseOwnedInputs(); throw new InvalidOperationException("send_input_partial_or_failed_do_not_replay"); }
+        }
+    }
+    private static bool SameRelease(INPUT a,INPUT b)=>a.type==b.type &&
+        (a.type==INPUT_MOUSE?a.U.mi.dwFlags==b.U.mi.dwFlags:
+        a.U.ki.wVk==b.U.ki.wVk && a.U.ki.wScan==b.U.ki.wScan && a.U.ki.dwFlags==b.U.ki.dwFlags);
+    internal static void ReleaseOwnedInputs()
+    {
+        lock(OwnedGate) {
+            if(OwnedUps.Count==0)return;
+            var items=OwnedUps.Values.Reverse().ToArray();
+            // Cleanup bypasses the cancelled guard, sends only recorded RM downs.
+            var sent=SendInput((uint)items.Length,items,Marshal.SizeOf<INPUT>());
+            foreach(var item in items.Take((int)sent))
+                foreach(var id in OwnedUps.Where(pair=>SameRelease(pair.Value,item)).Select(pair=>pair.Key).ToArray())OwnedUps.Remove(id);
+        }
     }
 }

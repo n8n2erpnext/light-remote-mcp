@@ -16,18 +16,13 @@ internal sealed class RobotContext : ApplicationContext
     private readonly RobotRpcServer _rpc;
     private readonly Stopwatch _uptime=Stopwatch.StartNew();
     private readonly object _cursorLeaseGate=new();
-    // Cursor visuals follow recent physical Agent activity, not passive status/frame reads.
-    // Bridge hops can take seconds; bound the effect with a short renewable lease.
-    private readonly System.Threading.Timer _cursorLeaseTimer;
+    private readonly ControlActivity _activity=new();
     private readonly System.Threading.Timer _passivePreviewTimer;
-    private readonly System.Threading.Timer _visualAttachCursorTimer;
-    private const int CursorActivityLeaseMs=5_000;
-    private const int VisualAttachCursorLeaseMs=30_000;
-    private volatile bool _cursorLeaseActive;
     private volatile bool _passivePreviewActive;
-    private volatile bool _visualAttachCursorActive;
     private long _passivePreviewExpiresUtcMs;
+    private long _passivePreviewDeadline;
     private bool _closing;
+    private readonly System.Windows.Threading.Dispatcher _uiDispatcher=System.Windows.Threading.Dispatcher.CurrentDispatcher;
 
     private static Icon LoadAppIcon()
     {
@@ -43,21 +38,15 @@ internal sealed class RobotContext : ApplicationContext
     public RobotContext(string pipeName)
     {
         _tray=new NotifyIcon{Visible=true,Text="Agent Remote Active",Icon=LoadAppIcon()};
-        _cursorLeaseTimer=new System.Threading.Timer(_=>ReleaseCursorActivity(),null,
-            Timeout.Infinite,Timeout.Infinite);
-        _passivePreviewTimer=new System.Threading.Timer(_=>StopPassivePreview(),null,
-            Timeout.Infinite,Timeout.Infinite);
-        _visualAttachCursorTimer=new System.Threading.Timer(_=>StopVisualAttachCursor(),null,
-            Timeout.Infinite,Timeout.Infinite);
-        // Pre-create the window handle on the GUI thread, but never display
-        // glow or replace the OS cursor until authorized physical Agent input.
-        if(Environment.GetEnvironmentVariable("LIGHT_REMOTE_RM_ANIMATED_GLOW")=="1")
+        _passivePreviewTimer=new System.Threading.Timer(_=>ExpirePassivePreview(),null,Timeout.Infinite,Timeout.Infinite);
+        // Default-on indicator; legacy opt-out now controls only the overlay.
+        if(Environment.GetEnvironmentVariable("LIGHT_REMOTE_RM_ANIMATED_GLOW")!="0")
         {
-            try {
-                _ambientGlow=new CursorGlowOverlay(_cursorState);
-                _=_ambientGlow.Handle;
-            } catch { _ambientGlow?.Dispose(); _ambientGlow=null; }
+            try { _ambientGlow=new CursorGlowOverlay(_activity); _=_ambientGlow.Handle; }
+            catch { _ambientGlow?.Dispose(); _ambientGlow=null; }
         }
+        _activity.Changed+=UpdateGlowVisibility;
+        NativeInput.Activity=_activity;
 
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
         _semantic=new SemanticSessionManager(_sensor);
@@ -74,9 +63,15 @@ internal sealed class RobotContext : ApplicationContext
     private async Task<object?> HandleAsync(JsonElement request)
     {
         var op=Text(request,"op");
+        var controlling=op is "cursor.move" or "cursor.click" or "cursor.wheel" or "cursor.drag"
+            or "text.write" or "text.type" or "text.delete" or "key.press" or "key.hotkey"
+            or "batch.run" or "desktop.run" or "desktop.input" or "desktop.semantic.act" or "desktop-semantic-act";
+        if(controlling)_activity.Begin();
+        try {
         object? result=op switch {
             "ping" => new {pong=true,pid=Environment.ProcessId},
             "status" or "desktop.status" => Status(),
+            "cursor.restore" => RestoreCursors(),
             "cursor.preview.start" => StartPassivePreview(request),
             "cursor.preview.stop" => StopPassivePreview(),
             "desktop.windows" => DesktopVisual.ListWindows(Int(request,"maxWindows",100)),
@@ -128,79 +123,38 @@ internal sealed class RobotContext : ApplicationContext
             _ => throw new InvalidOperationException("operation_not_supported")
         };
         return result;
+        } finally { if(controlling) { NativeInput.ReleaseOwnedInputs(); _activity.End(); } }
+    }
+
+    private object RestoreCursors()
+    {
+        _activity.Stop(); StopPassivePreview();
+        var restored=SystemCursorOverride.ForceRestore();
+        return new {restored,osCursorOverridden=false,error=restored?0:System.Runtime.InteropServices.Marshal.GetLastWin32Error()};
     }
 
     private void UpdateGlowVisibility()
     {
         var glow=_ambientGlow;
-        if(glow is null||glow.IsDisposed||!glow.IsHandleCreated)return;
-        try {
-            glow.BeginInvoke(new Action(()=>{
-                if(glow.IsDisposed)return;
-                // Recheck after dispatch: a timer callback may have queued
-                // a hide just before a new input renews the cursor lease.
-                // A passive owner preview MUST NOT inject mouse input
-                // or replace Windows' system cursor.
-                if(_cursorLeaseActive || _passivePreviewActive || _visualAttachCursorActive)glow.Show();
-                else glow.Hide();
-            }));
-        } catch(ObjectDisposedException) {} catch(InvalidOperationException) {}
+        if(glow is null||glow.IsDisposed)return;
+        glow.BeginInvoke(()=>{
+            if(glow.IsDisposed)return;
+            glow.SetPreview(_passivePreviewActive?_passivePreviewDeadline:0);
+            if(_activity.Active||_passivePreviewActive)glow.Show(); else glow.Hide();
+        });
     }
 
-    // The approved rc.48 dark cursor is installed only for a visual
-    // attach or physical agent input. Neither operation sends pointer
-    // movement merely by attaching; the owner keeps moving their mouse.
-    // Detach/lease expiry must restore the original system cursor.
-    private object AttachVisualWithCursor(JsonElement request)
-    {
-        var result=_visual.Attach(
-            Int(request,"screen",0),
-            Int(request,"maxWidth",960),
-            Int(request,"maxHeight",540),
-            Int(request,"quality",50),
-            Int(request,"leaseMs",30_000),
-            Text(request,"owner","")
-        );
-        lock(_cursorLeaseGate)
-        {
-            if(_closing)throw new InvalidOperationException("robot_closing");
-            if(!_visualAttachCursorActive)
-            {
-                SystemCursorOverride.Acquire();
-                _visualAttachCursorActive=true;
-            }
-            _visualAttachCursorTimer.Change(VisualAttachCursorLeaseMs,Timeout.Infinite);
-            UpdateGlowVisibility();
-        }
-        return result;
-    }
+    private object AttachVisualWithCursor(JsonElement request)=>_visual.Attach(
+        Int(request,"screen",0),Int(request,"maxWidth",960),Int(request,"maxHeight",540),
+        Int(request,"quality",50),Int(request,"leaseMs",30_000),Text(request,"owner",""));
 
     private object DetachVisualWithCursor(JsonElement request)
     {
-        var result=_visual.Detach(
-            Text(request,"visualSessionId"),
-            Text(request,"leaseToken")
-        );
-        if(_visual.ActiveSessions==0)StopVisualAttachCursor();
+        var result=_visual.Detach(Text(request,"visualSessionId"),Text(request,"leaseToken"));
+        if(_visual.ActiveSessions==0)_activity.Stop();
         return result;
     }
 
-    private void StopVisualAttachCursor()
-    {
-        lock(_cursorLeaseGate)
-        {
-            _visualAttachCursorTimer.Change(Timeout.Infinite,Timeout.Infinite);
-            if(!_visualAttachCursorActive)return;
-            _visualAttachCursorActive=false;
-            UpdateGlowVisibility();
-            SystemCursorOverride.Release();
-        }
-    }
-
-    // Owner-controlled passive inspection: their own physical mouse
-    // stays fully usable. This path never calls SetCursorPos, SendInput
-    // or SystemCursorOverride.Acquire. It only shows the click-through
-    // WPF halo following Cursor.Position with an automatic expiry.
     private object StartPassivePreview(JsonElement request)
     {
         if(_ambientGlow is null || _ambientGlow.IsDisposed)
@@ -209,9 +163,10 @@ internal sealed class RobotContext : ApplicationContext
         lock(_cursorLeaseGate)
         {
             if(_closing)throw new InvalidOperationException("robot_closing");
-            if(_cursorLeaseActive)
+            if(_activity.Active)
                 throw new InvalidOperationException("passive_preview_requires_idle");
             _passivePreviewExpiresUtcMs=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()+seconds*1000L;
+            _passivePreviewDeadline=Environment.TickCount64+seconds*1000L;
             _passivePreviewActive=true;
             _passivePreviewTimer.Change(seconds*1000,Timeout.Infinite);
             UpdateGlowVisibility();
@@ -235,32 +190,17 @@ internal sealed class RobotContext : ApplicationContext
         return new {active=false,passive=true,mouseInjection=false};
     }
 
-    private void HoldCursorForPhysicalInput()
+    private void ExpirePassivePreview()
     {
-        lock(_cursorLeaseGate)
-        {
-            if(_closing)throw new InvalidOperationException("robot_closing");
-            if(!_cursorLeaseActive)
-            {
-                SystemCursorOverride.Acquire();
-                _cursorLeaseActive=true;
-                UpdateGlowVisibility();
-            }
-            _cursorLeaseTimer.Change(CursorActivityLeaseMs,Timeout.Infinite);
+        lock(_cursorLeaseGate) {
+            if(_closing||!_passivePreviewActive)return;
+            var remaining=_passivePreviewDeadline-Environment.TickCount64;
+            // A queued callback from an older preview must not expire its renewal.
+            if(remaining>0) { _passivePreviewTimer.Change((int)remaining,Timeout.Infinite); return; }
+            StopPassivePreview();
         }
     }
-
-    private void ReleaseCursorActivity()
-    {
-        lock(_cursorLeaseGate)
-        {
-            if(!_cursorLeaseActive)return;
-            _cursorLeaseTimer.Change(Timeout.Infinite,Timeout.Infinite);
-            _cursorLeaseActive=false;
-            UpdateGlowVisibility();
-            SystemCursorOverride.Release();
-        }
-    }
+    private void HoldCursorForPhysicalInput(bool keyboard=false) { _activity.Check(); _activity.TargetScreen=keyboard?Screen.FromHandle((nint)NativeInput.ReadForeground().Hwnd).Bounds:Screen.FromPoint(Cursor.Position).Bounds; _activity.Touch(); }
 
     private object Status() => new {
         runtime="real-remote-v2",
@@ -272,10 +212,13 @@ internal sealed class RobotContext : ApplicationContext
         cursorVisual=_cursorState.Status(),
         osCursorHidden=false,
         osCursorOverridden=SystemCursorOverride.IsActive,
-        cursorRenderer=_ambientGlow is {IsDisposed:false}?"native-system+animated-glow":"native-system",
+        cursorRenderer=_ambientGlow is {IsDisposed:false}?"native-system+ai-badge-border":"native-system",
+        controlState=_activity.State=="idle"&&_visual.ActiveSessions>0?"observing":_activity.State,
+        localInputMonitorAvailable=_activity.Available,
+        inputContentVerification="unverified-unless-explicit-readback",
         ambientGlowActive=_ambientGlow is {IsDisposed:false,Visible:true},
         passivePreviewActive=_passivePreviewActive,
-        visualAttachCursorActive=_visualAttachCursorActive,
+        visualAttachCursorActive=false,
         passivePreviewRemainingMs=_passivePreviewActive
             ?Math.Max(0,System.Threading.Volatile.Read(ref _passivePreviewExpiresUtcMs)
               -DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) : 0,
@@ -288,6 +231,7 @@ internal sealed class RobotContext : ApplicationContext
         var durationMs=Int(r,"durationMs",90);
         var point=InputPoint(r,"x","y","screen");
         HoldCursorForPhysicalInput();
+        _activity.TargetScreen=Screen.FromPoint(new Point(point.X,point.Y)).Bounds;
         _cursorState.MarkMove(durationMs);
         NativeInput.Move(point.X,point.Y,durationMs,Int(r,"steps",8));
         return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
@@ -320,6 +264,7 @@ internal sealed class RobotContext : ApplicationContext
         var from=InputPoint(r,"fromX","fromY","screen");
         var to=InputPoint(r,"toX","toY","toScreen",sourceScreen);
         HoldCursorForPhysicalInput();
+        _activity.TargetScreen=Screen.FromPoint(new Point(to.X,to.Y)).Bounds;
         _cursorState.MarkDrag(durationMs);
         NativeInput.Drag(
             from.X,from.Y,to.X,to.Y,
@@ -328,7 +273,7 @@ internal sealed class RobotContext : ApplicationContext
         return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
     }
 
-    private static object WriteText(JsonElement r,bool visibleTyping=false)
+    private object WriteText(JsonElement r,bool visibleTyping=false)
     {
         var text=Text(r,"text");
         // SendInput issues real Unicode key-down/key-up pairs per character.
@@ -336,35 +281,40 @@ internal sealed class RobotContext : ApplicationContext
         // Short text gets visible fast typing; longer input is bounded
         // so an agent operation remains responsive rather than timing out.
         var requested=Int(r,"intervalMs",visibleTyping?25:14);
-        var intervalMs=requested<=0?(visibleTyping?25:14):Math.Clamp(requested,4,55);
+        var intervalMs=Math.Clamp(requested,0,55);
         if(text.Length>512)intervalMs=Math.Min(intervalMs,4);
         else if(text.Length>180)intervalMs=Math.Min(intervalMs,8);
+        HoldCursorForPhysicalInput(true);
         NativeInput.WriteText(text,intervalMs);
         return new {
-            applied=true,characters=text.Length,intervalMs,
+            applied=true,characters=text.Length,requestedUnits=text.Length,intervalMs,
+            contentVerification="unverified",verifiedInsertedUnits=(int?)null,
             textMethod="win32-unicode-key-events-per-character",
             keyStrokes=text.Length,native=NativeInput.ReadStatus()
         };
     }
 
-    private static object DeleteText(JsonElement r)
+    private object DeleteText(JsonElement r)
     {
         var count=Int(r,"count",1);
+        HoldCursorForPhysicalInput(true);
         NativeInput.DeleteText(count);
         return new {applied=true,count,native=NativeInput.ReadStatus()};
     }
 
-    private static object PressKey(JsonElement r)
+    private object PressKey(JsonElement r)
     {
         var key=Text(r,"key");
+        HoldCursorForPhysicalInput(true);
         NativeInput.PressKey(key);
         return new {applied=true,key,native=NativeInput.ReadStatus()};
     }
 
-    private static object Hotkey(JsonElement r)
+    private object Hotkey(JsonElement r)
     {
         var key=Text(r,"key");
         var modifiers=Strings(r,"modifiers");
+        HoldCursorForPhysicalInput(true);
         NativeInput.Hotkey(modifiers,key);
         return new {applied=true,key,modifiers,native=NativeInput.ReadStatus()};
     }
@@ -401,6 +351,7 @@ internal sealed class RobotContext : ApplicationContext
         var value=Text(r,"value","");
         var afterSeq=Long(r,"afterSeq",0);
         var settleMs=Math.Clamp(Int(r,"settleMs",90),0,250);
+        HoldCursorForPhysicalInput(true);
         return _semantic.Act(semanticSessionId,nodeId,action,value,afterSeq,settleMs);
     }
 
@@ -413,13 +364,15 @@ internal sealed class RobotContext : ApplicationContext
         var count=actions.GetArrayLength();
         if(count<1||count>maxCount) throw new InvalidOperationException("actions_count_invalid");
         var applied=0;
+        var receipts=new List<object?>();
         foreach(var action in actions.EnumerateArray())
         {
             var guard=Text(action,"guardTitleContains","");
             if(guard.Length>0&&!NativeInput.ReadForeground().Title.Contains(guard,StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("guard_foreground_mismatch");
             var op=Text(action,"op");
-            _=op switch {
+            _activity.Check();
+            object receipt=op switch {
                 "cursor.move" or "move" => Move(action),
                 "cursor.click" or "click" => Click(action),
                 "cursor.wheel" or "wheel" => Wheel(action),
@@ -430,11 +383,12 @@ internal sealed class RobotContext : ApplicationContext
                 "key.hotkey" or "hotkey" => Hotkey(action),
                 _ => throw new InvalidOperationException("batch_operation_not_supported")
             };
+            receipts.Add(receipt);
             applied++;
             var delay=Math.Clamp(Int(action,"delayMs",0),0,2000);
-            if(delay>0) Thread.Sleep(delay);
+            if(delay>0) NativeInput.InterruptibleDelay(delay);
         }
-        return new {applied,native=NativeInput.ReadStatus()};
+        return new {applied,results=receipts,native=NativeInput.ReadStatus()};
     }
 
     private async Task<object> RunPlanAsync(JsonElement r)
@@ -453,6 +407,7 @@ internal sealed class RobotContext : ApplicationContext
             if(semanticSessionId.Length==0) throw new InvalidOperationException("semantic_session_id_required");
             if(nodeId.Length==0) throw new InvalidOperationException("semantic_node_id_required");
             if(action.Length==0) throw new InvalidOperationException("semantic_action_required");
+            HoldCursorForPhysicalInput(true);
             mutation=_semantic.ActMutation(semanticSessionId,nodeId,action,Text(r,"value",""),afterSeq);
         }
         else mutation=RunBatch(r,64);
@@ -531,12 +486,13 @@ internal sealed class RobotContext : ApplicationContext
     {
         if(_closing) return;
         _closing=true;
+        _activity.Stop();
         TryExit();
     }
 
     private void TryExit()
     {
-        try { ExitThread(); }
+        try { _=_uiDispatcher.BeginInvoke(new Action(()=>ExitThread())); }
         catch { }
     }
 
@@ -595,23 +551,11 @@ internal sealed class RobotContext : ApplicationContext
         _tray.Visible=false;
         _tray.Icon?.Dispose();
         _tray.Dispose();
-        lock(_cursorLeaseGate)
-        {
-            _passivePreviewActive=false;
-            _passivePreviewExpiresUtcMs=0;
-            _passivePreviewTimer.Change(Timeout.Infinite,Timeout.Infinite);
+        _activity.Dispose();
+        NativeInput.ReleaseOwnedInputs();
+        lock(_cursorLeaseGate) {
+            _passivePreviewActive=false; _passivePreviewExpiresUtcMs=0;
             _passivePreviewTimer.Dispose();
-            _visualAttachCursorTimer.Change(Timeout.Infinite,Timeout.Infinite);
-            _visualAttachCursorTimer.Dispose();
-            if(_visualAttachCursorActive)
-            {
-                _visualAttachCursorActive=false;
-                SystemCursorOverride.Release();
-            }
-            _cursorLeaseActive=false;
-            _cursorLeaseTimer.Change(Timeout.Infinite,Timeout.Infinite);
-            _cursorLeaseTimer.Dispose();
-            SystemCursorOverride.Release();
         }
         _ambientGlow?.Close();
         _ambientGlow?.Dispose();
