@@ -277,3 +277,7 @@ Apache-2.0 — [LICENSE](LICENSE), [NOTICE](NOTICE), [THIRD_PARTY_DISTRIBUTION_N
 ## Record Owner stop-build instruction and next native acceptance checklist
 
 Owner instruction (2026-11-11): **fix source only; do not build now**. Final implementation source0397d871 is published on permanent work. CI72 cancellation requested. CI71 source302c662 is a separate full9/9 PASS baseline with six native views; the final heading102px/margin correction is not native tested. Resume with one exact-source build/test only when Owner asks. [Native baseline/evidence](docs/evidence/distribution-redesign/CI71_NATIVE_UI.json). Lab remains verifieddev5; Owner self-install and dev6 deployment pending.
+
+## Record CI84 internal installer acceptance, Lab rollout and preserved Google callback
+
+Internal installer/tray/Google follow-up accepted from GitHub source `3064f21adb402b1d3eb866405d5a81796789f1a2` (dev.6), [CI84](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42989298732), all9 jobs PASS. Six actual native setup/uninstall views, one-primary/lifecycle/rollback and artifact digests verified. Canonical outcome: PROJECT_HANDOFF.md task20261111-installer-tray-google-ci84-closeout and docs/evidence/windows-distribution/20261111-acceptance.json. Lab backend updated; Google retains production client/callback and waits for Owner domain rotation. Owner physical test remains pending; no public release/feed.

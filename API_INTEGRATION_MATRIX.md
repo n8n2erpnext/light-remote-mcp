@@ -76,3 +76,7 @@ Desktop `desktop_owner_begin` accepts only absent/default or fixed Google presen
 ## Preserve production Google callback for domain rotation and verify explicit Wall SSO gates
 
 Google config reports credentialsSaved/pendingDomainSwitch separately from configured. Save retains registered callback; begin rejects mismatched current origin rather than silently rebasing callback or authenticating against production. Google unavailable fallback preserves same-origin native intent for password login. Wall SSO adapter requires both native bridge and independent `LR_GOLD_ABV2_DESKTOP_WALL_SSO_V4=1`; server issuer/operator/edge gates remain separately required.
+
+## Record CI84 internal installer acceptance, Lab rollout and preserved Google callback
+
+CI84 Google entry/provider allowlist and native intent/callback binding tests PASS. Lab public auth-capabilities now truthfully reports credentialsSaved=true, configured=false, pendingDomainSwitch=true with the existing production callback. This is preconfiguration for later domain-role rotation, not an authenticated Google round-trip. Wall SSO and Agent A/B grants stay independently gated. Public health/API contract and unauthenticated snapshot401 verified after backend rollout.

@@ -254,3 +254,7 @@ Wizard CurPageChanged hides stock PageNameLabel/PageDescriptionLabel only on bra
 ## Keep compile-only cleanup in its owning CI step after native Welcome passes
 
 Windows workflow separates compile-only output/cleanup from payload-free layout probe output; no product code change in this receipt.
+
+## Record CI84 internal installer acceptance, Lab rollout and preserved Google callback
+
+Current installer source uses actual GDI ink measurement plus scaled descender padding, actual colored card parents and hidden stock headings; native proof selects the active branded wordmark. CI84 six views/one primary/migration/lifecycle PASS. Runtime Operator/Plugin pin3064f21; evidence in windows-distribution/20261111-acceptance.json. No RMv2 cursor/typing/GPU or API Worker implementation is included.

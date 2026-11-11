@@ -1,0 +1,108 @@
+{
+  "sourceCommit": "3064f21adb402b1d3eb866405d5a81796789f1a2",
+  "sourceTree": "d39c48f3bf4b0d1139a3a9b475d3affd9175cb55",
+  "version": "0.10.1-dev.6",
+  "ci": {
+    "sourceCommit": "3064f21adb402b1d3eb866405d5a81796789f1a2",
+    "ciRunId": 42989298732,
+    "runNumber": 84,
+    "attempt": 1,
+    "scope": "full",
+    "result": "PASS",
+    "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42989298732",
+    "allJobs": 9,
+    "successfulJobs": 9,
+    "requiredCheck": "baseline-required",
+    "mainProtectionUnchanged": true,
+    "physicalOwnerAcceptance": false
+  },
+  "artifact": {
+    "artifactId": 13841868470,
+    "artifactZipSha256": "5a875f96215216d972e2676b52b456cb0fb4b98149696fa8707710de629c1d8c",
+    "installerSha256": "187ab6bf9b6d5a5487b7898aaf03ef3b053fbad046afa2044aa13aca81a60938",
+    "installerBytes": 170519556,
+    "result": "VERIFIED_NOT_PHYSICAL_ACCEPTANCE"
+  },
+  "nativeUi": {
+    "sourceCommit": "3064f21adb402b1d3eb866405d5a81796789f1a2",
+    "ciRunId": 42989298732,
+    "artifactId": 13841887376,
+    "artifactSha256": "76cef876ec974e03058454f2dc5d18e220a1bd0a7d7648e451b1bf4a7d7c4361",
+    "result": "PASS_SIX_NATIVE_VIEWS",
+    "views": [
+      {
+        "view": "01-welcome",
+        "dpi": 96,
+        "wordmarkBottom": 9,
+        "firstTitleBottom": 8,
+        "secondTitleBottom": 9
+      },
+      {
+        "view": "02-installing",
+        "dpi": 96,
+        "wordmarkBottom": 9,
+        "firstTitleBottom": 9,
+        "secondTitleBottom": 9
+      },
+      {
+        "view": "03-ready",
+        "dpi": 96,
+        "wordmarkBottom": 9,
+        "firstTitleBottom": 8,
+        "secondTitleBottom": 8
+      },
+      {
+        "view": "04-uninstall-confirm",
+        "dpi": 96,
+        "wordmarkBottom": 9,
+        "firstTitleBottom": 8,
+        "secondTitleBottom": 8
+      },
+      {
+        "view": "05-removing",
+        "dpi": 96,
+        "wordmarkBottom": 9,
+        "firstTitleBottom": 9,
+        "secondTitleBottom": 9
+      },
+      {
+        "view": "06-removed",
+        "dpi": 96,
+        "wordmarkBottom": 9,
+        "firstTitleBottom": 9,
+        "secondTitleBottom": 9
+      }
+    ],
+    "physicalOwnerAcceptance": false,
+    "screenshotsVisuallyReviewed": 6
+  },
+  "google": {
+    "sourceCommit": "3064f21adb402b1d3eb866405d5a81796789f1a2",
+    "result": "PASS_PRECONFIGURED_PENDING_DOMAIN_ROTATION",
+    "callback": "https://light-remote.thaiduy.digital/account/google/callback",
+    "credentialsSaved": true,
+    "googleEnabledOnTemporaryDomain": false,
+    "passwordFallbackRetainsIntent": true,
+    "independentPidsPreserved": true,
+    "productionChanged": false,
+    "authenticatedGoogleRoundTrip": false,
+    "publicStatusVerified": true
+  },
+  "lab": {
+    "result": "PASS",
+    "version": "0.10.1-dev.6",
+    "databaseMigrated": false,
+    "dbArchiveIndexVerified": true,
+    "dbArchiveSha256": "c0edf5828936926dde6e8b26ac3b5f54bdcc938ded2225f49a99d66675da558a",
+    "independentPidsPreserved": true,
+    "persistentCountsUnchanged": true,
+    "publicHealth": "PASS"
+  },
+  "physicalOwnerAcceptance": false,
+  "publicReleaseOrFeed": false,
+  "productionConfigComparison": {
+    "result": "PASS",
+    "method": "EPHEMERAL_KEY_HMAC_NO_CREDENTIAL_EXPORT"
+  },
+  "publicHealthAfterGoogleReload": "PASS"
+}

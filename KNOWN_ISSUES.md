@@ -87,3 +87,7 @@ Current installer/tray/Google fixes await exact-source native CI and physical ac
 ## Preserve production Google callback for domain rotation and verify explicit Wall SSO gates
 
 Google credentials are intentionally preconfigured for the existing production callback and inactive on temporary Gold domain; Owner domain/bind rotation and real account round-trip are pending. Wall SSO issuer/operator/TLS edge deployment and physical challenge acceptance remain independent pending work; it defaults OFF. This supersedes instructions to register a separate Gold callback.
+
+## Record CI84 internal installer acceptance, Lab rollout and preserved Google callback
+
+Installer white bands/Google Sans descender clipping and overly bright Connected glyph are closed at CI84 native evidence scope (96DPI); Owner physical100/150/200% verification remains pending. Google is intentionally inactive on temporary Gold with original production callback saved; Owner domain/profile/TLS rotation and real Google login test remain pending. Wall SSO source composition is present but its independent activation/edge/physical flow is pending. No public release/feed or Owner vault acceptance inferred.

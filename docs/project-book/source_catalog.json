@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 277,
+    "total": 278,
     "markdown": 230,
-    "json": 47
+    "json": 48
   },
   "files": [
     {
@@ -635,6 +635,27 @@
         "platform",
         "apiContractVersion",
         "featureProfile"
+      ]
+    },
+    {
+      "path": "docs/evidence/windows-distribution/20261111-acceptance.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3278,
+      "sha256": "bc4b98968be46a86f86d819ccb7e6f367d5b30863ed8f5ebd5c5cf65ad57f64e",
+      "topLevelKeys": [
+        "sourceCommit",
+        "sourceTree",
+        "version",
+        "ci",
+        "artifact",
+        "nativeUi",
+        "google",
+        "lab",
+        "physicalOwnerAcceptance",
+        "publicReleaseOrFeed",
+        "productionConfigComparison",
+        "publicHealthAfterGoogleReload"
       ]
     },
     {
@@ -2458,8 +2479,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 37810,
-      "sha256": "1ec3feeabb3fb7078c2d58096d30b89990141a4d8b445a4536be0588556d9734",
+      "bytes": 39480,
+      "sha256": "cd837f89e6825663cfb7216bb65717535e9ed26c22e8a61dcc2e64a5e7344080",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {

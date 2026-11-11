@@ -211,3 +211,13 @@ Native pixel proof selects actual narrow wordmark under the active title surface
 ## Keep compile-only cleanup in its owning CI step after native Welcome passes
 
 Compile-only fixture cleanup stays in its own PowerShell step/output path. Welcome probe uses a separate layoutProbeOut variable and cannot accept a full installer. CI83 proved actual native Welcome visual checks before cleanup failure.
+
+## Record CI84 internal installer acceptance, Lab rollout and preserved Google callback
+
+Accepted internal source: `3064f21adb402b1d3eb866405d5a81796789f1a2`; CI84 all9 PASS. InstallerSHA256 `187ab6bf9b6d5a5487b7898aaf03ef3b053fbad046afa2044aa13aca81a60938`. ZIP digest and six native view measurements are pinned in docs/evidence/windows-distribution/20261111-acceptance.json. Owner runs the installer manually; verify100/150/200% wordmark/heading/status descenders, no white card bands, muted Connected tray color, normal close/reopen, linking/auth and retained state. No public feed/Release.
+
+Lab code: `/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/backend-runtime/3064f21adb402b1d3eb866405d5a81796789f1a2/code`. Recovery sibling holds service drop-in restore maps/private inputs/indexed DB dump. Previous8e0d932 runtime remains untouched. Full DB snapshot indexed/SHA-verified; no schema migration performed. Native PNGs/summaries archived outside Git under the approved ARM task `installer-google-followup-20261111/ci84-native-ui`.
+
+Google original production callback/client are saved in Gold PostgreSQL. Temporary Gold origin deliberately reports configured=false/credentialsSaved=true/pendingDomainSwitch=true; password fallback retains native intent. Before Owner domain-role rotation, align PUBLIC_ORIGIN, native endpoint/issuer profile and TLS routing, retain the original callback, then verify authenticated Google login and no A/B auto-grants. Wall SSO remains independently OFF until issuer/operator/trusted-edge/native challenge acceptance.
+
+Rollback must coordinate service drop-ins with the Google config row: `recovery/google-oauth-before.private.json` records the previous empty row. Restore that specific config state before starting the old Plugin, or its older config reader may advertise the staged callback. Never restore the entire database over later Owner activity just to undo this config; compare expected staged values before any narrow rollback. Keep all secrets/private backups outside Git. Production and Owner Windows installation were not changed.

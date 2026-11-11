@@ -63,3 +63,15 @@ Fresh Moryqa Windows V3, canonical STOCK logo, Google Sans Flex design/Google Sa
 ## Plan local Memory retention, ChatGPT Claude extension and multi-provider API Worker
 
 [API Worker / local context plan](docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md): Long Memory local save/sync is Owner-reported working, dedicated encrypted relay exists; server-wide no-content-retention is NOT_ESTABLISHED due MCP exec event logging path. Extension ChatGPT manual capture/staging IMPLEMENTED_IN_SOURCE, Claude/restore NOT_IMPLEMENTED and physical Chrome acceptance NOT_RUN_THIS_TASK. Local Codex Owner supervisor IMPLEMENTED_IN_SOURCE/singleworker; metadata UX fixes, API Worker displayedrename, public MCP reasoning and Claude/Gemini/multiworker PLANNED_ONLY. No new runtime/native/provider acceptance inferred.
+
+## Record CI84 internal installer acceptance, Lab rollout and preserved Google callback
+
+| Capability | Current evidence | Remaining |
+|---|---|---|
+| Native installer/uninstaller cards/typography | CI84 six actual views PASS, margins8–9px at96DPI | Owner100/150/200% test |
+| Connected tray glyph | DerivedSVG/PNG/RGBA hashes and native build PASS, #167A58 | Owner brightness acceptance |
+| Unified LightRemote.exe | One-primary/migration/rollback/close-reopen/ConPTY PASS | Owner physical acceptance |
+| Lab Operator/Plugin | GitHub3064f21/dev.6 deployed, public health/API PASS | Owner app integration acceptance |
+| Google account login setup | Original production client/callback saved in Gold PG, fail-closed on temporary origin | Owner domain/profile/TLS rotation and real login |
+| Wall SSO | Gated source/unit coverage PASS; independent flag OFF | Backend trusted-edge/native physical activation |
+| RMv2 responsiveness/typing/GPU; Memory/API Worker | Research plans preserved | Separate implementation authorization |
