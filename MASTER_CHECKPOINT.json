@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-10T17:34:34.293Z",
+  "updatedAt": "2026-11-11T02:38:53.962Z",
   "version": "0.10.1-dev.6",
-  "phase": "RMV2_RESEARCH_COMPLETE_BUILD_DEFERRED",
-  "status": "RESEARCH_REVIEWED_NO_IMPLEMENTATION_OR_BUILD",
+  "phase": "RMV2_TYPING_RESEARCH_COMPLETE_BUILD_DEFERRED",
+  "status": "RESEARCH_EXTENDED_TYPING_IMPLEMENTATION_NOT_STARTED",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -359,7 +359,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Owner may request implementing cursor preservation/AI badge/border and bounded input contract/timing/instrumentation first. Retain GDI/semantic/A-B/local-policy behavior; add optional DXGI capture only after measurements, and video viewer as a separate later phase. Do not build/test native/deploy until Owner asks; next accepted build must include the deferred dev6 installer/tray/X/Agent/ConPTY/migration/rollback checks plus scoped RM acceptance.",
+  "nextAction": "Wait for Owner implementation/build instruction. Implement cursor/input contract fixes first, then optional target-bound verified typing and long logical writes with native best-effort compatibility, exact/partial/unverified receipts, no silent truncation or automatic replay. Validate focus/caret/selection changes, Unicode16K/64K/256K workloads, chunk/deadline/progress/cancel and timeout reconciliation. Keep GPU stages and deferred dev6 installer/tray/X/Agent/ConPTY/migration/rollback acceptance for the next authorized build.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -450,11 +450,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-rmv2-research-review-closeout",
-    "status": "RESEARCH_REVIEWED_NO_IMPLEMENTATION_OR_BUILD",
-    "summary": "RMv2 plan reviewed; current source cursor findings and staged native-cursor/input/GPU proposals retained. Clarified that an unknown reporter artifact cannot be identified as an older build solely from mismatch with current source. Main/current cursor source comparison is verified; physical incident provenance remains unknown. Research docs published at5f7dbc2; no RM implementation/build/test/deployment.",
-    "verification": "GitHub run42866004082 (#74), exact5f7dbc2, explicitly completed/success. changes/truth/baseline-required succeeded; dependency-lock, core integration, Desktop and Windows all skipped. Canonical docs/stamp/commit-sync passed. No native or product tests, benchmarks or Owner-machine actions performed. Peer source review found no other material cursor-state or implemented/measured-claim issue.",
-    "nextAction": "Owner may request implementing cursor preservation/AI badge/border and bounded input contract/timing/instrumentation first. Retain GDI/semantic/A-B/local-policy behavior; add optional DXGI capture only after measurements, and video viewer as a separate later phase. Do not build/test native/deploy until Owner asks; next accepted build must include the deferred dev6 installer/tray/X/Agent/ConPTY/migration/rollback checks plus scoped RM acceptance.",
+    "taskId": "20261111-rmv2-verified-typing-long-input-research",
+    "status": "RESEARCH_EXTENDED_TYPING_IMPLEMENTATION_NOT_STARTED",
+    "summary": "Extended the existing RMv2 plan with source-verified Windows typing gaps: applied/event count is not content readback, title guard runs before whole action, mid-write focus may redirect suffix, focused literal nodeId is not target identity. Mapped public/shared/native4096 UTF16 limits,64KiB batch, silent semantic slice truncations and10/20s timeouts versus nominal16.384s Windows long-text pacing. Proposed compatible target-bound chunked readback, truthful partial/indeterminate receipts and larger logical writes with progress/cancel, without forcing DOM or breaking native best-effort. No implementation/build/test/runtime change.",
+    "verification": "Read exact unchanged RM product source at work86edb39 (same sourceDigest537a0a47). Reviewed Windows NativeInput/RobotContext/UiSensor/SemanticSessionManager, Plugin schema, Operator/Agent validators, native bridge and macOS comparison. Official Microsoft SendInput/UIA CurrentValue/GetText/range docs support event-versus-content distinction. Peer focus/typing review passed with literal focused identity nuance incorporated. All timing estimates are source calculations, not measured performance. Prior research CI75 run42866379783 completed/success docs-only with native/core jobs skipped. Only mandatory documentation/checkpoint gates run for this receipt.",
+    "nextAction": "Wait for Owner implementation/build instruction. Implement cursor/input contract fixes first, then optional target-bound verified typing and long logical writes with native best-effort compatibility, exact/partial/unverified receipts, no silent truncation or automatic replay. Validate focus/caret/selection changes, Unicode16K/64K/256K workloads, chunk/deadline/progress/cancel and timeout reconciliation. Keep GPU stages and deferred dev6 installer/tray/X/Agent/ConPTY/migration/rollback acceptance for the next authorized build.",
     "sourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "sourceFileCount": 1672
   },
@@ -1336,12 +1336,12 @@
     "nativeUiEvidence": "docs/evidence/distribution-redesign/CI71_NATIVE_UI.json"
   },
   "rmv2Research": {
-    "status": "RESEARCH_REVIEWED_NO_IMPLEMENTATION_OR_BUILD",
+    "status": "RESEARCH_EXTENDED_TYPING_IMPLEMENTATION_NOT_STARTED",
     "sourceCommit": "764e1d7ce7670c9e95690fca26b58dd2e3c86f02",
     "sourceTree": "41a48add6e01f3e4f6d28271a59b77f92a8acaca",
     "sourceArchiveSha256": "b5b9e07a77902ddaf3980ea69f1bf67bec17813ff054412ca4f084918c683d86",
     "document": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
-    "documentSha256": "00ed0c26b573a0c33101681b6a83c21593b8e6de0ad50605e0547874c420e452",
+    "documentSha256": "ef988721fa4d369dc8d7d50681962cceda1de94bd39e953fd2c7739038561956",
     "normalCursorOverrideStillPresent": true,
     "resizeOverrideInCurrentCursorList": false,
     "constructorCursorAcquire": false,
@@ -1355,19 +1355,42 @@
     "deploymentChanged": false,
     "nextPhases": [
       "cursor preservation + AI badge/border + input contract/timing and instrumentation",
-      "existing GDI response/capture/mapping improvements",
-      "optional DXGI capture with compatible JPEG and GDI fallback",
+      "optional verified typing and long logical writes with compatible native best-effort; capture/mapping improvements",
+      "optional DXGI capture with JPEG and GDI fallback",
       "separate optional GPU video and authorized viewer"
     ],
     "reporterInstalledArtifact": "UNKNOWN_NOT_IDENTIFIED",
     "documentationCi": {
-      "runId": 42866004082,
-      "runNumber": 74,
-      "sourceCommit": "5f7dbc29755558103afd90ffe42b2fe193353c4e",
+      "runId": 42866379783,
+      "runNumber": 75,
+      "sourceCommit": "86edb392f311cabce26b78a957bc381cf577cd53",
       "result": "success",
       "nativeAndCoreJobs": "skipped"
     },
     "peerCursorReview": "PASS_WITH_PROVENANCE_WORDING_CLARIFIED",
-    "buildStillDeferredByOwner": true
+    "buildStillDeferredByOwner": true,
+    "typingFollowup": {
+      "researchBaseCommit": "86edb392f311cabce26b78a957bc381cf577cd53",
+      "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
+      "windowsReadbackVerificationCurrent": false,
+      "currentPhysicalTextLimitUtf16Units": 4096,
+      "midWriteFocusGuardCurrent": false,
+      "semanticValueSilentTruncationCurrent": true,
+      "nativeInputTimeoutMs": 10000,
+      "nativeRunTimeoutMs": 20000,
+      "long4096NativeNominalSleepMs": 16384,
+      "proposal": [
+        "real target binding and caret/selection baseline",
+        "focus/local-input interruption with bounded chunks and separate cancellation",
+        "UIA or AX readback by capability; verified/partial/unverified/indeterminate receipts",
+        "larger logical writes and internal chunk/progress rather than4096 business limit",
+        "no silent truncation, raw-text activity logging, automatic DOM/clipboard switch or blind retries",
+        "preserve native best-effort for unsupported apps"
+      ],
+      "proposalImplemented": false,
+      "physicalReproductionOrBenchmark": false,
+      "nativeBuildTestPerformed": false,
+      "peerReview": "PASS_WITH_REAL_IDENTITY_NOT_LITERAL_FOCUSED"
+    }
   }
 }

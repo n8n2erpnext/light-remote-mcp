@@ -218,3 +218,7 @@ Owner defers build/test after final source0397d871. Current native map remains t
 ## Document RM v2 native cursor preservation, input latency defects and optional GPU roadmap
 
 Read-only RMv2 research at work764e1d7 maps native RobotContext/SystemCursorOverride/NativeInput/DesktopVisual/RobotRpcServer, lib/real-remote-input.cjs + native-desktop.mjs, Plugin tools, Operator executor and Agent visual sessions in [the proposed plan](../plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md). Findings distinguish legacy all-role/startup behavior from remaining normal-pointer override, process-local restore state, dropped motion timing, zero-interval defaults, serialized native work and CPU JPEG. No executable ownership, route, API contract or runtime changed; proposed DXGI/video providers are not implemented.
+
+## Extend RM v2 plan with target-verified typing and long logical input
+
+Read-only typing follow-up maps Plugin tools.mjs text/value schema -> shared lib/real-remote-input.cjs normalizer at Operator/Agent -> lib/native-desktop.mjs -> Windows RobotContext/NativeInput and UIA UiSensor/SemanticSessionManager; macOS main.swift/SemanticEngine are a scoped comparison. [Existing RMv2 plan](../plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) records4096limits, semantic slice truncation,10/20s deadline mismatch, event-versus-content receipts and proposed real-control-bound verification/long logical writes. FocusedSemantic literal focused is not a stable control identity. No route, executable, schema or active API contract changed.

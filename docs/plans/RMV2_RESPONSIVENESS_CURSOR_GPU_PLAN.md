@@ -2,7 +2,7 @@
 
 Status: draft / RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED
 Edition: 2026-11-11, Asia/Saigon
-Scope: Windows RM v2; giữ các tool, semantic UI, A/B và local policy hiện tại
+Scope: Windows RM v2, đối chiếu typing macOS; giữ các tool, semantic UI, A/B và local policy hiện tại
 Authoritative source: GitHub `work` `764e1d7ce7670c9e95690fca26b58dd2e3c86f02`, tree `41a48add6e01f3e4f6d28271a59b77f92a8acaca`
 Supersedes: none; bổ sung kế hoạch, không phải handoff/checkpoint thứ hai
 
@@ -64,6 +64,69 @@ Hiện tại Move kết thúc tại tọa độ đích; chưa có bằng chứng
 
 Các tối ưu đã có cần giữ: helper on-demand/reuse, retained visual lease, semantic delta/cache, signed duplex, quota/dedupe/audit và local deny. Heartbeat60s là liveness, `waitMs7000` là giới hạn đợi, không phải mỗi thao tác ngủ60s/7s. Không bỏ kiểm tra quyền hoặc tự retry/replay click/key để lấy tốc độ.
 
+## Bổ sung — nhập đúng ô, đủ nội dung và hỗ trợ văn bản dài
+
+Owner yêu cầu nghiên cứu thêm ngày2026-11-11: một phần câu đã vào ô đúng nhưng khi focus đổi thì phần còn lại đi sang ô khác; Agent cần biết đã nhập đủ chưa. Đồng thời tool không nên buộc Agent chuyển sang DOM chỉ vì trần độ dài thấp. Đây là tối ưu bổ sung; giữ luồng native đang hoạt động, triển khai tương thích theo capability, không làm mọi app phải có UIA mới được nhập.
+
+Mốc follow-up là `work` `86edb392f311cabce26b78a957bc381cf577cd53`. Product source digest vẫn `537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516`, không đổi so với snapshot764e1d7 đã đọc. Chưa tái hiện trên máy Owner, chưa sửa implementation/build/test. Các schema và receipt dưới đây là đề xuất, chưa phải API có sẵn.
+
+### Hiện tại Windows biết gì sau khi gõ?
+
+- [NativeInput.cs:170](../../client/windows-native/GptOperator.RealRemoteV2/NativeInput.cs#L170) gửi Unicode key-down/up theo từng UTF-16 unit, không kiểm tra focus trong vòng gõ. [Send:285](../../client/windows-native/GptOperator.RealRemoteV2/NativeInput.cs#L285) chỉ kiểm số sự kiện Windows nhận. Theo [Microsoft SendInput](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput), đó là đưa sự kiện vào input stream, không phải chứng minh control đích đã chứa nội dung.
+- [RobotContext.cs:331](../../client/windows-native/GptOperator.RealRemoteV2/RobotContext.cs#L331) trả `applied:true`, `characters:text.Length`, `keyStrokes:text.Length` sau gõ; đây chưa phải ký tự được app xác nhận. [RunBatch:418](../../client/windows-native/GptOperator.RealRemoteV2/RobotContext.cs#L418) kiểm optional title guard một lần trước toàn text action. Đổi cửa sổ giữa câu hoặc đổi hai ô trong cùng cửa sổ không được chặn trong vòng gõ.
+- [SemanticSessionManager.cs:166](../../client/windows-native/GptOperator.RealRemoteV2/SemanticSessionManager.cs#L166) có scope validation trước input; [ack:185](../../client/windows-native/GptOperator.RealRemoteV2/SemanticSessionManager.cs#L185) có focus/events sau input. Chúng hữu ích để phát hiện thay đổi nhưng chưa đối chiếu văn bản. Desktop scope còn có thể adopt root mới; không được dùng điều này để cho phép tiếp tục một logical write đang ràng buộc ô cũ.
+- [UiSensor.cs:66](../../client/windows-native/GptOperator.RealRemoteV2/UiSensor.cs#L66) đã có foreground/focus hooks; [focused node:258](../../client/windows-native/GptOperator.RealRemoteV2/UiSensor.cs#L258) và semantic identity có process, HWND, epoch/runtime ID. Đây là nền tảng để bind target; title hoặc accessible name riêng lẻ không đủ.
+- [UIA SetValue:296](../../client/windows-native/GptOperator.RealRemoteV2/SemanticSessionManager.cs#L296) hiện có thể gán cả value vào node đã resolve nhưng chưa readback. SetValue không đồng nghĩa gõ tại caret/replace selection; không thay phương thức ngầm hoặc coi API return là đã đủ nội dung.
+
+Do đó tình huống prefix đúng ô/suffix lạc ô phù hợp với khoảng trống source hiện tại. Đây chưa phải bản tái hiện chứng minh nguyên nhân của từng lần Owner gặp.
+
+### Đề xuất nhập có xác minh theo khả năng ứng dụng
+
+1. **Bind đúng ô trước khi bắt đầu:** device/session + root HWND + process identity/generation + semantic epoch/node/runtime ID + focused control. `FocusedSemantic()` hiện dùng nodeId literal `focused`; không dùng riêng giá trị đó làm identity, cần danh tính control thật từ UIA và generation hiện hành. Đọc text cùng caret/selection/range ban đầu nếu provider hỗ trợ. Ý định `insert`, `append` hoặc `replace` phải rõ; không mặc định kết quả luôn là `before + payload`.
+2. **Gõ thành đoạn nhỏ thích ứng:** giữ một logical write nhưng chia nội bộ, kiểm target trước/sau mỗi đoạn và theo dõi focus/foreground/local-input events ngay trong quá trình. Nếu target đổi, dừng các phím chưa phát và chuyển paused/interrupted; không đợi gõ hết vài chục nghìn ký tự mới kiểm. Không cắt surrogate pair, chuỗi dấu tổ hợp, emoji ZWJ hoặc CRLF tại ranh giới chunk.
+3. **Đọc lại từ đúng control:** dùng UIA ValuePattern hoặc TextPattern/range tùy provider, so kết quả insertion/selection dự kiến với phần text thực tế. [CurrentValue](https://learn.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationvaluepattern-get_currentvalue), [GetText](https://learn.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationtextrange-gettext) và [text ranges](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-usingtextrangeobjects) hỗ trợ readback nhưng không phải mọi control đều expose đủ. Dùng bounded range/window và mốc xác minh để không đọc/so lại cả document sau từng ký tự, gây chi phí bậc hai.
+4. **Receipt trung thực cho Agent:** tách `requestedUnits/Bytes`, `eventsSent`, `verifiedInsertedUnits`, `remaining`, `verificationMethod`, target trước/sau và trạng thái `verified / partial / interrupted / unverified / indeterminate`. Chỉ `verified` khi đúng control và đủ nội dung được chứng minh. Khi chưa biết prefix nào chắc chắn đã vào, trả verified offset `unknown`, không lấy số event sent làm offset tiếp tục. Không nâng `applied` cũ thành bằng chứng hoàn tất.
+5. **Không sửa sai bằng thao tác mù:** không tự refocus/giành lại chuột, Backspace, Ctrl+A hoặc xóa text ở ô khác; không tự retry toàn câu/suffix sau timeout. Agent phải quan sát lại target, caret và readback trước khi resume từ mốc được chứng minh. Enter/submit là thao tác riêng sau xác minh, không đi kèm mặc định với write dài.
+6. **Không ép readback lên mọi app:** control canvas/terminal, provider chậm/stale, trường protected/password hoặc app không expose text có thể chỉ trả `unverified/unsupported`; vẫn giữ native best-effort khi tác vụ cho phép. OCR/screenshot chỉ là bằng chứng hỗ trợ, không đảm bảo exact text. Không log/echo nội dung ô password hoặc full document; raw payload/readback dùng trong scope/TTL cần thiết của tác vụ, activity receipt chỉ giữ metadata đã giảm dữ liệu.
+7. **Nêu rõ giới hạn vật lý:** SendInput không gắn nguyên tử vào HWND/control cụ thể. Focus có thể đổi trong khoảng rất nhỏ giữa kiểm tra và phát phím. Hook + chunk nhỏ giảm cửa sổ rủi ro, không bảo đảm tuyệt đối không một ký tự nào lạc ô. Không dùng BlockInput khóa người dùng. Targeted UIA value là lựa chọn riêng với semantics rõ nếu tác vụ cho phép; không âm thầm chuyển sang DOM/clipboard hoặc gán cả ô thay cho insert.
+
+Đường verified typing có thể rollout bổ sung theo capability/opt-in và báo verification level; giữ contract cũ tương thích. Khi Agent yêu cầu xác minh nghiêm ngặt mà provider không hỗ trợ, báo đúng giới hạn trước khi nhập thay vì giả success. Tốc độ gõ/độ dài Agent chọn và mức xác minh là hai quyết định riêng.
+
+macOS có tiền lệ hẹp trong [main.swift:181](../../client/macos/real-remote/main.swift#L181): physical ASCII tối đa320 có AX readback và so `before + value`, nhưng chưa kiểm focus giữa loop và giả định append. Unicode [text.write:303](../../client/macos/real-remote/main.swift#L303) có AX verified cho ô rỗng, còn fallback CGEvent được ghi rõ unverified. Học receipt/readback từ đó, không gọi Windows hiện tại đã tương đương hoặc copy giới hạn320/ASCII thành giới hạn chung.
+
+### Các trần văn bản và timeout cần sửa đồng bộ
+
+| Lớp hiện tại | Giới hạn thực tế | Vấn đề |
+| --- | --- | --- |
+| [Public tools:712–728](../../plugin-server/tools.mjs#L712) | write_text và semantic value4096; type_text schema4096 nhưng validator chỉ macOS320ASCII | Schema/capability chưa thể hiện cùng khả năng thực. |
+| [Shared input validator](../../lib/real-remote-input.cjs#L1) | text4096 UTF-16 units/event,64events,64KiB UTF-8 JSON toàn batch; Operator và Agent cùng áp dụng | Tăng publicschema riêng không gỡ được trần; schema generic còn cho128events. |
+| [Operator run:1110](../../operator-host/executor.mjs#L1110), [Agent run/act:926](../../device-agent/operator-agent.mjs#L926), [bridge:134](../../lib/native-desktop.mjs#L134) | semantic value bị `.slice(0,4096)` ở nhiều chỗ | Cắt âm thầm có thể trả success cho phần đầu; còn có thể xé surrogate pair. Phải bỏ silent truncation. |
+| [Windows physical:170](../../client/windows-native/GptOperator.RealRemoteV2/NativeInput.cs#L170), [Mac write:303](../../client/macos/real-remote/main.swift#L303), [Mac semantic:271](../../client/macos/real-remote/SemanticEngine.swift#L271) | native còn trần4096 UTF-16 units | Không được để public nhận dài nhưng helper cắt/chặn muộn sau tác dụng phụ. |
+| [Agent request:932–953](../../device-agent/operator-agent.mjs#L932), [bridge timeout:482](../../lib/native-desktop.mjs#L482) | input/act10s, run20s; bridge tối đa30s, timeout đóng helper | Đoạn dài có thể đã nhập một phần nhưng Agent nhận timeout và không biết mốc tiếp tục. |
+
+Windows [RobotContext.cs:338](../../client/windows-native/GptOperator.RealRemoteV2/RobotContext.cs#L338) ép text>512 xuống interval4ms; vì vậy4096units có ngân sách sleep danh nghĩa16.384s, chưa tính SendInput/timer/queue. Con số này đã vượt input10s; không dùng4096×12ms làm thời gian native thực vì code đã đổi pacing. `intervalMs:0` cũng bị đổi thành14ms rồi4ms khi text dài; cần thống nhất semantics và profile, không chỉ nâng giới hạn ký tự. Đây là tính toán từ source, không phải benchmark.
+
+macOS physical320ASCII với13ms key-pair +48ms interval mặc định có ngân sách19.52s; ngay interval25ms vẫn12.16s, trước overhead. Comment batch<10s không đủ bằng chứng tương thích timeout. Cần xử lý theo backend, không nâng trần320/4096 đại trà và giữ nguyên các deadline10s.
+
+### Long write ở cấp tác vụ, chunk ở cấp vận chuyển
+
+Mục tiêu là **Agent quyết định nội dung và độ dài tác vụ; không còn trần nghiệp vụ4.096 ký tự khiến Agent phải chia tay hoặc chuyển DOM**. Tool tiếp nhận một logical write dài hơn, hoặc content reference đã upload trong đúng scope, rồi tự chunk/progress. Giữ giới hạn kỹ thuật cho từng message, RAM, thời gian chiếm input và quota tác vụ; không coi các giới hạn vận chuyển này là lý do cắt mất đuôi văn bản.
+
+- Công bố effective capabilities: đơn vị UTF-8 bytes, UTF-16 units và Unicode scalar/grapheme; backend, readback support, chunk budget và cách tiếp tục tác vụ. Agent không phải đoán public4096/native320. Nghiệm thu các mức16K,64K,256K nội dung làm mục tiêu workload, chưa chốt chúng là các trần API mới.
+- Preflight toàn chuỗi/kiểu dữ liệu và target trước side effect. Semantic value phải là string, không generic `any` rồi String(object). Nội dung vượt budget một message phải đi qua stream/reference hợp lệ hoặc trả lỗi rõ trước nhập; không `.slice(...)` rồi báo đủ.
+- Logical write có operationId/writeId, target binding, explicit mode, payload identity và offsets có đơn vị rõ. Dùng existing durable job/progress hoặc contract tương đương đã review; không giữ một nativeRPC hàng phút. Native chunk được chọn để nằm trong budget kiểm focus/cancel/deadline, nhường worker giữa các đoạn.
+- Tiến độ tách phần accepted, input sent và content verified. Sequence/chunkID + checkpoint hỗ trợ dedupe trong session; timeout/crash có thể để đoạn cuối ở trạng thái không chắc chắn. Chỉ resume sau target/readback reconciliation; không hứa exactly-once từ operationId và không replay input sau reconnect.
+- Không chỉ kéo dài timeout hoặc bỏ pacing toàn bộ. Long write phải hủy được, local takeover được ưu tiên; focus/cancel signal không được xếp sau text handler trong RPC tuần tự hiện tại. Thiết kế worker/cancel lane hoặc các chunk trả quyền điều phối thật, giữ queue bounded, input down/up ordering, A/B/local deny/revoke, helper lifecycle và khả năng Agent khác đọc status.
+- Fast targeted UIA/AX value có thể là phương thức riêng khi đúng semantics; clipboard chỉ khi được chọn rõ. Native typing dài vẫn phải dùng được khi app hỗ trợ mà không ép Agent viết DOM script.
+
+### Nghiệm thu bổ sung cho lần build/test được yêu cầu
+
+Giữ đây là phần cải tiến, không block luồng cũ trên ứng dụng không có readback. Test meaningful khi implementation được yêu cầu: chuyển cửa sổ ở giữa prefix, đổi hai ô cùng cửa sổ, focus đổi rồi quay lại, Owner đổi caret/selection/chèn text, app reformat/autocomplete/maxlength/truncate/providerlag, node stale và partial SendInput. Phân biệt prefix verified với offset unknown; không duplicate/retry hoặc tự xóa nội dung.
+
+Đoạn dài cần16K/64K/256K workloads, tiếng Việt NFC/NFD, emoji/surrogate/ZWJ, CRLF, IME, insertion giữa đoạn và replace selection. Kiểm tra chunk ở ranh giới Unicode, timeout/cancel/reconnect giữa chunk, full value không bị cắt ở Operator/Agent/bridge/native, progress/cancel còn phản hồi và không đọc lại toàn document theo bậc hai. Không gọi Enter/submit khi receipt chưa thỏa mức xác minh yêu cầu. Password/không expose UIA phải báo đúng unverified, không xuất raw text ra log.
+
+Không có test nào ở mục này đã chạy. Chỉ bổ sung kế hoạch/checkpoint/handoff; giữ chỉ thị không build/test native hoặc deploy cho đến khi Owner yêu cầu.
+
 ## GPU giống Sunshine có phù hợp không?
 
 Có. Trên Windows nên thử **DXGI Desktop Duplication + D3D11**. [Microsoft](https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/desktop-dup-api) cung cấp GPU surfaces, dirty/move rectangles và thông tin cursor riêng. [Sunshine](https://docs.lizardbyte.dev/projects/sunshine/master/md_docs_2configuration.html#capture) cũng có Windows `ddx`; tùy chọn NvFBC trong tài liệu đó là Linux, không phải lựa chọn Windows mặc định.
@@ -97,8 +160,8 @@ Sunshine hiện dùng [GPLv3](https://raw.githubusercontent.com/LizardByte/Sunsh
 
 | Giai đoạn | Phạm vi | Điều kiện hoàn thành |
 | --- | --- | --- |
-| 1 — cursor và input | Bỏ override normal path; badgeAI/viền; local takeover; restore legacyIPC; giữ duration/steps/explicit0; instrument timeline | Windows cursor nguyên bản mọi role, restore còn hiệu lực khi robot sống, không giành chuột; contract end-to-end đúng. |
-| 2 — phản hồi trên cơ chế hiện tại | Precision/Responsive, ordered input/cancel, capture cache/ROI/buffer reuse, effective capabilities, mapping/frame freshness | So sánh trước/sau cùng máy/mạng/cảnh; p95 input/queue/frame-age tốt hơn, không mất click/key-up hoặc giảm độ chính xác. |
+| 1 — cursor và input | Bỏ override normal path; badgeAI/viền; local takeover; restore legacyIPC; giữ duration/steps/explicit0; instrument timeline; thiết kế target/verification receipt cho typing | Windows cursor nguyên bản mọi role, restore còn hiệu lực khi robot sống, không giành chuột; contract end-to-end đúng; applied không bị coi là content verified. |
+| 2 — phản hồi trên cơ chế hiện tại | Precision/Responsive, ordered input/cancel, verified typing theo capability, long logical write/progress; capture cache/ROI/buffer reuse, mapping/frame freshness | p95 input/queue/frame-age tốt hơn; long Unicode không bị cắt; đổi focus thì pause/receipt đúng; giữ native best-effort cho app không hỗ trợ readback. |
 | 3 — GPU capture tùy chọn | DXGI provider + GPU preprocessing + JPEG contract, fallbackGDI | NVIDIA/Intel/AMD/hybrid matrix, recovery và không GPU vẫn dùng đượcRM v2 cũ. |
 | 4 — video tương tác tùy chọn | Encoder + authorized viewer + media/input lanes | Auth/revoke/local deny không đổi; đo input-to-visible, frame age và mạng mất gói; không chỉ báo FPS. |
 
@@ -115,10 +178,11 @@ Gắn trace ID qua nhận request → queue → native apply → capture → res
 5. Badge/viền không chặn resize/focus/fullscreen, highcontrast/reducedmotion, overlay không gây vòng lặp capture changes; CPUidle khi indicator tắt.
 6. GPU không support, hybridadapter, RDP/headless/lock/unlock, display/device lost/HDR; fallback/recreate hữu hạn, UI báo đúng backend/error, không nâng quyền.
 7. Với video: bitrate/packetloss/jitter/relay, codec negotiation, frameage và input-to-visible p95; click/key reliable trong khi bỏ frame/move cũ có kiểm soát.
-8. Cùng lượt build sau này vẫn chạy checklist native installer/tray/font/X/Agent/ConPTY/upgrade/uninstall/rollback đang ghi ở [handoff](../../PROJECT_HANDOFF.md), không suy ra chúng PASS từ nghiên cứu RM này.
+8. Typing đúng control và đủ nội dung, đổi focus giữa câu/giữa hai ô cùng app, caret/selection/readback, long Unicode16K/64K/256K, timeout/unknown-prefix/reconnect không gõ lặp; full checklist ở mục nhập liệu bổ sung phía trên.
+9. Cùng lượt build sau này vẫn chạy checklist native installer/tray/font/X/Agent/ConPTY/upgrade/uninstall/rollback đang ghi ở [handoff](../../PROJECT_HANDOFF.md), không suy ra chúng PASS từ nghiên cứu RM này.
 
 Không có build/test được chạy trong nghiên cứu. CI72 đã xác minh cancelled; CI73 trước đó chỉ docs gates, native/core jobs skipped. Dev6 chỉnh cuối0397d871 vẫn chưa được native acceptance. Lab vẫn dev5 nguồn8e0d932; main8ac6273, máy Owner và runtime cũ không đổi.
 
 ## Điểm nối tiếp
 
-Đọc kế hoạch này cùng [Project Truth](../../PROJECT_TRUTH.md), [Master Checkpoint](../../MASTER_CHECKPOINT.json) và [rolling handoff](../../PROJECT_HANDOFF.md). Chờ chỉ thị implementation/build riêng; đề xuất ưu tiên bắt đầu bằng cursor nguyên bản + input contract/timing, đo baseline trước khi quyết định backendGPU mặc định. Không tự build, deploy hoặc cài bản thử từ kết quả nghiên cứu.
+Đọc kế hoạch này cùng [Project Truth](../../PROJECT_TRUTH.md), [Master Checkpoint](../../MASTER_CHECKPOINT.json) và [rolling handoff](../../PROJECT_HANDOFF.md). Chờ chỉ thị implementation/build riêng; đề xuất bắt đầu bằng cursor nguyên bản + input contract/timing, sau đó thêm verified typing/long logical write theo capability mà giữ luồng native cũ. Đo baseline trước khi quyết định backendGPU mặc định. Không tự build, deploy hoặc cài bản thử từ kết quả nghiên cứu.

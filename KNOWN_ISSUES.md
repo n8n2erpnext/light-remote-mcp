@@ -71,3 +71,7 @@ Final source0397d871 heading102px/bottom-margin change has NOT been native built
 ## Document RM v2 native cursor preservation, input latency defects and optional GPU roadmap
 
 RMv2 read-only research at764e1d7 confirms remaining normal-system-pointer override on observation/input, restore CLI without live-process disable/state sync, move duration/steps discarded during normalization, explicit0 observe interval changed to250ms, CPU GDI/JPEG capture and serial native RPC. Current code does NOT replace resize cursors or acquire during RobotContext construction. [Plan/source evidence and acceptance checklist](docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md); no new physical reproduction/benchmark or implementation. Dev6 native final-heading acceptance and all Owner-deferred build work remain pending.
+
+## Extend RM v2 plan with target-verified typing and long logical input
+
+RMv2 typing research: Windows SendInput event count/applied does not prove correct control/full text; optional title guard is pre-action only. Long text may exceed input10s despite4096unit cap (native nominal sleep16.384s for4096), while semantic value is silently sliced4096 in multiple layers. See [target verification and long-input proposals](docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md). Focus race cannot be made atomic by a guard alone; exact readback is capability-dependent. Not reproduced/tested/fixed by this docs-only task; preserve current native best-effort.

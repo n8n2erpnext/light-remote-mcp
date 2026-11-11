@@ -194,3 +194,7 @@ CI71 source302c662 is full9/9 PASS with six actual native views and real migrati
 ## Record Owner stop-build instruction and next native acceptance checklist
 
 Owner explicitly deferred all further native builds/tests. Source/design/branding/tray/installer and empty-folder fixes are published through0397d871. CI72 cancel requested; no final dev6 artifact accepted and no dev6 runtime deployment. CI71 source302c662 full9/9 and six UI views remain historical baseline evidence, not acceptance of the later heading-margin fix. Next native acceptance is deferred until Owner instructs build/test.
+
+## Extend RM v2 plan with target-verified typing and long logical input
+
+The existing [RMv2 plan](docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) now includes Owner-requested verified typing and larger logical input. Windows currently confirms events, not content; focus/title checks do not guard the whole text loop. Source4096UTF16 limits, silent semantic truncation and input10s versus nominal16.384s long-text pacing require coordinated design. Proposed target/readback/progress/chunk/cancel semantics preserve native best-effort and do not imply universal exact verification. Research only; no RM implementation, benchmark, native build/test, deploy or new physical acceptance. Owner no-build instruction and existing deferred dev6 native checklist remain active.
