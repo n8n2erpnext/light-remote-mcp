@@ -475,3 +475,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: CI81 early native probe compiled actual Wizard and geometry PASS; wordmark ink check FAIL. Artifact13839923991 contains actual PNG and layout. Corrected full installer is not accepted; diagnostic task changes test output only.
 - Next: Inspect exact wordmark capture coordinates, fix the measured cause without weakening ink/descender checks, then full source-pinned CI and artifact/Lab acceptance.
 - Runtime: No runtime/config DB/production/Owner installation change; original Google config privately staged and pending domain rotation.
+
+## Task Receipt: 20261111-native-active-surface-wordmark
+- Status: NATIVE_ACTIVE_SURFACE_FIX_CI_PENDING. CI82 identified the false wordmark target as covered Inno PageNameLabel708x16 at136,99; actual branded wordmark is a different narrow child in the active surface. Scope ink target by active surface and width; hide covered stock title/description only on branded pages, restore on stock error/prerequisite pages. Keep all actual ink/descender/geometry/background assertions.
+- Source: permanent work after `0a741067c5f411af75b06a5f0f0ba35e0a8cbaac`; exact staged source digest stamped in this same commit.
+- Verification: CI82 exact rejection coordinates: control136,99,844,115 vs window104,60,920,659; sampled32,39,740,55 had3 dark pixels in the covered stock heading. Native image shows correct branded wordmark and nonoverlapping layout. Corrected target/full six-view acceptance pending; no installer accepted.
+- Next: Verify early native probe now targets the actual wordmark, then all six product install/uninstall views and complete exact-source full CI; verify installer manifests and prepare Lab backend/config safely.
+- Runtime: No runtime/config DB/production/Owner installation change; original Google config privately staged and pending domain rotation.

@@ -246,3 +246,7 @@ Production Wizard LRTextInkHeight uses private GDI bitmap/DrawText/GetPixel with
 ## Record native wordmark capture coordinates while retaining ink assertions
 
 test-distribution-ui.ps1 records wordmark/root/sample coordinates to diagnose native PrintWindow mapping while retaining all ink/geometry/background checks.
+
+## Inspect the active native wordmark and hide covered stock wizard headings
+
+Wizard CurPageChanged hides stock PageNameLabel/PageDescriptionLabel only on branded pages. test-distribution-ui chooses wordmark from same active surface as the second heading and excludes large headlines; actual pixel/descender checks unchanged.

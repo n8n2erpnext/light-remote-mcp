@@ -203,3 +203,7 @@ Rejected native source/run/artifact and measured font/control metrics are in doc
 ## Record native wordmark capture coordinates while retaining ink assertions
 
 Native screenshot diagnostics now include wordmark/window/sample coordinates and pixel counts when ink checks fail. This does not alter thresholds or accept a failed screenshot.
+
+## Inspect the active native wordmark and hide covered stock wizard headings
+
+Native pixel proof selects actual narrow wordmark under the active title surface, excluding covered stock captions and uninstall headline with same text. All thresholds remain unchanged; real six-view product round-trip is mandatory.

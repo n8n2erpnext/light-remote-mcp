@@ -143,7 +143,15 @@ function Capture-View($View,[string]$Name){
     $children=@([LRSetupUi]::Children($View.window))
     $firstText=@{'01-welcome'='Your AI workspace,';'02-installing'='Making room for';'03-ready'='Ready when';
         '04-uninstall-confirm'='Remove the app.';'05-removing'='Leaving things';'06-removed'='Light Remote'}[$Name]
-    $brand=@($children|Where-Object{[LRSetupUi]::Text($_) -eq 'Light Remote'}|Sort-Object{(Text-Rect $_).Top})
+    # Inno's stock PageNameLabel can have the same caption behind our panel.
+    # Inspect the narrow wordmark in the active branded surface, never an
+    # occluded stock label or the larger 'Light Remote' uninstall headline.
+    $activeSurface=[LRSetupUi]::GetParent($second[0])
+    $brand=@($children|Where-Object{
+        $bounds=Text-Rect $_
+        [LRSetupUi]::Text($_) -eq 'Light Remote' -and [LRSetupUi]::GetParent($_) -eq $activeSurface -and
+            ($bounds.Right-$bounds.Left) -lt ($rect.Right-$rect.Left)*0.4
+    }|Sort-Object{(Text-Rect $_).Top})
     if(-not $brand){throw 'Native wordmark label is missing'}
     $first=@($children|Where-Object{[LRSetupUi]::Text($_) -eq $firstText}|Sort-Object{(Text-Rect $_).Top})
     if(-not $first){throw 'First native title line is missing'}

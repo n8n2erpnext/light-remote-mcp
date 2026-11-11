@@ -528,6 +528,10 @@ begin
   LRInstallingPanel.Visible := CurPageID = wpInstalling;
   LRFinishedPanel.Visible := CurPageID = wpFinished;
   // Preserve stock error/prerequisite/restart pages; never cover a failure.
+  // Hidden stock headings must not remain focus/accessibility candidates
+  // behind our branded surface. Restore them for native error/prereq pages.
+  WizardForm.PageNameLabel.Visible := not Branded;
+  WizardForm.PageDescriptionLabel.Visible := not Branded;
   WizardForm.NextButton.Visible := not Branded;
   WizardForm.CancelButton.Visible := not Branded;
   WizardForm.BackButton.Visible := not Branded;

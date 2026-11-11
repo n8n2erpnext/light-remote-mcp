@@ -222,3 +222,7 @@ CI80 native probe measured actual overlap from oversized full GDI font boxes. Co
 ## Record native wordmark capture coordinates while retaining ink assertions
 
 CI81 GDI ink sizing fixed native layout geometry. Actual screenshot is visible; wordmark ink-region check still fails and remains enforced. Exact coordinate/count diagnostics added; no installer accepted.
+
+## Inspect the active native wordmark and hide covered stock wizard headings
+
+CI82 wordmark failure was measured against covered stock Inno PageNameLabel, not the visible wordmark. Ink proof now selects active branded-surface wordmark; hidden stock headings are excluded from accessibility while branded pages show, restored for native error/prerequisite pages. Native full acceptance remains pending.
