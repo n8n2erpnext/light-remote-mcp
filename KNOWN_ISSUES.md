@@ -75,3 +75,7 @@ RMv2 read-only research at764e1d7 confirms remaining normal-system-pointer overr
 ## Extend RM v2 plan with target-verified typing and long logical input
 
 RMv2 typing research: Windows SendInput event count/applied does not prove correct control/full text; optional title guard is pre-action only. Long text may exceed input10s despite4096unit cap (native nominal sleep16.384s for4096), while semantic value is silently sliced4096 in multiple layers. See [target verification and long-input proposals](docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md). Focus race cannot be made atomic by a guard alone; exact readback is capability-dependent. Not reproduced/tested/fixed by this docs-only task; preserve current native best-effort.
+
+## Plan local Memory retention, ChatGPT Claude extension and multi-provider API Worker
+
+Research atad3db2f identifies potential durable Memory-body copies through MCP exec script/stdout event logs despite volatile encrypted dedicated sync relay. No actual Owner log/DB inspected. Extension current source lacks Claude/restore and has fixed local/Lab endpoints; hidden/virtualized DOM and double-staging need tests. Desktop cold metadata bootstrap and nonforce30s usage refresh explain UX gaps; screenshots69remaining/31used do not establish inversion. Dedicated MCP reasoning/multiworker/provider adapters remain missing. See [plan and staged tests](docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md); research only, no fixes/tests claimed.

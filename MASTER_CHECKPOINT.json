@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-11T02:38:53.962Z",
+  "updatedAt": "2026-11-11T02:50:58.158Z",
   "version": "0.10.1-dev.6",
-  "phase": "RMV2_TYPING_RESEARCH_COMPLETE_BUILD_DEFERRED",
-  "status": "RESEARCH_EXTENDED_TYPING_IMPLEMENTATION_NOT_STARTED",
+  "phase": "LOCAL_MEMORY_EXTENSION_API_WORKER_RESEARCH_COMPLETE_BUILD_DEFERRED",
+  "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -359,7 +359,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Wait for Owner implementation/build instruction. Implement cursor/input contract fixes first, then optional target-bound verified typing and long logical writes with native best-effort compatibility, exact/partial/unverified receipts, no silent truncation or automatic replay. Validate focus/caret/selection changes, Unicode16K/64K/256K workloads, chunk/deadline/progress/cancel and timeout reconciliation. Keep GPU stages and deferred dev6 installer/tray/X/Agent/ConPTY/migration/rollback acceptance for the next authorized build.",
+  "nextAction": "Wait for Owner implementation/build instruction. Prioritize Memory payload retention audit/fix across MCP exec logs, one validated local-first extension with ChatGPT/Claude/manual restore and isolated test harness, then enabled-provider metadata warmup/force-refresh/source-scoped usage. Add one authorized read-only MCP reasoning worker with job/progress/cancel before Claude/Gemini adapters and bounded multiworker. Preserve A/B/local-policy/workspace/approval/session boundaries; no login, billed inference, native build/deploy until requested. Keep all deferred RMtyping/cursor/GPU and dev6 installer/tray/X/Agent/ConPTY/migration/rollback acceptance checklists.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -450,11 +450,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-rmv2-verified-typing-long-input-research",
-    "status": "RESEARCH_EXTENDED_TYPING_IMPLEMENTATION_NOT_STARTED",
-    "summary": "Extended the existing RMv2 plan with source-verified Windows typing gaps: applied/event count is not content readback, title guard runs before whole action, mid-write focus may redirect suffix, focused literal nodeId is not target identity. Mapped public/shared/native4096 UTF16 limits,64KiB batch, silent semantic slice truncations and10/20s timeouts versus nominal16.384s Windows long-text pacing. Proposed compatible target-bound chunked readback, truthful partial/indeterminate receipts and larger logical writes with progress/cancel, without forcing DOM or breaking native best-effort. No implementation/build/test/runtime change.",
-    "verification": "Read exact unchanged RM product source at work86edb39 (same sourceDigest537a0a47). Reviewed Windows NativeInput/RobotContext/UiSensor/SemanticSessionManager, Plugin schema, Operator/Agent validators, native bridge and macOS comparison. Official Microsoft SendInput/UIA CurrentValue/GetText/range docs support event-versus-content distinction. Peer focus/typing review passed with literal focused identity nuance incorporated. All timing estimates are source calculations, not measured performance. Prior research CI75 run42866379783 completed/success docs-only with native/core jobs skipped. Only mandatory documentation/checkpoint gates run for this receipt.",
-    "nextAction": "Wait for Owner implementation/build instruction. Implement cursor/input contract fixes first, then optional target-bound verified typing and long logical writes with native best-effort compatibility, exact/partial/unverified receipts, no silent truncation or automatic replay. Validate focus/caret/selection changes, Unicode16K/64K/256K workloads, chunk/deadline/progress/cancel and timeout reconciliation. Keep GPU stages and deferred dev6 installer/tray/X/Agent/ConPTY/migration/rollback acceptance for the next authorized build.",
+    "taskId": "20261111-local-memory-extension-api-worker-research",
+    "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
+    "summary": "Owner explicitly selected research/plan only. Audited Memory local storage and encrypted TTL relay separately from MCP exec bridge whose script/stdout can persist Memory bodies in Operator JSONL. Recovered extension variants are ChatGPT-only with fixed local/Lab endpoints and no restore-to-chat; four executable ZIP files match normalized source. Identified Desktop cold metadata bootstrap and non-force30s refresh; screenshots69remaining/31used are compatible, lifetime tokens not quota. Local single-worker Codex supervisor exists; dedicated MCP reasoning delegation and Claude/Gemini adapters are not yet implemented. Proposed API Worker naming, independent officialCLI/API auth/setup, staged bounded multiworker and synthetic/physical acceptance plan. No implementation/runtime/build/test.",
+    "verification": "Read unchanged product source at ad3db2f, digest537a0a47. Confirmed source paths for local Memory/relay/logging, extensioncapture/staging, Codex metadata/usage/localdelegate. No live logs/DB/credentials read and no claim specific Owner content leaked. Extension ZIP28095bytes SHA25676a3649a4fb7704cb930f4a1912f70b80d8387128f69aff023e9a306f3fd0dcd; four executable files match normalized CRLF. Official OpenAI Docs, ClaudeSDK/auth and GeminiCLI/headless/auth/policy reviewed. Peer reviews passed after qualifying hiddenDOM exclusion. Previous RMtyping CI76 run42947462735 exactad3db2f completed/success docs-only with native/core skipped. Only mandatory documentation/stamp gates for this plan.",
+    "nextAction": "Wait for Owner implementation/build instruction. Prioritize Memory payload retention audit/fix across MCP exec logs, one validated local-first extension with ChatGPT/Claude/manual restore and isolated test harness, then enabled-provider metadata warmup/force-refresh/source-scoped usage. Add one authorized read-only MCP reasoning worker with job/progress/cancel before Claude/Gemini adapters and bounded multiworker. Preserve A/B/local-policy/workspace/approval/session boundaries; no login, billed inference, native build/deploy until requested. Keep all deferred RMtyping/cursor/GPU and dev6 installer/tray/X/Agent/ConPTY/migration/rollback acceptance checklists.",
     "sourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "sourceFileCount": 1672
   },
@@ -1390,7 +1390,75 @@
       "proposalImplemented": false,
       "physicalReproductionOrBenchmark": false,
       "nativeBuildTestPerformed": false,
-      "peerReview": "PASS_WITH_REAL_IDENTITY_NOT_LITERAL_FOCUSED"
+      "peerReview": "PASS_WITH_REAL_IDENTITY_NOT_LITERAL_FOCUSED",
+      "publishedPlanCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
+      "documentationCi": {
+        "runId": 42947462735,
+        "runNumber": 76,
+        "result": "success",
+        "nativeAndCoreJobs": "skipped"
+      }
     }
+  },
+  "localMemoryApiWorkerResearch": {
+    "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
+    "ownerScope": "RESEARCH_AND_PLAN_ONLY",
+    "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
+    "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
+    "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
+    "documentSha256": "12fc6425532ec66a154df580dec6bdb5a743df21dc1b7638a91598a6d58049b9",
+    "memory": {
+      "ownerReportedLocalSaveAndSyncWorking": true,
+      "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
+      "mcpExecBridgePayloadLogging": "SOURCE_CONFIRMED_POTENTIAL_DURABLE_OPERATOR_EVENT_LOG_COPY",
+      "actualOwnerLogOrDatabaseInspected": false,
+      "retentionRequirement": "NO_DURABLE_MEMORY_BODY_ON_LIGHT_REMOTE_SERVER",
+      "cleanupPerformed": false
+    },
+    "extension": {
+      "recoveredVersions": [
+        "local0.2.0",
+        "Lab0.3.0"
+      ],
+      "currentCaptureProvider": "ChatGPT_ONLY",
+      "claudeAdapterCurrent": false,
+      "restoreToChatCurrent": false,
+      "fixedTargets": [
+        "127.0.0.1:5491",
+        "100.94.184.141:15591"
+      ],
+      "zipSha256": "76a3649a4fb7704cb930f4a1912f70b80d8387128f69aff023e9a306f3fd0dcd",
+      "normalizedExecutableZipSourceFilesCompared": 4,
+      "physicalChromeAcceptanceThisTask": false
+    },
+    "codex": {
+      "desktopColdMetadataWarmupCurrent": false,
+      "explicitRefreshForcesQuotaCurrent": false,
+      "metadataThrottleMs": 30000,
+      "modelCatalogTtlMs": 60000,
+      "screenshotRemaining69Used31": "MATHEMATICALLY_COMPATIBLE_NOT_PROOF_OF_INVERSION",
+      "tokenLifetimeSeparateFromQuota": true,
+      "localSupervisorCurrent": "SINGLE_WORKER_OWNER_APPROVED",
+      "dedicatedMcpReasoningWorkerCurrent": false
+    },
+    "apiWorker": {
+      "displayRenameImplemented": false,
+      "claudeGeminiAdaptersImplementedByThisTask": false,
+      "multiworkerImplemented": false,
+      "proposed": [
+        "one provider card and official auth path per selected provider",
+        "metadata warmup and source/asOf/unknown quota/token/budget groups",
+        "authorized MCP reasoning job/progress/result/cancel",
+        "bounded scheduler, multiple readers and one writer lease per workspace",
+        "context/artifact local and server payload retention policy"
+      ]
+    },
+    "implementationChanged": false,
+    "functionalTestsRun": false,
+    "nativeBuildTestRun": false,
+    "providerLoginOrInferenceRun": false,
+    "deploymentChanged": false,
+    "peerReview": "PASS_WITH_HIDDEN_DOM_COVERAGE_LIMIT_EXPLICIT",
+    "nativeBuildStillDeferredByOwner": true
   }
 }

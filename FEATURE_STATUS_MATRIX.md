@@ -59,3 +59,7 @@ All nine Desktop routes, Auth entry, linking, typed confirmation and browser con
 ## Record Owner stop-build instruction and next native acceptance checklist
 
 Fresh Moryqa Windows V3, canonical STOCK logo, Google Sans Flex design/Google Sans native, actual five-state unified tray, gentle reduced-motion-aware transitions and empty-only desktop-v4 cleanup: SOURCE_IMPLEMENTED through0397d871. CI71 prior source302c662:9/9 PASS, six native views. Final heading-margin source: BUILD_TEST_DEFERRED_BY_OWNER. Dev6 deployed/Owner physical acceptance/public release remain false.
+
+## Plan local Memory retention, ChatGPT Claude extension and multi-provider API Worker
+
+[API Worker / local context plan](docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md): Long Memory local save/sync is Owner-reported working, dedicated encrypted relay exists; server-wide no-content-retention is NOT_ESTABLISHED due MCP exec event logging path. Extension ChatGPT manual capture/staging IMPLEMENTED_IN_SOURCE, Claude/restore NOT_IMPLEMENTED and physical Chrome acceptance NOT_RUN_THIS_TASK. Local Codex Owner supervisor IMPLEMENTED_IN_SOURCE/singleworker; metadata UX fixes, API Worker displayedrename, public MCP reasoning and Claude/Gemini/multiworker PLANNED_ONLY. No new runtime/native/provider acceptance inferred.
