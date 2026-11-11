@@ -482,3 +482,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: CI82 exact rejection coordinates: control136,99,844,115 vs window104,60,920,659; sampled32,39,740,55 had3 dark pixels in the covered stock heading. Native image shows correct branded wordmark and nonoverlapping layout. Corrected target/full six-view acceptance pending; no installer accepted.
 - Next: Verify early native probe now targets the actual wordmark, then all six product install/uninstall views and complete exact-source full CI; verify installer manifests and prepare Lab backend/config safely.
 - Runtime: No runtime/config DB/production/Owner installation change; original Google config privately staged and pending domain rotation.
+
+## Task Receipt: 20261111-native-probe-pass-cleanup-scope
+- Status: NATIVE_WELCOME_PASS_FULL_CI_PENDING. CI83 actual Welcome geometry, card background, Google Sans ink/descender assertions PASS. Pipeline then failed because compile-only cleanup had been moved into the new probe step and used its different output directory. Restore cleanup to compile step and use distinct layoutProbeOut variable; no product behavior or visual assertions changed.
+- Source: permanent work after `531e024f4675e74090ee41c023bb7eed6e627277`; exact staged source digest stamped in this same commit.
+- Verification: CI83 log WINDOWS_DISTRIBUTION_LAYOUT_PROBE=PASS; FULL_INSTALLER_NOT_ACCEPTED. Failure was missing compile-only file under wrong probe directory after successful UI checks. Full six-view install/uninstall/native lifecycle and final exact-source CI remain pending.
+- Next: Run full exact-source CI through all six native views and installed lifecycle; verify artifact/manifests and then update only Lab backend plus preserved production Google config.
+- Runtime: No runtime/config DB/production/Owner installation change; original Google config privately staged and pending domain rotation.

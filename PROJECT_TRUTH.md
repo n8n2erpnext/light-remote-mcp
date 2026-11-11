@@ -226,3 +226,7 @@ CI81 GDI ink sizing fixed native layout geometry. Actual screenshot is visible; 
 ## Inspect the active native wordmark and hide covered stock wizard headings
 
 CI82 wordmark failure was measured against covered stock Inno PageNameLabel, not the visible wordmark. Ink proof now selects active branded-surface wordmark; hidden stock headings are excluded from accessibility while branded pages show, restored for native error/prerequisite pages. Native full acceptance remains pending.
+
+## Keep compile-only cleanup in its owning CI step after native Welcome passes
+
+CI83 actual native Welcome probe PASS, including wordmark/heading ink and descender margins, card child backgrounds and geometry. Post-probe CI cleanup scope error fixed. Full product six-view round-trip and artifact acceptance remain pending.

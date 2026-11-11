@@ -207,3 +207,7 @@ Native screenshot diagnostics now include wordmark/window/sample coordinates and
 ## Inspect the active native wordmark and hide covered stock wizard headings
 
 Native pixel proof selects actual narrow wordmark under the active title surface, excluding covered stock captions and uninstall headline with same text. All thresholds remain unchanged; real six-view product round-trip is mandatory.
+
+## Keep compile-only cleanup in its owning CI step after native Welcome passes
+
+Compile-only fixture cleanup stays in its own PowerShell step/output path. Welcome probe uses a separate layoutProbeOut variable and cannot accept a full installer. CI83 proved actual native Welcome visual checks before cleanup failure.

@@ -250,3 +250,7 @@ test-distribution-ui.ps1 records wordmark/root/sample coordinates to diagnose na
 ## Inspect the active native wordmark and hide covered stock wizard headings
 
 Wizard CurPageChanged hides stock PageNameLabel/PageDescriptionLabel only on branded pages. test-distribution-ui chooses wordmark from same active surface as the second heading and excludes large headlines; actual pixel/descender checks unchanged.
+
+## Keep compile-only cleanup in its owning CI step after native Welcome passes
+
+Windows workflow separates compile-only output/cleanup from payload-free layout probe output; no product code change in this receipt.
