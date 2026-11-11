@@ -233,3 +233,7 @@ test-rmv2-phase1.ps1 uses direct Win32 bitmap hashing, independent of PowerShell
 ## Fence Owner input at operation start and repair hosted Ubuntu mirror
 
 .github/scripts/hosted-apt-mirror.py is guarded to disposable GitHub-hosted runners; it replaces only the Azure Ubuntu mirror URI hostname with official archive.ubuntu.com in existing apt configuration. Suites/keys/security mirror/package verification stay intact; apt index refresh precedes Chromium/GTK dependencies. ARM/production never execute this script. Full native/browser tests remain required.
+
+## Handle observed hosted apt mirror list after Windows RMv2 acceptance
+
+Hosted apt mirror helper includes observed /etc/apt/apt-mirrors.txt (mirror+file source) in addition to standard sources and mirror lists. Fixture test reads/writes that exact layout and preserves security host/priority. CI89 Windows fullPASS remains scoped to e4e376f; final exact-source full baseline retry required.

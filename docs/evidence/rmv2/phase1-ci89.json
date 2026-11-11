@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "e4e376f4516db194b56e9993edd717ddb2ab1e68",
+  "ciRunId": 43037335518,
+  "artifactId": 13863737223,
+  "artifactSha256": "9d01e621ac42ce8c063a86bb2192c113c4dec154e8ee28001a55353075cab9e3",
+  "mixedDpiPhysical": "PENDING_OWNER",
+  "performanceComparison": "NO_BEFORE_AFTER_BENCHMARK",
+  "tinyMoves": 11,
+  "systemCursorRoles": 11,
+  "handlerP50Ms": 0.6624,
+  "physicalLocalTakeover": "PENDING_OWNER",
+  "result": "PASS",
+  "controlBadge": true,
+  "idleTimerStopped": true,
+  "restoreWhileAlive": true,
+  "scope": "isolated_windows_ci_not_owner_physical",
+  "observationNoOverride": true,
+  "handlerP95Ms": 17.9737,
+  "fullWindowsJob": "PASS",
+  "fullBaseline": "BROWSER_INFRA_FAILED_NOT_ACCEPTED"
+}

@@ -274,3 +274,7 @@ ControlActivity.cs now captures generation before quiet preflight, closing the s
 ## Keep RMv2 input hooks independent of overlay rendering
 
 ControlActivity.cs additionally owns a dedicated hook message-pump thread and bounded startup/teardown, separate from CursorGlowOverlay WPF dispatcher. No new endpoints/authority or cross-device routing. Existing generation guards and own injected markers remain.
+
+## Handle observed hosted apt mirror list after Windows RMv2 acceptance
+
+Hosted-only apt helper now covers /etc/apt/apt-mirrors.txt identified in CI89 logs; product/runtime entrypoints unchanged. Native final functional evidence is docs/evidence/rmv2/phase1-ci89.json, explicitly not whole-baseline acceptance.

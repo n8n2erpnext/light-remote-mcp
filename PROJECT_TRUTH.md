@@ -254,3 +254,7 @@ CI87 actual RMv2 native acceptance PASS at7f29e2a; evidence docs/evidence/rmv2/p
 ## Keep RMv2 input hooks independent of overlay rendering
 
 RMv2 hooks now have their own message-pump thread instead of WPF UI thread, following the Win32 low-level-hook contract. Input observer cannot wait behind our overlay/font rendering. No measured before/after speed claim; final source needs native/lifecycle/full CI again. Prior7f29e2a native functional evidence remains separately pinned.
+
+## Handle observed hosted apt mirror list after Windows RMv2 acceptance
+
+CI89 e4e376f full Windows native/installer/migration/rollback/lifecycle PASS and RMv2 dedicated-thread acceptance PASS. Full baseline fails hosted browser apt DNS because mirror list is /etc/apt/apt-mirrors.txt, missed by the prior selector. Selector now covers observed path and an integration fixture. No product code change; all UI/package trust gates retained.
