@@ -449,7 +449,7 @@ async function accountMagic(req,res){
 }
 async function accountGoogleBegin(req,res){
   try{return res.redirect(302,(await beginGoogleAuth({returnTo:safeReturnTo(req.query?.next)})).url);}
-  catch(error){accountAudit('google-begin','error',error?.message||'google_oauth_unavailable');return res.redirect(303,'/account/login?error=google_unavailable');}
+  catch(error){accountAudit('google-begin','error',error?.message||'google_oauth_unavailable');return res.redirect(303,'/account/login?error=google_unavailable&next='+encodeURIComponent(safeReturnTo(req.query?.next)));}
 }
 async function accountGoogleCallback(req,res){
   try{

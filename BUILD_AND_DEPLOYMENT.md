@@ -187,3 +187,7 @@ Verified CI71 completed/success9/9 and actual six native UI summaries. Final hea
 ## Fix native installer surfaces and typography, tune tray and integrate Google sign-in
 
 This internal source batch requires the full exact-source Actions pipeline, real Inno compile and six-view native screenshot/card/descender assertions before artifact acceptance. Pre-change all-refs bundle/tag restored and fsck verified on ARM. Existing Owner install is not changed automatically. Gold Google config may reuse validated production client ID/secret via private stdin/PG only; production remains untouched, current-profile callback must be registered externally. Native build/test is explicitly authorized for this batch.
+
+## Preserve production Google callback for domain rotation and verify explicit Wall SSO gates
+
+Owner callback decision: stage original production client/callback privately in Gold, no Google Cloud allowlist change. After domain-role rotation, running PUBLIC_ORIGIN must match the saved callback; verify authenticated round-trip then. Before enabling Wall SSO, accept issuer/operator flags, trusted TLS edge attestation, signed relay and physical native challenge flow. Existing Desktop flags alone must not enable Wall SSO. CI78 core failure was a historical source-only assertion, not permission to remove its browser/A/B guards; gated runtime tests replace only that obsolete assumption.

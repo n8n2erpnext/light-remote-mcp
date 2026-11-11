@@ -230,3 +230,7 @@ Read-only typing follow-up maps Plugin tools.mjs text/value schema -> shared lib
 ## Fix native installer surfaces and typography, tune tray and integrate Google sign-in
 
 `device-agent/desktop-wall-sso-agent-runtime-v4.mjs` composes existing signed redemption, live-family verification and OS-private IPC under exact Gold profile/auth/host gates; wired in daemon and wall-only, with cleanup. Client core manifest includes closure without server-only imports. `AuthEntry`/native-owner/owner_login add a fixed Google hint; desktop-auth routes through same-origin existing provider. `google-auth` binds flow to credentials/current callback; admin displays external registration caveat. Native Wizard.iss owns card ancestry and measured title/body layout; distribution proof inspects actual pixels on six views.
+
+## Preserve production Google callback for domain rotation and verify explicit Wall SSO gates
+
+`google-auth.mjs`: saved callback retained and checked against running origin; staged/active metadata contains no secrets. `account-portal.mjs`: unavailable provider retains native next intent. `desktop-wall-sso-agent-runtime-v4.mjs`: independent SSO feature flag; existing Desktop native flag alone creates no pipe or Wall login link. Tests exercise no implicit I/O and race/revocation/bind failures.

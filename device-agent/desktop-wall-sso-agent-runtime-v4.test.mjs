@@ -9,7 +9,7 @@ const auth={enabled:true,identity:()=>null,issueLoginCsrf:()=>'',
 function fixture(overrides={}){
   let state={enrollment:{accountId:'acct_test',deviceId:'dev_test'}},starts=0,closes=0;
   const options={hub:LAB,base:LAB,host:'127.0.0.1',authEnabled:true,
-    env:{LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4:'1'},readState:()=>state,
+    env:{LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4:'1',LR_GOLD_ABV2_DESKTOP_WALL_SSO_V4:'1'},readState:()=>state,
     signChannel:()=>{throw Error('no implicit signing');},
     fetchImpl:()=>{throw Error('no implicit network');},
     startIpc:async()=>{starts++;return {enabled:true,close:async()=>{closes++;}};},...overrides};
@@ -17,7 +17,7 @@ function fixture(overrides={}){
   return {runtime,counts:()=>({starts,closes}),setState:value=>{state=value;}};
 }
 test('runtime stays off outside the exact enabled, authenticated loopback Lab profile',async()=>{
-  for(const override of [{env:{}},{hub:'https://light-remote.thaiduy.digital'},
+  for(const override of [{env:{}},{env:{LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4:'1'}},{hub:'https://light-remote.thaiduy.digital'},
     {base:'http://goldabv2.light-remote.thaiduy.digital'},{host:'0.0.0.0'},
     {host:'localhost'},{authEnabled:false}]){
     const x=fixture(override);

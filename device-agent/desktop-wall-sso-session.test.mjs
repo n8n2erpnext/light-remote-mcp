@@ -165,5 +165,12 @@ test('T04b1 Wall route requires opt-in trusted agent adapters, not A/B',()=>{
   assert.ok(wall.includes("url.pathname==='/auth/desktop/sso/redeem'"));
   assert.ok(wall.includes('permanently seal legacy browser-ticket redemption'));
   assert.ok(wall.includes("desktopSsoBootstrap.finish(req)"));
-  assert.equal(agent.includes('desktopWallSso:'),false);
+  assert.equal((agent.match(/desktopWallSso:wallSso.options/g)||[]).length,2);
+  assert.match(agent,/createAgentWallSsoRuntimeV4/);
+  const runtime=fs.readFileSync(new URL('./desktop-wall-sso-agent-runtime-v4.mjs',import.meta.url),'utf8');
+  assert.match(runtime,/env.LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4==='1'/);
+  assert.match(runtime,/hub===LAB&&base===LAB/);
+  assert.match(runtime,/host==='127.0.0.1'&&authEnabled===true/);
+  assert.match(runtime,/isNativeReady/);
+  assert.doesNotMatch(runtime,/approveDeviceAccess|grantId|bCode|ownerConsentCode/);
 });

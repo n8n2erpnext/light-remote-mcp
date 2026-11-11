@@ -8,7 +8,8 @@ const LAB='https://goldabv2.light-remote.thaiduy.digital';
 const ID=/^[A-Za-z0-9._:-]{1,160}$/;
 export function createAgentWallSsoRuntimeV4({hub,base,host,authEnabled,env=process.env,
   readState,signChannel,fetchImpl=fetch,startIpc=startNativeWallSsoAgentIpcV4}={}){
-  const enabled=env.LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4==='1'&&hub===LAB&&base===LAB&&
+  const enabled=env.LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4==='1'&&
+    env.LR_GOLD_ABV2_DESKTOP_WALL_SSO_V4==='1'&&hub===LAB&&base===LAB&&
     host==='127.0.0.1'&&authEnabled===true;
   let ready=false,closed=false,listener=null,starting=null;
   function enrollment(){

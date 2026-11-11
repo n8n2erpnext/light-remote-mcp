@@ -72,3 +72,7 @@ The private native status response adds visualState from the existing VisualFor 
 ## Fix native installer surfaces and typography, tune tray and integrate Google sign-in
 
 Desktop `desktop_owner_begin` accepts only absent/default or fixed Google presentation selection; `login_provider=google` routes anonymous same-origin consent requests through existing `/account/google`, preserving PKCE/state/install nonce and explicit consent. Wall exposes existing browser challenge only after OS-private Agent IPC readiness on exact loopback Gold profile; native Owner ticket redemption and live-family validation remain signed, single-use and enrolled-device bound. Google credentials remain server-side PostgreSQL; callback derives from running profile origin; inflight config rotations fail closed. Account login does not grant A/B access.
+
+## Preserve production Google callback for domain rotation and verify explicit Wall SSO gates
+
+Google config reports credentialsSaved/pendingDomainSwitch separately from configured. Save retains registered callback; begin rejects mismatched current origin rather than silently rebasing callback or authenticating against production. Google unavailable fallback preserves same-origin native intent for password login. Wall SSO adapter requires both native bridge and independent `LR_GOLD_ABV2_DESKTOP_WALL_SSO_V4=1`; server issuer/operator/edge gates remain separately required.

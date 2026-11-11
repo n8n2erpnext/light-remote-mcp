@@ -83,3 +83,7 @@ Research atad3db2f identifies potential durable Memory-body copies through MCP e
 ## Fix native installer surfaces and typography, tune tray and integrate Google sign-in
 
 Current installer/tray/Google fixes await exact-source native CI and physical acceptance. Wall Google sign-in intentionally uses the existing signed-in Desktop and one-time local challenge, with password/recovery retained when native IPC unavailable. The exact Gold callback must be allowed in Google Cloud; no saved-config status is evidence of real account round-trip. RMv2 research and Memory/API Worker proposals are not implemented by this change.
+
+## Preserve production Google callback for domain rotation and verify explicit Wall SSO gates
+
+Google credentials are intentionally preconfigured for the existing production callback and inactive on temporary Gold domain; Owner domain/bind rotation and real account round-trip are pending. Wall SSO issuer/operator/TLS edge deployment and physical challenge acceptance remain independent pending work; it defaults OFF. This supersedes instructions to register a separate Gold callback.

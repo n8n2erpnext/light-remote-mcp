@@ -48,25 +48,43 @@ function assertFlowConfig(flow,c){
     throw fault('google_oauth_config_changed',409);
 }
 
+function savedRedirect(){
+  const stored=googleState.config?.redirectUri;
+  if(!stored)return PROFILE_REDIRECT_URI;
+  if(typeof stored!=='string'||stored.length>2048)return null;
+  try{
+    const url=new URL(stored);
+    if(url.username||url.password||url.search||url.hash||
+       url.pathname!=='/account/google/callback'||
+       (url.protocol!=='https:'&&stored!==PROFILE_REDIRECT_URI))return null;
+    return url.href;
+  }catch{return null;}
+}
 function config(){
   try{
-    // A copied profile's old redirect_uri is historical metadata, never routing
-    // authority. The callback always belongs to this running public origin.
-    return {...credentials(googleState.config),redirectUri:PROFILE_REDIRECT_URI};
+    const checked=credentials(googleState.config),redirectUri=savedRedirect();
+    // Preserve the production callback for the Owner's domain-role rotation.
+    // Preconfigured credentials are NOT permission to route Lab login to prod.
+    if(redirectUri!==PROFILE_REDIRECT_URI)return null;
+    return {...checked,redirectUri};
   }catch{return null;}
 }
 export function googleAuthStatus(){
-  const current=config();
-  return {configured:Boolean(current),origin:PUBLIC_ORIGIN,redirectUri:PROFILE_REDIRECT_URI,
-    credentialsSource:current?'postgres':null,
+  let saved=false;try{credentials(googleState.config);saved=true;}catch{}
+  const redirectUri=savedRedirect();
+  return {configured:Boolean(config()),credentialsSaved:saved,origin:PUBLIC_ORIGIN,
+    redirectUri:redirectUri||PROFILE_REDIRECT_URI,
+    callbackOriginMatches:redirectUri===PROFILE_REDIRECT_URI,
+    pendingDomainSwitch:Boolean(saved&&redirectUri&&redirectUri!==PROFILE_REDIRECT_URI),
+    credentialsSource:saved?'postgres':null,
     // Local credentials cannot prove the external Google Cloud allowlist.
-    callbackRegistration:'unverified',
-    storedRedirectRebased:Boolean(current&&googleState.config?.redirectUri&&
-      googleState.config.redirectUri!==PROFILE_REDIRECT_URI)};
+    callbackRegistration:'unverified'};
 }
 export async function saveGoogleAuthConfig({clientId,clientSecret}={}){
   const checked=credentials({clientId,clientSecret});
-  const payload={schemaVersion:1,...checked,redirectUri:PROFILE_REDIRECT_URI};
+  const redirectUri=savedRedirect();
+  if(!redirectUri)throw fault('invalid_google_redirect_uri',400);
+  const payload={schemaVersion:1,...checked,redirectUri};
   if(!goldGooglePool)throw Error('gold_google_pg_not_initialized');
   await goldGooglePool.query(`INSERT INTO lr_gold_google_oauth_config(singleton_id,client_id,client_secret,redirect_uri) VALUES(1,$1,$2,$3) ON CONFLICT(singleton_id) DO UPDATE SET client_id=EXCLUDED.client_id,client_secret=EXCLUDED.client_secret,redirect_uri=EXCLUDED.redirect_uri,updated_at=now()`,[payload.clientId,payload.clientSecret,payload.redirectUri]);
   googleState.config=payload;

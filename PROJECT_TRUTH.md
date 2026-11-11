@@ -206,3 +206,7 @@ Owner chose research/plan only for [local Memory, extension and API Worker](docs
 ## Fix native installer surfaces and typography, tune tray and integrate Google sign-in
 
 Installer/tray/Google follow-up is implemented; portable37 tests and distribution source guard PASS. Exact-source native CI/artifact, six rendered native views, Lab configuration/rollout and physical acceptance are pending. Connected glyph is now product-tuned #167A58 with honest derived-asset provenance. Production is read-only; no public release/feed.
+
+## Preserve production Google callback for domain rotation and verify explicit Wall SSO gates
+
+Owner supersedes temporary Gold OAuth callback proposal: keep production callback/client, preconfigure Gold only. Saved credentials stay inactive when callback and running public origin differ; `/admin` says awaiting domain switch. No additional Google callback requested, production untouched. Wall SSO now requires an independent explicit flag plus exact native/host/auth gates; do not infer ENABLED from implementation or Desktop login.

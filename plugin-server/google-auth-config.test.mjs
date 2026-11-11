@@ -67,18 +67,25 @@ test('Google OAuth profile config uses only the current callback and fails close
     assert.equal(JSON.stringify(status).includes(SECRET),false);
     assert.equal(Object.hasOwn(status,'clientSecret'),false);
   });
-  await t.test('copied PG redirect metadata cannot route this profile to a former origin',async()=>{
-    const stale='https://former-profile.example.invalid/account/google/callback';
-    const f=await setup({client_id:ID,client_secret:SECRET,redirect_uri:stale});
-    const status=googleAuthStatus(),{result,url,state}=await begin();
-    assert.equal(status.redirectUri,REDIRECT);assert.equal(status.storedRedirectRebased,true);
+  await t.test('preserved production callback stages credentials without routing Lab to the former origin',async()=>{
+    const other='https://production-role.example.invalid/account/google/callback';
+    const f=await setup({client_id:ID,client_secret:SECRET,redirect_uri:other});
+    const status=googleAuthStatus();
+    assert.equal(status.redirectUri,other);assert.equal(status.configured,false);
+    assert.equal(status.credentialsSaved,true);assert.equal(status.pendingDomainSwitch,true);
+    assert.equal(status.callbackOriginMatches,false);
+    await assert.rejects(beginGoogleAuth(),codeIs('google_oauth_not_configured',503));
+    assert.equal(f.flows.size,0);assert.equal(f.writes,0);
+    await saveGoogleAuthConfig({clientId:ID,clientSecret:SECRET+'_rotated'});
+    assert.equal(f.row.redirect_uri,other,'saving credentials must retain the registered callback');
+    // After explicit origin/domain rotation, the same row matches this profile.
+    const active=await setup({client_id:ID,client_secret:SECRET,redirect_uri:REDIRECT});
+    assert.equal(googleAuthStatus().pendingDomainSwitch,false);
+    const {url,state}=await begin();
     assert.equal(url.searchParams.get('redirect_uri'),REDIRECT);
     assert.equal(url.searchParams.get('code_challenge_method'),'S256');
-    assert.equal(result.url.includes(SECRET),false);assert.equal(f.writes,0);
-    assert.equal(f.row.redirect_uri,stale); // No implicit config migration.
-    const flow=JSON.parse(f.flows.get(flowKey(state)));
-    assert.equal(flow.redirectUri,REDIRECT);assert.equal(flow.clientId,ID);
-    assert.match(flow.configBinding,/^[a-f0-9]{64}$/);
+    const flow=JSON.parse(active.flows.get(flowKey(state)));
+    assert.equal(flow.redirectUri,REDIRECT);assert.match(flow.configBinding,/^[a-f0-9]{64}$/);
     assert.equal(JSON.stringify(flow).includes(SECRET),false);
   });
   await t.test('client ID or secret rotation burns a pending flow before token exchange',async()=>{
@@ -109,7 +116,7 @@ test('Google OAuth profile config uses only the current callback and fails close
     await assert.rejects(finishGoogleAuth({state,code:'synthetic_code'}),codeIs('google_oauth_state_invalid',401));
   });
   await t.test('same credentials survive reload but token exchange uses the current callback only',async()=>{
-    const f=await setup({client_id:ID,client_secret:SECRET,redirect_uri:'https://former-profile.example.invalid/callback'});
+    const f=await setup({client_id:ID,client_secret:SECRET,redirect_uri:REDIRECT});
     const {state}=await begin();await initializeGoldGoogleAuth(f.pool);
     globalThis.fetch=async(url,options)=>{
       assert.equal(url,'https://oauth2.googleapis.com/token');assert.equal(options.redirect,'error');

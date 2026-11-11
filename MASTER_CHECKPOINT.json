@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-11T07:55:08.680Z",
+  "updatedAt": "2026-11-11T08:08:42.979Z",
   "version": "0.10.1-dev.6",
   "phase": "LOCAL_MEMORY_EXTENSION_API_WORKER_RESEARCH_COMPLETE_BUILD_DEFERRED",
-  "status": "INSTALLER_TRAY_GOOGLE_PORTABLE_PASS_NATIVE_CI_PENDING",
+  "status": "INSTALLER_GOOGLE_CALLBACK_REVISION_NATIVE_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -359,7 +359,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow exact-source full Actions CI; fix failures; inspect six native screenshots and verified internal installer manifests. Reuse production Google credentials privately in Lab only, register/verify Lab callback and update isolated Lab backend from the accepted GitHub commit. Keep research-only RMv2/API Worker plans separate; no public release or Owner install.",
+  "nextAction": "Follow exact-source full Actions retry; inspect all six Windows native views and verify installer hashes. After accepted CI, update only Lab Operator/Plugin and load staged Google config with original callback; keep Google inactive on temporary domain until Owner rotates domain/bind. Preserve production and independent Agent/Wall processes.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -450,13 +450,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-installer-tray-google-integration",
-    "status": "IMPLEMENTED_PORTABLE_PASS_NATIVE_CI_PENDING",
-    "summary": "Parent actual native card controls to gray cards, measure Google Sans text with descender padding, preserve installer/uninstall transactions; tune Connected LR glyph to #167A58 without geometry/state changes; add explicit Desktop Google hint and exact-profile enrolled-Agent Wall SSO, profile-bound Google configuration and safe admin readiness wording.",
-    "verification": "Isolated ARM candidate:37 OAuth/Owner/Wall SSO tests PASS; native distribution source regression PASS. Test coverage includes provider allowlist, original PKCE/state preservation, explicit consent, config rotation/inflight revocation, current-profile callback, IPC bind failure/revoked enrollment and six-view native proof assertions. Windows sandbox could not spawn Node tests (EPERM); ARM candidate is actual portable evidence. Native compile/screenshots/full CI and real Google/physical acceptance remain pending.",
-    "nextAction": "Follow exact-source full Actions CI; fix failures; inspect six native screenshots and verified internal installer manifests. Reuse production Google credentials privately in Lab only, register/verify Lab callback and update isolated Lab backend from the accepted GitHub commit. Keep research-only RMv2/API Worker plans separate; no public release or Owner install.",
-    "sourceDigest": "3c4668a848897031ce8f47dbec87f2e7dd35c3a86482fc1eca1c2d376e1bd5a1",
-    "sourceFileCount": 1675
+    "taskId": "20261111-google-production-callback-staging",
+    "status": "PORTABLE_PASS_NATIVE_CI_RETRY_PENDING",
+    "summary": "Honor Owner correction: retain production OAuth client/callback, preconfigure Gold privately and fail closed while its temporary origin differs; admin distinguishes saved from active. Preserve native return intent for password fallback. Add independent default-OFF Wall SSO runtime flag and update legacy no-wiring test to validate exact gated composition, retaining browser-ticket sealing and no A/B authority.",
+    "verification": "Full isolated ARM portable suite PASS71 groups after correcting the old source-only SSO assertion (CI78 core297/298 had only that failure). Desktop web/browser and Linux/macOS native jobs of CI78 PASS; Windows native remains in progress at this receipt. Private staging mode0600 preserves production callback; no production mutation, no real account round-trip or physical acceptance. Focused final revision42/42 PASS on ARM, including preserved production callback, no cross-profile flow, credential update preserving callback, password fallback and independent SSO flag.",
+    "nextAction": "Follow exact-source full Actions retry; inspect all six Windows native views and verify installer hashes. After accepted CI, update only Lab Operator/Plugin and load staged Google config with original callback; keep Google inactive on temporary domain until Owner rotates domain/bind. Preserve production and independent Agent/Wall processes.",
+    "sourceDigest": "d47fcb38e4cefe0e2bf2b3ff71ff655e14b5998d1d15e381b188d342de20fccd",
+    "sourceFileCount": 1676
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1463,7 +1463,7 @@
   },
   "installerGoogleFollowup": {
     "taskId": "20261111-installer-tray-google-integration",
-    "status": "IMPLEMENTED_PORTABLE_PASS_NATIVE_CI_PENDING",
+    "status": "PORTABLE_PASS_NATIVE_CI_RETRY_PENDING",
     "preChangeCommit": "d0251392ae7b440f98087f36b471aaff48b5ba04",
     "preChangeTag": "checkpoint/20261111-before-installer-google-d025139",
     "archiveRestore": "PASS_BUNDLE_VERIFY_INDEPENDENT_CLONE_FSCK",
@@ -1471,12 +1471,18 @@
     "portableTests": 37,
     "distributionSourceGuard": "PASS",
     "nativeCi": "PENDING",
-    "googleCredentials": "PRODUCTION_VALID_FORMAT_LAB_UNCONFIGURED_NOT_COPIED_YET",
-    "googleExternalCallback": "UNVERIFIED",
+    "googleCredentials": "GOLD_PRIVATE_0600_STAGED_PRODUCTION_CLIENT_CALLBACK_PRESERVED",
+    "googleExternalCallback": "KEEP_EXISTING_PRODUCTION_CALLBACK_OWNER_DOMAIN_ROTATION_PENDING",
     "wallGoogleFlow": "VIA_NATIVE_DESKTOP_EXPLICIT_LOCAL_CHALLENGE",
     "physicalOwnerAcceptance": false,
     "productionChanged": false,
     "runtimeChanged": false,
-    "publicRelease": false
+    "publicRelease": false,
+    "firstSource": "90289fb669b8c7bcc83a28effeff102b5d94a48e",
+    "firstCiRunId": 42983013196,
+    "firstCiCoreFailure": "OUTDATED_SOURCE_ONLY_NO_WIRING_ASSERTION_FIXED",
+    "portableGroups": 71,
+    "wallSsoActivation": "INDEPENDENT_DEFAULT_OFF_UNTIL_BACKEND_EDGE_AND_PHYSICAL_ACCEPTANCE",
+    "focusedFinalTests": 42
   }
 }
