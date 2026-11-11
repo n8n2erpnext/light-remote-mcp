@@ -14,7 +14,7 @@
   "officialRepositoryId": 1450214328,
   "verifiedBuiltSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
   "verifiedBuiltSourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
-  "checkpointUpdatedAt": "2026-11-11T08:17:26.369Z",
+  "checkpointUpdatedAt": "2026-11-11T08:28:36.056Z",
   "migrationPhase": "LOCAL_MEMORY_EXTENSION_API_WORKER_RESEARCH_COMPLETE_BUILD_DEFERRED",
   "ci": {
     "status": "success",

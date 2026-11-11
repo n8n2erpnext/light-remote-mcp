@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 276,
+    "total": 277,
     "markdown": 230,
-    "json": 46
+    "json": 47
   },
   "files": [
     {
@@ -635,6 +635,27 @@
         "platform",
         "apiContractVersion",
         "featureProfile"
+      ]
+    },
+    {
+      "path": "docs/evidence/windows-distribution/20261111-layout-diagnosis.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 918,
+      "sha256": "bebe6acc8d30262bd9212928e821b4c50afa24a15283fbb0191c398a59b5c1bc",
+      "topLevelKeys": [
+        "diagnosticSource",
+        "runId",
+        "artifactId",
+        "result",
+        "font",
+        "unitsPerEm",
+        "hhea",
+        "os2Windows",
+        "welcomeScreenRects",
+        "fix",
+        "nativeFixVerification",
+        "physicalOwnerAcceptance"
       ]
     },
     {

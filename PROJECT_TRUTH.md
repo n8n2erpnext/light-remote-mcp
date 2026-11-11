@@ -214,3 +214,7 @@ Owner supersedes temporary Gold OAuth callback proposal: keep production callbac
 ## Capture native installer geometry before full builds without weakening UI checks
 
 Native installer compile is distinct from visual acceptance. CI78 failed actual Welcome geometry; no new installer accepted. A payload-free CI-only Welcome probe now captures geometry/screenshots before all visual assertions and expensive native build steps. Full six-view setup/uninstall and installed lifecycle remain required.
+
+## Fit native Google Sans labels to actual GDI ink while retaining descender padding
+
+CI80 native probe measured actual overlap from oversized full GDI font boxes. Corrected Wizard measures exact raster ink plus8 logical pixels; preserves original Google Sans file and native controls. Corrected native proof is pending; no installer accepted.

@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 276 (230 Markdown, 46 JSON).
+Documents: 277 (230 Markdown, 47 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -47,6 +47,7 @@ Documents: 276 (230 Markdown, 46 JSON).
 | evidence | [docs/evidence/runtime-source-comparison.json](../evidence/runtime-source-comparison.json) |  | 6e06831f60deff0905ec9c0e54cd7c0e8e24b1de3e5a6e5b0c9d5fbca01f1759 |
 | evidence | [docs/evidence/windows-artifact-verification.json](../evidence/windows-artifact-verification.json) | artifactId, name, zipSha256, zipBytes, repositoryId, sourceCommit, ciRunId, verified, verifiedOn | 2f546e90951ad16efde6690412b9216ec9cd74155d1a699b9f85579f1a1f1f81 |
 | evidence | [docs/evidence/windows-build-manifest.json](../evidence/windows-build-manifest.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | 4c879edf3ceae517f0c31a41ab5eaa8dfc938753308d8d1431cb999fbf17c983 |
+| evidence | [docs/evidence/windows-distribution/20261111-layout-diagnosis.json](../evidence/windows-distribution/20261111-layout-diagnosis.json) | diagnosticSource, runId, artifactId, result, font, unitsPerEm, hhea, os2Windows, welcomeScreenRe | bebe6acc8d30262bd9212928e821b4c50afa24a15283fbb0191c398a59b5c1bc |
 | evidence | [docs/evidence/windows-one-primary/ARTIFACT_VERIFICATION.json](../evidence/windows-one-primary/ARTIFACT_VERIFICATION.json) | sourceCommit, ciRunId, artifactId, artifactZipSha256, installerSha256, installerBytes, projectVe | fb79772b2f3ad0769862647d1b1e6ec6dec96dc341307fdc96e552b9464166fa |
 | evidence | [docs/evidence/windows-one-primary/BUILD_MANIFEST.json](../evidence/windows-one-primary/BUILD_MANIFEST.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | 2ef8feba6e929ad3f02ffe39e938b0544e9cbf0cd8c0d8a3fa8fdb84221e9b50 |
 | evidence | [docs/evidence/windows-one-primary/CI_ACCEPTANCE.json](../evidence/windows-one-primary/CI_ACCEPTANCE.json) | sourceCommit, ciRunId, runNumber, attempt, scope, result, ciUrl, allJobs, successfulJobs, requir | dcab4b094ce795f466b1833975396d1b8a35847fc8e94916695ec8dbcd275ba2 |

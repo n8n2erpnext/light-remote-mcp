@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-11T08:17:26.369Z",
+  "updatedAt": "2026-11-11T08:28:36.056Z",
   "version": "0.10.1-dev.6",
   "phase": "LOCAL_MEMORY_EXTENSION_API_WORKER_RESEARCH_COMPLETE_BUILD_DEFERRED",
-  "status": "NATIVE_LAYOUT_DIAGNOSIS_IN_PROGRESS",
+  "status": "NATIVE_INK_FIX_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -359,7 +359,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Run early native probe and inspect exact geometry/screenshot; fix measured cause, rerun full exact-source CI and verify final internal artifact before any Lab rollout.",
+  "nextAction": "Inspect corrected native Welcome, then full exact-source six-view setup/uninstall and lifecycle. Verify installer hashes/full CI before Lab-only backend/config staging. Keep original production callback and production runtime untouched.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -450,12 +450,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261111-native-layout-early-probe",
-    "status": "NATIVE_LAYOUT_DIAGNOSIS_IN_PROGRESS",
-    "summary": "CI78 detected actual Welcome geometry assertion failure before artifact acceptance. Add payload-free, noninstalling exact-Wizard native Welcome probe ahead of expensive builds; save rectangles and screenshot before assertions, preserving all overlap/pixel checks. CI79 uses the same failed layout and is superseded.",
-    "verification": "CI78 native .NET/Rust/Inno compile PASS but install UI geometry check FAIL; no installer accepted. CI79 core/PG/Redis PASS on corrected Google/callback source; full acceptance not reached. Probe source uses same Wizard include/resources, no app directory/registry/payload; full six-view product install/uninstall remains mandatory.",
-    "nextAction": "Run early native probe and inspect exact geometry/screenshot; fix measured cause, rerun full exact-source CI and verify final internal artifact before any Lab rollout.",
-    "sourceDigest": "550cd0400f527559f3d1df2c3f2df56f1583b58ab72ba0be9682ed334d52fc81",
+    "taskId": "20261111-native-google-sans-ink-metrics",
+    "status": "NATIVE_INK_FIX_CI_PENDING",
+    "summary": "Early native probe measured71px title/45px body boxes from oversized Windows font metrics, body ending26px below card. Use exact GDI caption/font/wrapping raster ink height plus8 logical pixels; preserve top bearing, descenders, unchanged font and accessible native text controls.",
+    "verification": "CI80 rejected actual Welcome layout and captured rectangles/PNG artifact13839099123. Font units1000, hhea966/-286, Windows1323/1079 inspected from unchanged asset. Portable71 groups and focused42 PASS; corrected native probe/full product acceptance pending.",
+    "nextAction": "Inspect corrected native Welcome, then full exact-source six-view setup/uninstall and lifecycle. Verify installer hashes/full CI before Lab-only backend/config staging. Keep original production callback and production runtime untouched.",
+    "sourceDigest": "cefab3e95eec3e4cbd5d6ffd3140dc4427a98b603d956fef5c17ad9f511e3108",
     "sourceFileCount": 1677
   },
   "legacyFilesystemCleanup": {
@@ -1463,7 +1463,7 @@
   },
   "installerGoogleFollowup": {
     "taskId": "20261111-installer-tray-google-integration",
-    "status": "NATIVE_LAYOUT_DIAGNOSIS_IN_PROGRESS",
+    "status": "NATIVE_INK_FIX_CI_PENDING",
     "preChangeCommit": "d0251392ae7b440f98087f36b471aaff48b5ba04",
     "preChangeTag": "checkpoint/20261111-before-installer-google-d025139",
     "archiveRestore": "PASS_BUNDLE_VERIFY_INDEPENDENT_CLONE_FSCK",
@@ -1488,6 +1488,12 @@
     "secondCiRunId": 42984723273,
     "secondCiCore": "PASS",
     "secondCiDisposition": "SUPERSEDED_SAME_KNOWN_NATIVE_LAYOUT",
-    "nativeProbe": "PAYLOAD_FREE_WELCOME_ONLY_EARLY_CI_FULL_SIX_VIEWS_STILL_REQUIRED"
+    "nativeProbe": "PAYLOAD_FREE_WELCOME_ONLY_EARLY_CI_FULL_SIX_VIEWS_STILL_REQUIRED",
+    "diagnosticCiRunId": 42985869607,
+    "diagnosticNativeArtifact": 13839099123,
+    "nativeDiagnosis": "FULL_GDI_FONT_BOX71_TITLE45_BODY_CARD_OVERLAP26PX",
+    "nativeFix": "EXACT_RASTER_INK_BOTTOM_PLUS8_SCALED_PADDING",
+    "fontAssetModified": false,
+    "nativeFixVerification": "PENDING"
   }
 }

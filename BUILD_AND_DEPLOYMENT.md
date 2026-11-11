@@ -195,3 +195,7 @@ Owner callback decision: stage original production client/callback privately in 
 ## Capture native installer geometry before full builds without weakening UI checks
 
 The early `LightRemote.LayoutProbe.iss` includes the same production Wizard and font/logo, but contains no product payload, app directory or uninstall registration. CI only opens Welcome then stops its owned process tree; it never clicks Install. Its proof cannot accept an installer. Final full install/uninstall six-view proof remains unchanged, now capturing diagnostic rectangles and PNG before assertions.
+
+## Fit native Google Sans labels to actual GDI ink while retaining descender padding
+
+Rejected native source/run/artifact and measured font/control metrics are in docs/evidence/windows-distribution/20261111-layout-diagnosis.json. Same-font GDI ink sizing avoids unused Windows descent space. Full six native views, pixel backgrounds, descender padding and lifecycle remain required.

@@ -238,3 +238,7 @@ Read-only typing follow-up maps Plugin tools.mjs text/value schema -> shared lib
 ## Capture native installer geometry before full builds without weakening UI checks
 
 `client/windows-native/installer/LightRemote.LayoutProbe.iss` and LayoutProbe mode of `test-distribution-ui.ps1` give early CI-only native geometry diagnostics. `windows-native-client.yml` runs it immediately after Inno compile preflight; existing full native installer/lifecycle checks retain authority.
+
+## Fit native Google Sans labels to actual GDI ink while retaining descender padding
+
+Production Wizard LRTextInkHeight uses private GDI bitmap/DrawText/GetPixel with exact caption/font/wrapping; LRText and LRMeasureBlock both consume ink height plus scaled padding. Font asset, native accessibility and transaction callbacks unchanged.

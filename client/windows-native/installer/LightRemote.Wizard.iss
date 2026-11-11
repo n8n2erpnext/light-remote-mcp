@@ -41,6 +41,10 @@ function LRSetWindowTheme(Wnd: UINT_PTR; SubApp, SubId: String): Integer;
 external 'SetWindowTheme@uxtheme.dll stdcall';
 function LRGetTextFace(DC: UINT_PTR; Count: Integer; Buffer: String): Integer;
 external 'GetTextFaceW@gdi32.dll stdcall';
+function LRDrawText(DC: UINT_PTR; Text: String; Count: Integer; var Bounds: TRect; Flags: Cardinal): Integer;
+external 'DrawTextW@user32.dll stdcall';
+function LRPixel(DC: UINT_PTR; X, Y: Integer): TColor;
+external 'GetPixel@gdi32.dll stdcall';
 
 function LRHasFlag(Flag: String): Boolean;
 var I: Integer;
@@ -129,6 +133,43 @@ begin
   LRFont(Form.Font, 14, False, LRInk);
 end;
 
+function LRTextInkHeight(Control: TNewStaticText): Integer;
+var Bitmap: TBitmap; Bounds: TRect; X, Y, SelectedWidth: Integer; DC: UINT_PTR; Pixel: TColor;
+begin
+  // Google Sans keeps large OS/2 Windows bounds for uncommon glyphs. GDI's
+  // DrawText height can be 2.4 em although the actual Latin ink is much lower.
+  // Measure this exact caption/font/wrapping in a private bitmap; retain its
+  // real top bearing and all descenders, without the unused lower font box.
+  Result := Control.Height;
+  Bitmap := TBitmap.Create;
+  try
+    Bitmap.Width := Control.Width;
+    Bitmap.Height := Control.Height + LRY(8);
+    Bounds.Left := 0; Bounds.Top := 0;
+    Bounds.Right := Bitmap.Width; Bounds.Bottom := Bitmap.Height;
+    Bitmap.Canvas.Brush.Color := clWhite;
+    Bitmap.Canvas.FillRect(Bounds);
+    Bitmap.Canvas.Font.Assign(Control.Font);
+    Bitmap.Canvas.Font.Color := clBlack;
+    Bitmap.Canvas.TextOut(0, 0, ''); // Select font and text color into this DC.
+    SelectedWidth := Bitmap.Canvas.TextWidth(Control.Caption);
+    DC := Bitmap.Canvas.Handle;
+    LRDrawText(DC, Control.Caption, Length(Control.Caption), Bounds, $810); // WORDBREAK | NOPREFIX
+    for Y := Bitmap.Height - 1 downto 0 do
+      for X := 0 to Bitmap.Width - 1 do
+      begin
+        Pixel := LRPixel(DC, X, Y);
+        if (Pixel <> clWhite) and (Pixel <> -1) then
+        begin
+          Result := Y + 1;
+          Exit;
+        end;
+      end;
+  finally
+    Bitmap.Free;
+  end;
+end;
+
 function LRText(Parent: TWinControl; Name, Text: String;
   X, Y, W, H, Pixels: Integer; Bold: Boolean; Color: TColor): TNewStaticText;
 var Probe: TBitmap; Face: String; Count, Width, MinimumHeight: Integer;
@@ -146,13 +187,12 @@ begin
   Result.ParentColor := True;
   Result.ParentFont := False;
   LRFont(Result.Font, Pixels, Bold, Color);
-  // AdjustHeight is an exported Inno 6.7.1 API. It measures DrawText using
-  // this control's real font, width and wrapping; nominal Font.Height is not
-  // a safe line box for the packaged Google Sans font. Reserve ink padding
-  // for EVERY line, including the brand and first heading, not only line two.
+  // AdjustHeight supplies a safe raster canvas, then the exact GDI ink
+  // determines the line box. Reserve padding for EVERY line, including
+  // the wordmark and first heading, not only line two.
   MinimumHeight := Result.Height;
   Result.AdjustHeight();
-  Result.Height := Result.Height + LRY(8);
+  Result.Height := LRTextInkHeight(Result) + LRY(8);
   if Result.Height < MinimumHeight then Result.Height := MinimumHeight;
   if Name = 'LRTitle' then
   begin
@@ -196,7 +236,7 @@ begin
       LRFont(Line.Font, Pixels, Bold, LRInk);
       Line.Caption := Part;
       Line.AdjustHeight();
-      Result := Result + Line.Height + LRY(8);
+      Result := Result + LRTextInkHeight(Line) + LRY(8);
     finally
       Line.Free;
     end;

@@ -1,0 +1,53 @@
+{
+  "diagnosticSource": "312fb33b723e078a1df12ea6319b33aba0b75e5e",
+  "runId": 42985869607,
+  "artifactId": 13839099123,
+  "result": "REJECTED_NATIVE_LAYOUT_DIAGNOSTIC_ONLY",
+  "font": "Google Sans",
+  "unitsPerEm": 1000,
+  "hhea": [
+    966,
+    -286,
+    0
+  ],
+  "os2Windows": [
+    1323,
+    1079
+  ],
+  "welcomeScreenRects": {
+    "view": "01-welcome",
+    "first": [
+      152,
+      195,
+      622,
+      266
+    ],
+    "second": [
+      152,
+      268,
+      622,
+      339
+    ],
+    "bodyFirst": [
+      152,
+      347,
+      632,
+      392
+    ],
+    "bodyLast": [
+      152,
+      394,
+      632,
+      439
+    ],
+    "card": [
+      152,
+      413,
+      872,
+      529
+    ]
+  },
+  "fix": "Use exact GDI caption/font/wrap raster ink bottom plus8 logical pixels. Preserve font file, top bearing, descenders and native controls.",
+  "nativeFixVerification": "PENDING",
+  "physicalOwnerAcceptance": false
+}

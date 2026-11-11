@@ -461,3 +461,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: CI78 native .NET/Rust/Inno compile PASS but install UI geometry check FAIL; no installer accepted. CI79 core/PG/Redis PASS on corrected Google/callback source; full acceptance not reached. Probe source uses same Wizard include/resources, no app directory/registry/payload; full six-view product install/uninstall remains mandatory.
 - Next: Run early native probe and inspect exact geometry/screenshot; fix measured cause, rerun full exact-source CI and verify final internal artifact before any Lab rollout.
 - Runtime: No runtime/config DB/production/Owner installation change; original Google config privately staged and pending domain rotation.
+
+## Task Receipt: 20261111-native-google-sans-ink-metrics
+- Status: NATIVE_INK_FIX_CI_PENDING. Early native probe measured71px title/45px body boxes from oversized Windows font metrics, body ending26px below card. Use exact GDI caption/font/wrapping raster ink height plus8 logical pixels; preserve top bearing, descenders, unchanged font and accessible native text controls.
+- Source: permanent work after `312fb33b723e078a1df12ea6319b33aba0b75e5e`; exact staged source digest stamped in this same commit.
+- Verification: CI80 rejected actual Welcome layout and captured rectangles/PNG artifact13839099123. Font units1000, hhea966/-286, Windows1323/1079 inspected from unchanged asset. Portable71 groups and focused42 PASS; corrected native probe/full product acceptance pending.
+- Next: Inspect corrected native Welcome, then full exact-source six-view setup/uninstall and lifecycle. Verify installer hashes/full CI before Lab-only backend/config staging. Keep original production callback and production runtime untouched.
+- Runtime: No runtime/config DB/production/Owner installation change; original Google config privately staged and pending domain rotation.
