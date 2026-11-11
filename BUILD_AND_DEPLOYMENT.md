@@ -225,3 +225,7 @@ Rollback must coordinate service drop-ins with the Google config row: `recovery/
 ## Preserve native RMv2 cursors and honor precise input timing
 
 Internal dev7 native Actions adds test-rmv2-phase1.ps1 after RM publish: actual system cursor bitmap roles, tiny immediate endpoints, observation/control/idle, explicit restore while alive and monotonic handler samples. RM embeds existing Google Sans font; one-primary packaging boundaries and six-view installer/migration checks retained. Native/source PASS and Owner physical PASS remain separate.
+
+## Read native cursor bitmap proof without PowerShell GDIplus coupling
+
+test-rmv2-phase1.ps1 uses direct Win32 bitmap hashing, independent of PowerShell System.Drawing/.NET10 private GDIPlus references. Same11 cursor roles and hotspot proof retained. CI uploads light-remote-rmv2-phase1-SHA receipt. Product binary behavior unchanged at this test fix.

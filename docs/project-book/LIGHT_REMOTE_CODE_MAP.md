@@ -262,3 +262,7 @@ Current installer source uses actual GDI ink measurement plus scaled descender p
 ## Preserve native RMv2 cursors and honor precise input timing
 
 Native Windows ownership: client/windows-native/GptOperator.RealRemoteV2/ControlActivity.cs handles metadata-only hooks, generation cancellation/desktop fencing; CursorGlowOverlay.cs owns badge/4edges; NativeInput.cs tags packets/cleans only owned downs; RobotContext.cs scopes operations and text receipts; RobotRpcServer.cs adds timing and disconnect watch; SystemCursorOverride.cs is explicit recovery only. lib/real-remote-input.cjs + native-desktop.mjs preserve zero/timing and bridge receipt; Agent visual minInterval0 fixed. Native acceptance is client/windows-native/test-rmv2-phase1.ps1, portable mapper check deploy/scripts/selftest-rmv2-input-contract.mjs.
+
+## Read native cursor bitmap proof without PowerShell GDIplus coupling
+
+RMv2 native proof lives in client/windows-native/test-rmv2-phase1.ps1 and now hashes GetIconInfo/GetBitmapBits data directly; .github/workflows/windows-native-client.yml archives phase1 JSON. Product boundaries remain those of the preceding phase1 implementation.

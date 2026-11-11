@@ -242,3 +242,7 @@ Implement RMv2 phase1: preserve all native Windows cursors, activity-only AI bad
 ARM portable71 source groups PASS; all299 unit cases PASS across path-compatible batches (292 regular units with contained short socket path,7 artifact preflight with canonical path). Security/path limits unchanged. Final local helper lifecycle, double-normalization/native mapper and cursor contract PASS. Native compile/actual Windows cursor, tiny moves, badge/timer and installer regression remain pending exact-source Actions. No before/after speedup or RM physical acceptance claimed.
 
 Lab Operator/Plugin remains GitHub3064f21/dev6; independent Agent/Wall and production preserved. No runtime deployment or Owner installation by RM phase1 implementation.
+
+## Read native cursor bitmap proof without PowerShell GDIplus coupling
+
+CI86 product RMv2 compile and native self-tests PASS; cursor probe failed before assertions from .NET10 GDIPlus reference coupling. Probe now hashes real Win32 cursor masks/colors/hotspots directly; all11role, tiny endpoint and indicator/idle/restore assertions retained. Full exact-source native/installer acceptance pending; no artifact/deployment claim.

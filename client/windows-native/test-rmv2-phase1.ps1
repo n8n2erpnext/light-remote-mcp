@@ -1,31 +1,39 @@
 param([Parameter(Mandatory=$true)][string]$Exe,[Parameter(Mandatory=$true)][string]$Output)
 $ErrorActionPreference='Stop'
-Add-Type -AssemblyName System.Drawing.Common
 Add-Type -TypeDefinition @'
 using System;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 public static class RmCursorProbe {
+ [StructLayout(LayoutKind.Sequential)] struct IconInfo { public int Icon; public uint X,Y; public IntPtr Mask,Color; }
+ [StructLayout(LayoutKind.Sequential)] struct BitmapInfo { public int Type,Width,Height,WidthBytes; public ushort Planes,BitsPixel; public IntPtr Bits; }
  [DllImport("user32.dll")] static extern IntPtr LoadCursor(IntPtr instance,IntPtr name);
- [DllImport("user32.dll")] static extern bool DrawIconEx(IntPtr dc,int x,int y,IntPtr icon,int width,int height,uint step,IntPtr brush,uint flags);
+ [DllImport("user32.dll")] static extern bool GetIconInfo(IntPtr cursor,out IconInfo info);
+ [DllImport("gdi32.dll",EntryPoint="GetObjectW")] static extern int GetObject(IntPtr bitmap,int size,out BitmapInfo info);
+ [DllImport("gdi32.dll")] static extern int GetBitmapBits(IntPtr bitmap,int size,byte[] bits);
+ [DllImport("gdi32.dll")] static extern bool DeleteObject(IntPtr value);
+ static string BitmapHash(IntPtr bitmap) {
+  if(bitmap==IntPtr.Zero)return "none";
+  BitmapInfo info;
+  if(GetObject(bitmap,Marshal.SizeOf<BitmapInfo>(),out info)==0)throw new Exception("cursor_bitmap_missing");
+  var size=checked(info.WidthBytes*Math.Abs(info.Height));
+  if(size<=0||size>16*1024*1024)throw new Exception("cursor_bitmap_size_invalid");
+  var bits=new byte[size];if(GetBitmapBits(bitmap,size,bits)!=size)throw new Exception("cursor_bitmap_read_failed");
+  return info.Width+"x"+info.Height+":"+Convert.ToHexString(SHA256.HashData(bits));
+ }
  public static string Roles() {
   var result="";
   foreach(int id in new[]{32512,32513,32514,32515,32642,32643,32644,32645,32646,32648,32649}) {
-   var cursor=LoadCursor(IntPtr.Zero,(IntPtr)id);
-   if(cursor==IntPtr.Zero)throw new Exception("cursor_role_missing:"+id);
-   using(var image=new Bitmap(64,64))using(var g=Graphics.FromImage(image))using(var stream=new MemoryStream()) {
-    var dc=g.GetHdc(); try { if(!DrawIconEx(dc,0,0,cursor,64,64,0,IntPtr.Zero,3))throw new Exception("cursor_draw_failed"); } finally { g.ReleaseHdc(dc); }
-    image.Save(stream,ImageFormat.Png);
-    result+=id+":"+Convert.ToHexString(SHA256.HashData(stream.ToArray()))+";";
-   }
+   var cursor=LoadCursor(IntPtr.Zero,(IntPtr)id);IconInfo icon;
+   if(cursor==IntPtr.Zero||!GetIconInfo(cursor,out icon))throw new Exception("cursor_role_missing:"+id);
+   try {result+=id+":"+icon.X+","+icon.Y+":"+BitmapHash(icon.Mask)+":"+BitmapHash(icon.Color)+";";}
+   finally {if(icon.Mask!=IntPtr.Zero)DeleteObject(icon.Mask);if(icon.Color!=IntPtr.Zero)DeleteObject(icon.Color);}
   }
   return result;
  }
 }
-'@ -ReferencedAssemblies @('System.Drawing.Common','System.Drawing.Primitives','System.Security.Cryptography')
+'@
 $pipeName="lightremote-rmv2-phase1-$PID"
 $process=Start-Process -FilePath $Exe -ArgumentList @('--pipe',$pipeName) -PassThru -WindowStyle Hidden
 $pipe=$null;$reader=$null;$writer=$null

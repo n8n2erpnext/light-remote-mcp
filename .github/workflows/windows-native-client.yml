@@ -663,6 +663,15 @@ jobs:
           $out = Join-Path $PWD 'dist/windows/rmv2-phase1-acceptance.json'
           ./client/windows-native/test-rmv2-phase1.ps1 -Exe $env:RMV2_EXE -Output $out
 
+      - name: Upload RMv2 native phase1 acceptance receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-rmv2-phase1-${{ github.sha }}
+          path: dist/windows/rmv2-phase1-acceptance.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Real Remote V2 full duplex lifecycle
         shell: pwsh
         run: |
