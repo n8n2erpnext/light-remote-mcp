@@ -310,3 +310,7 @@ client/core-files.json now includes lifecycle runtime module in the actual Windo
 ## Acknowledge already-closed RM tasks and protect in-flight resume
 
 rmv2-task-lifecycle exposes bounded owner-bound remember/confirmed close receipts; Agent stores sanitized metadata after native close acknowledgment. resume is a tracked real RM operation, so explicit close drains lease recovery too.
+
+## Add ordered RM work with fast scoped cancel and explicit pointer profiles
+
+RpcWorkScheduler.cs owns bounded native lanes and per-native-scope queued cancellation epochs. RobotRpcServer keeps reading pipe requests while workers run and correlates out-of-order responses by ID; ControlActivity cooperative cancel keeps task/Agent alive. NativeDesktopBridge maps cancel; Operator enforces input capabilities and target platform; device Agent verifies exact RM owner and bypasses lease-resume queue before cancel. Plugin registers new governed tool/helper. InteractionProfile.cs supplies explicit pointer timing defaults.

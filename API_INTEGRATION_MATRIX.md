@@ -104,3 +104,7 @@ desktop_detach may return alreadyClosed:true with scopeClosed/taskEnded/newAttac
 ## Record verified CI98 RM lifecycle candidate and current project truth
 
 CI98 proves explicit native RM scope close, old scope input rejection, reopen newID and45s expiry despite status. Public Agent mutation gate binds A/B session+Agent. Confirm close before final report; metadata-only owner-bound prior close receipts support automatic-expiry/lost-response retries for15minutes/max256, never input reuse. MCP cannot intercept arbitrary external model final text.
+
+## Add ordered RM work with fast scoped cancel and explicit pointer profiles
+
+New Windows light_remote_desktop_cancel requires remote:execute plus desktop+desktop-input, current A/B/session+Agent-owned desktopSessionId and private native lease supplied by device Agent. Cancellation retains RM/A-B/Agent and is not desktop_detach. Pointer profile forwards through both normalizers/native mapping; compatibility default unchanged, precision/responsive moves0ms/1step, responsive click5/12ms. Native queue/handler timing additive; no automatic click retry.

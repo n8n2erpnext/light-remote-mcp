@@ -115,3 +115,7 @@ CI94 physical lifecycle FAIL is addressed in dev9 source pending acceptance. A45
 ## Record verified CI98 RM lifecycle candidate and current project truth
 
 Build94 physical lifecycle FAIL is addressed in dev9 CI98 source with explicit close and45s fallback; physical dev9 retest remains pending. Any >45s gap without running RM work/real observation/input requires reopening. Generic status/heartbeat and passive cached Hub push do not keep RM alive. Long-text content verification/native input timeout improvements and GPU/video phases remain unimplemented; CI latency samples are not before/after evidence.
+
+## Add ordered RM work with fast scoped cancel and explicit pointer profiles
+
+Phase2a queue/profile source needs native CI and measured acceptance. UIA observation/state still shares ordered input lane to avoid provider/root races; further observation optimization remains. Long typing4096/silent semantic slicing/Windows type macOS-only guard and content verification remain unfixed until phase2b. Optional GPU/video and hardware matrix remain pending; Owner physical UAT consolidated later.

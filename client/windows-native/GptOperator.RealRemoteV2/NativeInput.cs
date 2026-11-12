@@ -126,20 +126,21 @@ internal static class NativeInput
         return first.X>0 && first.X<100 && first.Y>0 && first.Y<50 && last==new CursorPoint(100,50);
     }
 
-    public static void Click(string button="left",int count=1)
+    public static void Click(string button="left",int count=1,InteractionProfile? profile=null)
     {
+        profile??=InteractionProfile.Read("compatibility");
         count=Math.Clamp(count,1,3);
         var flags=MouseFlags(button);
         // Paint ribbon menus need the pointer hover to settle before down.
         // A zero-time SendInput down/up burst was intermittently interpreted
         // as hover only even though the RPC reported applied=true.
-        InterruptibleDelay(35);
+        InterruptibleDelay(profile.HoverMs);
         for(var i=0;i<count;i++)
         {
             SendMouseFlag(flags.Down);
-            InterruptibleDelay(40);
+            InterruptibleDelay(profile.DownMs);
             ReleaseOwnedInputs();
-            if(i<count-1) InterruptibleDelay(55);
+            if(i<count-1) InterruptibleDelay(profile.DoubleGapMs);
         }
     }
 

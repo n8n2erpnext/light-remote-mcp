@@ -61,8 +61,9 @@ internal static class Program
             var smoothMoveMathOk=NativeInput.SmoothMoveMathSelfTest();
             var agentCursorVisualOk=AgentCursorVisualState.SelfTest();
             var systemCursorOverrideOk=SystemCursorOverride.SelfTest();
+            var rpcSchedulerOk=RpcWorkScheduler.SelfTest();
             var controlActivityOk=ControlActivity.SelfTest() && CursorGlowOverlay.SelfTest();
-            var allOk=controlActivityOk && semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk && semanticScopeOk && smoothMoveMathOk && agentCursorVisualOk && systemCursorOverrideOk;
+            var allOk=rpcSchedulerOk && controlActivityOk && semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk && semanticScopeOk && smoothMoveMathOk && agentCursorVisualOk && systemCursorOverrideOk;
             var result = new
             {
                 ok = allOk,
@@ -79,7 +80,8 @@ internal static class Program
                 smoothMoveMathOk,
                 agentCursorVisualOk,
                 systemCursorOverrideOk,
-                controlActivityOk
+                controlActivityOk,
+                rpcSchedulerOk
             };
             File.WriteAllText(output, JsonSerializer.Serialize(result));
             return allOk;

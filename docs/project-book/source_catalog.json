@@ -676,8 +676,8 @@
       "path": "docs/evidence/rmv2/phase1-ci98.json",
       "shelf": "evidence",
       "extension": "json",
-      "bytes": 3531,
-      "sha256": "714b14568e3cd0d728148178ec6ad4649897df2085588d226a58a2b1433fe62c",
+      "bytes": 3644,
+      "sha256": "306e89f411d61c8c56b41684f5ad31589e6e4dc0ae87a8d9b51853ee237383b6",
       "topLevelKeys": [
         "sourceCommit",
         "sourceTree",
@@ -2584,8 +2584,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 49638,
-      "sha256": "6f013758f13d5779b63e82eedd72d1026ccfe141427e705b029f83935283daa5",
+      "bytes": 51812,
+      "sha256": "b64af67cc1ef46b26fec7e4bddda8d13dbe97bb682c1e4fe56bbb8c4b52cf916",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {

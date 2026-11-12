@@ -265,3 +265,7 @@ Scoped historical native proof CI97/ea4a04d passes actual explicit close, readon
 ## Record verified CI98 RM lifecycle candidate and current project truth
 
 CI98 source398c4c8b316d59458f636bcdf1bd4ea44056634f/tree5f432f68d60ff2426bd2742848b519bdd85dbd74, all9 PASS. Internal completeartifact13921290856, ZIPsha126629f75ecad07c987153dbb11e2fd79870a5f8aedc66ab1bc8d9e1dbbf2e9a, installerSHA6cb6ca1e02653dd647c05cbab677545c5af74b1e5129c1b04491b375cb54785a, bytes172575451. OneLightRemote.exe and migration/installed lifecycle PASS; physicalOwnerAcceptance/publicFeedPromoted false. Native artifact13920222075 verified separately, same source. Lab integration still pending in this receipt.
+
+## Add ordered RM work with fast scoped cancel and explicit pointer profiles
+
+Phase2a candidate dev10 requires Actions native compile/self-test/full installer regression. RpcWorkScheduler.SelfTest uses deferred work to prove independent status/capture, input ordering, queued cancel fence and later explicit input. It does not inject Owner input. CI98 dev9 source398c4c8 installerSHA6cb6ca1e02653dd647c05cbab677545c5af74b1e5129c1b04491b375cb54785a independently verified on ARM+workspace as rollback baseline; do not label dev10 as built from that artifact.

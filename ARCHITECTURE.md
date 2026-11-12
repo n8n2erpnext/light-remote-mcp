@@ -80,3 +80,7 @@ Indicator is awareness, not authorization. First input arms it against existing 
 ## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
 
 RM task lifecycle is independent from durable A/B authority. lib/rmv2-task-lifecycle.mjs owns exact session+Agent selection, pending-operation drain, close failure/retry fences and non-resurrection. Device Agent attaches actual native lease to input/run/semantic mutation after owner validation; public tool clients never supply native lease secrets. Existing native private same-user CLI compatibility is not the public Agent API. Native current control visual ID drives awareness; explicit detach awaits GUI hide, expired scoped awareness has no extra30s standalone tail. Child semantic/live resources created inside task scope close with it.
+
+## Add ordered RM work with fast scoped cancel and explicit pointer profiles
+
+Windows native RPC now dispatches through RpcWorkScheduler: dedicated MTA ordered input+semantic state lane capacity16, separate frame lane capacity2, bounded fast metadata/cancel concurrency4. Responses correlate existing IDs and can finish out of order; input remains ordered. Semantic state itself stays serialized with input pending later observation cache review. Exact native visual lease authorizes cancel before epoch fence; cancelled queued work cannot silently run and later explicit work captures a fresh epoch.

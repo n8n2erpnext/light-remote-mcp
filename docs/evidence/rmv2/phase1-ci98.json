@@ -8,7 +8,7 @@
   "installerSha256": "6cb6ca1e02653dd647c05cbab677545c5af74b1e5129c1b04491b375cb54785a",
   "installerBytes": 172575451,
   "result": "VERIFIED_INTERNAL_ARTIFACT",
-  "verificationLocation": "LOCAL_WORKSPACE_ARM_TRANSFER_PENDING",
+  "verificationLocation": "LOCAL_WORKSPACE_AND_ARM",
   "primaryCount": 1,
   "oldPrimariesAbsent": true,
   "migration": "PASS",
@@ -112,5 +112,7 @@
   },
   "physicalAcceptance": "PENDING_OWNER_SELF_INSTALL_AND_REAL_SCREEN_TEST",
   "labDeployment": "PENDING_DEV9_LAB_ONLY_CUTOVER",
-  "publicReleaseOrFeed": false
+  "publicReleaseOrFeed": false,
+  "artifactVerifiedOnArm": true,
+  "followingOwnerDirective": "CONTINUE_REMAINING_RMV2_PLAN_PHYSICAL_UAT_CONSOLIDATED_LATER"
 }

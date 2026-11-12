@@ -128,10 +128,14 @@ internal sealed class RobotContext : ApplicationContext
             "batch.run" => RunBatch(request,32),
             "desktop.run" => await RunPlanAsync(request),
             "desktop.input" => DesktopInput(request),
+            "desktop.cancel" => CancelInput(request),
             "session.close" => CloseSession(),
             _ => throw new InvalidOperationException("operation_not_supported")
         };
         return result;
+        } catch(OperationCanceledException error) when(error.Message=="remote_input_cancelled") {
+            return new {applied=false,state="cancelled",reason="agent_cancelled",sessionRetained=true,
+                automaticReplay=false,contentVerification="unverified",verifiedInsertedUnits=(int?)null};
         } catch(OwnerInputPause pause) {
             // Yield this input operation, not the Agent session or background jobs.
             // No automatic replay/refocus: events already sent are not verified text.
@@ -144,6 +148,17 @@ internal sealed class RobotContext : ApplicationContext
             if(inputVisualId.Length>0)try{_visual.KeepAlive(inputVisualId,Text(request,"leaseToken"));}catch{_activity.Stop();}
             _activity.End();
         } }
+    }
+
+    private object CancelInput(JsonElement request)
+    {
+        var id=Text(request,"visualSessionId");
+        if(id.Length==0)throw new InvalidOperationException("visual_session_required_for_cancel");
+        _visual.ValidateInput(id,Text(request,"leaseToken"));
+        _rpc.CancelScope(id);
+        var running=_activity.CancelScope(id);
+        return new {cancelRequested=true,activeInputCancelled=running,queuedInputsFenced=true,
+            visualSessionId=id,sessionRetained=true,automaticReplay=false};
     }
 
     private object RestoreCursors()
@@ -175,6 +190,7 @@ internal sealed class RobotContext : ApplicationContext
         try { result=_visual.Detach(id,Text(request,"leaseToken")); }
         catch(InvalidOperationException error) when(error.Message is "visual_session_missing" or "visual_lease_expired")
         { result=new {detached=true,alreadyClosed=true}; }
+        _rpc.ForgetScope(id);
         var endedCurrent=_activity.VisualSessionId==id||_visual.ActiveSessions==0;
         if(endedCurrent) {
             _activity.Stop();_activity.VisualSessionId="";
@@ -250,6 +266,8 @@ internal sealed class RobotContext : ApplicationContext
         ownerInputBehavior="yield-current-input-keep-agent-session",
         indicator=_ambientGlow is null?null:_ambientGlow.Dispatcher.Invoke(()=>_ambientGlow.Diagnostics()),
         inputContentVerification="unverified-unless-explicit-readback",
+        requestLanes=new {orderedInput=true,independentCapture=true,fastStatusCancel=true,inputQueue=16,captureQueue=2,fastConcurrency=4},
+        interactionProfiles=new {defaultProfile="compatibility",supported=new[]{"compatibility","precision","responsive","smooth"},responsiveClickProgrammedMs=17,compatibilityClickProgrammedMs=75,automaticRetry=false},
         ambientGlowActive=_ambientGlow is {IsDisposed:false,Visible:true},
         passivePreviewActive=_passivePreviewActive,
         visualAttachCursorActive=false,
@@ -262,13 +280,14 @@ internal sealed class RobotContext : ApplicationContext
 
     private object Move(JsonElement r)
     {
-        var durationMs=Int(r,"durationMs",90);
+        var profile=InteractionProfile.Read(Text(r,"profile","compatibility"));
+        var durationMs=Int(r,"durationMs",profile.MoveMs);
         var point=InputPoint(r,"x","y","screen");
         HoldCursorForPhysicalInput();
         _activity.TargetScreen=Screen.FromPoint(new Point(point.X,point.Y)).Bounds;
         _cursorState.MarkMove(durationMs);
-        NativeInput.Move(point.X,point.Y,durationMs,Int(r,"steps",8));
-        return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
+        NativeInput.Move(point.X,point.Y,durationMs,Int(r,"steps",profile.MoveSteps));
+        return new {applied=true,inputProfile=profile.Name,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
     }
 
     private object Click(JsonElement r)
@@ -277,8 +296,9 @@ internal sealed class RobotContext : ApplicationContext
         var count=Int(r,"count",1);
         HoldCursorForPhysicalInput();
         _cursorState.MarkClick(button,count);
-        NativeInput.Click(button,count);
-        return new {applied=true,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
+        var profile=InteractionProfile.Read(Text(r,"profile","compatibility"));
+        NativeInput.Click(button,count,profile);
+        return new {applied=true,inputProfile=profile.Name,native=NativeInput.ReadStatus(),cursorVisual=_cursorState.Status()};
     }
 
     private object Wheel(JsonElement r)

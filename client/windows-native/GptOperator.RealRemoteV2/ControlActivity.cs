@@ -25,7 +25,7 @@ internal sealed class ControlActivity : IDisposable
     private int _leaseBound;
     public Func<bool>? HasWorkingSession;
     public volatile string VisualSessionId="";
-    public bool PausedFeedback => Volatile.Read(ref _disposed)==0 && Volatile.Read(ref _locked)==0 && Volatile.Read(ref _paused)!=0 && _pauseReason=="paused-local-input"
+    public bool PausedFeedback => Volatile.Read(ref _disposed)==0 && Volatile.Read(ref _locked)==0 && Volatile.Read(ref _paused)!=0 && (_pauseReason is "paused-local-input" or "paused-cancelled")
         && (VisualSessionId.Length>0 ? (HasWorkingSession?.Invoke()??false) : Environment.TickCount64<Volatile.Read(ref _pausedFeedbackUntil));
     public bool IndicatorVisible => Active || PausedFeedback;
     private int _running,_paused,_locked,_disposed;
@@ -99,8 +99,10 @@ internal sealed class ControlActivity : IDisposable
     {
         if(Volatile.Read(ref _disposed)!=0 || Volatile.Read(ref _locked)!=0)
             throw new InvalidOperationException("input_desktop_unavailable");
-        if(Volatile.Read(ref _running)!=0 && Volatile.Read(ref _generation)!=_startedGeneration)
+        if(Volatile.Read(ref _running)!=0 && Volatile.Read(ref _generation)!=_startedGeneration) {
+            if(_pauseReason=="paused-cancelled")throw new OperationCanceledException("remote_input_cancelled");
             throw new OwnerInputPause();
+        }
         var now=Environment.TickCount64;
         if(now-_desktopCheckedAt>=32) {
             _desktopCheckedAt=now;
@@ -108,6 +110,7 @@ internal sealed class ControlActivity : IDisposable
         }
         Volatile.Write(ref _until,Environment.TickCount64+30_000);
     }
+    public bool CancelScope(string id) { if(VisualSessionId!=id)return false;Stop("paused-cancelled");return true; }
     public void End() { Volatile.Write(ref _running,0); Changed?.Invoke(); }
     public void Stop(string reason="idle")
     {

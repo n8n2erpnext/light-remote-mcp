@@ -13,6 +13,9 @@ internal sealed class RobotRpcServer : IDisposable
     private readonly Func<JsonElement,Task<object?>> _handler;
     private readonly Action _disconnected;
     private readonly SemaphoreSlim _writeGate=new(1,1);
+    private readonly RpcWorkScheduler _scheduler=new();
+    public void CancelScope(string id)=>_scheduler.CancelScope(id);
+    public void ForgetScope(string id)=>_scheduler.ForgetScope(id);
     private StreamWriter? _writer;
     private volatile bool _disposed;
 
@@ -58,14 +61,9 @@ internal sealed class RobotRpcServer : IDisposable
                     var root=doc.RootElement.Clone();
                     id=root.TryGetProperty("id",out var idNode)?idNode.ToString():"";
                     if(string.IsNullOrWhiteSpace(id)) throw new InvalidOperationException("request_id_required");
-                    var clock=System.Diagnostics.Stopwatch.StartNew();
-                    var data=await _handler(root);
-                    var receipt=JsonSerializer.SerializeToNode(data);
-                    if(receipt is System.Text.Json.Nodes.JsonObject obj) {
-                        obj["nativeTiming"]=JsonSerializer.SerializeToNode(new {requestId=id,handlerMs=clock.Elapsed.TotalMilliseconds,processId=Environment.ProcessId});
-                        data=obj;
-                    }
-                    await SendAsync(new {type="response",id,ok=true,data});
+                    // Enqueue before accepting the next line; responses may finish
+                    // out of order and are correlated by the existing request ID.
+                    _=ReplyAsync(id,root);
                 }
                 catch(Exception ex)
                 {
@@ -78,6 +76,25 @@ internal sealed class RobotRpcServer : IDisposable
         {
             _writer=null;
             if(!_disposed) _disconnected();
+            _scheduler.Dispose();
+        }
+    }
+
+    private async Task ReplyAsync(string id,JsonElement root)
+    {
+        try {
+            var op=root.TryGetProperty("op",out var operation)?operation.GetString()??"":"";
+            var scope=root.TryGetProperty("visualSessionId",out var visual)?visual.GetString()??"":"";
+            var clock=System.Diagnostics.Stopwatch.StartNew();
+            var data=await _scheduler.Schedule(op,scope,()=>_handler(root)).ConfigureAwait(false);
+            var receipt=JsonSerializer.SerializeToNode(data);
+            if(receipt is System.Text.Json.Nodes.JsonObject obj) {
+                obj["nativeTiming"]=JsonSerializer.SerializeToNode(new {requestId=id,handlerMs=obj["nativeHandlerMs"]?.GetValue<double>()??clock.Elapsed.TotalMilliseconds,handlerAndQueueMs=clock.Elapsed.TotalMilliseconds,processId=Environment.ProcessId});
+                data=obj;
+            }
+            await SendAsync(new {type="response",id,ok=true,data});
+        } catch(Exception error) {
+            try { await SendAsync(new {type="response",id,ok=false,error=error.Message}); } catch {}
         }
     }
 
@@ -105,7 +122,7 @@ internal sealed class RobotRpcServer : IDisposable
     {
         _disposed=true;
         _writer=null;
-        _writeGate.Dispose();
+        _scheduler.Dispose(); // outstanding writes can still release their gate
     }
 
     [DllImport("kernel32.dll",SetLastError=true)]

@@ -292,6 +292,26 @@
       "badgeText": "#0F456B",
       "edge": "#4AA7DF"
     },
-    "platformBoundary": "Agent requires owner-bound scope on all platforms; Windows native validates forwarded private lease and synchronously hides the ended scope indicator"
+    "platformBoundary": "Agent requires owner-bound scope on all platforms; Windows native validates forwarded private lease and synchronously hides the ended scope indicator",
+    "cancelCurrentInput": {
+      "tool": "light_remote_desktop_cancel",
+      "platform": "win32",
+      "requiredCapabilities": [
+        "desktop",
+        "desktop-input"
+      ],
+      "requiredScopes": [
+        "remote:execute"
+      ],
+      "scope": "exact owner-bound open desktopSessionId",
+      "retains": [
+        "RM task scope",
+        "A/B",
+        "Agent",
+        "background jobs"
+      ],
+      "queuedInput": "fenced at cancel; later explicit commands allowed",
+      "automaticReplay": false
+    }
   }
 }

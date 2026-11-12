@@ -288,3 +288,7 @@ CI96 was rejected by actual client static-import package closure: rmv2-task-life
 ## Acknowledge already-closed RM tasks and protect in-flight resume
 
 dev9 also acknowledges already-closed task IDs to their original session+Agent for15minutes (max256 metadata-only records), enabling required close confirmation after fallback/lost response. This does not reopen or authorize input. Explicit resume joins in-flight accounting. Exact final native/full CI remains pending.
+
+## Add ordered RM work with fast scoped cancel and explicit pointer profiles
+
+Current development candidate dev10 phase2a has ordered MTA input/state, independent capture and bounded fast status/cancel plus explicit pointer profiles. Native compile/full CI pending; previous compiled dev9/CI98 remains the verified artifact. Owner deferred physical UAT until remaining plan is implemented. No runtime/Owner install/production changes.

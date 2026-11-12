@@ -880,6 +880,15 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
   const op=String(request.op||''),effective=effectiveCapabilitiesForState(state);
   if(!effective.includes('desktop'))throw new Error('local capability denied: desktop');
   if(!REAL_REMOTE_AVAILABLE)throw new Error('real_remote_unavailable');
+  if(op==='cancel'){
+    if(process.platform!=='win32')throw new Error('desktop_cancel_not_supported');
+    if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
+    const row=requireOwnedRmTask(REAL_REMOTE_VISUAL,visualOwner(p),request.desktopSessionId);
+    // Never queue a lease resume ahead of cancel: the ordered lane may be busy.
+    return withRmTask(REAL_REMOTE_VISUAL,row,async()=>({ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('cancel',{
+      visualSessionId:row.visualSessionId,leaseToken:row.leaseToken
+    },{timeoutMs:3000})}),armRealRemoteVisual);
+  }
   const mutation=['run','input','act'].includes(op);
   const realObservation=['resume','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','live-open'].includes(op);
   if(!rmScope&&(mutation||realObservation)){

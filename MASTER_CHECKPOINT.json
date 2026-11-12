@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-12T08:38:53.998Z",
-  "version": "0.10.1-dev.9",
+  "updatedAt": "2026-11-12T09:01:03.223Z",
+  "version": "0.10.1-dev.10",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "RMV2_DEV9_CI98_FULL9_PASS_VERIFIED_ARTIFACT_LAB_NEXT",
+  "status": "RMV2_PHASE2A_DEV10_SOURCE_PUBLISHED_CI_PENDING_CONTINUE_PLAN",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -361,7 +361,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Owner requests remaining RM plan implementation now, with one combined physical test later. Take a new full verified checkpoint/tag, then implement phase2 ordered cancellable input and fast status, target-bound verified long typing, responsive profiles and capture/cache/freshness. Follow optional DXGI/video in separate rollbackable stages. Preserve old runtime; defer Lab cutover/Owner installation/public release until the next verified integrated candidate.",
+  "nextAction": "Follow actual Actions native failures while implementing phase2 target-bound verified long typing, explicit Windows type routing and no silent truncation; then capture cache/ROI/freshness and optional DXGI/media stages in separate rollbackable commits. Owner will physically test the integrated candidate later. No Lab cutover/public release/Owner install yet.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -452,13 +452,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261112-rmv2-ci98-verified-internal-candidate",
-    "status": "CI98_FULL9_PASS_DEV9_ARTIFACT_VERIFIED_OWNER_UAT_PENDING_LAB_NEXT",
-    "summary": "CI98 dev9 exact source398c4c8 passed all9 baseline jobs. Verified complete Windows artifact/source-tree/profile/SHA/one-primary/migration/installed lifecycle. Native report confirms mandatory-close implementation, stale ID rejection, reopen, read-only isolation,45s despite status and sky-blue painted edges. Owner physical acceptance pending; no deployment or Owner install from this receipt. Correct current documentation leads; preserve earlier historical evidence.",
-    "verification": "CI43165467078/98 exactsource all9 PASS; native artifact13920222075 digestf5b5cde8f33172939eac99871ae25a879fb4812ea6cf4d93304162372dc38a49; completeartifact13921290856, installerSHA6cb6ca1e02653dd647c05cbab677545c5af74b1e5129c1b04491b375cb54785a, bytes172575451. Native11roles/11tiny/close/reopen/45seconds/blue PASS on isolated hosted Windows; nine portable lifecycle cases PASS. No before/after benchmark or physical acceptance claimed.",
-    "nextAction": "Owner requests remaining RM plan implementation now, with one combined physical test later. Take a new full verified checkpoint/tag, then implement phase2 ordered cancellable input and fast status, target-bound verified long typing, responsive profiles and capture/cache/freshness. Follow optional DXGI/video in separate rollbackable stages. Preserve old runtime; defer Lab cutover/Owner installation/public release until the next verified integrated candidate.",
-    "sourceDigest": "ce0c8433dc97b48ebefe01b78f2340691cb73af8f9b8c7b2571219e657685c8f",
-    "sourceFileCount": 1683
+    "taskId": "20261112-rmv2-phase2a-ordered-control-lanes",
+    "status": "DEV10_PHASE2A_SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
+    "summary": "Phase2a dev10 source adds dedicated bounded MTA ordered-input/state and capture lanes, independent bounded status/cancel, owner-and-lease checked cancellation with queued-operation fences, and explicit compatibility/precision/responsive/smooth pointer profiles. Default timing retained. Native scheduler self-test and portable end-to-end mapping cases added; native build/acceptance pending. CI98 dev9 artifact independently verified local+ARM; Owner requests remaining plan and one consolidated physical UAT later. Preserve all runtime/authority/production.",
+    "verification": "Require portable RM contract/lifecycle/helper/import checks PASS. Native scheduler self-test is registered in existing Windows self-test but not executed on ARM/Owner; exact Actions compile/full CI pending. No p95 speedup or physical acceptance claim. Before checkpoint checkpoint/20261112-before-rmv2-phase2-3f85c36 bundleSHA e679555effebb038bdb71ac4ea0a364fa8822d5cd7e19aed1ace4b87ba0f6c14 restore/fsck PASS.",
+    "nextAction": "Follow actual Actions native failures while implementing phase2 target-bound verified long typing, explicit Windows type routing and no silent truncation; then capture cache/ROI/freshness and optional DXGI/media stages in separate rollbackable commits. Owner will physically test the integrated candidate later. No Lab cutover/public release/Owner install yet.",
+    "sourceDigest": "428b50a8ad0fba0f8972d4496dea43ccd92778004d47ca0c84e8c00c0b367d00",
+    "sourceFileCount": 1685
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1532,9 +1532,9 @@
     "ownerReportedAcceptance": "2026-11-11 PASS; no inferred DPI/Google-domain acceptance"
   },
   "rmv2Implementation": {
-    "phase": 1,
-    "status": "CI98_FULL9_PASS_ARTIFACT_VERIFIED_OWNER_UAT_PENDING",
-    "version": "0.10.1-dev.9",
+    "phase": 2,
+    "status": "PHASE2A_SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
+    "version": "0.10.1-dev.10",
     "beforeCommit": "a2173d525e67945843ecfa307304ce1228c7c096",
     "beforeTag": "checkpoint/20261111-before-rmv2-phase1-a2173d5",
     "bundleSha256": "52c4ed562287cce186f666697fb4c96d20e847129e0398bc913ea6503dffe474",
@@ -1547,7 +1547,7 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "PASS_CI98",
+    "nativeCi": "PENDING_DEV10",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
@@ -1560,7 +1560,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci98.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PASS_CI98_9_OF_9",
+    "fullCi": "PENDING_DEV10",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1605,6 +1605,26 @@
     "sourceTree": "5f432f68d60ff2426bd2742848b519bdd85dbd74",
     "nativeArtifactSha256": "f5b5cde8f33172939eac99871ae25a879fb4812ea6cf4d93304162372dc38a49",
     "installerBytes": 172575451,
-    "physicalBuild98": "PENDING_OWNER_SELF_INSTALL"
+    "physicalBuild98": "PENDING_OWNER_SELF_INSTALL",
+    "beforePhase2Source": "3f85c36e66989d541b1259f6ab7d4665d82d290e",
+    "beforePhase2Tag": "checkpoint/20261112-before-rmv2-phase2-3f85c36",
+    "beforePhase2BundleSha256": "e679555effebb038bdb71ac4ea0a364fa8822d5cd7e19aed1ace4b87ba0f6c14",
+    "phase2RestoreFsck": "PASS",
+    "phase2a": {
+      "orderedInput": "DEDICATED_MTA_BOUNDED16",
+      "capture": "DEDICATED_MTA_BOUNDED2",
+      "statusCancel": "INDEPENDENT_BOUNDED4",
+      "cancel": "OWNER_AND_NATIVE_LEASE_CHECKED_QUEUED_FENCE_NO_REPLAY",
+      "profiles": [
+        "compatibility",
+        "precision",
+        "responsive",
+        "smooth"
+      ],
+      "defaultProfile": "compatibility",
+      "nativeAcceptance": "PENDING_EXACT_ACTIONS"
+    },
+    "phase2b": "TARGET_VERIFIED_LONG_TYPING_NEXT",
+    "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN"
   }
 }

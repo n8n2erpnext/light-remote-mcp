@@ -685,6 +685,13 @@ export function registerPluginTools(server,identity){
     inputSchema:{sessionId:id,semanticSessionId:z.string().min(1).max(160),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional(),includeSnapshot:z.boolean().optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:read'],(a,x)=>a.desktopLiveRead(x.sessionId,x)));
 
+  add(server,'light_remote_desktop_cancel',{
+    title:'Cancel current RM input',
+    description:'Cancel running and already-queued Windows RM input in your exact open desktop task scope. Status/cancel do not wait behind a native drag/text/UIA operation. Keeps A/B, the RM scope and Agent/background jobs; inspect the interrupted receipt and reobserve before any new input. This does not finish the task: MUST desktop_detach and confirm closure before final report. No automatic replay.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160)},
+    securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+  },guarded(identity,['remote:execute'],(a,x)=>desktopOperation(a,x,'cancel',['desktopSessionId'])));
+
   // Model-visible desktop actions are individually registered and typed.
   // Each call performs one chosen mutation, plus optional bounded UI observation.
   const uiAwait=z.object({
@@ -718,12 +725,13 @@ export function registerPluginTools(server,identity){
   const coord=z.number().finite().min(-32768).max(32768);
   const screen=z.number().int().min(0).max(31).optional();
   const button=z.enum(['left','right','middle']);
+  const profile=z.enum(['compatibility','precision','responsive','smooth']).optional();
   const physicalFields={sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160).optional(),displayTopologyId:z.string().min(1).max(160).optional(),...waitFields};
   const physicalActions=[
-    ['move','move','Move the native pointer to one screen coordinate. durationMs=0 or steps=1 requests immediate precise movement; omitted values retain smooth compatibility.',{x:coord,y:coord,screen,steps:z.number().int().min(1).max(32).optional(),durationMs:z.number().int().min(0).max(500).optional()}],
-    ['click','click','Click the OS pointer once or a bounded number of times, optionally at given coordinates.',{x:coord.optional(),y:coord.optional(),screen,button:button.optional(),count:z.number().int().min(1).max(3).optional()}],
-    ['scroll','wheel','Scroll the pointer wheel by a bounded signed delta.',{delta:z.number().int().min(-1200).max(1200),x:coord.optional(),y:coord.optional(),screen}],
-    ['drag','drag','Drag the OS pointer from an explicit starting point to an ending point.',{x:coord,y:coord,toX:coord,toY:coord,screen,toScreen:screen,button:button.optional(),steps:z.number().int().min(1).max(32).optional(),durationMs:z.number().int().min(0).max(1000).optional()}],
+    ['move','move','Move the native pointer to one screen coordinate. durationMs=0 or steps=1 requests immediate precise movement; omitted values retain smooth compatibility. profile=responsive or precision defaults to immediate exact movement; compatibility preserves app-specific click timing. Responsive clicking reduces hover/hold delays; reobserve and explicitly select compatibility for controls that need settling, never automatically repeat clicks.',{x:coord,y:coord,screen,profile,steps:z.number().int().min(1).max(32).optional(),durationMs:z.number().int().min(0).max(500).optional()}],
+    ['click','click','Click the OS pointer once or a bounded number of times, optionally at given coordinates.',{x:coord.optional(),y:coord.optional(),screen,profile,button:button.optional(),count:z.number().int().min(1).max(3).optional()}],
+    ['scroll','wheel','Scroll the pointer wheel by a bounded signed delta.',{delta:z.number().int().min(-1200).max(1200),x:coord.optional(),y:coord.optional(),screen,profile}],
+    ['drag','drag','Drag the OS pointer from an explicit starting point to an ending point.',{x:coord,y:coord,toX:coord,toY:coord,screen,toScreen:screen,profile,button:button.optional(),steps:z.number().int().min(1).max(32).optional(),durationMs:z.number().int().min(0).max(1000).optional()}],
     ['type_text','type','Type Unicode text using the native OS keyboard input.',{text:z.string().min(1).max(4096),intervalMs:z.number().int().min(25).max(100).optional()}],
     ['write_text','text','Write Unicode text into the focused application using native OS input. intervalMs=0 is unpaced. A sent-event receipt is not proof of complete text insertion; observe the target before retrying interrupted input.',{text:z.string().min(1).max(4096),intervalMs:z.number().int().min(0).max(100).optional()}],
     ['press_key','key','Press one native key with explicitly enumerated modifiers.',{key:z.string().min(1).max(48),modifiers:z.array(z.enum(['CTRL','ALT','SHIFT','WIN'])).max(4).optional()}],
