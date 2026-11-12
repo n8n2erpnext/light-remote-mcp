@@ -84,3 +84,7 @@ CI84 Google entry/provider allowlist and native intent/callback binding tests PA
 ## Preserve native RMv2 cursors and honor precise input timing
 
 Existing move durationMs/steps now survive both validators; explicit0 interval/timing retained. Additive nativeTiming/bridgeTiming carry per-process monotonic durations and requestId. Windows batch results preserve text contentVerification=unverified and verifiedInsertedUnits=null. Local interruption errors forbid blind replay; legacy applied is not content verification. A/B/grants/device targeting and api.v1 identity unchanged.
+
+## Keep RMv2 working sessions visible and yield input without failing Agent sessions
+
+Native RMv2 additive input receipt on Owner activity: applied:false/state:paused/reason:owner_input/sessionRetained:true/resumeRequiresObservation:true/automaticReplay:false. Optional requestedUnits/sentUnits measure requested and emitted UTF16 events only; verifiedInsertedUnits:null/contentVerification:unverified. No public permission/schema expansion. Agent must reobserve target and content before continuation, never replay the full mutation automatically.

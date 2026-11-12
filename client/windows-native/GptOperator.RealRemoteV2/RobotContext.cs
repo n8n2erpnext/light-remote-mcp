@@ -51,6 +51,7 @@ internal sealed class RobotContext : ApplicationContext
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
         _semantic=new SemanticSessionManager(_sensor);
         _visual=new VisualSessionManager();
+        _activity.HasWorkingSession=()=>_visual.ActiveSessions>0||_semantic.HasSessions;
         _browser=new BrowserSemanticProvider();
         _sensor.Changed+=value=>{
             if(!_semantic.HasSessions) _rpc.PublishEvent("ui.changed",value);
@@ -66,8 +67,11 @@ internal sealed class RobotContext : ApplicationContext
         var controlling=op is "cursor.move" or "cursor.click" or "cursor.wheel" or "cursor.drag"
             or "text.write" or "text.type" or "text.delete" or "key.press" or "key.hotkey"
             or "batch.run" or "desktop.run" or "desktop.input" or "desktop.semantic.act" or "desktop-semantic-act";
-        if(controlling)_activity.Begin();
         try {
+        if(controlling) {
+            _activity.Begin();
+            if(_ambientGlow is not null)_ambientGlow.Dispatcher.Invoke(()=>_ambientGlow.Show(),System.Windows.Threading.DispatcherPriority.Render);
+        }
         object? result=op switch {
             "ping" => new {pong=true,pid=Environment.ProcessId},
             "status" or "desktop.status" => Status(),
@@ -123,6 +127,13 @@ internal sealed class RobotContext : ApplicationContext
             _ => throw new InvalidOperationException("operation_not_supported")
         };
         return result;
+        } catch(OwnerInputPause pause) {
+            // Yield this input operation, not the Agent session or background jobs.
+            // No automatic replay/refocus: events already sent are not verified text.
+            UpdateGlowVisibility();
+            return new {applied=false,state="paused",reason="owner_input",sessionRetained=true,
+                resumeRequiresObservation=true,automaticReplay=false,contentVerification="unverified",
+                requestedUnits=pause.RequestedUnits,sentUnits=pause.SentUnits,verifiedInsertedUnits=(int?)null};
         } finally { if(controlling) { NativeInput.ReleaseOwnedInputs(); _activity.End(); } }
     }
 
@@ -140,7 +151,7 @@ internal sealed class RobotContext : ApplicationContext
         glow.BeginInvoke(()=>{
             if(glow.IsDisposed)return;
             glow.SetPreview(_passivePreviewActive?_passivePreviewDeadline:0);
-            if(_activity.Active||_passivePreviewActive)glow.Show(); else glow.Hide();
+            if(_activity.IndicatorVisible||_passivePreviewActive)glow.Show(); else glow.Hide();
         });
     }
 
@@ -215,6 +226,8 @@ internal sealed class RobotContext : ApplicationContext
         cursorRenderer=_ambientGlow is {IsDisposed:false}?"native-system+ai-badge-border":"native-system",
         controlState=_activity.State=="idle"&&_visual.ActiveSessions>0?"observing":_activity.State,
         localInputMonitorAvailable=_activity.Available,
+        ownerInputBehavior="yield-current-input-keep-agent-session",
+        indicator=_ambientGlow is null?null:_ambientGlow.Dispatcher.Invoke(()=>_ambientGlow.Diagnostics()),
         inputContentVerification="unverified-unless-explicit-readback",
         ambientGlowActive=_ambientGlow is {IsDisposed:false,Visible:true},
         passivePreviewActive=_passivePreviewActive,

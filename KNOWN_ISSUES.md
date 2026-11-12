@@ -99,3 +99,7 @@ CI90 full baseline unaccepted: Windows probe transient native-control rectangle 
 ## Bound smooth-motion wait slices for prompt Owner interruption
 
 Phase1 final motion-wait change supersedes CI91. Actual physical local takeover between packets, mixedDPI/custom cursor/fullscreen remain Owner UAT items; do not infer them from selftest/tiny-move CI proof.
+
+## Keep RMv2 working sessions visible and yield input without failing Agent sessions
+
+Physical build92 awareness UI FAIL (intermittent/distant AI badge and missing edge glow); do not label it accepted based on controlBadge flag. Source fix dev8 pending exact native CI and physical test. Pasted typing report:1776units/interval0 sentPASS2.55s but not full readback; paced trial yielded local activity and Chrome foreground; original helper timeout remains distinct and unresolved. Full independent foreground user+AI operation is not available by split-screen; background UIA/window providers or separate desktop require dedicated implementation.

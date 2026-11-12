@@ -72,3 +72,7 @@ Windows RMv2 uses ControlActivity metadata hooks and tagged native input for Own
 ## Keep RMv2 input hooks independent of overlay rendering
 
 ControlActivity owns one dedicated metadata hook thread with a Win32 message loop; callbacks update atomic generation/timestamps and immediately continue the hook chain. WPF badge/edge rendering remains on the GUI thread. Initialization wait is bounded3s; missing monitor denies input. Stop/dispose posts WM_QUIT, unhooks in its owning thread and waits at most1s. https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelmouseproc
+
+## Keep RMv2 working sessions visible and yield input without failing Agent sessions
+
+Indicator is awareness, not authorization. First input arms it against existing visual/semantic working-session lifetime; standalone30s grace, disconnect/detach/desktop loss stop; read-only attach alone does not arm. Paused feedback lasts8s. Four nonactivating/click-through full WPF edge surfaces per monitor and visible-pixel cursor-tail badge are separate windows. OwnerInputPause is caught at native RPC operation boundary as a paused data receipt; session/background jobs stay alive and unsafe input is not replayed. User and Agent cannot have independent physical foreground focus just by tiling windows.

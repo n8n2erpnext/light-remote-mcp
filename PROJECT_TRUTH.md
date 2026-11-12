@@ -266,3 +266,7 @@ RMv2 phase1 native checks pass in CI90, but whole baseline is not accepted: host
 ## Bound smooth-motion wait slices for prompt Owner interruption
 
 Final phase1 review bounds Smooth Move sleep slices to8ms, correcting a sparse-frame cancellation delay up to249ms. Monotonic movement deadlines, easing, duration/defaults and exact endpoints remain unchanged. Exact-source full CI is required after this native change.
+
+## Keep RMv2 working sessions visible and yield input without failing Agent sessions
+
+Owner physical build92 indicator FAIL supersedes native flags-only awareness acceptance. dev8 repairs lifecycle, visible cursor tail and full painted all-monitor edge surfaces. Local input produces paused/sessionRetained receipt, not Agent/session termination; no input block/replay/refocus. Background jobs continue independently. Same foreground Windows session still has shared pointer/focus; per-window background automation and verified long typing remain future capability work. Internal only, native/full CI pending.

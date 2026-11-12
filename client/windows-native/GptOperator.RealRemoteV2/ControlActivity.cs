@@ -5,6 +5,12 @@ namespace GptOperator.RealRemoteV2;
 
 // Hooks only observe input metadata; they never suppress Owner input or retain keys/text.
 // Other injected input is not classified as physical Owner input. Our packets carry a marker.
+internal sealed class OwnerInputPause : Exception
+{
+    public int? RequestedUnits,SentUnits;
+    public OwnerInputPause():base("owner_input_yielded_reobserve_before_continuing") {}
+}
+
 internal sealed class ControlActivity : IDisposable
 {
     internal static readonly nint InputMarker = (nint)0x4C524D32;
@@ -15,7 +21,11 @@ internal sealed class ControlActivity : IDisposable
     private readonly ManualResetEventSlim _hooksReady=new(false);
     private uint _hookThreadId;
     private long _generation,_startedGeneration,_lastLocalAt,_until;
-    private long _desktopCheckedAt;
+    private long _desktopCheckedAt,_pausedFeedbackUntil;
+    private int _leaseBound;
+    public Func<bool>? HasWorkingSession;
+    public bool PausedFeedback => Volatile.Read(ref _paused)!=0 && _pauseReason=="paused-local-input" && Environment.TickCount64<Volatile.Read(ref _pausedFeedbackUntil);
+    public bool IndicatorVisible => Active || PausedFeedback;
     private int _running,_paused,_locked,_disposed;
     private string _pauseReason="idle";
     private readonly object _targetGate=new();
@@ -23,8 +33,13 @@ internal sealed class ControlActivity : IDisposable
     public System.Drawing.Rectangle? TargetScreen { get { lock(_targetGate)return _screen; } set { lock(_targetGate)_screen=value; } }
     public event Action? Changed;
     public bool Available => _hookThread is {IsAlive:true} && _mouseHook!=0 && _keyboardHook!=0;
-    public bool Active => Volatile.Read(ref _disposed)==0 && Volatile.Read(ref _paused)==0
-        && Volatile.Read(ref _locked)==0 && Environment.TickCount64<Volatile.Read(ref _until);
+    public bool Active {
+        get {
+            if(Volatile.Read(ref _disposed)!=0 || Volatile.Read(ref _paused)!=0 || Volatile.Read(ref _locked)!=0)return false;
+            if(Volatile.Read(ref _leaseBound)!=0 && !(HasWorkingSession?.Invoke()??false))Volatile.Write(ref _leaseBound,0);
+            return Volatile.Read(ref _running)!=0 || Volatile.Read(ref _leaseBound)!=0 || Environment.TickCount64<Volatile.Read(ref _until);
+        }
+    }
     public string State => Volatile.Read(ref _disposed)!=0?"disconnected":Volatile.Read(ref _paused)!=0?_pauseReason:Active?"controlling":"idle";
 
     public ControlActivity():this(true) {}
@@ -65,14 +80,15 @@ internal sealed class ControlActivity : IDisposable
             throw new InvalidOperationException("input_desktop_unavailable");
         var generation=Volatile.Read(ref _generation);
         if(Environment.TickCount64-Volatile.Read(ref _lastLocalAt)<750)
-            throw new InvalidOperationException("input_paused_local_activity_observe_before_retry");
+            { Stop("paused-local-input"); throw new OwnerInputPause(); }
         _startedGeneration=generation;
         Volatile.Write(ref _paused,0); Volatile.Write(ref _running,1);
         try { Check(); Touch(); } catch { End(); throw; }
     }
     public void Touch()
     {
-        Volatile.Write(ref _until,Environment.TickCount64+900);
+        if(HasWorkingSession?.Invoke()??false)Volatile.Write(ref _leaseBound,1);
+        Volatile.Write(ref _until,Environment.TickCount64+30_000);
         Changed?.Invoke();
     }
     public void Check()
@@ -80,20 +96,21 @@ internal sealed class ControlActivity : IDisposable
         if(Volatile.Read(ref _disposed)!=0 || Volatile.Read(ref _locked)!=0)
             throw new InvalidOperationException("input_desktop_unavailable");
         if(Volatile.Read(ref _running)!=0 && Volatile.Read(ref _generation)!=_startedGeneration)
-            throw new InvalidOperationException("input_interrupted_local_activity_do_not_replay");
+            throw new OwnerInputPause();
         var now=Environment.TickCount64;
         if(now-_desktopCheckedAt>=32) {
             _desktopCheckedAt=now;
             if(!InputDesktopAvailable()) { Stop("paused-desktop"); throw new InvalidOperationException("input_desktop_unavailable"); }
         }
-        Volatile.Write(ref _until,Environment.TickCount64+900);
+        Volatile.Write(ref _until,Environment.TickCount64+30_000);
     }
     public void End() { Volatile.Write(ref _running,0); Changed?.Invoke(); }
     public void Stop(string reason="idle")
     {
         Interlocked.Increment(ref _generation);
         _pauseReason=reason;
-        Volatile.Write(ref _until,0); Volatile.Write(ref _paused,1);
+        Volatile.Write(ref _until,0); Volatile.Write(ref _leaseBound,0); Volatile.Write(ref _paused,1);
+        Volatile.Write(ref _pausedFeedbackUntil,reason=="paused-local-input"?Environment.TickCount64+8000:0);
         Changed?.Invoke();
     }
     private void LocalInput()
@@ -101,8 +118,8 @@ internal sealed class ControlActivity : IDisposable
         var controlling=Volatile.Read(ref _running)!=0 || Active;
         Volatile.Write(ref _lastLocalAt,Environment.TickCount64);
         Interlocked.Increment(ref _generation);
-        Volatile.Write(ref _until,0);
-        if(controlling) { _pauseReason="paused-local-input"; Volatile.Write(ref _paused,1); }
+        Volatile.Write(ref _until,0); Volatile.Write(ref _leaseBound,0);
+        if(controlling) { _pauseReason="paused-local-input"; Volatile.Write(ref _pausedFeedbackUntil,Environment.TickCount64+8000); Volatile.Write(ref _paused,1); }
         // Hook stays bounded; no SendInput, UIA, dispatcher wait or blocking cleanup here.
     }
     private nint OnMouse(int code,nint message,nint data)
@@ -152,7 +169,10 @@ internal sealed class ControlActivity : IDisposable
         activity.Touch(); activity.LocalInput(); activity.LocalInput();
         if(activity.Active||activity.State!="paused-local-input")return false;
         try { activity.Check(); return false; }
-        catch(InvalidOperationException ex) { return ex.Message=="input_interrupted_local_activity_do_not_replay"; }
+        catch(OwnerInputPause) { if(!activity.PausedFeedback)return false; }
+        activity._paused=0;activity._running=0;activity._until=0;activity._leaseBound=1;
+        activity.HasWorkingSession=()=>true;if(!activity.Active)return false;
+        activity.HasWorkingSession=()=>false;return !activity.Active;
     }
     [StructLayout(LayoutKind.Sequential)] private struct MouseHook { public int X,Y; public uint Data,Flags,Time; public nint Extra; }
     [StructLayout(LayoutKind.Sequential)] private struct KeyHook { public uint Key,Scan,Flags,Time; public nint Extra; }

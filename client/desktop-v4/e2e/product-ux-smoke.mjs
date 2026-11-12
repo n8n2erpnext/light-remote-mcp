@@ -30,7 +30,7 @@ try{
    if(['long-memory','codex-bridge','settings'].includes(screen))await page.locator('.native-module-screen,.settings-column').waitFor();
    if(screen==='long-memory')await page.getByRole('heading',{name:'Website redesign',exact:true}).waitFor();
    if(screen==='codex-bridge')await page.getByText('Review the complete checkout and subscription settings workflow for returning customers',{exact:true}).waitFor();
-   if(screen==='settings')await page.getByText('0.10.1-dev.7',{exact:true}).waitFor();
+   if(screen==='settings')await page.getByText('0.10.1-dev.8',{exact:true}).waitFor();
    const metrics=await page.evaluate(()=>{
     const bad=Array.from(document.querySelectorAll('.lr-card,.page-header,.sidebar,.auth-card,.consent-card,.native-confirm,.device-link-modal')).filter(x=>x.scrollWidth>x.clientWidth+3).map(x=>x.className);
     const input=document.querySelector('input[placeholder="XXXX-XXXX"]'),button=document.querySelector('.approval-request button[type="submit"]');

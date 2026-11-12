@@ -241,3 +241,7 @@ Hosted apt mirror helper includes observed /etc/apt/apt-mirrors.txt (mirror+file
 ## Bound hosted DNS recovery and refresh stale installer UI snapshots
 
 CI90 actual mirror list was rewritten (count1); archive DNS still failed. Disposable hosted apt setup now follows upstream1retry/15s acquire timeouts, exact-host HTTPS, and if needed two-host DNS recovery via Google HTTPS JSON API with strict question/public IPv4/TTL validation. TLS/package signatures remain enabled; apt update fails on any repository error. Sources: https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/configure-apt.sh and https://developers.google.com/speed/public-dns/docs/doh/json . Native UI snapshot retries only stale HWND acquisition, not acceptance assertions.
+
+## Keep RMv2 working sessions visible and yield input without failing Agent sessions
+
+dev8 native proof additionally waits2200ms between actions with live visual session, checks4 painted full-surface click-through edges per monitor, then detaches and checks timer stops. WPF layout size and HWND physical size are both set. Entire previous installer/lifecycle regression retained. Hosted-only authenticated Ubuntu mirror selection resolves authoritative Ubuntu DNS outage; no product/ARM DNS changes, TLS/signatures/keyring/suites retained.

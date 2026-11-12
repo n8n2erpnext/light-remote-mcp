@@ -286,3 +286,7 @@ The distribution UI probe filters the branded wordmark before geometry and retri
 ## Bound smooth-motion wait slices for prompt Owner interruption
 
 NativeInput.Move keeps absolute monotonic pacing but caps individual Thread.Sleep calls at8ms, matching interruptible click/key/drag delays; activity generation is checked after each slice. Dedicated hooks remain independent of UI rendering.
+
+## Keep RMv2 working sessions visible and yield input without failing Agent sessions
+
+ControlActivity owns first-input-armed working-session indicator lifetime and OwnerInputPause metadata. RobotContext converts input yield to paused/sessionRetained data receipt without closing RPC/Agent/session. NativeInput.WriteText retains sent-unit count on yield; no inserted-text proof. CursorGlowOverlay scans visible cursor pixels and sizes real WPF edge content plus physical HWNDs on every monitor; diagnostics reports actual rectangles, painted center alpha and click-through for CI. No new public auth endpoints.

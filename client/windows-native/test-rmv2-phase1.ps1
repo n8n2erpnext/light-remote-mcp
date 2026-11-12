@@ -69,10 +69,20 @@ try {
  $active=Invoke-Rm @{op='status'}
  if($active.osCursorOverridden -or $active.cursorRenderer -ne 'native-system+ai-badge-border' -or -not $active.ambientGlowActive){throw 'active_badge_state_invalid'}
  if([RmCursorProbe]::Roles() -ne $baseline){throw 'native_system_cursor_role_changed'}
- Start-Sleep -Milliseconds 1100
- $quiet=Invoke-Rm @{op='status'};Start-Sleep -Milliseconds 180;$quietAgain=Invoke-Rm @{op='status'}
- if($quietAgain.ambientGlowActive -or $quietAgain.ambientGlowPaintCount -ne $quiet.ambientGlowPaintCount){throw 'hidden_indicator_timer_still_running'}
+ # A live working session remains visibly marked between tool calls/model waits.
+ Start-Sleep -Milliseconds 2200
+ $working=Invoke-Rm @{op='status'}
+ if(-not $working.ambientGlowActive -or $working.indicator.label -ne 'AI'){throw 'working_session_indicator_disappeared_between_actions'}
+ $edges=@($working.indicator.edges)
+ if($edges.Count -ne (4*$working.indicator.screenCount)){throw 'full_display_edges_not_visible'}
+ foreach($edge in $edges) {
+  if(-not $edge.clickThrough -or $edge.centerAlpha -lt 100){throw 'edge_surface_not_painted_or_intercepts_input'}
+  if([Math]::Max($edge.width,$edge.height) -lt 300 -or [Math]::Max($edge.surfaceWidth,$edge.surfaceHeight) -lt 250){throw 'edge_hwnd_or_wpf_surface_still_tiny'}
+ }
  $null=Invoke-Rm @{op='desktop.visual.detach';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken}
+ Start-Sleep -Milliseconds 150
+ $quiet=Invoke-Rm @{op='status'};Start-Sleep -Milliseconds 180;$quietAgain=Invoke-Rm @{op='status'}
+ if($quietAgain.ambientGlowActive -or $quietAgain.ambientGlowPaintCount -ne $quiet.ambientGlowPaintCount){throw 'detached_indicator_timer_still_running'}
  if([RmCursorProbe]::Roles() -ne $baseline){throw 'cursor_role_changed_after_detach'}
  $restore=Invoke-Rm @{op='cursor.restore'}
  if(-not $restore.restored -or $restore.osCursorOverridden){throw 'explicit_cursor_restore_failed'}
@@ -83,7 +93,7 @@ try {
  $writer.Dispose();$reader.Dispose();$pipe.Dispose();$writer=$null;$reader=$null;$pipe=$null
  if(-not $process.WaitForExit(8000)){throw 'rmv2_phase1_did_not_exit'}
  $sorted=@($timings|Sort-Object)
- $receipt=@{result='PASS';scope='isolated_windows_ci_not_owner_physical';systemCursorRoles=11;tinyMoves=$timings.Count;observationNoOverride=$true;controlBadge=$true;idleTimerStopped=$true;restoreWhileAlive=$true;handlerP50Ms=$sorted[[int][math]::Floor(($sorted.Count-1)*0.5)];handlerP95Ms=$sorted[[int][math]::Ceiling(($sorted.Count-1)*0.95)];performanceComparison='NO_BEFORE_AFTER_BENCHMARK';physicalLocalTakeover='PENDING_OWNER';mixedDpiPhysical='PENDING_OWNER'}
+ $receipt=@{result='PASS';scope='isolated_windows_ci_not_owner_physical';systemCursorRoles=11;tinyMoves=$timings.Count;observationNoOverride=$true;controlBadge=$true;workingGapIndicator=$true;paintedDisplayEdges=$edges;ownerInputBehavior="yield-current-input-keep-agent-session";idleTimerStopped=$true;restoreWhileAlive=$true;handlerP50Ms=$sorted[[int][math]::Floor(($sorted.Count-1)*0.5)];handlerP95Ms=$sorted[[int][math]::Ceiling(($sorted.Count-1)*0.95)];performanceComparison='NO_BEFORE_AFTER_BENCHMARK';physicalLocalTakeover='PENDING_OWNER';mixedDpiPhysical='PENDING_OWNER'}
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Compress)
 } finally {

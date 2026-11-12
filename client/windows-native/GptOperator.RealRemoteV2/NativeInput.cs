@@ -186,13 +186,14 @@ internal static class NativeInput
     {
         if(text.Length>4096) throw new InvalidOperationException("text_too_large");
         intervalMs=Math.Clamp(intervalMs,0,100);
-        foreach(var ch in text)
+        var sent=0;
+        try { foreach(var ch in text)
         {
             var down=new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{wScan=ch,dwFlags=KEYEVENTF_UNICODE}}};
             var up=new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{wScan=ch,dwFlags=KEYEVENTF_UNICODE|KEYEVENTF_KEYUP}}};
-            Send(new[]{down,up});
+            Send(new[]{down,up}); sent++;
             if(intervalMs>0) InterruptibleDelay(intervalMs);
-        }
+        }} catch(OwnerInputPause pause) { pause.RequestedUnits=text.Length; pause.SentUnits=sent; throw; }
     }
 
     public static void DeleteText(int count)
