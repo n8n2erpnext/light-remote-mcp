@@ -245,3 +245,7 @@ CI90 actual mirror list was rewritten (count1); archive DNS still failed. Dispos
 ## Keep RMv2 working sessions visible and yield input without failing Agent sessions
 
 dev8 native proof additionally waits2200ms between actions with live visual session, checks4 painted full-surface click-through edges per monitor, then detaches and checks timer stops. WPF layout size and HWND physical size are both set. Entire previous installer/lifecycle regression retained. Hosted-only authenticated Ubuntu mirror selection resolves authoritative Ubuntu DNS outage; no product/ARM DNS changes, TLS/signatures/keyring/suites retained.
+
+## Record CI94 acceptance and Owner explicit RM session completion contract
+
+Verified CI94 internal artifact13914719235, source5616f7ed7bb2a9df4ef1d7465f2b1087167619a3/tree09378932c7b89320f48ef821ded2506810b16985, installerSHA6acd74f3513b3f87bfa4c7198f5b3c75ecb2644bb08bb8aab1be0304e8aef911 bytes172590083. Source/native proof and full baseline do not override Owner physical lifecycle FAIL. New explicit-close/orphan/palette source must get its own exact CI.

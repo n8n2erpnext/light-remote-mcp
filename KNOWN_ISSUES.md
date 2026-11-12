@@ -103,3 +103,7 @@ Phase1 final motion-wait change supersedes CI91. Actual physical local takeover 
 ## Keep RMv2 working sessions visible and yield input without failing Agent sessions
 
 Physical build92 awareness UI FAIL (intermittent/distant AI badge and missing edge glow); do not label it accepted based on controlBadge flag. Source fix dev8 pending exact native CI and physical test. Pasted typing report:1776units/interval0 sentPASS2.55s but not full readback; paced trial yielded local activity and Chrome foreground; original helper timeout remains distinct and unresolved. Full independent foreground user+AI operation is not available by split-screen; background UIA/window providers or separate desktop require dedicated implementation.
+
+## Record CI94 acceptance and Owner explicit RM session completion contract
+
+Owner build94 FAIL: retained visual/semantic session keeps AI paused/amber border visible after Agent final report. Remedy selected by Owner is explicit RM close required before report plus45s no-running-job/no-RM-activity orphan fallback;45s may require a new RM attach after prolonged silence between tools. Do not infer end of task from chat text/window title. No A/B revoke or Agent/session kill.

@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 280,
+    "total": 281,
     "markdown": 230,
-    "json": 50
+    "json": 51
   },
   "files": [
     {
@@ -628,6 +628,27 @@
         "physicalLocalTakeover",
         "result",
         "controlBadge"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/phase1-ci94.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2245,
+      "sha256": "ee1e8ab91740beea2104c3ad91946cb3cab3ea3cf003dbd0abac8e1de63f2b59",
+      "topLevelKeys": [
+        "compiledSource",
+        "sourceTree",
+        "version",
+        "ciRunId",
+        "successfulJobs",
+        "artifactId",
+        "artifactZipSha256",
+        "installerSha256",
+        "installerBytes",
+        "publicFeedPromoted",
+        "physicalAcceptance",
+        "nativeProof"
       ]
     },
     {

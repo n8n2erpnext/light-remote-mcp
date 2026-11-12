@@ -294,3 +294,7 @@ ControlActivity owns first-input-armed working-session indicator lifetime and Ow
 ## Keep paused RMv2 session awareness visible during Owner work
 
 ControlActivity.PausedFeedback now stays active while the existing visual/semantic working session remains live, or8s standalone. Locked/disposed/detached state hides it. Source plan records shared foreground pointer/focus and future background-provider boundary. No privilege/input-block/session termination change.
+
+## Record CI94 acceptance and Owner explicit RM session completion contract
+
+Next boundary changes are Agent-owned desktop visual rows/input dispatch, native visual detach/activity lifetime and overlay palette, native bridge scope forwarding, plugin tool lifecycle instructions. Scope ownership must remain A/B session+Agent; close/expiry must fence late responses and input, not revive scopes.

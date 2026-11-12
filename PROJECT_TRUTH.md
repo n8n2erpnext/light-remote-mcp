@@ -274,3 +274,7 @@ Owner physical build92 indicator FAIL supersedes native flags-only awareness acc
 ## Keep paused RMv2 session awareness visible during Owner work
 
 Owner shared-desktop clarification: keep paused awareness throughout an existing RM working session; do not hide AI/glow while the user works and Agent remains connected. This retains paused input, not independent foreground automation. Public Codex docs confirm Windows foreground input; no internal1:1 implementation claim. Physical UI acceptance stays FAIL/pending retest.
+
+## Record CI94 acceptance and Owner explicit RM session completion contract
+
+CI94 dev8 full9/9 PASS and source/artifact verified, but Owner reports overlay stuck after task completion. Physical lifecycle is FAIL/pending new fix. Latest Owner decision: explicit RM close before final report; next input requires reopen;45s quiet orphan fallback excludes active RM jobs; capture/input renew, generic status/heartbeat do not. Light Outlook sky blue replaces brown. A/B stays separate.

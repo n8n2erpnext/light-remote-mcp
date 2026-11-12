@@ -1,0 +1,76 @@
+{
+  "compiledSource": "5616f7ed7bb2a9df4ef1d7465f2b1087167619a3",
+  "sourceTree": "09378932c7b89320f48ef821ded2506810b16985",
+  "version": "0.10.1-dev.8",
+  "ciRunId": 43152412166,
+  "successfulJobs": 9,
+  "artifactId": 13914719235,
+  "artifactZipSha256": "57701893043fa5d1b9e480a2387b65a343430b9178d840dd1bcfd191ce94df4c",
+  "installerSha256": "6acd74f3513b3f87bfa4c7198f5b3c75ecb2644bb08bb8aab1be0304e8aef911",
+  "installerBytes": 172590083,
+  "publicFeedPromoted": false,
+  "physicalAcceptance": "OWNER_REPORTS_OVERLAY_REMAINS_AFTER_TASK_COMPLETION_NOT_ACCEPTED",
+  "nativeProof": {
+    "sourceCommit": "5616f7ed7bb2a9df4ef1d7465f2b1087167619a3",
+    "ciRunId": 43152412166,
+    "artifactId": 13913909808,
+    "artifactSha256": "a58b7341f373b31da2bffb642412de27379dc275f20d0f9497a1c09439ee0c80",
+    "ownerInputBehavior": "yield-current-input-keep-agent-session",
+    "handlerP95Ms": 159.0044,
+    "idleTimerStopped": true,
+    "observationNoOverride": true,
+    "scope": "isolated_windows_ci_not_owner_physical",
+    "handlerP50Ms": 2.9921,
+    "controlBadge": true,
+    "restoreWhileAlive": true,
+    "result": "PASS",
+    "tinyMoves": 11,
+    "paintedDisplayEdges": [
+      {
+        "left": 0,
+        "top": 0,
+        "width": 1024,
+        "height": 5,
+        "surfaceWidth": 1024,
+        "surfaceHeight": 5,
+        "centerAlpha": 160,
+        "clickThrough": true
+      },
+      {
+        "left": 0,
+        "top": 763,
+        "width": 1024,
+        "height": 5,
+        "surfaceWidth": 1024,
+        "surfaceHeight": 5,
+        "centerAlpha": 160,
+        "clickThrough": true
+      },
+      {
+        "left": 0,
+        "top": 5,
+        "width": 5,
+        "height": 758,
+        "surfaceWidth": 5,
+        "surfaceHeight": 758,
+        "centerAlpha": 160,
+        "clickThrough": true
+      },
+      {
+        "left": 1019,
+        "top": 5,
+        "width": 5,
+        "height": 758,
+        "surfaceWidth": 5,
+        "surfaceHeight": 758,
+        "centerAlpha": 160,
+        "clickThrough": true
+      }
+    ],
+    "mixedDpiPhysical": "PENDING_OWNER",
+    "physicalLocalTakeover": "PENDING_OWNER",
+    "performanceComparison": "NO_BEFORE_AFTER_BENCHMARK",
+    "systemCursorRoles": 11,
+    "workingGapIndicator": true
+  }
+}
