@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-12T09:01:03.223Z",
+  "updatedAt": "2026-11-12T09:09:45.201Z",
   "version": "0.10.1-dev.10",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "RMV2_PHASE2A_DEV10_SOURCE_PUBLISHED_CI_PENDING_CONTINUE_PLAN",
+  "status": "RMV2_PHASE2A_DEFAULT_PATH_FIX_NATIVE_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -361,7 +361,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow actual Actions native failures while implementing phase2 target-bound verified long typing, explicit Windows type routing and no silent truncation; then capture cache/ROI/freshness and optional DXGI/media stages in separate rollbackable commits. Owner will physically test the integrated candidate later. No Lab cutover/public release/Owner install yet.",
+  "nextAction": "Follow corrected phase2a native compile and continue phase2b target-bound verified long typing. Keep default compatibility and no automatic mutation retry. Owner UAT remains deferred until integrated candidate.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -452,12 +452,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261112-rmv2-phase2a-ordered-control-lanes",
-    "status": "DEV10_PHASE2A_SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
-    "summary": "Phase2a dev10 source adds dedicated bounded MTA ordered-input/state and capture lanes, independent bounded status/cancel, owner-and-lease checked cancellation with queued-operation fences, and explicit compatibility/precision/responsive/smooth pointer profiles. Default timing retained. Native scheduler self-test and portable end-to-end mapping cases added; native build/acceptance pending. CI98 dev9 artifact independently verified local+ARM; Owner requests remaining plan and one consolidated physical UAT later. Preserve all runtime/authority/production.",
-    "verification": "Require portable RM contract/lifecycle/helper/import checks PASS. Native scheduler self-test is registered in existing Windows self-test but not executed on ARM/Owner; exact Actions compile/full CI pending. No p95 speedup or physical acceptance claim. Before checkpoint checkpoint/20261112-before-rmv2-phase2-3f85c36 bundleSHA e679555effebb038bdb71ac4ea0a364fa8822d5cd7e19aed1ace4b87ba0f6c14 restore/fsck PASS.",
-    "nextAction": "Follow actual Actions native failures while implementing phase2 target-bound verified long typing, explicit Windows type routing and no silent truncation; then capture cache/ROI/freshness and optional DXGI/media stages in separate rollbackable commits. Owner will physically test the integrated candidate later. No Lab cutover/public release/Owner install yet.",
-    "sourceDigest": "428b50a8ad0fba0f8972d4496dea43ccd92778004d47ca0c84e8c00c0b367d00",
+    "taskId": "20261112-rmv2-phase2a-default-timing-regression",
+    "status": "CI100_DEFAULT_PATH_SOURCE_REGRESSION_FIXED_NATIVE_COMPILE_PENDING",
+    "summary": "CI100 core and Windows stopped at retained smooth/Paint-default source regression gates before native product compilation. Keep the explicit90ms/8step and35/40ms compatibility paths unchanged; apply opt-in fast defaults afterwards, without changing defaults or tests. Add native profile behavior self-test. Portable profile+double-normalization and existing productization/parity gates required PASS; no accepted CI100 artifact. Remaining RM plan and consolidated Owner UAT continue.",
+    "verification": "CI100 run43187743891 failed static default-timing path gates; no native acceptance. Existing tests remain unchanged. Re-run normalization mapping, productization, Paint/cursor parity, native profile self-test in Actions and exact full CI. No runtime/Owner install or physical acceptance.",
+    "nextAction": "Follow corrected phase2a native compile and continue phase2b target-bound verified long typing. Keep default compatibility and no automatic mutation retry. Owner UAT remains deferred until integrated candidate.",
+    "sourceDigest": "1567025f9bd9344146045159cfbc47d2195c1dd2df143a2a97ad410c5b1747fd",
     "sourceFileCount": 1685
   },
   "legacyFilesystemCleanup": {
@@ -1547,7 +1547,7 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "PENDING_DEV10",
+    "nativeCi": "PENDING_DEFAULT_PATH_FIX",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
@@ -1560,7 +1560,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci98.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PENDING_DEV10",
+    "fullCi": "CI100_FAIL_DEFAULT_PATH_GATES_CORRECTED_SOURCE_PENDING",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1622,7 +1622,10 @@
         "smooth"
       ],
       "defaultProfile": "compatibility",
-      "nativeAcceptance": "PENDING_EXACT_ACTIONS"
+      "nativeAcceptance": "PENDING_EXACT_ACTIONS",
+      "ci100": "FAILED_BEFORE_NATIVE_COMPILE_DEFAULT_PATH_FINGERPRINTS",
+      "defaultCompatibility": "EXPLICIT_90MS_8STEPS_35MS_HOVER_40MS_HOLD",
+      "nativeProfileSelfTest": "REGISTERED_PENDING_ACTIONS"
     },
     "phase2b": "TARGET_VERIFIED_LONG_TYPING_NEXT",
     "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN"

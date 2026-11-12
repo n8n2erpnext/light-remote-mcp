@@ -292,3 +292,7 @@ dev9 also acknowledges already-closed task IDs to their original session+Agent f
 ## Add ordered RM work with fast scoped cancel and explicit pointer profiles
 
 Current development candidate dev10 phase2a has ordered MTA input/state, independent capture and bounded fast status/cancel plus explicit pointer profiles. Native compile/full CI pending; previous compiled dev9/CI98 remains the verified artifact. Owner deferred physical UAT until remaining plan is implemented. No runtime/Owner install/production changes.
+
+## Retain explicit legacy RM timing paths alongside opt-in profiles
+
+CI100 failed retained default timing path checks before native compile. Source now retains explicit legacy90ms/8step and35/40ms branches, with opt-in fast overrides afterwards. Tests were not weakened; native profile self-test added. dev10 native/full CI still pending; do not use CI98 proof for dev10.

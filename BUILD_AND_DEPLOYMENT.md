@@ -269,3 +269,7 @@ CI98 source398c4c8b316d59458f636bcdf1bd4ea44056634f/tree5f432f68d60ff2426bd27428
 ## Add ordered RM work with fast scoped cancel and explicit pointer profiles
 
 Phase2a candidate dev10 requires Actions native compile/self-test/full installer regression. RpcWorkScheduler.SelfTest uses deferred work to prove independent status/capture, input ordering, queued cancel fence and later explicit input. It does not inject Owner input. CI98 dev9 source398c4c8 installerSHA6cb6ca1e02653dd647c05cbab677545c5af74b1e5129c1b04491b375cb54785a independently verified on ARM+workspace as rollback baseline; do not label dev10 as built from that artifact.
+
+## Retain explicit legacy RM timing paths alongside opt-in profiles
+
+CI100 source d11f32d has no accepted native artifact: early source gates caught legacy default timing path refactor. Corrected code preserves those paths and adds native InteractionProfile.SelfTest. Existing source/productization/parity checks remain required.

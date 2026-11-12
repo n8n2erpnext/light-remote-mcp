@@ -314,3 +314,7 @@ rmv2-task-lifecycle exposes bounded owner-bound remember/confirmed close receipt
 ## Add ordered RM work with fast scoped cancel and explicit pointer profiles
 
 RpcWorkScheduler.cs owns bounded native lanes and per-native-scope queued cancellation epochs. RobotRpcServer keeps reading pipe requests while workers run and correlates out-of-order responses by ID; ControlActivity cooperative cancel keeps task/Agent alive. NativeDesktopBridge maps cancel; Operator enforces input capabilities and target platform; device Agent verifies exact RM owner and bypasses lease-resume queue before cancel. Plugin registers new governed tool/helper. InteractionProfile.cs supplies explicit pointer timing defaults.
+
+## Retain explicit legacy RM timing paths alongside opt-in profiles
+
+Compatibility timing stays explicit in NativeDesktopBridge event mapping and NativeInput.Click; opt-in precision/responsive overrides occur only when selected. Program native self-test now includes InteractionProfile behavior plus RpcWorkScheduler concurrency.

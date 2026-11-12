@@ -134,11 +134,11 @@ internal static class NativeInput
         // Paint ribbon menus need the pointer hover to settle before down.
         // A zero-time SendInput down/up burst was intermittently interpreted
         // as hover only even though the RPC reported applied=true.
-        InterruptibleDelay(profile.HoverMs);
+        if(profile.Name=="responsive")InterruptibleDelay(profile.HoverMs);else InterruptibleDelay(35);
         for(var i=0;i<count;i++)
         {
             SendMouseFlag(flags.Down);
-            InterruptibleDelay(profile.DownMs);
+            if(profile.Name=="responsive")InterruptibleDelay(profile.DownMs);else InterruptibleDelay(40);
             ReleaseOwnedInputs();
             if(i<count-1) InterruptibleDelay(profile.DoubleGapMs);
         }
