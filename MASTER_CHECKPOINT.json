@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-12T05:43:37.502Z",
+  "updatedAt": "2026-11-12T05:52:29.946Z",
   "version": "0.10.1-dev.9",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "RMV2_DEV9_EXPLICIT_SCOPE45_CI_PENDING",
+  "status": "RMV2_DEV9_PACKAGE_RECEIPT_COMPAT_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -360,7 +360,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Run exact dev9 Actions including actual native closed-scope/read-only-observer/reopen/45s/status/palette proof and full installer regression. Verify source/tree/CI/profile/SHA manifests, update existing docs/checkpoint, and only then stage isolated Lab backend if required; Owner installs internal artifact manually. No production/domain/public feed changes.",
+  "nextAction": "Follow fresh exact-source full9 Actions, including actual scoped input/explicit close/new-ID/45s status-poll expiry/blue painted surfaces and complete installer/migration/rollback. Verify artifact before internal handoff and isolated Lab rollout; no Owner install or production/domain changes.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -451,12 +451,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261112-rmv2-explicit-scope45-outlook-blue",
-    "status": "DEV9_RM_TASK_LIFECYCLE_IMPLEMENTED_NATIVE_CI_PENDING",
-    "summary": "Owner-selected contract implemented: public RM input requires an owner-bound desktop_attach scope; desktop_detach confirmation required before final task report; closed/expired IDs reject and further input needs new attach. Real RM work renews45s quiet grace, in-flight jobs defer expiry, status/general heartbeat/passive Hub push do not renew. Explicit close fences input, drains pending operations, cleans linked semantic/live children, awaits native UI hide, retries failure and prevents late resurrection. Native indicator binds actual working scope so unrelated observers cannot keep it alive. Active/paused badge and edges change to light Outlook sky blue with navy text. A/B and unrelated Agent jobs retained.",
-    "verification": "Local8 lifecycle tests PASS; double normalization/native scope forwarding, helper lifecycle, visual recovery and pointer/indicator source contracts PASS; PS parser PASS. Before-task full tag checkpoint/20261112-before-rmv2-lifecycle-5616f7e, all-ref bundle b758c590614e3afee33448707a559b59b034fb573760bc0d2881f674ec434ad7 restored/fsck PASS. Historical CI94 dev8 all9/artifact verified but physical lifecycle FAIL. dev9 needs exact-source native/full CI and Owner physical test; no claim that external model final messages can be intercepted.",
-    "nextAction": "Run exact dev9 Actions including actual native closed-scope/read-only-observer/reopen/45s/status/palette proof and full installer regression. Verify source/tree/CI/profile/SHA manifests, update existing docs/checkpoint, and only then stage isolated Lab backend if required; Owner installs internal artifact manually. No production/domain/public feed changes.",
-    "sourceDigest": "88004190ee4f5f8d7e95455d14611d4ce80182280868147dea08092942efd255",
+    "taskId": "20261112-rmv2-scope-package-receipt-compat",
+    "status": "DEV9_PACKAGING_AND_ADDITIVE_RECEIPT_FIXED_CI_PENDING",
+    "summary": "CI96 source import-closure gate correctly rejected missing lifecycle module in client/core-files.json; add the runtime module to the actual Windows Agent core package. Review also caught pre-existing nested visual-input response shape now reached by scope forwarding; merge visual receipt additively so existing applied/native/results fields stay at their old locations. No assertions relaxed. RM explicit close/45s/sky-blue contract unchanged.",
+    "verification": "Local client import closure, double-normalization/scope forwarding and8 lifecycle cases required PASS. CI96 full baseline not accepted because missing package import; native scoped tiny-move proof in the next exact-source CI validates receipt shape. Before-task recovery tag/bundle remain verified.",
+    "nextAction": "Follow fresh exact-source full9 Actions, including actual scoped input/explicit close/new-ID/45s status-poll expiry/blue painted surfaces and complete installer/migration/rollback. Verify artifact before internal handoff and isolated Lab rollout; no Owner install or production/domain changes.",
+    "sourceDigest": "ae1582eb8eaeaec79431648e572353d968b254ae0a65b1e55c44a51177cd8d7c",
     "sourceFileCount": 1683
   },
   "legacyFilesystemCleanup": {
@@ -1546,7 +1546,7 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "PENDING_DEV9",
+    "nativeCi": "PENDING_FINAL_PACKAGE_RECEIPT_SOURCE",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
@@ -1559,7 +1559,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci94.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PENDING_DEV9_EXACT_SOURCE",
+    "fullCi": "CI96_IMPORT_CLOSURE_FAIL_FIXED_PENDING_RETRY",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1595,6 +1595,8 @@
       "text": "#0F456B",
       "edge": "#4AA7DF"
     },
-    "portableLifecycleCases": 8
+    "portableLifecycleCases": 8,
+    "clientCoreRuntimeModuleIncluded": true,
+    "scopedInputReceipt": "ADDITIVE_VISUAL_METADATA_PRESERVES_FLAT_EXISTING_FIELDS"
   }
 }

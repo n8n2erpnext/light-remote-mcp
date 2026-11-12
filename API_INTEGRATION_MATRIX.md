@@ -92,3 +92,7 @@ Native RMv2 additive input receipt on Owner activity: applied:false/state:paused
 ## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
 
 contracts/api.v1.json rmTaskLifecycle v1 records attach prerequisite, optional desktopSessionId on named input/semantic tools, confirmed scopeClosed/taskEnded/newAttachRequired close receipt,45s quiet fallback and owner binding. Tool descriptors/helper/per-operation rmTask receipts require close-before-final-report; this is a client protocol requirement, not an invented ChatGPT turn-end callback. Hub live-read alone is cached/passive and does not renew the device scope; use real device frames/observations during active design.
+
+## Package RM task lifecycle module and retain scoped input receipt compatibility
+
+Native input scope metadata is additive under visual; it does not wrap old applied/native/results or semantic acknowledgment fields under mutation/semantic. Existing desktop.run structure remains unchanged. Public task lifecycle and owner checks stay as documented.

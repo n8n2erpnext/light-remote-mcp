@@ -253,3 +253,7 @@ Verified CI94 internal artifact13914719235, source5616f7ed7bb2a9df4ef1d7465f2b10
 ## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
 
 dev9 native proof adds real explicit-close acknowledgment with another read-only view retained, rejection of closed native scope, fresh ID on reopen,45s actual native orphan expiry despite status polling, and blue painted-edge channel checks. Entire previous native/install/upgrade/rollback/ConPTY regression retained; native builds only Actions. Node lifecycle tests use controlled clock and deferred operations, no Owner input. Artifact and Lab rollout require exact full9 CI and manifests; no public binary release.
+
+## Package RM task lifecycle module and retain scoped input receipt compatibility
+
+Windows client core bundle must include lib/rmv2-task-lifecycle.mjs; CI96 import-closure failure was a real packaging omission, now fixed in the manifest. Native scoped input receipt preserves prior shape so tiny-move/native result consumers remain compatible. Full CI/artifact acceptance still pending.

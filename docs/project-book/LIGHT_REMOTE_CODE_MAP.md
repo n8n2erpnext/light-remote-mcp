@@ -302,3 +302,7 @@ Next boundary changes are Agent-owned desktop visual rows/input dispatch, native
 ## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
 
 [rmv2-task-lifecycle.mjs](../../lib/rmv2-task-lifecycle.mjs) and its unit tests implement owner-bound selection, pending-operation tracking, close acknowledgment and late-response fences. Device Agent visual rows provide45s in-flight-safe timers and task-linked observation cleanup. NativeDesktopBridge forwards Agent-generated private visual ID/token for input/run/semantic actions; Operator normalization preserves public desktopSessionId. RobotContext validates supplied native lease and synchronously hides the ended working scope; VisualSessionManager.IsActive binds indicator to exact lease. Tool descriptors/helper/API contract expose attach/close/reopen requirements. CursorGlowOverlay palette is#DCEEFF/#0F456B/#4AA7DF.
+
+## Package RM task lifecycle module and retain scoped input receipt compatibility
+
+client/core-files.json now includes lifecycle runtime module in the actual Windows Agent package. RobotContext.AddVisualReceipt merges visual lease acknowledgment into existing native input object, preserving previous field paths.

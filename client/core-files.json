@@ -584,6 +584,10 @@
     {
       "source": "project.manifest.json",
       "destination": "project.manifest.json"
+    },
+    {
+      "source": "lib/rmv2-task-lifecycle.mjs",
+      "destination": "lib/rmv2-task-lifecycle.mjs"
     }
   ]
 }

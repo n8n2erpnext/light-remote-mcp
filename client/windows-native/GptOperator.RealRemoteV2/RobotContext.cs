@@ -364,7 +364,7 @@ internal sealed class RobotContext : ApplicationContext
         if(semanticSessionId.Length==0)
         {
             var mutation=RunBatch(r,64);
-            return visualReceipt is null?mutation:new {visual=visualReceipt,mutation};
+            return AddVisualReceipt(mutation,visualReceipt);
         }
 
         var afterSeq=Long(r,"afterSeq",0);
@@ -372,7 +372,16 @@ internal sealed class RobotContext : ApplicationContext
         _semantic.ValidateInput(semanticSessionId,afterSeq);
         var semanticMutation=RunBatch(r,64);
         var semanticAck=_semantic.AcknowledgeInput(semanticSessionId,afterSeq,settleMs,semanticMutation);
-        return visualReceipt is null?semanticAck:new {visual=visualReceipt,semantic=semanticAck};
+        return AddVisualReceipt(semanticAck,visualReceipt);
+    }
+
+    private static object AddVisualReceipt(object mutation,object? visual)
+    {
+        if(visual is null)return mutation;
+        // Scope metadata is additive: retain the existing input receipt shape.
+        var receipt=System.Text.Json.JsonSerializer.SerializeToNode(mutation)!.AsObject();
+        receipt["visual"]=System.Text.Json.JsonSerializer.SerializeToNode(visual);
+        return receipt;
     }
 
     private object SemanticAct(JsonElement r)

@@ -282,3 +282,7 @@ CI94 dev8 full9/9 PASS and source/artifact verified, but Owner reports overlay s
 ## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
 
 dev9 implements explicit owner-bound RM task scope using existing desktop_attach/detach. Agent must confirm taskEnded/scopeClosed before final report; public input requires open scope and rejects closed/expired IDs.45s quiet fallback ignores status/heartbeat, protects in-flight work and renews on actual RM device activity. Native scope close hides indicator despite other retained read-only observers; linked task observation children are cleaned. Outlook-light-blue active/paused palette replaces brown. Implemented, not yet native/full/physical accepted.
+
+## Package RM task lifecycle module and retain scoped input receipt compatibility
+
+CI96 was rejected by actual client static-import package closure: rmv2-task-lifecycle runtime module now added to client/core-files.json. Scoped native input now retains existing flat fields with additive visual metadata. No test or policy weakening; exact-source native/full CI retry required.
