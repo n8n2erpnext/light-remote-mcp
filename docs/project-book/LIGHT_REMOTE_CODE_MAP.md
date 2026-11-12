@@ -298,3 +298,7 @@ ControlActivity.PausedFeedback now stays active while the existing visual/semant
 ## Record CI94 acceptance and Owner explicit RM session completion contract
 
 Next boundary changes are Agent-owned desktop visual rows/input dispatch, native visual detach/activity lifetime and overlay palette, native bridge scope forwarding, plugin tool lifecycle instructions. Scope ownership must remain A/B session+Agent; close/expiry must fence late responses and input, not revive scopes.
+
+## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
+
+[rmv2-task-lifecycle.mjs](../../lib/rmv2-task-lifecycle.mjs) and its unit tests implement owner-bound selection, pending-operation tracking, close acknowledgment and late-response fences. Device Agent visual rows provide45s in-flight-safe timers and task-linked observation cleanup. NativeDesktopBridge forwards Agent-generated private visual ID/token for input/run/semantic actions; Operator normalization preserves public desktopSessionId. RobotContext validates supplied native lease and synchronously hides the ended working scope; VisualSessionManager.IsActive binds indicator to exact lease. Tool descriptors/helper/API contract expose attach/close/reopen requirements. CursorGlowOverlay palette is#DCEEFF/#0F456B/#4AA7DF.

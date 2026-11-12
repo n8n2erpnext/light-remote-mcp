@@ -31,6 +31,14 @@ try {
     assert.ok(Number.isFinite(response.bridgeTiming.roundtripMs));
     assert.deepEqual(response.received,native.actions);
   }
+  const scoped=normalizeDesktopInput(normalizeDesktopInput({desktopSessionId:'desk_contract123',events:[{type:'move',x:1,y:2,durationMs:0,steps:1}]}));
+  assert.equal(scoped.desktopSessionId,'desk_contract123');
+  await bridge.request('input',{...scoped,visualSessionId:'vis_private123',leaseToken:'vlease_private123'});
+  assert.equal(native.visualSessionId,'vis_private123');assert.equal(native.leaseToken,'vlease_private123');
+  await bridge.request('run',{events:[{type:'move',x:1,y:2}],visualSessionId:'vis_private123',leaseToken:'vlease_private123'});
+  assert.equal(native.visualSessionId,'vis_private123');
+  await bridge.request('semantic-act',{semanticSessionId:'sem_contract123',nodeId:'n1',action:'invoke',visualSessionId:'vis_private123',leaseToken:'vlease_private123'});
+  assert.equal(native.visualSessionId,'vis_private123');
   for(const invalid of [{durationMs:-1},{durationMs:501},{steps:0},{steps:33}])
     assert.throws(()=>normalizeDesktopInput({events:[{type:'move',x:0,y:0,...invalid}]}),/desktop_input_invalid/);
   assert.deepEqual(normalizeDesktopInput({events:[{type:'move',x:1,y:2}]}).events,[{type:'move',x:1,y:2}]);

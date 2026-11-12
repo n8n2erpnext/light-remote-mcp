@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-12T05:18:56.124Z",
-  "version": "0.10.1-dev.8",
+  "updatedAt": "2026-11-12T05:43:37.502Z",
+  "version": "0.10.1-dev.9",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "RMV2_CI94_ACCEPTED_OWNER_LIFECYCLE_FAIL_EXPLICIT_CLOSE_45S_PLAN",
+  "status": "RMV2_DEV9_EXPLICIT_SCOPE45_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -360,7 +360,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Implement explicit attach-required owner-bound RM input scope, confirmed detach that hides overlay independent of leftover semantic observers, in-flight-safe45s orphan cleanup renewed by real RM screen/input activity, mandatory close-before-report tool contract, reopen-after-close, and light Outlook blue badge/edges. Build/test only in Actions; preserve production/domain/Owner installation.",
+  "nextAction": "Run exact dev9 Actions including actual native closed-scope/read-only-observer/reopen/45s/status/palette proof and full installer regression. Verify source/tree/CI/profile/SHA manifests, update existing docs/checkpoint, and only then stage isolated Lab backend if required; Owner installs internal artifact manually. No production/domain/public feed changes.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -451,13 +451,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261112-rmv2-ci94-owner-lifecycle-decision",
-    "status": "CI94_FULL_PASS_ARTIFACT_VERIFIED_OWNER_LIFECYCLE_FAIL_NEXT_IMPLEMENTATION",
-    "summary": "CI94 dev8 exact source passed9/9; ARM artifact ZIP/installer SHA and source/tree/profile/one-primary/migration/lifecycle verified. Owner installed/tested: AI paused and amber edge remain after Agent final report. This is a real lifecycle FAIL, not physical UI acceptance. Owner chooses explicit RM open/use/close: close required before final report; further input requires new RM open; preserve A/B. Keep current active-session indicator during design/capture/move/drag. Latest Owner adds45s orphan fallback, counting only quiet time with no running RM operation; status/general heartbeat must not renew. Change badge and edges from brown to gentle Outlook-like sky blue.",
-    "verification": "Verified internal artifact source5616f7e, CI43152412166/94 all9 PASS, artifact13914719235, installerSHA6acd74f3513b3f87bfa4c7198f5b3c75ecb2644bb08bb8aab1be0304e8aef911. Native proof shows4 painted1024x5/5x758 edges, alpha160/clickthrough, live-gap marker and11 cursor roles/tiny moves PASS on isolated runner. Physical lifecycle remains FAIL per Owner screenshots. Before-new-task tag checkpoint/20261112-before-rmv2-lifecycle-5616f7e; full bundle b758c590614e3afee33448707a559b59b034fb573760bc0d2881f674ec434ad7 restored/fsck PASS.",
-    "nextAction": "Implement explicit attach-required owner-bound RM input scope, confirmed detach that hides overlay independent of leftover semantic observers, in-flight-safe45s orphan cleanup renewed by real RM screen/input activity, mandatory close-before-report tool contract, reopen-after-close, and light Outlook blue badge/edges. Build/test only in Actions; preserve production/domain/Owner installation.",
-    "sourceDigest": "3a0491ca35a889828eab6af123645ca1b864d06c39a5e1fbf1146e78d744e2eb",
-    "sourceFileCount": 1681
+    "taskId": "20261112-rmv2-explicit-scope45-outlook-blue",
+    "status": "DEV9_RM_TASK_LIFECYCLE_IMPLEMENTED_NATIVE_CI_PENDING",
+    "summary": "Owner-selected contract implemented: public RM input requires an owner-bound desktop_attach scope; desktop_detach confirmation required before final task report; closed/expired IDs reject and further input needs new attach. Real RM work renews45s quiet grace, in-flight jobs defer expiry, status/general heartbeat/passive Hub push do not renew. Explicit close fences input, drains pending operations, cleans linked semantic/live children, awaits native UI hide, retries failure and prevents late resurrection. Native indicator binds actual working scope so unrelated observers cannot keep it alive. Active/paused badge and edges change to light Outlook sky blue with navy text. A/B and unrelated Agent jobs retained.",
+    "verification": "Local8 lifecycle tests PASS; double normalization/native scope forwarding, helper lifecycle, visual recovery and pointer/indicator source contracts PASS; PS parser PASS. Before-task full tag checkpoint/20261112-before-rmv2-lifecycle-5616f7e, all-ref bundle b758c590614e3afee33448707a559b59b034fb573760bc0d2881f674ec434ad7 restored/fsck PASS. Historical CI94 dev8 all9/artifact verified but physical lifecycle FAIL. dev9 needs exact-source native/full CI and Owner physical test; no claim that external model final messages can be intercepted.",
+    "nextAction": "Run exact dev9 Actions including actual native closed-scope/read-only-observer/reopen/45s/status/palette proof and full installer regression. Verify source/tree/CI/profile/SHA manifests, update existing docs/checkpoint, and only then stage isolated Lab backend if required; Owner installs internal artifact manually. No production/domain/public feed changes.",
+    "sourceDigest": "88004190ee4f5f8d7e95455d14611d4ce80182280868147dea08092942efd255",
+    "sourceFileCount": 1683
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1532,8 +1532,8 @@
   },
   "rmv2Implementation": {
     "phase": 1,
-    "status": "INDICATOR_AND_SOFT_YIELD_IMPLEMENTED_CI_PENDING",
-    "version": "0.10.1-dev.8",
+    "status": "EXPLICIT_TASK_SCOPE_CLOSE45_AND_BLUE_IMPLEMENTED_CI_PENDING",
+    "version": "0.10.1-dev.9",
     "beforeCommit": "a2173d525e67945843ecfa307304ce1228c7c096",
     "beforeTag": "checkpoint/20261111-before-rmv2-phase1-a2173d5",
     "bundleSha256": "52c4ed562287cce186f666697fb4c96d20e847129e0398bc913ea6503dffe474",
@@ -1546,7 +1546,7 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "PASS_CI94",
+    "nativeCi": "PENDING_DEV9",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
@@ -1559,7 +1559,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci94.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PASS_CI94_9_OF_9",
+    "fullCi": "PENDING_DEV9_EXACT_SOURCE",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1581,6 +1581,20 @@
     "physicalBuild94": "INSTALLED_OWNER_FAIL_OVERLAY_REMAINS_AFTER_TASK",
     "lifecycleDecision": "EXPLICIT_CLOSE_BEFORE_REPORT_REOPEN_FOR_NEXT_TASK_PLUS45S_QUIET_FALLBACK",
     "fallbackDoesNotInterruptInFlightRm": true,
-    "newPalette": "LIGHT_OUTLOOK_SKY_BLUE"
+    "newPalette": "LIGHT_OUTLOOK_SKY_BLUE",
+    "taskScopeOwner": [
+      "A/B session",
+      "Agent"
+    ],
+    "closeBeforeReport": "REQUIRED_TOOL_CONTRACT_WITH_CONFIRMED_NATIVE_CLOSE",
+    "afterClose": "NEW_ATTACH_REQUIRED",
+    "orphanIdleMs": 45000,
+    "inFlightProtected": true,
+    "palette": {
+      "badge": "#DCEEFF",
+      "text": "#0F456B",
+      "edge": "#4AA7DF"
+    },
+    "portableLifecycleCases": 8
   }
 }

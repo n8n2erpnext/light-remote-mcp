@@ -107,3 +107,7 @@ Physical build92 awareness UI FAIL (intermittent/distant AI badge and missing ed
 ## Record CI94 acceptance and Owner explicit RM session completion contract
 
 Owner build94 FAIL: retained visual/semantic session keeps AI paused/amber border visible after Agent final report. Remedy selected by Owner is explicit RM close required before report plus45s no-running-job/no-RM-activity orphan fallback;45s may require a new RM attach after prolonged silence between tools. Do not infer end of task from chat text/window title. No A/B revoke or Agent/session kill.
+
+## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
+
+CI94 physical lifecycle FAIL is addressed in dev9 source pending acceptance. A45s quiet gap between RM calls can expire the task while the model thinks; reopen RM before continuing, A/B is retained. Active native/device operations are protected. External LLM final-message generation cannot be vetoed by this MCP server; close-before-report is carried in tool/workflow/receipts,45s fallback cleans forgotten scopes. Cached Hub push/read alone does not renew device task; sustained design frames/drag/input do. Windows type-text routing, long-input timeout/readback and independent foreground concurrency remain phase2.

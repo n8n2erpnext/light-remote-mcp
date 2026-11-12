@@ -88,3 +88,7 @@ Existing move durationMs/steps now survive both validators; explicit0 interval/t
 ## Keep RMv2 working sessions visible and yield input without failing Agent sessions
 
 Native RMv2 additive input receipt on Owner activity: applied:false/state:paused/reason:owner_input/sessionRetained:true/resumeRequiresObservation:true/automaticReplay:false. Optional requestedUnits/sentUnits measure requested and emitted UTF16 events only; verifiedInsertedUnits:null/contentVerification:unverified. No public permission/schema expansion. Agent must reobserve target and content before continuation, never replay the full mutation automatically.
+
+## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
+
+contracts/api.v1.json rmTaskLifecycle v1 records attach prerequisite, optional desktopSessionId on named input/semantic tools, confirmed scopeClosed/taskEnded/newAttachRequired close receipt,45s quiet fallback and owner binding. Tool descriptors/helper/per-operation rmTask receipts require close-before-final-report; this is a client protocol requirement, not an invented ChatGPT turn-end callback. Hub live-read alone is cached/passive and does not renew the device scope; use real device frames/observations during active design.

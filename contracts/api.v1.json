@@ -265,5 +265,33 @@
       ],
       "response": "Bounded host acknowledgment; read actual state afterward. service-start is idempotent and cannot turn into stop; service-stop retains explicit stop intent. Legacy service toggle remains for compatibility."
     }
+  },
+  "rmTaskLifecycle": {
+    "version": "rm-task-lifecycle.v1",
+    "scopeOwner": [
+      "device",
+      "A/B session",
+      "Agent"
+    ],
+    "openTool": "light_remote_desktop_attach",
+    "closeTool": "light_remote_desktop_detach",
+    "inputPrecondition": "an open owner-bound desktopSessionId; no implicit reopen after close or expiry",
+    "completionContract": "close all task RM scopes in success/failure/cancel cleanup and confirm taskEnded/scopeClosed before final report",
+    "quietFallbackMs": 45000,
+    "runningOperationsSuspendExpiry": true,
+    "activityRenews": "actual device RM screen/semantic reads and input, not status/general heartbeats or passive Hub push",
+    "closeAcknowledgement": [
+      "scopeClosed",
+      "taskEnded",
+      "newAttachRequired"
+    ],
+    "unconfirmedClose": "keep row closing, reject input, retry cleanup; never report indicator stopped without confirmation",
+    "aBAuthorityRetained": true,
+    "palette": {
+      "badgeBackground": "#DCEEFF",
+      "badgeText": "#0F456B",
+      "edge": "#4AA7DF"
+    },
+    "platformBoundary": "Agent requires owner-bound scope on all platforms; Windows native validates forwarded private lease and synchronously hides the ended scope indicator"
   }
 }

@@ -1119,6 +1119,7 @@ async function startDesktopOperation(payload,requestId){
       wait.timeoutMs=Math.max(50,Math.min(Number.isFinite(timeoutMs)?Math.floor(timeoutMs):3000,15000));
       normalized.await=wait;
     }
+    if(request.desktopSessionId!=null)normalized.desktopSessionId=String(request.desktopSessionId);
     request=normalized;
   }
   const requiredCapabilities=(op==='input'||op==='run'||op==='act')?['desktop','desktop-input']:['desktop'];

@@ -51,7 +51,7 @@ internal sealed class RobotContext : ApplicationContext
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
         _semantic=new SemanticSessionManager(_sensor);
         _visual=new VisualSessionManager();
-        _activity.HasWorkingSession=()=>_visual.ActiveSessions>0||_semantic.HasSessions;
+        _activity.HasWorkingSession=()=>_activity.VisualSessionId.Length>0&&_visual.IsActive(_activity.VisualSessionId);
         _browser=new BrowserSemanticProvider();
         _sensor.Changed+=value=>{
             if(!_semantic.HasSessions) _rpc.PublishEvent("ui.changed",value);
@@ -67,8 +67,13 @@ internal sealed class RobotContext : ApplicationContext
         var controlling=op is "cursor.move" or "cursor.click" or "cursor.wheel" or "cursor.drag"
             or "text.write" or "text.type" or "text.delete" or "key.press" or "key.hotkey"
             or "batch.run" or "desktop.run" or "desktop.input" or "desktop.semantic.act" or "desktop-semantic-act";
+        var inputVisualId=Text(request,"visualSessionId");
         try {
         if(controlling) {
+            // Public Agent input always supplies its owner-checked native lease.
+            // Legacy same-user private CLI RPC remains separate, without new authority.
+            if(inputVisualId.Length>0)_visual.ValidateInput(inputVisualId,Text(request,"leaseToken"));
+            _activity.VisualSessionId=inputVisualId;
             _activity.Begin();
             if(_ambientGlow is not null)_ambientGlow.Dispatcher.Invoke(()=>_ambientGlow.Show(),System.Windows.Threading.DispatcherPriority.Render);
         }
@@ -134,7 +139,11 @@ internal sealed class RobotContext : ApplicationContext
             return new {applied=false,state="paused",reason="owner_input",sessionRetained=true,
                 resumeRequiresObservation=true,automaticReplay=false,contentVerification="unverified",
                 requestedUnits=pause.RequestedUnits,sentUnits=pause.SentUnits,verifiedInsertedUnits=(int?)null};
-        } finally { if(controlling) { NativeInput.ReleaseOwnedInputs(); _activity.End(); } }
+        } finally { if(controlling) {
+            NativeInput.ReleaseOwnedInputs();
+            if(inputVisualId.Length>0)try{_visual.KeepAlive(inputVisualId,Text(request,"leaseToken"));}catch{_activity.Stop();}
+            _activity.End();
+        } }
     }
 
     private object RestoreCursors()
@@ -161,9 +170,21 @@ internal sealed class RobotContext : ApplicationContext
 
     private object DetachVisualWithCursor(JsonElement request)
     {
-        var result=_visual.Detach(Text(request,"visualSessionId"),Text(request,"leaseToken"));
-        if(_visual.ActiveSessions==0)_activity.Stop();
-        return result;
+        var id=Text(request,"visualSessionId");
+        object result;
+        try { result=_visual.Detach(id,Text(request,"leaseToken")); }
+        catch(InvalidOperationException error) when(error.Message is "visual_session_missing" or "visual_lease_expired")
+        { result=new {detached=true,alreadyClosed=true}; }
+        var endedCurrent=_activity.VisualSessionId==id||_visual.ActiveSessions==0;
+        if(endedCurrent) {
+            _activity.Stop();_activity.VisualSessionId="";
+            if(_ambientGlow is not null)_ambientGlow.Dispatcher.Invoke(()=>_ambientGlow.Hide());
+        }
+        var receipt=System.Text.Json.JsonSerializer.SerializeToNode(result)!.AsObject();
+        receipt["scopeClosed"]=true;receipt["controlEndedForSession"]=endedCurrent;
+        receipt["indicatorStopped"]=endedCurrent&&_ambientGlow is not {Visible:true};
+        receipt["newAttachRequired"]=true;
+        return receipt;
     }
 
     private object StartPassivePreview(JsonElement request)

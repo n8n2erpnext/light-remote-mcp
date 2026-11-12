@@ -61,7 +61,7 @@ try {
  $screen=$idle.native.Screens[0];$x=[int]$screen.X+[int]($screen.Width/2);$y=[int]$screen.Y+[int]($screen.Height/2)
  $timings=@()
  foreach($delta in @(0,1,2,3,4,5,4,3,2,1,0)) {
-  $move=Invoke-Rm @{op='desktop.input';actions=@(@{op='cursor.move';x=$x+$delta;y=$y;durationMs=0;steps=1})}
+  $move=Invoke-Rm @{op='desktop.input';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken;actions=@(@{op='cursor.move';x=$x+$delta;y=$y;durationMs=0;steps=1})}
   if($move.native.Cursor.X -ne ($x+$delta) -or $move.native.Cursor.Y -ne $y){throw 'tiny_motion_endpoint_mismatch'}
   $timings+=[double]$move.nativeTiming.handlerMs
  }
@@ -76,10 +76,18 @@ try {
  $edges=@($working.indicator.edges)
  if($edges.Count -ne (4*$working.indicator.screenCount)){throw 'full_display_edges_not_visible'}
  foreach($edge in $edges) {
-  if(-not $edge.clickThrough -or $edge.centerAlpha -lt 100){throw 'edge_surface_not_painted_or_intercepts_input'}
+  if(-not $edge.clickThrough -or $edge.centerAlpha -lt 100 -or $edge.centerBlue -le $edge.centerRed -or $edge.centerGreen -le $edge.centerRed){throw 'edge_surface_not_painted_or_intercepts_input'}
   if([Math]::Max($edge.width,$edge.height) -lt 300 -or [Math]::Max($edge.surfaceWidth,$edge.surfaceHeight) -lt 250){throw 'edge_hwnd_or_wpf_surface_still_tiny'}
  }
- $null=Invoke-Rm @{op='desktop.visual.detach';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken}
+ # An unrelated read-only view must not keep the completed task indicator alive.
+ $readOnly=Invoke-Rm @{op='desktop.visual.attach';screen=0;leaseMs=5000}
+ $closed=Invoke-Rm @{op='desktop.visual.detach';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken}
+ if(-not $closed.scopeClosed -or -not $closed.indicatorStopped -or -not $closed.newAttachRequired){throw 'explicit_scope_close_not_acknowledged'}
+ try {
+  $null=Invoke-Rm @{op='desktop.input';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken;actions=@(@{op='cursor.move';x=$x;y=$y;durationMs=0;steps=1})}
+  throw 'closed_scope_accepted_input'
+ }catch{if($_.Exception.Message -notmatch 'visual_session_missing|visual_lease_expired'){throw}}
+
  Start-Sleep -Milliseconds 150
  $quiet=Invoke-Rm @{op='status'};Start-Sleep -Milliseconds 180;$quietAgain=Invoke-Rm @{op='status'}
  if($quietAgain.ambientGlowActive -or $quietAgain.ambientGlowPaintCount -ne $quiet.ambientGlowPaintCount){throw 'detached_indicator_timer_still_running'}
@@ -89,11 +97,21 @@ try {
  $null=Invoke-Rm @{op='cursor.move';x=$x;y=$y;durationMs=0;steps=1}
  $afterRestore=Invoke-Rm @{op='status'}
  if($afterRestore.osCursorOverridden){throw 'cursor_reoverridden_after_restore'}
+ # Reopen is explicit. Repeated status queries must not keep an orphan alive.
+ $reopened=Invoke-Rm @{op='desktop.visual.attach';screen=0;leaseMs=45000}
+ if($reopened.visualSessionId -eq $view.visualSessionId){throw 'reopen_reused_closed_scope'}
+ $null=Invoke-Rm @{op='desktop.input';visualSessionId=$reopened.visualSessionId;leaseToken=$reopened.leaseToken;actions=@(@{op='cursor.move';x=$x;y=$y;durationMs=0;steps=1})}
+ for($i=0;$i -lt 8;$i++){Start-Sleep -Seconds 5;$pending=Invoke-Rm @{op='status'};if(-not $pending.ambientGlowActive){throw 'working_scope_expired_before45s'}}
+ Start-Sleep -Seconds 6
+ $expired=Invoke-Rm @{op='status'}
+ if($expired.ambientGlowActive){throw 'status_poll_kept_orphan_indicator_alive_beyond45s'}
+ $expiryClose=Invoke-Rm @{op='desktop.visual.detach';visualSessionId=$reopened.visualSessionId;leaseToken=$reopened.leaseToken}
+ if(-not $expiryClose.scopeClosed -or -not $expiryClose.indicatorStopped){throw 'expired_scope_cleanup_unconfirmed'}
  $null=Invoke-Rm @{op='session.close'}
  $writer.Dispose();$reader.Dispose();$pipe.Dispose();$writer=$null;$reader=$null;$pipe=$null
  if(-not $process.WaitForExit(8000)){throw 'rmv2_phase1_did_not_exit'}
  $sorted=@($timings|Sort-Object)
- $receipt=@{result='PASS';scope='isolated_windows_ci_not_owner_physical';systemCursorRoles=11;tinyMoves=$timings.Count;observationNoOverride=$true;controlBadge=$true;workingGapIndicator=$true;paintedDisplayEdges=$edges;ownerInputBehavior="yield-current-input-keep-agent-session";idleTimerStopped=$true;restoreWhileAlive=$true;handlerP50Ms=$sorted[[int][math]::Floor(($sorted.Count-1)*0.5)];handlerP95Ms=$sorted[[int][math]::Ceiling(($sorted.Count-1)*0.95)];performanceComparison='NO_BEFORE_AFTER_BENCHMARK';physicalLocalTakeover='PENDING_OWNER';mixedDpiPhysical='PENDING_OWNER'}
+ $receipt=@{result='PASS';scope='isolated_windows_ci_not_owner_physical';systemCursorRoles=11;tinyMoves=$timings.Count;observationNoOverride=$true;controlBadge=$true;workingGapIndicator=$true;explicitCloseAcknowledged=$true;closedScopeInputRejected=$true;readOnlyViewDoesNotKeepControlAlive=$true;reopenNewId=$true;orphanExpiry45sDespiteStatusPolling=$true;palette='outlook-light-sky-blue';paintedDisplayEdges=$edges;ownerInputBehavior="yield-current-input-keep-agent-session";idleTimerStopped=$true;restoreWhileAlive=$true;handlerP50Ms=$sorted[[int][math]::Floor(($sorted.Count-1)*0.5)];handlerP95Ms=$sorted[[int][math]::Ceiling(($sorted.Count-1)*0.95)];performanceComparison='NO_BEFORE_AFTER_BENCHMARK';physicalLocalTakeover='PENDING_OWNER';mixedDpiPhysical='PENDING_OWNER'}
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Compress)
 } finally {

@@ -104,7 +104,7 @@ const chapters={
     physical_write_text:{name:'light_remote_desktop_write_text',use:'Run exactly one bounded OS write_text operation. An optional await condition observes the result.'},
     physical_press_key:{name:'light_remote_desktop_press_key',use:'Run exactly one bounded OS press_key operation. An optional await condition observes the result.'},
     physical_launch_app:{name:'light_remote_desktop_launch_app',use:'Run exactly one bounded OS launch_app operation. An optional await condition observes the result.'}
-  },loop:['Bootstrap with live-open.','Read live deltas from live-read.','Act semantically when possible, otherwise bounded OS input.','Follow returned sequence/observation state; snapshot only for resync.','Close with live-close.'],security:'desktop-input capability and Windows UIPI/secure-desktop boundaries remain authoritative.'})
+  },loop:['REQUIRED: desktop_attach opens an owner-bound RM task scope; keep desktopSessionId.','Optionally live-open for semantic deltas; attach does not grant desktop-input permission.','Read frames/live deltas and act semantically or through bounded OS input inside that scope. Real work renews45s quiet grace; status/heartbeat does not.','Follow sequence/observation state; never replay an interrupted mutation blindly.','REQUIRED in success/failure/cancel cleanup: close live/semantic lanes, then desktop_detach EVERY task scope and wait for taskEnded/scopeClosed BEFORE the final task report.','After close/expiry, desktop_attach again before input; A/B remains valid.'],security:'desktop-input capability and Windows UIPI/secure-desktop boundaries remain authoritative.'})
 };
 export function helperGroup(group,context={}){
   const id=String(group||'').trim().toLowerCase();

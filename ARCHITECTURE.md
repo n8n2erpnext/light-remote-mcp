@@ -76,3 +76,7 @@ ControlActivity owns one dedicated metadata hook thread with a Win32 message loo
 ## Keep RMv2 working sessions visible and yield input without failing Agent sessions
 
 Indicator is awareness, not authorization. First input arms it against existing visual/semantic working-session lifetime; standalone30s grace, disconnect/detach/desktop loss stop; read-only attach alone does not arm. Paused feedback lasts8s. Four nonactivating/click-through full WPF edge surfaces per monitor and visible-pixel cursor-tail badge are separate windows. OwnerInputPause is caught at native RPC operation boundary as a paused data receipt; session/background jobs stay alive and unsafe input is not replayed. User and Agent cannot have independent physical foreground focus just by tiling windows.
+
+## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
+
+RM task lifecycle is independent from durable A/B authority. lib/rmv2-task-lifecycle.mjs owns exact session+Agent selection, pending-operation drain, close failure/retry fences and non-resurrection. Device Agent attaches actual native lease to input/run/semantic mutation after owner validation; public tool clients never supply native lease secrets. Existing native private same-user CLI compatibility is not the public Agent API. Native current control visual ID drives awareness; explicit detach awaits GUI hide, expired scoped awareness has no extra30s standalone tail. Child semantic/live resources created inside task scope close with it.

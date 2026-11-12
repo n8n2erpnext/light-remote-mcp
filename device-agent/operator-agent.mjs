@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {RM_TASK_IDLE_MS,requireOwnedRmTask,rmTaskMayExpire,withRmTask,closeRmTask} from '../lib/rmv2-task-lifecycle.mjs';
 import {loadCanonicalEndpoints} from '../lib/canonical-endpoints.mjs';
 import {assertLegacyOwnerCommandNotGuest} from '../lib/gold-pro-share-device-guest-fence.mjs';
 import {executeGoldGuestDeviceProcess} from './guest-device-process.mjs';
@@ -387,41 +388,63 @@ function visualPublicView(row,value={}){
   return {desktopSessionId:row.desktopSessionId,...rest};
 }
 function visualOwner(p){return {sessionId:String(p.sessionId||''),agentId:String(p.agentId||'')};}
-function requireRealRemoteVisual(p,desktopSessionId){
+function requireRealRemoteVisual(p,desktopSessionId,{closing=false}={}){
   const id=String(desktopSessionId||''),row=REAL_REMOTE_VISUAL.get(id);
   if(!row)throw new Error('desktop_session_missing');
   const owner=visualOwner(p);
   if(row.sessionId!==owner.sessionId||row.agentId!==owner.agentId)throw new Error('desktop_session_owner_mismatch');
-  if(Date.now()>=row.expiresAt){void stopRealRemoteVisual(row).catch(error=>console.error(JSON.stringify({event:'desktop_visual_cleanup_failed',desktopSessionId:id,error:String(error?.message||error)})));throw new Error('desktop_session_expired');}
+  if(!closing&&row.closing)throw new Error('rm_task_closing_call_desktop_attach_after_close');
+  if(!closing&&!(row.inFlight>0)&&Date.now()>=row.expiresAt){void stopRealRemoteVisual(row).catch(error=>console.error(JSON.stringify({event:'desktop_visual_cleanup_failed',desktopSessionId:id,error:String(error?.message||error)})));throw new Error('desktop_session_expired');}
   return row;
 }
 function armRealRemoteVisual(row){
-  if(row.timer){clearTimeout(row.timer);row.timer=null;}
-  row.expiresAt=Date.now()+row.idleTimeoutMs;
-  row.timer=setTimeout(()=>{row.timer=null;void stopRealRemoteVisual(row).catch(error=>console.error(JSON.stringify({event:'desktop_visual_cleanup_failed',desktopSessionId:row.desktopSessionId,error:String(error?.message||error)})));},row.idleTimeoutMs);
-  row.timer.unref?.();
+  if(REAL_REMOTE_VISUAL.get(row.desktopSessionId)!==row||row.closing)return;
+  if(row.timer)clearTimeout(row.timer);
+  row.expiresAt=Date.now()+RM_TASK_IDLE_MS;
+  const check=()=>{
+    row.timer=null;
+    if(REAL_REMOTE_VISUAL.get(row.desktopSessionId)!==row)return;
+    if(row.closing||rmTaskMayExpire(row)){
+      void stopRealRemoteVisual(row).catch(error=>{
+        console.error(JSON.stringify({event:'desktop_visual_cleanup_failed',desktopSessionId:row.desktopSessionId,error:String(error?.message||error)}));
+        if(REAL_REMOTE_VISUAL.get(row.desktopSessionId)===row){row.timer=setTimeout(check,5000);row.timer.unref?.();}
+      });return;
+    }
+    row.timer=setTimeout(check,row.inFlight>0?1000:Math.max(1,row.expiresAt-Date.now()));row.timer.unref?.();
+  };
+  row.timer=setTimeout(check,RM_TASK_IDLE_MS);row.timer.unref?.();
 }
 async function stopRealRemoteVisual(row,{detach=true}={}){
-  if(!row||row.stopping)return row?.stopping||null;
-  row.stopping=(async()=>{
-    REAL_REMOTE_VISUAL.delete(row.desktopSessionId);
-    if(row.timer){clearTimeout(row.timer);row.timer=null;}
-    let detached=null,detachError=null;
-    if(detach){
-      try{detached=await NATIVE_DESKTOP.request('visual-detach',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000});}
-      catch(error){
-        if(!/visual_(session_missing|lease_expired)|real_remote_helper_(closed|exited|timeout)/.test(String(error?.message||error)))detachError=error;
+  if(!row)return null;
+  return closeRmTask(REAL_REMOTE_VISUAL,row,{
+    detach:async()=>{
+      if(!detach)return {detached:true,helperStopped:true};
+      for(const child of [...(row.semanticChildren||[])]){
+        const live=REAL_REMOTE_LIVE.get(child);
+        if(live&&live.sessionId===row.sessionId&&live.agentId===row.agentId)await stopRealRemoteLive(live,{detach:true,notify:true});
+        else try{await NATIVE_DESKTOP.request('semantic-detach',{semanticSessionId:child},{timeoutMs:10000});}
+        catch(error){if(!/session_(missing|not_found)|real_remote_helper_(closed|exited)/.test(String(error?.message||error)))throw error;}
+        row.semanticChildren.delete(child);
       }
+      try{return await NATIVE_DESKTOP.request('visual-detach',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000});}
+      catch(error){
+        if(/real_remote_helper_(closed|exited|timeout)/.test(String(error?.message||error))&&!NATIVE_DESKTOP.running)return {detached:true,helperStopped:true};
+        throw error;
+      }
+    },
+    release:r=>{try{r.release?.();}finally{r.release=null;}},
+    closeIdle:()=>NATIVE_DESKTOP.closeIfIdle()
+  }).catch(error=>{
+    // Explicit close failure must get the same eventual cleanup as orphan expiry.
+    if(REAL_REMOTE_VISUAL.get(row.desktopSessionId)===row&&!row.timer){
+      row.timer=setTimeout(()=>{row.timer=null;void stopRealRemoteVisual(row,{detach}).catch(()=>{});},5000);row.timer.unref?.();
     }
-    try{row.release?.();}catch{}
-    try{NATIVE_DESKTOP.closeIfIdle();}catch{}
-    if(detachError)throw detachError;
-    return detached;
-  })().finally(()=>{row.stopping=null;});
-  return row.stopping;
+    throw error;
+  });
 }
 async function attachRealRemoteVisual(p,request){
-  const owner=visualOwner(p),idleTimeoutMs=Math.max(1000,Math.min(Number(request.idleTimeoutMs)||120000,900000));
+  const owner=visualOwner(p),idleTimeoutMs=RM_TASK_IDLE_MS;
+  if([...REAL_REMOTE_VISUAL.values()].some(row=>row.sessionId===owner.sessionId&&row.agentId===owner.agentId&&row.closing))throw new Error('rm_task_previous_close_pending');
   const native=await NATIVE_DESKTOP.request('visual-attach',{
     screen:request.screen==null||Number(request.screen)<0?0:Math.max(0,Math.min(Number(request.screen)||0,31)),
     maxWidth:Math.max(160,Math.min(Number(request.maxWidth)||960,1280)),
@@ -435,15 +458,15 @@ async function attachRealRemoteVisual(p,request){
     idleTimeoutMs,minIntervalMs:Math.max(0,Math.min(Number.isFinite(Number(request.minIntervalMs))&&request.minIntervalMs!=null?Number(request.minIntervalMs):250,5000)),omitUnchanged:request.omitUnchanged!==false,
     screen:native.screen,maxWidth:native.maxWidth,maxHeight:native.maxHeight,quality:native.quality,
     displayTopologyId:String(native.displayTopologyId||''),nativeEpoch:String(native.epoch||''),nativeStale:false,recovering:null,
-    lastFrameSha:null,lastObservedAt:0,expiresAt:0,timer:null,release:NATIVE_DESKTOP.retain(),stopping:null};
+    lastFrameSha:null,lastObservedAt:0,expiresAt:0,timer:null,inFlight:0,closing:false,semanticChildren:new Set(),release:NATIVE_DESKTOP.retain(),stopping:null};
   if(!row.visualSessionId||!row.leaseToken){try{row.release();}catch{};throw new Error('desktop_visual_attach_invalid');}
   REAL_REMOTE_VISUAL.set(desktopSessionId,row);armRealRemoteVisual(row);
-  return visualPublicView(row,native);
+  return {...visualPublicView(row,native),closeRequired:true,closeBeforeFinalReport:true,closeTool:'light_remote_desktop_detach',idleGraceMs:RM_TASK_IDLE_MS};
 }
 async function resumeRealRemoteVisual(p,request){
   const row=requireRealRemoteVisual(p,request.desktopSessionId);
   const reacquire=()=>reacquireNativeVisual(row,{requestNative:(...args)=>NATIVE_DESKTOP.request(...args),
-    isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r,
+    isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r&&!r.closing,
     onRecovered:r=>{try{r.release?.();}catch{}r.release=NATIVE_DESKTOP.retain();}});
   if(row.nativeStale){
     await reacquire();armRealRemoteVisual(row);
@@ -461,7 +484,7 @@ async function resumeRealRemoteVisual(p,request){
   }
 }
 async function detachRealRemoteVisual(p,request){
-  const row=requireRealRemoteVisual(p,request.desktopSessionId),native=await stopRealRemoteVisual(row,{detach:true});
+  const row=requireRealRemoteVisual(p,request.desktopSessionId,{closing:true}),native=await stopRealRemoteVisual(row,{detach:true});
   return visualPublicView(row,native||{detached:true});
 }
 async function frameRealRemoteVisual(p,request,{observe=false}={}){
@@ -478,7 +501,7 @@ async function frameRealRemoteVisual(p,request,{observe=false}={}){
   if(observe&&remaining>0){armRealRemoteVisual(row);return {desktopSessionId:id,unchanged:true,throttled:true,retryAfterMs:remaining,frameSeq:null,expiresAt:row.expiresAt};}
   let native,recovered=false;
   const reacquire=()=>reacquireNativeVisual(row,{requestNative:(...args)=>NATIVE_DESKTOP.request(...args),
-    isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r,
+    isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r&&!r.closing,
     onRecovered:r=>{try{r.release?.();}catch{}r.release=NATIVE_DESKTOP.retain();}});
   try{
     // Only read-only visual session state is recoverable. Never replay input.
@@ -849,12 +872,39 @@ async function executeSearchCommand(state,p){
   throw new Error('search_operation_unsupported');
 }
 
-async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
+async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
   const request=p.desktop&&typeof p.desktop==='object'&&!Array.isArray(p.desktop)?p.desktop:{};
   const op=String(request.op||''),effective=effectiveCapabilitiesForState(state);
   if(!effective.includes('desktop'))throw new Error('local capability denied: desktop');
   if(!REAL_REMOTE_AVAILABLE)throw new Error('real_remote_unavailable');
-  if(op==='status')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('status',{})};
+  const mutation=['run','input','act'].includes(op);
+  const realObservation=['windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','live-open'].includes(op);
+  if(!rmScope&&(mutation||realObservation)){
+    if(mutation&&!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
+    let scope;
+    if(mutation||request.desktopSessionId)scope=requireOwnedRmTask(REAL_REMOTE_VISUAL,visualOwner(p),request.desktopSessionId);
+    else{
+      const owned=[...REAL_REMOTE_VISUAL.values()].filter(r=>r.sessionId===String(p.sessionId||'')&&r.agentId===String(p.agentId||'')&&!r.closing&&(r.inFlight>0||Date.now()<r.expiresAt));
+      if(owned.length>1)throw new Error('desktop_session_id_required_multiple_open');
+      if(owned.length===1)scope=owned[0];
+    }
+    if(scope)return withRmTask(REAL_REMOTE_VISUAL,scope,async()=>{
+      // Renew the native observation lease only for actual authorized RM work.
+      // Status polling and push-cache heartbeats never enter this branch.
+      if(scope.nativeStale||Date.now()-(scope.nativeRenewedAt||0)>15000){
+        await resumeRealRemoteVisual(p,{desktopSessionId:scope.desktopSessionId});scope.nativeRenewedAt=Date.now();
+      }
+      if(scope.closing||REAL_REMOTE_VISUAL.get(scope.desktopSessionId)!==scope)throw new Error('rm_task_closed_call_desktop_attach');
+      const result=await executeDesktopCommand(state,p,{hub,rmScope:scope});
+      if(['live-open','semantic-attach'].includes(op)||(op==='observe'&&!request.semanticSessionId)){
+        const child=String(result?.desktop?.semanticSessionId||result?.desktop?.browserSessionId||'');
+        if(child)scope.semanticChildren.add(child);
+      }
+      return result;
+    },armRealRemoteVisual);
+  }
+  const scopePayload=value=>rmScope?{...value,visualSessionId:rmScope.visualSessionId,leaseToken:rmScope.leaseToken}:value;
+  if(op==='status')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('status',{}),rmTasks:[...REAL_REMOTE_VISUAL.values()].filter(r=>r.sessionId===String(p.sessionId||'')&&r.agentId===String(p.agentId||'')).map(r=>({desktopSessionId:r.desktopSessionId,closing:r.closing,inFlight:r.inFlight,remainingQuietMs:Math.max(0,r.expiresAt-Date.now()),closeRequired:true}))};
   if(op==='live-open'){
     const provider=String(request.provider||'windows-uia').trim().toLowerCase();
     if(!['windows-uia','browser-cdp'].includes(provider))throw new Error('invalid_semantic_provider');
@@ -930,20 +980,20 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
       payload=normalizeDesktopInput(request);semanticSessionId=String(payload.semanticSessionId||'');
       if(wait)payload.await=wait;
     }
-    const desktop=await NATIVE_DESKTOP.request('run',payload,{timeoutMs:20000});
+    const desktop=await NATIVE_DESKTOP.request('run',scopePayload(payload),{timeoutMs:20000});
     touchRealRemoteLive(semanticSessionId);
     return {ok:true,operation:op,desktop};
   }
   if(op==='input'){
     if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
-    const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000});
+    const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',scopePayload(input),{timeoutMs:10000});
     touchRealRemoteLive(input.semanticSessionId);
     return {ok:true,operation:op,desktop};
   }
   if(op==='act'){
     if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
     if(Array.isArray(request.events)){
-      const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',input,{timeoutMs:10000});
+      const input=normalizeDesktopInput(request),desktop=await NATIVE_DESKTOP.request('input',scopePayload(input),{timeoutMs:10000});
       touchRealRemoteLive(input.semanticSessionId);
       return {ok:true,operation:op,desktop};
     }
@@ -951,7 +1001,7 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB}={}){
     if(!semanticSessionId)throw new Error('semantic_session_id_required');
     const action={semanticSessionId,nodeId:String(request.nodeId||''),action:String(request.action||''),afterSeq:Math.max(0,Number(request.afterSeq)||0),settleMs:Math.max(0,Math.min(Number(request.settleMs)||90,250))};
     if(request.value!=null)action.value=String(request.value).slice(0,4096);
-    const desktop=await NATIVE_DESKTOP.request('semantic-act',action,{timeoutMs:10000});
+    const desktop=await NATIVE_DESKTOP.request('semantic-act',scopePayload(action),{timeoutMs:10000});
     touchRealRemoteLive(semanticSessionId);
     return {ok:true,operation:op,desktop};
   }

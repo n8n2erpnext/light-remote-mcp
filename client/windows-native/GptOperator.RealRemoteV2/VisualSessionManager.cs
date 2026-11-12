@@ -41,6 +41,15 @@ internal sealed class VisualSessionManager : IDisposable
         }
     }
 
+    public bool IsActive(string id)
+    {
+        lock(_gate) {
+            if(_disposed)return false;
+            CleanupExpiredLocked(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            return _sessions.ContainsKey(id);
+        }
+    }
+
     public object Attach(
         int screen=0,
         int maxWidth=960,

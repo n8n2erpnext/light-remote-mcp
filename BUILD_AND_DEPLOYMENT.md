@@ -249,3 +249,7 @@ dev8 native proof additionally waits2200ms between actions with live visual sess
 ## Record CI94 acceptance and Owner explicit RM session completion contract
 
 Verified CI94 internal artifact13914719235, source5616f7ed7bb2a9df4ef1d7465f2b1087167619a3/tree09378932c7b89320f48ef821ded2506810b16985, installerSHA6acd74f3513b3f87bfa4c7198f5b3c75ecb2644bb08bb8aab1be0304e8aef911 bytes172590083. Source/native proof and full baseline do not override Owner physical lifecycle FAIL. New explicit-close/orphan/palette source must get its own exact CI.
+
+## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
+
+dev9 native proof adds real explicit-close acknowledgment with another read-only view retained, rejection of closed native scope, fresh ID on reopen,45s actual native orphan expiry despite status polling, and blue painted-edge channel checks. Entire previous native/install/upgrade/rollback/ConPTY regression retained; native builds only Actions. Node lifecycle tests use controlled clock and deferred operations, no Owner input. Artifact and Lab rollout require exact full9 CI and manifests; no public binary release.

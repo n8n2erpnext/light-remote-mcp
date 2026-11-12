@@ -278,3 +278,7 @@ Owner shared-desktop clarification: keep paused awareness throughout an existing
 ## Record CI94 acceptance and Owner explicit RM session completion contract
 
 CI94 dev8 full9/9 PASS and source/artifact verified, but Owner reports overlay stuck after task completion. Physical lifecycle is FAIL/pending new fix. Latest Owner decision: explicit RM close before final report; next input requires reopen;45s quiet orphan fallback excludes active RM jobs; capture/input renew, generic status/heartbeat do not. Light Outlook sky blue replaces brown. A/B stays separate.
+
+## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
+
+dev9 implements explicit owner-bound RM task scope using existing desktop_attach/detach. Agent must confirm taskEnded/scopeClosed before final report; public input requires open scope and rejects closed/expired IDs.45s quiet fallback ignores status/heartbeat, protects in-flight work and renews on actual RM device activity. Native scope close hides indicator despite other retained read-only observers; linked task observation children are cleaned. Outlook-light-blue active/paused palette replaces brown. Implemented, not yet native/full/physical accepted.

@@ -40,8 +40,8 @@ internal sealed class CursorGlowOverlay : System.Windows.Window,IDisposable
     {
         _activity=activity; Configure(this);
         _label=new TextBlock { Text="AI",FontFamily=new FontFamily(new Uri("pack://application:,,,/"),"./Assets/#Google Sans"),FontSize=10,FontWeight=FontWeights.SemiBold,
-            Foreground=Brushes.White,HorizontalAlignment=System.Windows.HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center };
-        Content=new Border { Background=new SolidColorBrush(Color.FromRgb(35,77,88)),CornerRadius=new CornerRadius(5),Child=_label };
+            Foreground=new SolidColorBrush(Color.FromRgb(15,69,107)),HorizontalAlignment=System.Windows.HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center };
+        Content=new Border { Background=new SolidColorBrush(Color.FromRgb(220,238,255)),CornerRadius=new CornerRadius(5),Child=_label };
         _timer=new DispatcherTimer(DispatcherPriority.Background,Dispatcher) { Interval=TimeSpan.FromMilliseconds(32) };
         _timer.Tick+=(_,_)=>UpdateIndicator();
         Closed+=(_,_)=>{ _shown=false; _disposed=true; _timer.Stop(); };
@@ -99,7 +99,7 @@ internal sealed class CursorGlowOverlay : System.Windows.Window,IDisposable
         _lastPaused=paused; _lastTopology=topology;
         _lastPosition=cursor; _lastPreview=showPreview; _lastDpi=dpi; _lastPaintTail=tail; _lastScreen=borderScreen;
         _label.Text=showPreview?"Preview":paused?"AI paused":"AI";
-        ((Border)Content).Background=new SolidColorBrush(paused?Color.FromRgb(117,82,19):Color.FromRgb(35,77,88));
+        ((Border)Content).Background=new SolidColorBrush(Color.FromRgb(220,238,255));
         var width=(int)Math.Ceiling((paused?74:showPreview?48:28)*dpi); var height=(int)Math.Ceiling(18*dpi);
         var bounds=PlaceBadge(cursor.X,cursor.Y,tail.X,tail.Y,width,height,screen,(int)Math.Ceiling(2*dpi));
         Place(this,bounds.X,bounds.Y,bounds.Width,bounds.Height);
@@ -120,8 +120,8 @@ internal sealed class CursorGlowOverlay : System.Windows.Window,IDisposable
         for(var i=0;i<_edges.Count;i++) {
             if(showPreview||i>=rects.Count) { _edges[i].Hide(); continue; }
             var edge=_edges[i];var surface=(Border)edge.Content;
-            surface.Background=new SolidColorBrush(paused?Color.FromArgb(160,171,121,30):Color.FromArgb(160,35,133,148));
-            surface.BorderBrush=new SolidColorBrush(paused?Color.FromArgb(230,176,128,36):Color.FromArgb(230,35,133,148));
+            surface.Background=new SolidColorBrush(Color.FromArgb(120,74,167,223));
+            surface.BorderBrush=new SolidColorBrush(Color.FromArgb(200,74,167,223));
             surface.BorderThickness=new Thickness(1);
             if(!edge.IsVisible)edge.Show();
             var rect=rects[i]; Place(edge,rect.X,rect.Y,rect.Width,rect.Height);
@@ -189,7 +189,7 @@ internal sealed class CursorGlowOverlay : System.Windows.Window,IDisposable
             sample.Render(surface);var pixel=new byte[4];
             sample.CopyPixels(new Int32Rect(width/2,height/2,1,1),pixel,4,0);
             return new {left=rect.Left,top=rect.Top,width=rect.Right-rect.Left,height=rect.Bottom-rect.Top,
-                surfaceWidth=surface.ActualWidth,surfaceHeight=surface.ActualHeight,centerAlpha=pixel[3],clickThrough=(GetWindowLong(hwnd,-20)&WS_EX_TRANSPARENT)!=0};
+                surfaceWidth=surface.ActualWidth,surfaceHeight=surface.ActualHeight,centerAlpha=pixel[3],centerRed=pixel[2],centerGreen=pixel[1],centerBlue=pixel[0],clickThrough=(GetWindowLong(hwnd,-20)&WS_EX_TRANSPARENT)!=0};
         }).ToArray();
         return new {visible=_shown,label=_label.Text,edges=rows,screenCount=System.Windows.Forms.Screen.AllScreens.Length,tailX=_tail.X,tailY=_tail.Y};
     }
