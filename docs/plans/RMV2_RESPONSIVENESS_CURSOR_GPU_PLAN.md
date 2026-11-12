@@ -1,6 +1,6 @@
 # RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn
 
-Status: draft / RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED
+Status: PHASE1_CI98_PASS_PHASE2_AUTHORIZED_PHYSICAL_UAT_DEFERRED
 Edition: 2026-11-11, Asia/Saigon
 Scope: Windows RM v2, đối chiếu typing macOS; giữ các tool, semantic UI, A/B và local policy hiện tại
 Authoritative source: GitHub `work` `764e1d7ce7670c9e95690fca26b58dd2e3c86f02`, tree `41a48add6e01f3e4f6d28271a59b77f92a8acaca`
@@ -242,3 +242,7 @@ Owner selected45s orphan cleanup. Actual RM screen/semantic operations and input
 Both active/paused badge background use light Outlook-like sky blue#DCEEFF, navy text#0F456B and edge#4AA7DF, with state conveyed by label. Native private same-user legacy CLI compatibility remains outside the public Agent scope gate. Existing A/B, permissions, policy, UIPI and local Owner input behavior remain authoritative.
 
 Local tests cover owner isolation/open-required/closed-ID rejection,45s quiet expiry, continuous design capture, long in-flight operations, late response fences, retry after failed close and acknowledgment despite local-reference cleanup errors. Native CI additionally checks retained read-only view does not keep a completed control task visible; stale native scope input rejects; reopen gets a fresh ID; repeated status polling cannot retain a45s orphan; blue painted edges are checked. Physical Owner end-of-task/expiry/palette acceptance remains pending new artifact. Windows long text verification/type routing/timeout and per-window background concurrency remain separate phase2 work.
+
+## 2026-11-12 — CI98 baseline and remaining-plan authorization
+
+Owner requests continuing all unfinished RM v2 plan work now and will perform one consolidated physical test later. Phase1 source398c4c8/dev9 has fullCI98 nine-job PASS and verified native/complete artifacts; physical UI acceptance remains pending. Explicit RM close-before-report,45s fallback and sky-blue indicators are implemented. Take a full new verified checkpoint before phase2 source. Implement ordered cancellable input/fast status, target-bound verified long writes and current capture optimizations first; then optional DXGI and media/viewer stages in separate rollbackable commits. No public release, Owner auto-install, production/domain/Google changes or claim of hardware-matrix/physical acceptance. Preserve current Lab until the final integrated candidate is verified.

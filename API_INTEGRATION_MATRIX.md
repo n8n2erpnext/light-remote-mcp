@@ -100,3 +100,7 @@ Native input scope metadata is additive under visual; it does not wrap old appli
 ## Acknowledge already-closed RM tasks and protect in-flight resume
 
 desktop_detach may return alreadyClosed:true with scopeClosed/taskEnded/newAttachRequired when a verified closure receipt exists for the same A/B session+Agent. Cache holds only task ID/owner/time/ack flags, no native lease token or screen/text; expires15min/max256. Closed IDs remain unusable for input.
+
+## Record verified CI98 RM lifecycle candidate and current project truth
+
+CI98 proves explicit native RM scope close, old scope input rejection, reopen newID and45s expiry despite status. Public Agent mutation gate binds A/B session+Agent. Confirm close before final report; metadata-only owner-bound prior close receipts support automatic-expiry/lost-response retries for15minutes/max256, never input reuse. MCP cannot intercept arbitrary external model final text.

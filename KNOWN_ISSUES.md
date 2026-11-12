@@ -111,3 +111,7 @@ Owner build94 FAIL: retained visual/semantic session keeps AI paused/amber borde
 ## Require explicit RM task scopes with confirmed close,45s orphan cleanup and sky-blue awareness
 
 CI94 physical lifecycle FAIL is addressed in dev9 source pending acceptance. A45s quiet gap between RM calls can expire the task while the model thinks; reopen RM before continuing, A/B is retained. Active native/device operations are protected. External LLM final-message generation cannot be vetoed by this MCP server; close-before-report is carried in tool/workflow/receipts,45s fallback cleans forgotten scopes. Cached Hub push/read alone does not renew device task; sustained design frames/drag/input do. Windows type-text routing, long-input timeout/readback and independent foreground concurrency remain phase2.
+
+## Record verified CI98 RM lifecycle candidate and current project truth
+
+Build94 physical lifecycle FAIL is addressed in dev9 CI98 source with explicit close and45s fallback; physical dev9 retest remains pending. Any >45s gap without running RM work/real observation/input requires reopening. Generic status/heartbeat and passive cached Hub push do not keep RM alive. Long-text content verification/native input timeout improvements and GPU/video phases remain unimplemented; CI latency samples are not before/after evidence.

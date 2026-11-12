@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 282,
+    "total": 283,
     "markdown": 230,
-    "json": 52
+    "json": 53
   },
   "files": [
     {
@@ -670,6 +670,27 @@
         "explicitCloseAcknowledged",
         "observationNoOverride",
         "reopenNewId"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/phase1-ci98.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3531,
+      "sha256": "714b14568e3cd0d728148178ec6ad4649897df2085588d226a58a2b1433fe62c",
+      "topLevelKeys": [
+        "sourceCommit",
+        "sourceTree",
+        "version",
+        "ciRunId",
+        "artifactId",
+        "artifactZipSha256",
+        "installerSha256",
+        "installerBytes",
+        "result",
+        "verificationLocation",
+        "primaryCount",
+        "oldPrimariesAbsent"
       ]
     },
     {
@@ -2563,8 +2584,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 48781,
-      "sha256": "e99789660d8c0fa20e0de8640715a4c6da708122fd8f0b8ce007123052d18cf7",
+      "bytes": 49638,
+      "sha256": "6f013758f13d5779b63e82eedd72d1026ccfe141427e705b029f83935283daa5",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {

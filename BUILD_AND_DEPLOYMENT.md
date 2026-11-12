@@ -261,3 +261,7 @@ Windows client core bundle must include lib/rmv2-task-lifecycle.mjs; CI96 import
 ## Acknowledge already-closed RM tasks and protect in-flight resume
 
 Scoped historical native proof CI97/ea4a04d passes actual explicit close, readonly observer fence, closed input rejection, reopen newID,45s real expiry under status polling and sky-blue painted edges. Evidence docs/evidence/rmv2/phase1-ci97.json verifies artifactZIPSHAfd94c8fb5d4e6efd1c8a8fc1ec493c06dbdeb7fd56f5b1f974536e0a70ea729b. Final JS close-receipt/resume changes require their own full exact-source CI/artifact; no physical PASS implied.
+
+## Record verified CI98 RM lifecycle candidate and current project truth
+
+CI98 source398c4c8b316d59458f636bcdf1bd4ea44056634f/tree5f432f68d60ff2426bd2742848b519bdd85dbd74, all9 PASS. Internal completeartifact13921290856, ZIPsha126629f75ecad07c987153dbb11e2fd79870a5f8aedc66ab1bc8d9e1dbbf2e9a, installerSHA6cb6ca1e02653dd647c05cbab677545c5af74b1e5129c1b04491b375cb54785a, bytes172575451. OneLightRemote.exe and migration/installed lifecycle PASS; physicalOwnerAcceptance/publicFeedPromoted false. Native artifact13920222075 verified separately, same source. Lab integration still pending in this receipt.
