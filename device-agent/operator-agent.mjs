@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {RM_TASK_IDLE_MS,requireOwnedRmTask,rmTaskMayExpire,withRmTask,closeRmTask} from '../lib/rmv2-task-lifecycle.mjs';
+import {RM_TASK_IDLE_MS,requireOwnedRmTask,rmTaskMayExpire,withRmTask,closeRmTask,rememberRmTaskClose,confirmedRmTaskClose} from '../lib/rmv2-task-lifecycle.mjs';
 import {loadCanonicalEndpoints} from '../lib/canonical-endpoints.mjs';
 import {assertLegacyOwnerCommandNotGuest} from '../lib/gold-pro-share-device-guest-fence.mjs';
 import {executeGoldGuestDeviceProcess} from './guest-device-process.mjs';
@@ -382,6 +382,7 @@ async function rescanHostCapabilities(hub=DEFAULT_HUB){
 }
 const REAL_REMOTE_LIVE=new Map();
 const REAL_REMOTE_VISUAL=new Map();
+const REAL_REMOTE_VISUAL_CLOSED=new Map();
 function visualPublicView(row,value={}){
   const source=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
   const {leaseToken,visualSessionId,...rest}=source;
@@ -434,7 +435,7 @@ async function stopRealRemoteVisual(row,{detach=true}={}){
     },
     release:r=>{try{r.release?.();}finally{r.release=null;}},
     closeIdle:()=>NATIVE_DESKTOP.closeIfIdle()
-  }).catch(error=>{
+  }).then(receipt=>{rememberRmTaskClose(REAL_REMOTE_VISUAL_CLOSED,row,receipt);return receipt;}).catch(error=>{
     // Explicit close failure must get the same eventual cleanup as orphan expiry.
     if(REAL_REMOTE_VISUAL.get(row.desktopSessionId)===row&&!row.timer){
       row.timer=setTimeout(()=>{row.timer=null;void stopRealRemoteVisual(row,{detach}).catch(()=>{});},5000);row.timer.unref?.();
@@ -484,6 +485,8 @@ async function resumeRealRemoteVisual(p,request){
   }
 }
 async function detachRealRemoteVisual(p,request){
+  const prior=confirmedRmTaskClose(REAL_REMOTE_VISUAL_CLOSED,visualOwner(p),request.desktopSessionId);
+  if(prior)return prior;
   const row=requireRealRemoteVisual(p,request.desktopSessionId,{closing:true}),native=await stopRealRemoteVisual(row,{detach:true});
   return visualPublicView(row,native||{detached:true});
 }
@@ -878,7 +881,7 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
   if(!effective.includes('desktop'))throw new Error('local capability denied: desktop');
   if(!REAL_REMOTE_AVAILABLE)throw new Error('real_remote_unavailable');
   const mutation=['run','input','act'].includes(op);
-  const realObservation=['windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','live-open'].includes(op);
+  const realObservation=['resume','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','live-open'].includes(op);
   if(!rmScope&&(mutation||realObservation)){
     if(mutation&&!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
     let scope;

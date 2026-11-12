@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 281 (230 Markdown, 51 JSON).
+Documents: 282 (230 Markdown, 52 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -47,6 +47,7 @@ Documents: 281 (230 Markdown, 51 JSON).
 | evidence | [docs/evidence/rmv2/phase1-ci87.json](../evidence/rmv2/phase1-ci87.json) | sourceCommit, ciRunId, artifactId, artifactSha256, handlerP50Ms, observationNoOverride, handlerP | 80bdea2870305ae0ae568354f4eae8265d53b26119f4a5c98467164fb3514f6e |
 | evidence | [docs/evidence/rmv2/phase1-ci89.json](../evidence/rmv2/phase1-ci89.json) | sourceCommit, ciRunId, artifactId, artifactSha256, mixedDpiPhysical, performanceComparison, tiny | 0bfd915d7b4e600ceb39c6f55d5eb12782f3b9c1e405b3100983b174ca1aa47f |
 | evidence | [docs/evidence/rmv2/phase1-ci94.json](../evidence/rmv2/phase1-ci94.json) | compiledSource, sourceTree, version, ciRunId, successfulJobs, artifactId, artifactZipSha256, ins | ee1e8ab91740beea2104c3ad91946cb3cab3ea3cf003dbd0abac8e1de63f2b59 |
+| evidence | [docs/evidence/rmv2/phase1-ci97.json](../evidence/rmv2/phase1-ci97.json) | sourceCommit, ciRunId, artifactId, artifactSha256, idleTimerStopped, orphanExpiry45sDespiteStatu | 78be9185b72509b35a6aaac608d87fda9d97450eb7d1b5acef999664a378ce83 |
 | evidence | [docs/evidence/runtime-source-comparison.json](../evidence/runtime-source-comparison.json) |  | 6e06831f60deff0905ec9c0e54cd7c0e8e24b1de3e5a6e5b0c9d5fbca01f1759 |
 | evidence | [docs/evidence/windows-artifact-verification.json](../evidence/windows-artifact-verification.json) | artifactId, name, zipSha256, zipBytes, repositoryId, sourceCommit, ciRunId, verified, verifiedOn | 2f546e90951ad16efde6690412b9216ec9cd74155d1a699b9f85579f1a1f1f81 |
 | evidence | [docs/evidence/windows-build-manifest.json](../evidence/windows-build-manifest.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | 4c879edf3ceae517f0c31a41ab5eaa8dfc938753308d8d1431cb999fbf17c983 |

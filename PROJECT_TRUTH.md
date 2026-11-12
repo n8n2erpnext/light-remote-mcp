@@ -286,3 +286,7 @@ dev9 implements explicit owner-bound RM task scope using existing desktop_attach
 ## Package RM task lifecycle module and retain scoped input receipt compatibility
 
 CI96 was rejected by actual client static-import package closure: rmv2-task-lifecycle runtime module now added to client/core-files.json. Scoped native input now retains existing flat fields with additive visual metadata. No test or policy weakening; exact-source native/full CI retry required.
+
+## Acknowledge already-closed RM tasks and protect in-flight resume
+
+dev9 also acknowledges already-closed task IDs to their original session+Agent for15minutes (max256 metadata-only records), enabling required close confirmation after fallback/lost response. This does not reopen or authorize input. Explicit resume joins in-flight accounting. Exact final native/full CI remains pending.

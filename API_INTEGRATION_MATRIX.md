@@ -96,3 +96,7 @@ contracts/api.v1.json rmTaskLifecycle v1 records attach prerequisite, optional d
 ## Package RM task lifecycle module and retain scoped input receipt compatibility
 
 Native input scope metadata is additive under visual; it does not wrap old applied/native/results or semantic acknowledgment fields under mutation/semantic. Existing desktop.run structure remains unchanged. Public task lifecycle and owner checks stay as documented.
+
+## Acknowledge already-closed RM tasks and protect in-flight resume
+
+desktop_detach may return alreadyClosed:true with scopeClosed/taskEnded/newAttachRequired when a verified closure receipt exists for the same A/B session+Agent. Cache holds only task ID/owner/time/ack flags, no native lease token or screen/text; expires15min/max256. Closed IDs remain unusable for input.

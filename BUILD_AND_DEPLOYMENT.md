@@ -257,3 +257,7 @@ dev9 native proof adds real explicit-close acknowledgment with another read-only
 ## Package RM task lifecycle module and retain scoped input receipt compatibility
 
 Windows client core bundle must include lib/rmv2-task-lifecycle.mjs; CI96 import-closure failure was a real packaging omission, now fixed in the manifest. Native scoped input receipt preserves prior shape so tiny-move/native result consumers remain compatible. Full CI/artifact acceptance still pending.
+
+## Acknowledge already-closed RM tasks and protect in-flight resume
+
+Scoped historical native proof CI97/ea4a04d passes actual explicit close, readonly observer fence, closed input rejection, reopen newID,45s real expiry under status polling and sky-blue painted edges. Evidence docs/evidence/rmv2/phase1-ci97.json verifies artifactZIPSHAfd94c8fb5d4e6efd1c8a8fc1ec493c06dbdeb7fd56f5b1f974536e0a70ea729b. Final JS close-receipt/resume changes require their own full exact-source CI/artifact; no physical PASS implied.

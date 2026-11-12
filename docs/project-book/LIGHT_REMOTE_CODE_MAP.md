@@ -306,3 +306,7 @@ Next boundary changes are Agent-owned desktop visual rows/input dispatch, native
 ## Package RM task lifecycle module and retain scoped input receipt compatibility
 
 client/core-files.json now includes lifecycle runtime module in the actual Windows Agent package. RobotContext.AddVisualReceipt merges visual lease acknowledgment into existing native input object, preserving previous field paths.
+
+## Acknowledge already-closed RM tasks and protect in-flight resume
+
+rmv2-task-lifecycle exposes bounded owner-bound remember/confirmed close receipts; Agent stores sanitized metadata after native close acknowledgment. resume is a tracked real RM operation, so explicit close drains lease recovery too.

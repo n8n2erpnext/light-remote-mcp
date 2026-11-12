@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 281,
+    "total": 282,
     "markdown": 230,
-    "json": 51
+    "json": 52
   },
   "files": [
     {
@@ -649,6 +649,27 @@
         "publicFeedPromoted",
         "physicalAcceptance",
         "nativeProof"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/phase1-ci97.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2133,
+      "sha256": "78be9185b72509b35a6aaac608d87fda9d97450eb7d1b5acef999664a378ce83",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "idleTimerStopped",
+        "orphanExpiry45sDespiteStatusPolling",
+        "result",
+        "restoreWhileAlive",
+        "palette",
+        "explicitCloseAcknowledged",
+        "observationNoOverride",
+        "reopenNewId"
       ]
     },
     {
