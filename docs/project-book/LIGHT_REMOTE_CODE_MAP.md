@@ -290,3 +290,7 @@ NativeInput.Move keeps absolute monotonic pacing but caps individual Thread.Slee
 ## Keep RMv2 working sessions visible and yield input without failing Agent sessions
 
 ControlActivity owns first-input-armed working-session indicator lifetime and OwnerInputPause metadata. RobotContext converts input yield to paused/sessionRetained data receipt without closing RPC/Agent/session. NativeInput.WriteText retains sent-unit count on yield; no inserted-text proof. CursorGlowOverlay scans visible cursor pixels and sizes real WPF edge content plus physical HWNDs on every monitor; diagnostics reports actual rectangles, painted center alpha and click-through for CI. No new public auth endpoints.
+
+## Keep paused RMv2 session awareness visible during Owner work
+
+ControlActivity.PausedFeedback now stays active while the existing visual/semantic working session remains live, or8s standalone. Locked/disposed/detached state hides it. Source plan records shared foreground pointer/focus and future background-provider boundary. No privilege/input-block/session termination change.

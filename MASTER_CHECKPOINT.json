@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-12T04:00:49.666Z",
+  "updatedAt": "2026-11-12T04:04:50.172Z",
   "version": "0.10.1-dev.8",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "RMV2_DEV8_INDICATOR_YIELD_NATIVE_CI_PENDING",
+  "status": "RMV2_DEV8_FINAL_PAUSED_SESSION_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -360,7 +360,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Run exact-source Actions dev8; fix actual failures and verify installer SHA/manifests. User downloads/installs internal candidate. Physical check AI near cursor and all screen edges during model waits; Owner can use mouse/key, input yields with Agent session retained. Foreground targets must be re-observed before continuation. Verified long typing/timeout and per-window background UIA/isolated desktop are subsequent work, not claimed implemented.",
+  "nextAction": "Follow exact-source full CI, verify internal dev8 installer/source/SHA. Owner retests persistent AI/glow, paused coexistence and close/disconnect cleanup. True background per-window APIs and exact text verification remain separately pending.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -451,12 +451,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261112-rmv2-owner-indicator-and-yield",
-    "status": "RMV2_DEV8_INDICATOR_OWNER_FAILURE_FIXED_NATIVE_CI_PENDING",
-    "summary": "Owner physical build92 report explicitly FAILS awareness UI: AI badge intermittent/distant, no visible screen edges. Replace900ms packet indicator with first-input-armed visual/semantic working-session lifetime plus30s bounded standalone grace; read-only initial attach never arms AI. Compute visible cursor tail excluding transparent canvas;2px gap. Paint full WPF content surfaces as well as HWND geometry, with stronger5px click-through edges on all monitors. Owner mouse/keyboard remains unblocked. Local activity yields current input as structured paused/sessionRetained receipt rather than native RPC error; release only RM-held downs, never replay/refocus. Text pause includes sent UTF16 units, explicitly not verified inserted content. No Agent/session/background-job termination.",
-    "verification": "Before-change checkpoint tag checkpoint/20261112-before-rmv2-indicator-668ce3a; all-ref bundle e880177c09d7a4b9666e650eab380351f972de3354c77428bd10f243ef26729b restored/fsck PASS. CI92 full Windows PASS but Ubuntu Chromium dependency install FAIL and all9 baseline unaccepted. Owner supplied1776-unit interval0 test completed2.55s unverified; paced trial interrupted on local activity with foregroundChrome. First timeout remains separately unresolved. New native CI must prove live-gap visibility, four full painted/click-through edges per screen, close/idle/cursor preservation and existing installer regression. Physical DPI/visibility/coexistence remains Owner acceptance; no claim of exact internal Codex replication or independent simultaneous foreground cursors.",
-    "nextAction": "Run exact-source Actions dev8; fix actual failures and verify installer SHA/manifests. User downloads/installs internal candidate. Physical check AI near cursor and all screen edges during model waits; Owner can use mouse/key, input yields with Agent session retained. Foreground targets must be re-observed before continuation. Verified long typing/timeout and per-window background UIA/isolated desktop are subsequent work, not claimed implemented.",
-    "sourceDigest": "2360a007d6bbf4112c1766d91a157bd46d2a2fd5054f6e7bfa8e3ab237468452",
+    "taskId": "20261112-rmv2-paused-session-awareness",
+    "status": "DEV8_OWNER_SHARED_DESKTOP_CONTRACT_FINAL_CI_PENDING",
+    "summary": "Follow Owner clarification: even when local user is working, keep AI paused badge/amber screen edges for the lifetime of an existing RM working session. Standalone feedback remains8s. No BlockInput, hard Agent/session termination, automatic replay or focus stealing. Document exact Codex Windows public behavior and split-screen limitations, without claiming access to internal implementation or independent physical cursors.",
+    "verification": "Before-change full checkpoint restore/fsck PASS at668ce3a. Source7faf206 CI93 in progress, Ubuntu browser dependency outage passed after authenticated mirror fix. Final paused-session visibility change and expanded plan require new exact-source native/full CI; Owner physical indicator remains FAIL until retest. CI93 core/Windows source gate identified the obsolete hard-interruption string assertion before native compilation; replace it with explicit paused/session-retained/no-replay and full-painted-surface assertions, preserving all cursor/security checks. Browser QA reached real Chromium successfully.",
+    "nextAction": "Follow exact-source full CI, verify internal dev8 installer/source/SHA. Owner retests persistent AI/glow, paused coexistence and close/disconnect cleanup. True background per-window APIs and exact text verification remain separately pending.",
+    "sourceDigest": "3a0491ca35a889828eab6af123645ca1b864d06c39a5e1fbf1146e78d744e2eb",
     "sourceFileCount": 1681
   },
   "legacyFilesystemCleanup": {
@@ -1546,7 +1546,7 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "PENDING_DEV8",
+    "nativeCi": "PENDING_FINAL_PAUSED_SESSION_SOURCE",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
@@ -1572,6 +1572,8 @@
     "ownerInputBehavior": "YIELD_CURRENT_INPUT_KEEP_AGENT_SESSION_NO_BLOCKINPUT_NO_REPLAY",
     "independentForegroundConcurrency": false,
     "beforeIndicatorTag": "checkpoint/20261112-before-rmv2-indicator-668ce3a",
-    "beforeIndicatorBundleSha256": "e880177c09d7a4b9666e650eab380351f972de3354c77428bd10f243ef26729b"
+    "beforeIndicatorBundleSha256": "e880177c09d7a4b9666e650eab380351f972de3354c77428bd10f243ef26729b",
+    "pausedIndicator": "AMBER_REMAINS_FOR_EXISTING_WORKING_SESSION_STANDALONE8S",
+    "codexParity": "PUBLIC_BEHAVIOR_REFERENCE_NOT_INTERNAL_CODE_COPY"
   }
 }

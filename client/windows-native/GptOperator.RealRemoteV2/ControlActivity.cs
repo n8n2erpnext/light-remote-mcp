@@ -24,7 +24,8 @@ internal sealed class ControlActivity : IDisposable
     private long _desktopCheckedAt,_pausedFeedbackUntil;
     private int _leaseBound;
     public Func<bool>? HasWorkingSession;
-    public bool PausedFeedback => Volatile.Read(ref _paused)!=0 && _pauseReason=="paused-local-input" && Environment.TickCount64<Volatile.Read(ref _pausedFeedbackUntil);
+    public bool PausedFeedback => Volatile.Read(ref _disposed)==0 && Volatile.Read(ref _locked)==0 && Volatile.Read(ref _paused)!=0 && _pauseReason=="paused-local-input"
+        && (Environment.TickCount64<Volatile.Read(ref _pausedFeedbackUntil) || (HasWorkingSession?.Invoke()??false));
     public bool IndicatorVisible => Active || PausedFeedback;
     private int _running,_paused,_locked,_disposed;
     private string _pauseReason="idle";

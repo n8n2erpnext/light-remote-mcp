@@ -270,3 +270,7 @@ Final phase1 review bounds Smooth Move sleep slices to8ms, correcting a sparse-f
 ## Keep RMv2 working sessions visible and yield input without failing Agent sessions
 
 Owner physical build92 indicator FAIL supersedes native flags-only awareness acceptance. dev8 repairs lifecycle, visible cursor tail and full painted all-monitor edge surfaces. Local input produces paused/sessionRetained receipt, not Agent/session termination; no input block/replay/refocus. Background jobs continue independently. Same foreground Windows session still has shared pointer/focus; per-window background automation and verified long typing remain future capability work. Internal only, native/full CI pending.
+
+## Keep paused RMv2 session awareness visible during Owner work
+
+Owner shared-desktop clarification: keep paused awareness throughout an existing RM working session; do not hide AI/glow while the user works and Agent remains connected. This retains paused input, not independent foreground automation. Public Codex docs confirm Windows foreground input; no internal1:1 implementation claim. Physical UI acceptance stays FAIL/pending retest.
