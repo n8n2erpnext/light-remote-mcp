@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 305 (230 Markdown, 75 JSON).
+Documents: 307 (230 Markdown, 77 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -51,6 +51,7 @@ Documents: 305 (230 Markdown, 75 JSON).
 | evidence | [docs/evidence/rmv2/dxgi-ci112.json](../evidence/rmv2/dxgi-ci112.json) | sourceCommit, ciRunId, artifactId, artifactSha256, coldCaptureP95Ms, frameSeqMonotonic, gpuPhysi | 26d20c113ee2e8480b6dee10c511e27584313578b2c62591c487f303c0991f7b |
 | evidence | [docs/evidence/rmv2/dxgi-ci115.json](../evidence/rmv2/dxgi-ci115.json) | sourceCommit, ciRunId, artifactId, artifactSha256, coldCaptureP50Ms, fallbackFrameCount, freshPi | c24819f91bba7e5002c2b8088dfc4e569975bacae2c71dc63dd6ebf8f1ba522c |
 | evidence | [docs/evidence/rmv2/dxgi-ci116.json](../evidence/rmv2/dxgi-ci116.json) | sourceCommit, ciRunId, artifactId, artifactSha256, coldSamples, result, actualEncodeReuseCount,  | 2820cda29f3ab9d882e9fdbf34a6ee3fbec16f452c6b983de257aba798695d7b |
+| evidence | [docs/evidence/rmv2/macos-ci117.json](../evidence/rmv2/macos-ci117.json) | sourceCommit, ciRunId, jobId, result, runnerName, nativeTestsExecuted, annotations | 7f0b19c6ba4f25cfee30a55ab1e7ad7edf6d247547ff8e46345874f2afa8517b |
 | evidence | [docs/evidence/rmv2/nuget-ci108.json](../evidence/rmv2/nuget-ci108.json) | sourceCommit, ciRunId, artifactId, artifactSha256, lockPath, normalizedLockSha256, sourceCompile | 06d7f337d88d47b52a53af4dd0774136478a4453d56b88528e515ee6761f18df |
 | evidence | [docs/evidence/rmv2/phase1-ci112.json](../evidence/rmv2/phase1-ci112.json) | sourceCommit, ciRunId, artifactId, artifactSha256, scope, idleTimerStopped, reopenNewId, systemC | 5e1022b1361c2d0ff039e9dbd51633197c2761d7a8ac0a65e25dc3c7bd3b6de6 |
 | evidence | [docs/evidence/rmv2/phase1-ci115.json](../evidence/rmv2/phase1-ci115.json) | sourceCommit, ciRunId, artifactId, artifactSha256, physicalLocalTakeover, readOnlyViewDoesNotKee | 8c18e2cda4e4468237ece89bca1ab9be7a5998f0e10f3d9eab7f31db64826015 |
@@ -71,6 +72,7 @@ Documents: 305 (230 Markdown, 75 JSON).
 | evidence | [docs/evidence/rmv2/text-ci114.json](../evidence/rmv2/text-ci114.json) | sourceCommit, ciRunId, artifactId, artifactSha256, result, scope, deliverySnapshots, automaticRe | 4e51340dbdf39d0bdfde2cd7ef0bcff12fc11ff44d8486157c7c40f078516351 |
 | evidence | [docs/evidence/rmv2/text-ci115.json](../evidence/rmv2/text-ci115.json) | sourceCommit, ciRunId, artifactId, artifactSha256, deliverySnapshots, stage, requestedUnits, aut | c53a2e66bb6cacafd8c0edf0f72f929c4350df1fdad6d22d417e4e447cfa3d8a |
 | evidence | [docs/evidence/rmv2/text-ci116.json](../evidence/rmv2/text-ci116.json) | sourceCommit, ciRunId, artifactId, artifactSha256, completedSizes, lateFixtureMatchDoesNotChange | 5a94446629b94b9c4c7fe9b877d28be537b769f8a7a4c862bb747b89c1f4221e |
+| evidence | [docs/evidence/rmv2/text-ci117.json](../evidence/rmv2/text-ci117.json) | sourceCommit, ciRunId, artifactId, artifactSha256, requestedUnits, lastChunkTiming, scope, at, s | a9faeba0b570bf463349f49566a1baa25b2e6ca5003209f4213aa3533b7facf3 |
 | evidence | [docs/evidence/runtime-source-comparison.json](../evidence/runtime-source-comparison.json) |  | 6e06831f60deff0905ec9c0e54cd7c0e8e24b1de3e5a6e5b0c9d5fbca01f1759 |
 | evidence | [docs/evidence/windows-artifact-verification.json](../evidence/windows-artifact-verification.json) | artifactId, name, zipSha256, zipBytes, repositoryId, sourceCommit, ciRunId, verified, verifiedOn | 2f546e90951ad16efde6690412b9216ec9cd74155d1a699b9f85579f1a1f1f81 |
 | evidence | [docs/evidence/windows-build-manifest.json](../evidence/windows-build-manifest.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | 4c879edf3ceae517f0c31a41ab5eaa8dfc938753308d8d1431cb999fbf17c983 |
@@ -285,7 +287,7 @@ Documents: 305 (230 Markdown, 75 JSON).
 | plans | [docs/plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md](../plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md) | Codex, Wall and Desktop follow-up — 2026-11-10 | aabeb020caa313351fd8a22231f5478199e0a5595eb58c91c5b7cb8303a546db |
 | plans | [docs/plans/desktop-user-experience/README.md](../plans/desktop-user-experience/README.md) | Desktop user experience reconstruction | 2fe4928a903a2e3634cc86aa5cec9dc10bbfd5c871324e832842a356ac2dc779 |
 | plans | [docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md](../plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md) | Long Memory, extension ngữ cảnh và API Worker nhiều nhà cung cấp | 12fc6425532ec66a154df580dec6bdb5a743df21dc1b7638a91598a6d58049b9 |
-| plans | [docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md](../plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) | RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn | 4a474e345af5e1095c8a5d93bdc90f4cc6cd07293ad656ff712eb5f7c3175063 |
+| plans | [docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md](../plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) | RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn | 7e702002581d4a096815a3f66b7d835f2809e5e726c093bbc7374754e35ddefb |
 | plans | [docs/plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md](../plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md) | Windows tray, setup and branding follow-up — 2026-11-10 | 7bc713ad524e99348e66ccde7d2b0cde1c4f69d7c5002f1eaff474d59f242e63 |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json) | schemaVersion, status, dateLocal, timezone, repository, scope, requestedTarget, currentGithubHea | cccd37f78676a45a4605c91cbe37ac46b647e24024d9bef663a90d3abcdfbc4d |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md) | T12-PLAN — Gộp hai Windows core thành LightRemote.exe | 8803418d5f846a3568be08128a70e21a53ccee6e7d2083a41dcd005c2e8bd237 |

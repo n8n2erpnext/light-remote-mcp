@@ -183,3 +183,7 @@ CI115 paragraph262K failed in its first256unit window because stable text omitte
 ## Separate native Edit acceptance from managed editor stress cases
 
 Managed Rich Edit paragraph262K is NOT_ACCEPTED: CI1165.049second completion limit stopped at31728sent/31472observed. Full normalized prefix arrived+1.159s after stop, so this failed window was delayed, not proved lost. Provider-vs-editor cause remains unproved. Built-in native EDIT large-text acceptance is a separate target/provider case and does not fix or erase this limitation. Earlier giant single-paragraph classic/rich failures remain. Actual queued input may race focus changes, so no absolute no-leak claim or replay.
+
+## Allow full native text completion and retain macOS checks
+
+CI117 was externally interrupted, not complete native262K acceptance: exact progress126916units does not prove the remaining input. Hosted macOSARM64 never acquired a runner; same required native tests now run on standard Intel, with ARM64 pending. Product readback can be slow for large documents, still full-content per window and exact final match. Managed Rich Edit262K failures remain unaccepted; no replay or arbitrary timeout relaxation in product.

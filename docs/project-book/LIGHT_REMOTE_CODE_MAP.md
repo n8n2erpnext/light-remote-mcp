@@ -382,3 +382,7 @@ NativeInput.WriteLogicalChunkCore handles native multiline line breaks inside th
 ## Separate native Edit acceptance from managed editor stress cases
 
 TestFixtures/Rmv2TextFixture.NativeEdit creates a genuine Windows EDIT HWND with CreateWindowExW; NativeWindow records counters, default native WndProc/UIA provider remains. Managed controls remain separate. test-rmv2-text runs9newline cases and delayed completion before sizes, tests262K only on declared pure native EDIT paragraph layout, and records all managed262K limitations. CI116 native/capture/text evidence is pinned.
+
+## Allow full native text completion and retain macOS checks
+
+windows-native-client workflow IDs text acceptance, gives real-keyboard stress40minute CI budget, classifies unfinished receipts as INCOMPLETE, and rejects successful-step/missing/nonPASS receipt inconsistencies. Whole Windows job bounded110minutes for text plus installer/rollback. desktop-v4-native-ci pins macos-15-intel for same Darwin tests due verified hostedARM64 capacity failure; no source/runtime or branch-gate change.

@@ -67,7 +67,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-24.04]
+        # CI117 macOS arm64 never acquired a hosted runner. Keep native Darwin
+        # checks on a standard Intel runner; this does not accept arm64 builds.
+        os: [macos-15-intel, ubuntu-24.04]
     env:
       VITE_LR_V4_UI_TEST: '0'
       VITE_LR_V4_OWNER_LOGIN: '1'

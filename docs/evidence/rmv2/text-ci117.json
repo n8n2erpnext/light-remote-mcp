@@ -1,0 +1,137 @@
+{
+  "sourceCommit": "f2aec120cc902154c16336f3293e290846ccb4b6",
+  "ciRunId": 43462107355,
+  "artifactId": 14057972170,
+  "artifactSha256": "97fa4631ea7bc0e7abfa4c640a6ffda4084545a255383861aca40896f72c99de",
+  "requestedUnits": 262144,
+  "lastChunkTiming": {
+    "nativeHandlerMs": 2156.6791,
+    "sentUnits": 126916,
+    "observedUnits": 126916,
+    "nativeQueueMs": 0.0473,
+    "textTiming": {
+      "targetMs": 4.8569,
+      "sendMs": 56.4292,
+      "deliveryMs": 2094.935
+    },
+    "phase": "complete"
+  },
+  "scope": "isolated_actions_synthetic_text_no_raw_content",
+  "at": "2026-11-13T16:43:54.6321044Z",
+  "sentOffset": 126916,
+  "stage": "typing_chunks",
+  "result": "RUNNING",
+  "nativeMultilineLineEndings": [
+    {
+      "nativeVerified": true,
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "controlKind": "classic",
+      "lineEndingCodeUnits": [
+        10
+      ]
+    },
+    {
+      "nativeVerified": true,
+      "fullFixtureReadback": true,
+      "sourceUnits": 20,
+      "controlKind": "classic",
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ]
+    },
+    {
+      "nativeVerified": true,
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "controlKind": "classic",
+      "lineEndingCodeUnits": [
+        13
+      ]
+    },
+    {
+      "nativeVerified": true,
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "controlKind": "rich",
+      "lineEndingCodeUnits": [
+        10
+      ]
+    },
+    {
+      "nativeVerified": true,
+      "fullFixtureReadback": true,
+      "sourceUnits": 20,
+      "controlKind": "rich",
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ]
+    },
+    {
+      "nativeVerified": true,
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "controlKind": "rich",
+      "lineEndingCodeUnits": [
+        13
+      ]
+    },
+    {
+      "nativeVerified": true,
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "controlKind": "native",
+      "lineEndingCodeUnits": [
+        10
+      ]
+    },
+    {
+      "nativeVerified": true,
+      "fullFixtureReadback": true,
+      "sourceUnits": 20,
+      "controlKind": "native",
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ]
+    },
+    {
+      "nativeVerified": true,
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "controlKind": "native",
+      "lineEndingCodeUnits": [
+        13
+      ]
+    }
+  ],
+  "sizeElapsedMs": 685078.3194,
+  "elapsedMs": 854301.9198,
+  "completedSizes": [
+    {
+      "controlKind": "classic-edit",
+      "units": 16384,
+      "fullFixtureReadback": true,
+      "wordWrap": true,
+      "nativeVerified": true,
+      "comparison": "full-content-line-ending-equivalence-only",
+      "layout": "single-paragraph",
+      "elapsedMs": 30501.5988
+    },
+    {
+      "controlKind": "classic-edit",
+      "units": 65536,
+      "fullFixtureReadback": true,
+      "wordWrap": true,
+      "nativeVerified": true,
+      "comparison": "full-content-line-ending-equivalence-only",
+      "layout": "single-paragraph",
+      "elapsedMs": 130271.4706
+    }
+  ],
+  "fullCi": "FAIL_EXTERNAL_15_MINUTE_CI_BUDGET",
+  "interpretation": "External workflow step hit15minutes, not native per-window failure. Last recorded offset126916 was fully observed and the last ACK complete: target4.857ms/send56.429ms/readback2094.935ms. Nine LF/CRLF/CR cases and managed16K/64K full readback passed;262K final full verification/focus-switch not reached. RUNNING artifact is historical INCOMPLETE, never PASS.",
+  "finalAcceptance": "INCOMPLETE_EXTERNAL_CI_TIMEOUT"
+}

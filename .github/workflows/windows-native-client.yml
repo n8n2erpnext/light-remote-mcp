@@ -8,7 +8,7 @@ env:
 jobs:
   build-install-smoke:
     runs-on: windows-latest
-    timeout-minutes: 80
+    timeout-minutes: 110
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -753,10 +753,31 @@ jobs:
           "RMV2_TEXT_FIXTURE_EXE=$(Join-Path $PWD 'dist/rmv2-text-fixture/LightRemote.RM.TextFixture.exe')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Real Remote V2 target-bound Unicode text acceptance
-        timeout-minutes: 15
+        id: rmv2_text_acceptance
+        # Full262K real-keyboard/readback stress can exceed15minutes on hosted
+        # Windows. This is only a bounded CI budget, not input authority or RPC.
+        timeout-minutes: 40
         shell: pwsh
         run: |
           ./client/windows-native/test-rmv2-text.ps1 -Exe $env:RMV2_EXE -FixtureExe $env:RMV2_TEXT_FIXTURE_EXE -Output (Join-Path $PWD 'dist/windows/rmv2-text-acceptance.json')
+
+      - name: Classify externally interrupted RMv2 text receipt
+        if: always()
+        shell: pwsh
+        run: |
+          $path = Join-Path $PWD 'dist/windows/rmv2-text-acceptance.json'
+          if (Test-Path -LiteralPath $path) {
+            $receipt = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+            if ($receipt.result -eq 'RUNNING') {
+              $receipt.result = 'INCOMPLETE'
+              $receipt | Add-Member -NotePropertyName interruption -NotePropertyValue 'CI_STEP_ENDED_BEFORE_FINAL_NATIVE_ACCEPTANCE' -Force
+              $receipt | Add-Member -NotePropertyName ciStepOutcome -NotePropertyValue '${{ steps.rmv2_text_acceptance.outcome }}' -Force
+              $receipt | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $path -Encoding utf8
+            }
+            if ('${{ steps.rmv2_text_acceptance.outcome }}' -eq 'success' -and $receipt.result -ne 'PASS') { throw 'RM text step succeeded without a complete PASS receipt' }
+          } elseif ('${{ steps.rmv2_text_acceptance.outcome }}' -eq 'success') {
+            throw 'RM text step succeeded without its native receipt'
+          }
 
       - name: Upload RMv2 native text acceptance receipt
         if: always()

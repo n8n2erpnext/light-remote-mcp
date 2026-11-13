@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 305,
+    "total": 307,
     "markdown": 230,
-    "json": 75
+    "json": 77
   },
   "files": [
     {
@@ -736,6 +736,22 @@
       ]
     },
     {
+      "path": "docs/evidence/rmv2/macos-ci117.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 848,
+      "sha256": "7f0b19c6ba4f25cfee30a55ab1e7ad7edf6d247547ff8e46345874f2afa8517b",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "jobId",
+        "result",
+        "runnerName",
+        "nativeTestsExecuted",
+        "annotations"
+      ]
+    },
+    {
       "path": "docs/evidence/rmv2/nuget-ci108.json",
       "shelf": "evidence",
       "extension": "json",
@@ -1149,6 +1165,27 @@
         "deliverySnapshots",
         "stage",
         "scope"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/text-ci117.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3573,
+      "sha256": "a9faeba0b570bf463349f49566a1baa25b2e6ca5003209f4213aa3533b7facf3",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "requestedUnits",
+        "lastChunkTiming",
+        "scope",
+        "at",
+        "sentOffset",
+        "stage",
+        "result",
+        "nativeMultilineLineEndings"
       ]
     },
     {
@@ -3042,8 +3079,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 83141,
-      "sha256": "4a474e345af5e1095c8a5d93bdc90f4cc6cd07293ad656ff712eb5f7c3175063",
+      "bytes": 85254,
+      "sha256": "7e702002581d4a096815a3f66b7d835f2809e5e726c093bbc7374754e35ddefb",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {
