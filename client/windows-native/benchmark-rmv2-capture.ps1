@@ -25,7 +25,10 @@ function Capture-Rm($Connection){
    if(-not $reply.ok){throw "benchmark_native_failure:$($reply.error)"}
    $elapsed=$clock.Elapsed.TotalMilliseconds;$frame=$reply.data
    if($frame.mime -ne 'image/jpeg' -or -not $frame.data -or $frame.frame.width -gt 960 -or $frame.frame.height -gt 540){throw 'benchmark_frame_invalid'}
-   return @{roundtripMs=$elapsed;nativeMs=[double]$frame.captureDurationMs;bytes=[int]$frame.dataBytes}
+   # Use the SAME timing boundary in both sources. The prior source does not
+   # expose captureDurationMs; absent timing must never become a fake zero.
+   if($null -eq $frame.nativeTiming.handlerMs -or [double]$frame.nativeTiming.handlerMs -le 0){throw 'benchmark_common_native_timing_unavailable'}
+   return @{roundtripMs=$elapsed;nativeMs=[double]$frame.nativeTiming.handlerMs;bytes=[int]$frame.dataBytes}
   }
  };throw 'benchmark_native_reply_missing'
 }
@@ -39,10 +42,15 @@ try {
   }
  }
  $baseP95=Percentile $base.samples .95;$currentP95=Percentile $current.samples .95
- $report=@{result='RECORDED';scope='ISOLATED_SAME_RUNNER_CAPTURE_AND_LOCAL_PIPE_ONLY_NOT_NETWORK_INPUT_OR_OWNER_HARDWARE';baselineSource=$baselineSource;currentSource=$CurrentSource;baselineExeSha256=(Get-FileHash $BaselineExe -Algorithm SHA256).Hash.ToLower();currentExeSha256=(Get-FileHash $CurrentExe -Algorithm SHA256).Hash.ToLower();requestedBackend='gdi';image=@{maxWidth=960;maxHeight=540;quality=50};warmupPerSource=3;sampleOrder='15_ABBA_ROUNDS';samplesPerSource=30;baseline=@{roundtripP50Ms=(Percentile $base.samples .5);roundtripP95Ms=$baseP95;captureP50Ms=(Percentile $base.native .5);captureP95Ms=(Percentile $base.native .95);roundtripSamples=$base.samples;captureSamples=$base.native};current=@{roundtripP50Ms=(Percentile $current.samples .5);roundtripP95Ms=$currentP95;captureP50Ms=(Percentile $current.native .5);captureP95Ms=(Percentile $current.native .95);roundtripSamples=$current.samples;captureSamples=$current.native};roundtripP95ChangePercent=(100*($currentP95-$baseP95)/$baseP95);acceptance='MEASUREMENT_ONLY_NO_SPEEDUP_THRESHOLD';ownerPhysical='PENDING'}
+ $report=@{result='RECORDED';scope='ISOLATED_SAME_RUNNER_CAPTURE_AND_LOCAL_PIPE_ONLY_NOT_NETWORK_INPUT_OR_OWNER_HARDWARE';baselineSource=$baselineSource;currentSource=$CurrentSource;baselineExeSha256=(Get-FileHash $BaselineExe -Algorithm SHA256).Hash.ToLower();currentExeSha256=(Get-FileHash $CurrentExe -Algorithm SHA256).Hash.ToLower();requestedBackend='gdi';image=@{maxWidth=960;maxHeight=540;quality=50};warmupPerSource=3;sampleOrder='15_ABBA_ROUNDS';samplesPerSource=30;baseline=@{roundtripP50Ms=(Percentile $base.samples .5);roundtripP95Ms=$baseP95;nativeHandlerP50Ms=(Percentile $base.native .5);nativeHandlerP95Ms=(Percentile $base.native .95);roundtripSamples=$base.samples;nativeHandlerSamples=$base.native};current=@{roundtripP50Ms=(Percentile $current.samples .5);roundtripP95Ms=$currentP95;nativeHandlerP50Ms=(Percentile $current.native .5);nativeHandlerP95Ms=(Percentile $current.native .95);roundtripSamples=$current.samples;nativeHandlerSamples=$current.native};roundtripP95ChangePercent=(100*($currentP95-$baseP95)/$baseP95);acceptance='MEASUREMENT_ONLY_NO_SPEEDUP_THRESHOLD';ownerPhysical='PENDING'}
  $report|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($report|ConvertTo-Json -Depth 8 -Compress)
 } finally {
- foreach($row in $connections){if(-not $row.process.HasExited){Stop-Process -Id $row.process.Id -Force -ErrorAction SilentlyContinue};if($row.pipe){$row.pipe.Dispose()};if($row.reader){$row.reader.Dispose()};if($row.writer){$row.writer.Dispose()}}
+ foreach($row in $connections){
+  if(-not $row.process.HasExited){$row.process.Kill();if(-not $row.process.WaitForExit(2000)){throw 'benchmark_isolated_helper_cleanup_timeout'}}
+  # Force termination closes the pipe; disposing its writer may flush and
+  # throw. Release every wrapper without replacing a test failure/success.
+  foreach($stream in @($row.writer,$row.reader,$row.pipe)){if($null -ne $stream){try{$stream.Dispose()}catch [IO.IOException]{}catch [ObjectDisposedException]{}}}
+ }
  $env:LIGHT_REMOTE_RM_CAPTURE_BACKEND=$oldBackend
 }

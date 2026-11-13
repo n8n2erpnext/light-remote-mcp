@@ -132,3 +132,7 @@ Additive native capture fields requestedCaptureBackend/captureBackend/captureFal
 ## Wait for native text delivery and fence expired input authority
 
 Existing logical-text tools keep total inline262144UTF16/reference16MiB UTF8/8M UTF16 limits. Internal unpaced chunks and maximum grapheme are128UTF16 units; oversized grapheme fails whole preparation with zero input. lastObservedInsertedUnits is a historical successfully read prefix, not current whole-document verification or a resume offset; final verifiedInsertedUnits/full native readback semantics are unchanged. Private bridge text-chunk requires integer authorityBudgetMs1..1000, decremented across helper startup and converted to a receiver-owned deadline; caller absolute native deadlines are overwritten. Expiry before admission preserves the previous acknowledged count; expiry/focus/provider uncertainty after input requires reconciliation and no replay. No new OAuth scope/capability or permission bypass.
+
+## Keep RM capture cleanup responsive and correct native measurements
+
+Capture capabilities add cleanupPending for a deferred resource cleanup request; active metadata is not a live control authorization. No new authority or public tool. Controlled native benchmark uses the same nativeTiming.handlerMs boundary in prior/current sources, rejecting missing/nonpositive timing instead of coercing it to zero.

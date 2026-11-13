@@ -60,6 +60,8 @@ try {
   }
   $close=Invoke-Rm @{op='desktop.visual.detach';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken}
   if(-not $close.scopeClosed){throw 'capture_scope_close_unconfirmed'}
+  $afterClose=Invoke-Rm @{op='desktop.status'}
+  if($afterClose.captureCapabilities.optional.dxgi.active -or $afterClose.captureCapabilities.optional.cleanupPending){throw 'closed_scope_retained_gpu_resources'}
  }
  # Synthetic cache self-test verifies identical-pixel reuse deterministically;
  # actual screen reuse is recorded without assuming the CI desktop is static.

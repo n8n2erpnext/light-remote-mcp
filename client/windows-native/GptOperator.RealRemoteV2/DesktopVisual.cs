@@ -104,10 +104,23 @@ internal static class DesktopVisual
     private static readonly GdiFrameCache FrameCache=new();
     private static readonly DxgiCapture Dxgi=new();
     private static readonly object CaptureGate=new();
+    private static int _clearRequested;
     public static string RequestedCaptureBackend=>String.Equals(Environment.GetEnvironmentVariable("LIGHT_REMOTE_RM_CAPTURE_BACKEND"),"dxgi",StringComparison.OrdinalIgnoreCase)?"dxgi":"gdi";
-    public static object CaptureCapabilities()=>new {requestedBackend=RequestedCaptureBackend,defaultBackend="gdi",dxgi=Dxgi.Metadata(),
+    public static object CaptureCapabilities()=>new {requestedBackend=RequestedCaptureBackend,defaultBackend="gdi",cleanupPending=Volatile.Read(ref _clearRequested)!=0,dxgi=Dxgi.Metadata(),
         transport="existing-authorized-image-jpeg",videoStreaming=false,gpuResize=false,hardwareEncoding=false};
-    public static void ClearCaptureCache(){lock(CaptureGate){FrameCache.Clear();Dxgi.Clear();}}
+    public static void ClearCaptureCache()
+    {
+        Interlocked.Exchange(ref _clearRequested,1);
+        // Expiry/status/detach may call this while holding the visual-session
+        // gate. Never wait there for a slow GPU/desktop capture or driver Map.
+        if(!Monitor.TryEnter(CaptureGate))return;
+        try{DrainCaptureCleanup();}finally{Monitor.Exit(CaptureGate);}
+    }
+    private static void DrainCaptureCleanup()
+    {
+        if(Interlocked.Exchange(ref _clearRequested,0)==0)return;
+        try{FrameCache.Clear();Dxgi.Clear();}catch{Interlocked.Exchange(ref _clearRequested,1);throw;}
+    }
     internal static Rectangle Crop(Rectangle bounds,Rectangle? region)
     {
         var local=region??new Rectangle(0,0,bounds.Width,bounds.Height);
@@ -120,6 +133,8 @@ internal static class DesktopVisual
         Rectangle? region=null,string previousSha="",bool omitUnchanged=false)
     {
         lock(CaptureGate) {
+        DrainCaptureCleanup();
+        try {
         var all=Screen.AllScreens;
         if(screenIndex<0||screenIndex>=all.Length)throw new InvalidOperationException("screen_invalid");
         maxWidth=Math.Clamp(maxWidth,160,1280);maxHeight=Math.Clamp(maxHeight,90,720);quality=Math.Clamp(quality,25,70);
@@ -154,7 +169,20 @@ internal static class DesktopVisual
                 coordinateConvention="frame-pixel-centers-to-physical-virtual-no-extra-dpi"},
             data=unchanged?null:captured.Data
         };
+        } finally {DrainCaptureCleanup();}
         }
+    }
+    internal static bool CleanupSelfTest()
+    {
+        using var entered=new ManualResetEventSlim();using var release=new ManualResetEventSlim();
+        var worker=Task.Run(()=>{lock(CaptureGate){entered.Set();release.Wait(TimeSpan.FromSeconds(3));DrainCaptureCleanup();}});
+        if(!entered.Wait(TimeSpan.FromSeconds(3))){release.Set();return false;}
+        var responsive=false;
+        try {
+            var clock=System.Diagnostics.Stopwatch.StartNew();ClearCaptureCache();
+            responsive=clock.ElapsedMilliseconds<=200&&Volatile.Read(ref _clearRequested)!=0;
+        } finally {release.Set();}
+        return worker.Wait(TimeSpan.FromSeconds(3))&&responsive&&Volatile.Read(ref _clearRequested)==0;
     }
     internal static bool CropSelfTest()
     {

@@ -17,6 +17,8 @@ if(!/^[a-f0-9]{40}$/.test(commit)||drift){
 const project=JSON.parse(fs.readFileSync(path.join(root,'project.manifest.json'),'utf8'));
 const lockPaths=['package-lock.json','plugin-server/package-lock.json','client/desktop-v4/package-lock.json','client/desktop-v4/src-tauri/Cargo.lock','platform-v2/sql/migrations.lock.json','config/endpoints.json',...(fs.existsSync(path.join(root,'config/windows-core-migration.json'))?['config/windows-core-migration.json']:[])];
 const sha=async file=>{const h=crypto.createHash('sha256');for await(const chunk of fs.createReadStream(file))h.update(chunk);return h.digest('hex');};
+const nativeLock='client/windows-native/GptOperator.RealRemoteV2/packages.lock.json';
+if(fs.existsSync(path.join(root,nativeLock)))lockPaths.push(nativeLock);
 const dependencyHashes={};for(const p of lockPaths)dependencyHashes[p]=await sha(path.join(root,p));
 const artifact=options['--artifact']?path.resolve(options['--artifact']):null;
 if(artifact&&(!fs.statSync(artifact).isFile()||fs.lstatSync(artifact).isSymbolicLink()))throw Error('build_artifact_invalid');

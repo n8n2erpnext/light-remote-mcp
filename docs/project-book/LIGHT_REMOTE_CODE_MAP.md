@@ -350,3 +350,7 @@ DxgiCapture.cs owns optional exact-adapter desktop duplication, bounded staging,
 ## Wait for native text delivery and fence expired input authority
 
 TypingTarget.WaitForDelivery reuses exact prefix/suffix readback with focus/Owner/cancel/deadline guards; empty ValuePattern is a getter preference only. LogicalTextWriter bounds native chunks128 and records historical observed prefix separately. rmv2-text-write orchestrates128-unit grapheme-safe work and fresh authority budgets; native-desktop subtracts startup time, RobotRpcServer binds native queue-inclusive deadlines, and RobotContext forwards only the receiver-bound deadline. Agent adapter recognizes proven pre-admission expiry as no new input. ControlActivity exposes operation/Owner metadata generations for SemanticSessionManager concurrent-read hints. packages.lock.json is imported from verified Actions, locked restore enabled, and DxgiCapture uses explicit native output types.
+
+## Keep RM capture cleanup responsive and correct native measurements
+
+DesktopVisual.ClearCaptureCache now atomically requests cleanup and TryEnter avoids waiting while VisualSessionManager gate is held; Capture drains before/after and CleanupSelfTest validates contention. CaptureCapabilities.cleanupPending exposes deferred cleanup. test-rmv2-capture asserts closed-scope resources clear. benchmark-rmv2-capture uses shared handlerMs, typed closed-pipe disposal catches; test-rmv2-text terminates both processes before pipe disposal. deploy/unified/build-manifest adds native locked dependency hash.

@@ -111,9 +111,8 @@ try {
 } finally {
  Write-Host "RM_TEXT_CLEANUP stage=$script:lastStage"
  # Kill the isolated helper first so any outstanding pipe/UIA read unblocks.
- if($null -ne $process -and -not $process.HasExited){Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue}
- if($null -ne $pipe){$pipe.Dispose()};if($null -ne $reader){$reader.Dispose()};if($null -ne $writer){$writer.Dispose()}
+ if($null -ne $process -and -not $process.HasExited){$process.Kill();if(-not $process.WaitForExit(2000)){throw 'text_native_cleanup_timeout'}}
  # Test fixture is its own process: no PowerShell UI runspace disposal wait.
- if(-not $fixtureProcess.HasExited){Stop-Process -Id $fixtureProcess.Id -Force -ErrorAction SilentlyContinue}
- if($fixturePipe){$fixturePipe.Dispose()};if($fixtureReader){$fixtureReader.Dispose()};if($fixtureWriter){$fixtureWriter.Dispose()}
+ if(-not $fixtureProcess.HasExited){$fixtureProcess.Kill();if(-not $fixtureProcess.WaitForExit(2000)){throw 'text_fixture_cleanup_timeout'}}
+ foreach($stream in @($writer,$reader,$pipe,$fixtureWriter,$fixtureReader,$fixturePipe)){if($null -ne $stream){try{$stream.Dispose()}catch [IO.IOException]{}catch [ObjectDisposedException]{}}}
 }

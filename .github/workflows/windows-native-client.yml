@@ -753,7 +753,7 @@ jobs:
           "RMV2_TEXT_FIXTURE_EXE=$(Join-Path $PWD 'dist/rmv2-text-fixture/LightRemote.RM.TextFixture.exe')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Real Remote V2 target-bound Unicode text acceptance
-        timeout-minutes: 8
+        timeout-minutes: 15
         shell: pwsh
         run: |
           ./client/windows-native/test-rmv2-text.ps1 -Exe $env:RMV2_EXE -FixtureExe $env:RMV2_TEXT_FIXTURE_EXE -Output (Join-Path $PWD 'dist/windows/rmv2-text-acceptance.json')
