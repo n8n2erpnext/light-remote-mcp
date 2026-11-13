@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 283 (230 Markdown, 53 JSON).
+Documents: 284 (230 Markdown, 54 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -49,6 +49,7 @@ Documents: 283 (230 Markdown, 53 JSON).
 | evidence | [docs/evidence/rmv2/phase1-ci94.json](../evidence/rmv2/phase1-ci94.json) | compiledSource, sourceTree, version, ciRunId, successfulJobs, artifactId, artifactZipSha256, ins | ee1e8ab91740beea2104c3ad91946cb3cab3ea3cf003dbd0abac8e1de63f2b59 |
 | evidence | [docs/evidence/rmv2/phase1-ci97.json](../evidence/rmv2/phase1-ci97.json) | sourceCommit, ciRunId, artifactId, artifactSha256, idleTimerStopped, orphanExpiry45sDespiteStatu | 78be9185b72509b35a6aaac608d87fda9d97450eb7d1b5acef999664a378ce83 |
 | evidence | [docs/evidence/rmv2/phase1-ci98.json](../evidence/rmv2/phase1-ci98.json) | sourceCommit, sourceTree, version, ciRunId, artifactId, artifactZipSha256, installerSha256, inst | 306e89f411d61c8c56b41684f5ad31589e6e4dc0ae87a8d9b51853ee237383b6 |
+| evidence | [docs/evidence/rmv2/phase2a-ci101.json](../evidence/rmv2/phase2a-ci101.json) | sourceCommit, ciRunId, artifactId, artifactSha256, tinyMoves, idleTimerStopped, reopenNewId, con | 832de987e8a20acc7f46a2ee5c1c65dd0e97b6b39f729f6366f1d94fb2a261ec |
 | evidence | [docs/evidence/runtime-source-comparison.json](../evidence/runtime-source-comparison.json) |  | 6e06831f60deff0905ec9c0e54cd7c0e8e24b1de3e5a6e5b0c9d5fbca01f1759 |
 | evidence | [docs/evidence/windows-artifact-verification.json](../evidence/windows-artifact-verification.json) | artifactId, name, zipSha256, zipBytes, repositoryId, sourceCommit, ciRunId, verified, verifiedOn | 2f546e90951ad16efde6690412b9216ec9cd74155d1a699b9f85579f1a1f1f81 |
 | evidence | [docs/evidence/windows-build-manifest.json](../evidence/windows-build-manifest.json) | schemaVersion, project, projectVersion, repository, sourceCommit, sourceTree, buildTimestamp, ci | 4c879edf3ceae517f0c31a41ab5eaa8dfc938753308d8d1431cb999fbf17c983 |
@@ -263,7 +264,7 @@ Documents: 283 (230 Markdown, 53 JSON).
 | plans | [docs/plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md](../plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md) | Codex, Wall and Desktop follow-up — 2026-11-10 | aabeb020caa313351fd8a22231f5478199e0a5595eb58c91c5b7cb8303a546db |
 | plans | [docs/plans/desktop-user-experience/README.md](../plans/desktop-user-experience/README.md) | Desktop user experience reconstruction | 2fe4928a903a2e3634cc86aa5cec9dc10bbfd5c871324e832842a356ac2dc779 |
 | plans | [docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md](../plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md) | Long Memory, extension ngữ cảnh và API Worker nhiều nhà cung cấp | 12fc6425532ec66a154df580dec6bdb5a743df21dc1b7638a91598a6d58049b9 |
-| plans | [docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md](../plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) | RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn | b64af67cc1ef46b26fec7e4bddda8d13dbe97bb682c1e4fe56bbb8c4b52cf916 |
+| plans | [docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md](../plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) | RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn | 68d5ef34c45bb7d20094a7335d8094a28e2f339f89ee70503690b04c2bb1dadf |
 | plans | [docs/plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md](../plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md) | Windows tray, setup and branding follow-up — 2026-11-10 | 7bc713ad524e99348e66ccde7d2b0cde1c4f69d7c5002f1eaff474d59f242e63 |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json) | schemaVersion, status, dateLocal, timezone, repository, scope, requestedTarget, currentGithubHea | cccd37f78676a45a4605c91cbe37ac46b647e24024d9bef663a90d3abcdfbc4d |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_CONSOLIDATION_PLAN_20261107.md) | T12-PLAN — Gộp hai Windows core thành LightRemote.exe | 8803418d5f846a3568be08128a70e21a53ccee6e7d2083a41dcd005c2e8bd237 |

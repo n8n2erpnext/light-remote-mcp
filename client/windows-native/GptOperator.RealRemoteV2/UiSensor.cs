@@ -58,6 +58,8 @@ internal sealed class UiSensor : IDisposable
     private const uint EVENT_OBJECT_NAMECHANGE=0x800C;
     private const uint GA_ROOT=2;
 
+    private long _focusGeneration;
+    internal long FocusGeneration=>Volatile.Read(ref _focusGeneration);
     private readonly WinEventDelegate _callback;
     private readonly List<nint> _hooks=new();
 
@@ -85,6 +87,7 @@ internal sealed class UiSensor : IDisposable
     private void OnWinEvent(nint hook,uint evt,nint hwnd,int objectId,int childId,uint thread,uint time)
     {
         if(hwnd==0) return;
+        if(evt is EVENT_SYSTEM_FOREGROUND or EVENT_OBJECT_FOCUS)Interlocked.Increment(ref _focusGeneration);
         Changed?.Invoke(new UiChangeEvent(
             evt switch {
                 EVENT_SYSTEM_FOREGROUND=>"foreground",

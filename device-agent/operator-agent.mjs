@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import {RM_TASK_IDLE_MS,requireOwnedRmTask,rmTaskMayExpire,withRmTask,closeRmTask,rememberRmTaskClose,confirmedRmTaskClose} from '../lib/rmv2-task-lifecycle.mjs';
+import {RmTextWrites,normalizeLogicalTextRequest,strictSemanticValue} from '../lib/rmv2-text-write.mjs';
+import {readLogicalTextSource} from '../lib/rmv2-text-source.mjs';
 import {loadCanonicalEndpoints} from '../lib/canonical-endpoints.mjs';
 import {assertLegacyOwnerCommandNotGuest} from '../lib/gold-pro-share-device-guest-fence.mjs';
 import {executeGoldGuestDeviceProcess} from './guest-device-process.mjs';
@@ -383,6 +385,36 @@ async function rescanHostCapabilities(hub=DEFAULT_HUB){
 const REAL_REMOTE_LIVE=new Map();
 const REAL_REMOTE_VISUAL=new Map();
 const REAL_REMOTE_VISUAL_CLOSED=new Map();
+const RM_TEXT_WRITES=new RmTextWrites({
+  isScopeOpen:row=>REAL_REMOTE_VISUAL.get(row.desktopSessionId)===row&&!row.closing&&!row.nativeStale,
+  withScope:(row,run)=>withRmTask(REAL_REMOTE_VISUAL,row,run,armRealRemoteVisual),
+  authorize:async(owner,row,cachedMs)=>{
+    const state=readState(),caps=effectiveCapabilitiesForState(state);
+    if(!state?.enrollment?.deviceId||!cloudDesired(state)||state.cloud?.state!=='connected'||!(Number(state.cloud?.hardExpiresAt)>Date.now())||
+       state.enrollment.deviceId!==owner.textDeviceId||state.enrollment.accountId!==owner.textAccountId||state.cloud.connectionId!==owner.textConnectionId||
+       !['desktop','desktop-input'].every(cap=>caps.includes(cap))||
+       (owner.textReadPolicy&&(!caps.includes('filesystem')||JSON.stringify(effectiveFilesystemPolicy(state).readRoots)!==owner.textReadPolicy)))throw Error('desktop_write_local_authority_denied');
+    if(cachedMs>0)return null;
+    const result=await channelRequest(state,owner.textHub,'desktop-work-authorize',{sessionId:owner.sessionId,agentId:owner.agentId});
+    if(result?.authorized!==true||result.sessionId!==owner.sessionId||result.agentId!==owner.agentId)throw Error('desktop_write_server_authority_denied');
+    return result;
+  },
+  native:{
+    start:(row,p)=>NATIVE_DESKTOP.request('text-start',{...p,visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000}),
+    chunk:async(row,p)=>{
+      try{return await NATIVE_DESKTOP.request('text-chunk',{...p,visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000});}
+      catch(error){
+        // These errors occur before the handler admits any packet. Keep the last
+        // acknowledged offset; transport/provider failures remain indeterminate.
+        if(/^(remote_input_(cancelled|paused)|operation_cancelled_before_start)/.test(String(error?.message)))
+          return {state:'interrupted',reason:String(error.message),sentUnits:p.offset};
+        throw error;
+      }
+    },
+    finish:(row,p)=>NATIVE_DESKTOP.request('text-finish',{...p,visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000}),
+    cancel:row=>NATIVE_DESKTOP.request('cancel',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:3000})
+  }
+});
 function visualPublicView(row,value={}){
   const source=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
   const {leaseToken,visualSessionId,...rest}=source;
@@ -880,6 +912,25 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
   const op=String(request.op||''),effective=effectiveCapabilitiesForState(state);
   if(!effective.includes('desktop'))throw new Error('local capability denied: desktop');
   if(!REAL_REMOTE_AVAILABLE)throw new Error('real_remote_unavailable');
+  if(op==='text-write-status')return {ok:true,operation:op,desktop:RM_TEXT_WRITES.status(visualOwner(p),request.writeId)};
+  if(op==='text-write-cancel'){
+    if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw Error('local capability denied: desktop-input');
+    return {ok:true,operation:op,desktop:await RM_TEXT_WRITES.cancel(visualOwner(p),request.writeId)};
+  }
+  if(op==='text-write-start'){
+    if(process.platform!=='win32')throw Error('desktop_logical_text_windows_only');
+    if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw Error('local capability denied: desktop-input');
+    const normalized=normalizeLogicalTextRequest(request),row=requireOwnedRmTask(REAL_REMOTE_VISUAL,visualOwner(p),normalized.desktopSessionId);
+    if(row.nativeStale)throw Error('desktop_write_stale_scope_reobserve_before_input');
+    const reference=normalized.sourcePath!=null;
+    const textOwner={...visualOwner(p),textHub:hub,textDeviceId:state.enrollment.deviceId,textAccountId:state.enrollment.accountId,textConnectionId:state.cloud?.connectionId,
+      textReadPolicy:reference?JSON.stringify(effectiveFilesystemPolicy(readState()).readRoots):null};
+    const text=reference?await (async()=>{
+      const current=readState();if(!effectiveCapabilitiesForState(current).includes('filesystem'))throw Error('local capability denied: filesystem');
+      return readLogicalTextSource(normalized.sourcePath,normalized.sourceSha256,effectiveFilesystemPolicy(current));
+    })():normalized.text;
+    return {ok:true,operation:op,desktop:await RM_TEXT_WRITES.start(textOwner,row,{...normalized,text,operationId:p.operationId},{reference})};
+  }
   if(op==='cancel'){
     if(process.platform!=='win32')throw new Error('desktop_cancel_not_supported');
     if(!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
@@ -986,7 +1037,7 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
       semanticSessionId=String(request.semanticSessionId||'');
       if(!semanticSessionId)throw new Error('semantic_session_id_required');
       payload={semanticSessionId,nodeId:String(request.nodeId),action:String(request.action),afterSeq:Math.max(0,Number(request.afterSeq)||0),settleMs:Math.max(0,Math.min(Number(request.settleMs)||90,250))};
-      if(request.value!=null)payload.value=String(request.value).slice(0,4096);
+      if(request.value!=null)payload.value=strictSemanticValue(request.value);
       if(wait)payload.await=wait;
     }else{
       payload=normalizeDesktopInput(request);semanticSessionId=String(payload.semanticSessionId||'');
@@ -1012,7 +1063,7 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
     const semanticSessionId=String(request.semanticSessionId||'');
     if(!semanticSessionId)throw new Error('semantic_session_id_required');
     const action={semanticSessionId,nodeId:String(request.nodeId||''),action:String(request.action||''),afterSeq:Math.max(0,Number(request.afterSeq)||0),settleMs:Math.max(0,Math.min(Number(request.settleMs)||90,250))};
-    if(request.value!=null)action.value=String(request.value).slice(0,4096);
+    if(request.value!=null)action.value=strictSemanticValue(request.value);
     const desktop=await NATIVE_DESKTOP.request('semantic-act',scopePayload(action),{timeoutMs:10000});
     touchRealRemoteLive(semanticSessionId);
     return {ok:true,operation:op,desktop};

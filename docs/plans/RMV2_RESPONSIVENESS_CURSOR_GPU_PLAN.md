@@ -1,6 +1,6 @@
 # RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn
 
-Status: PHASE2A_SOURCE_IMPLEMENTED_NATIVE_CI_PENDING_OWNER_UAT_DEFERRED
+Status: PHASE2B_DEV11_SOURCE_IMPLEMENTED_NATIVE_CI_PENDING_OWNER_UAT_DEFERRED
 Edition: 2026-11-11, Asia/Saigon
 Scope: Windows RM v2, đối chiếu typing macOS; giữ các tool, semantic UI, A/B và local policy hiện tại
 Authoritative source: GitHub `work` `764e1d7ce7670c9e95690fca26b58dd2e3c86f02`, tree `41a48add6e01f3e4f6d28271a59b77f92a8acaca`
@@ -256,3 +256,7 @@ Phase2a dev10 source adds bounded dedicated MTA ordered-input/semantic-state and
 Pointer profiles compatibility(default), smooth, precision and responsive are explicit. Precision/responsive movement defaults to0ms/1step; responsive click has programmed5ms hover/12ms hold, compatibility retains35/40ms and55ms double gap for Paint. Actual target success and latency must be measured; no speedup or exact background concurrency claimed. Native handler/queue timing are separate additive fields, retaining handlerMs compatibility.
 
 Windows scheduler self-test proves status/capture can finish while input is held, queued input stays ordered, cancellation fences old queued work and later explicit input can proceed. Portable normalization/mapper tests exercise profile forwarding and scope-token cancel. Native compile and full CI remain pending exact new source. Target-bound verified long writes, Windows type routing, silent-truncation removal, capture cache/ROI/freshness and optional DXGI/video remain next; no physical acceptance or runtime cutover.
+
+## Add target-bound Unicode writes with verified progress and live authority checks
+
+2026-11-13 phase2b dev11 implementation: Implement dev11 Windows target-bound logical Unicode writes with async writeId/progress/cancel, grapheme-safe bounded packets, same-control readback and no replay. Inline262144 UTF16 units or pinned16MiB UTF8 local reference under Owner read roots. Recheck local identity/policy per chunk and signed server A/B/account/connection/capabilities at most1s between snapshots. Bounded monotonic10min deadline selectable up to1h. Stop unsent text on focus/Owner input/task close/revoke. Remove semantic-value silent4096 slicing; preserve existing macOS HID/AX path. Native Windows readback/focus-switch fixture added in Actions. CI101 dev10 all9PASS recorded independently; dev11 native CI pending. Lab Operator/Plugin remain3064f21/dev6; production/domain/Google callback, independent Agent/sessions/grants/DB and Owner installation unchanged. Before phase2b full checkpoint checkpoint/20261112-before-rmv2-phase2b-241359b, bundle 3c9477f70a4a00aca1823dcebd81f05c742e6f6c6421ae570e3a46b761ad8c52, independent restore/fsckPASS. Native text fixture is pending exact Actions, not physical proof. Remaining plan: phase2c capture buffer/codec/cache/ROI/frame freshness and coordinate mapping plus controlled benchmarks; optional DXGI/D3D11 with bounded GDI fallback, then optional media path, and one Owner consolidated UAT. Do not declare the whole RM plan completed from this subtask.

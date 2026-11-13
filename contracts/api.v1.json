@@ -313,5 +313,44 @@
       "queuedInput": "fenced at cancel; later explicit commands allowed",
       "automaticReplay": false
     }
+  },
+  "rmLogicalText": {
+    "version": "rm-logical-text.v1",
+    "platform": "win32",
+    "startTools": [
+      "light_remote_desktop_write_text",
+      "light_remote_desktop_type_text"
+    ],
+    "statusTool": "light_remote_desktop_text_status",
+    "cancelTool": "light_remote_desktop_text_cancel",
+    "inlineUtf16Units": 262144,
+    "referenceUtf8Bytes": 16777216,
+    "referenceUtf16Units": 8388608,
+    "sourceReference": "exact SHA256 + device-local Owner read roots + filesystem + remote:read",
+    "targetBinding": [
+      "foreground HWND",
+      "GUI focus HWND",
+      "PID and process creation",
+      "UIA runtime ID when available",
+      "owner input generation",
+      "focus generation"
+    ],
+    "completion": "writeId returned after target preflight; poll owned metadata until terminal; verified requires complete same-control readback",
+    "verification": [
+      "none",
+      "prefer",
+      "required"
+    ],
+    "deadlineMs": {
+      "default": 600000,
+      "maximum": 3600000
+    },
+    "authorizationRefresh": "signed enrolled device-channel desktop-work-authorize; <=1000ms server snapshot + per-chunk current local policy",
+    "operatorRoute": "/v1/device-channel/desktop-work-authorize",
+    "publicProxy": "/device-channel/desktop-work-authorize",
+    "automaticReplay": false,
+    "statusRenewsRmTask": false,
+    "closeBeforeFinalReport": true,
+    "macos": "existing short HID+AX/legacy Unicode path; advanced logical requests rejected before input"
   }
 }

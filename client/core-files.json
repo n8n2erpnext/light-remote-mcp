@@ -550,6 +550,22 @@
       "destination": "lib/real-remote-policy.mjs"
     },
     {
+      "source": "lib/rmv2-semantic-value.cjs",
+      "destination": "lib/rmv2-semantic-value.cjs"
+    },
+    {
+      "source": "lib/rmv2-task-lifecycle.mjs",
+      "destination": "lib/rmv2-task-lifecycle.mjs"
+    },
+    {
+      "source": "lib/rmv2-text-source.mjs",
+      "destination": "lib/rmv2-text-source.mjs"
+    },
+    {
+      "source": "lib/rmv2-text-write.mjs",
+      "destination": "lib/rmv2-text-write.mjs"
+    },
+    {
       "source": "lib/rmv2-visual-lease-recovery.mjs",
       "destination": "lib/rmv2-visual-lease-recovery.mjs"
     },
@@ -584,10 +600,6 @@
     {
       "source": "project.manifest.json",
       "destination": "project.manifest.json"
-    },
-    {
-      "source": "lib/rmv2-task-lifecycle.mjs",
-      "destination": "lib/rmv2-task-lifecycle.mjs"
     }
   ]
 }

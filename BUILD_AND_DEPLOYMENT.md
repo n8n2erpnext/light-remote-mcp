@@ -273,3 +273,7 @@ Phase2a candidate dev10 requires Actions native compile/self-test/full installer
 ## Retain explicit legacy RM timing paths alongside opt-in profiles
 
 CI100 source d11f32d has no accepted native artifact: early source gates caught legacy default timing path refactor. Corrected code preserves those paths and adds native InteractionProfile.SelfTest. Existing source/productization/parity checks remain required.
+
+## Add target-bound Unicode writes with verified progress and live authority checks
+
+Dev11 adds Actions-only test-rmv2-text.ps1: real WinForms UI controls in an independent process, required readback16K/64K/256K Unicode, then focus switch before suffix with second control unchanged and explicit scope close. Portable tests are automatically discovered in existing unified unit directories. New private runtime imports are listed in client/core-files.json. This source has not yet passed native build; do not install/release/deploy or reuse CI101 hashes for dev11. CI1019/9PASS belongs exactly241359b/dev10, native receipt docs/evidence/rmv2/phase2a-ci101.json; no complete-installer hash claim for that run.

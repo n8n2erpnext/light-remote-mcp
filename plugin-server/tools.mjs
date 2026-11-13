@@ -96,7 +96,7 @@ export function pluginToolErrorResult(error){
 }
 function guarded(identity,scopes,fn){
   return async(input={})=>{
-    const denied=requireScopes(identity,scopes);
+    const denied=requireScopes(identity,[...scopes,...(input.sourcePath&&scopes.includes('remote:execute')?['remote:read']:[])]);
     if(denied)return denied;
     try{return result(await fn(new AccountOperatorAdapter(identity),input));}
     catch(error){return pluginToolErrorResult(error);}
@@ -716,7 +716,7 @@ export function registerPluginTools(server,identity){
     add(server,'light_remote_semantic_'+action,{
       title:'Desktop semantic '+action,
       description:description+' This tool performs only this named operation. Optional await observes one declared UI state after the action. Device-local approval remains mandatory. Requires an open desktop_attach scope; supply desktopSessionId when multiple scopes exist. MUST desktop_detach all task scopes and confirm taskEnded before final report; no input after close without a new attach.',
-      inputSchema:{...semanticFields,...(action==='value'?{value:z.string().max(4096)}:{})},
+      inputSchema:{...semanticFields,...(action==='value'?{value:z.string().max(262144)}:{})},
       securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
     },guarded(identity,['remote:execute'],(a,x)=>{
       return desktopOperation(a,{...x,action},x.await?'run':'act',['semanticSessionId','nodeId','action','value','await']);
@@ -727,13 +727,25 @@ export function registerPluginTools(server,identity){
   const button=z.enum(['left','right','middle']);
   const profile=z.enum(['compatibility','precision','responsive','smooth']).optional();
   const physicalFields={sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160).optional(),displayTopologyId:z.string().min(1).max(160).optional(),...waitFields};
+  const logicalTextFields={text:z.string().min(1).max(262144).optional(),sourcePath:pathText.optional(),sourceSha256:z.string().regex(/^[a-f0-9]{64}$/i).optional(),mode:z.enum(['insert','append']).optional(),verification:z.enum(['none','prefer','required']).optional(),maxDurationMs:z.number().int().min(1000).max(3600000).optional(),intervalMs:z.number().int().min(0).max(100).optional()};
+  for(const name of ['write_text','type_text'])add(server,'light_remote_desktop_'+name,{
+    title:'Desktop '+name.replaceAll('_',' '),
+    description:'Windows: start one target-bound Unicode write; returns writeId while bounded chunks run locally. Send either inline text (262144 UTF16 units) or a SHA256-pinned UTF8 sourcePath inside Owner read roots (16MiB). File input additionally requires remote:read and filesystem. Choose insert/append and verification none/prefer/required. Check desktop_text_status until terminal; only verified means complete readback. Focus/local input changes stop unsent text. No automatic retry/replay; reconcile interrupted/indeterminate writes. Default total deadline10min, selectable up to1h. macOS retains existing short HID/AX typing limits. MUST desktop_detach and confirm taskEnded before reporting completion.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160),...logicalTextFields},
+    securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
+  },guarded(identity,['remote:execute'],(a,x)=>{
+    if((typeof x.text==='string')===(typeof x.sourcePath==='string'))throw Error('desktop_text_choose_text_or_source_path');
+    return desktopOperation(a,{...x,typingKind:name==='type_text'?'type':'text'},'text-write-start',[...Object.keys(logicalTextFields),'typingKind']);
+  }));
+  for(const [name,op,scopes] of [['status','text-write-status',['remote:read']],['cancel','text-write-cancel',['remote:execute']]])add(server,'light_remote_desktop_text_'+name,{
+    title:'Desktop text '+name,description:name==='status'?'Read device-local write progress and final content-verification metadata. Does not renew RM task activity; never replay an uncertain write.':'Cancel this owned logical text write. Stops unsent chunks; retains Agent/A-B/RM task. Inspect final status and explicitly detach before reporting.',
+    inputSchema:{sessionId:id,operationId:opId,writeId:z.string().regex(/^write_[A-Za-z0-9_-]{8,80}$/)},securitySchemes:security(scopes),annotations:annotations(name==='status',name!=='status',name!=='status',name==='status')
+  },guarded(identity,scopes,(a,x)=>desktopOperation(a,x,op,['writeId'])));
   const physicalActions=[
     ['move','move','Move the native pointer to one screen coordinate. durationMs=0 or steps=1 requests immediate precise movement; omitted values retain smooth compatibility. profile=responsive or precision defaults to immediate exact movement; compatibility preserves app-specific click timing. Responsive clicking reduces hover/hold delays; reobserve and explicitly select compatibility for controls that need settling, never automatically repeat clicks.',{x:coord,y:coord,screen,profile,steps:z.number().int().min(1).max(32).optional(),durationMs:z.number().int().min(0).max(500).optional()}],
     ['click','click','Click the OS pointer once or a bounded number of times, optionally at given coordinates.',{x:coord.optional(),y:coord.optional(),screen,profile,button:button.optional(),count:z.number().int().min(1).max(3).optional()}],
     ['scroll','wheel','Scroll the pointer wheel by a bounded signed delta.',{delta:z.number().int().min(-1200).max(1200),x:coord.optional(),y:coord.optional(),screen,profile}],
     ['drag','drag','Drag the OS pointer from an explicit starting point to an ending point.',{x:coord,y:coord,toX:coord,toY:coord,screen,toScreen:screen,profile,button:button.optional(),steps:z.number().int().min(1).max(32).optional(),durationMs:z.number().int().min(0).max(1000).optional()}],
-    ['type_text','type','Type Unicode text using the native OS keyboard input.',{text:z.string().min(1).max(4096),intervalMs:z.number().int().min(25).max(100).optional()}],
-    ['write_text','text','Write Unicode text into the focused application using native OS input. intervalMs=0 is unpaced. A sent-event receipt is not proof of complete text insertion; observe the target before retrying interrupted input.',{text:z.string().min(1).max(4096),intervalMs:z.number().int().min(0).max(100).optional()}],
     ['press_key','key','Press one native key with explicitly enumerated modifiers.',{key:z.string().min(1).max(48),modifiers:z.array(z.enum(['CTRL','ALT','SHIFT','WIN'])).max(4).optional()}],
     ['launch_app','app.launch','Launch one installed macOS application by bundle identifier (macOS only).',{bundleId:z.string().min(1).max(128)}]
   ];

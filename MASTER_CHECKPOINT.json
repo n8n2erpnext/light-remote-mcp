@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-12T09:09:45.201Z",
-  "version": "0.10.1-dev.10",
+  "updatedAt": "2026-11-13T03:05:32.795Z",
+  "version": "0.10.1-dev.11",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "RMV2_PHASE2A_DEFAULT_PATH_FIX_NATIVE_CI_PENDING",
+  "status": "RMV2_PHASE2B_DEV11_SOURCE_IMPLEMENTED_CI_PENDING_CONTINUE_PLAN",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -361,7 +361,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow corrected phase2a native compile and continue phase2b target-bound verified long typing. Keep default compatibility and no automatic mutation retry. Owner UAT remains deferred until integrated candidate.",
+  "nextAction": "Follow exact dev11 Actions compile/native text fixture/full regression; fix actual failures. Then finish phase2c capture cache/ROI/freshness/mapping and measured benchmarks, optional DXGI/video stages. Owner physically tests one integrated candidate later. No Owner install, Lab cutover or production/public feed.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -452,13 +452,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261112-rmv2-phase2a-default-timing-regression",
-    "status": "CI100_DEFAULT_PATH_SOURCE_REGRESSION_FIXED_NATIVE_COMPILE_PENDING",
-    "summary": "CI100 core and Windows stopped at retained smooth/Paint-default source regression gates before native product compilation. Keep the explicit90ms/8step and35/40ms compatibility paths unchanged; apply opt-in fast defaults afterwards, without changing defaults or tests. Add native profile behavior self-test. Portable profile+double-normalization and existing productization/parity gates required PASS; no accepted CI100 artifact. Remaining RM plan and consolidated Owner UAT continue.",
-    "verification": "CI100 run43187743891 failed static default-timing path gates; no native acceptance. Existing tests remain unchanged. Re-run normalization mapping, productization, Paint/cursor parity, native profile self-test in Actions and exact full CI. No runtime/Owner install or physical acceptance.",
-    "nextAction": "Follow corrected phase2a native compile and continue phase2b target-bound verified long typing. Keep default compatibility and no automatic mutation retry. Owner UAT remains deferred until integrated candidate.",
-    "sourceDigest": "1567025f9bd9344146045159cfbc47d2195c1dd2df143a2a97ad410c5b1747fd",
-    "sourceFileCount": 1685
+    "taskId": "20261113-rmv2-phase2b-target-bound-logical-text",
+    "status": "DEV11_PHASE2B_SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
+    "summary": "Implement dev11 Windows target-bound logical Unicode writes with async writeId/progress/cancel, grapheme-safe bounded packets, same-control readback and no replay. Inline262144 UTF16 units or pinned16MiB UTF8 local reference under Owner read roots. Recheck local identity/policy per chunk and signed server A/B/account/connection/capabilities at most1s between snapshots. Bounded monotonic10min deadline selectable up to1h. Stop unsent text on focus/Owner input/task close/revoke. Remove semantic-value silent4096 slicing; preserve existing macOS HID/AX path. Native Windows readback/focus-switch fixture added in Actions. CI101 dev10 all9PASS recorded independently; dev11 native CI pending.",
+    "verification": "Portable logical text13/13, authority3/3, source-reference2/2, RM task lifecycle9/9 and import/input/macOS source regressions PASS locally; Windows symlink case requires Linux CI. Native fixture authored but NOT_RUN locally/ARM; only exact Actions can prove it. Before checkpoint checkpoint/20261112-before-rmv2-phase2b-241359b bundleSHA 3c9477f70a4a00aca1823dcebd81f05c742e6f6c6421ae570e3a46b761ad8c52 independent restore/fsck PASS. CI101 source241359b all9/9PASS, native artifactSHA1e5acd06050fd23d9f82ba19f512c305e2af25aaabe2fbf5574ba140f14e1c4d; not a controlled speedup benchmark or physical acceptance.",
+    "nextAction": "Follow exact dev11 Actions compile/native text fixture/full regression; fix actual failures. Then finish phase2c capture cache/ROI/freshness/mapping and measured benchmarks, optional DXGI/video stages. Owner physically tests one integrated candidate later. No Owner install, Lab cutover or production/public feed.",
+    "sourceDigest": "26b0a38eeed09e97d48e1c330dd191945d55e651e1e6cc8bfc0037ee418be825",
+    "sourceFileCount": 1696
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1533,8 +1533,8 @@
   },
   "rmv2Implementation": {
     "phase": 2,
-    "status": "PHASE2A_SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
-    "version": "0.10.1-dev.10",
+    "status": "PHASE2B_SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
+    "version": "0.10.1-dev.11",
     "beforeCommit": "a2173d525e67945843ecfa307304ce1228c7c096",
     "beforeTag": "checkpoint/20261111-before-rmv2-phase1-a2173d5",
     "bundleSha256": "52c4ed562287cce186f666697fb4c96d20e847129e0398bc913ea6503dffe474",
@@ -1547,7 +1547,7 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "PENDING_DEFAULT_PATH_FIX",
+    "nativeCi": "PENDING_DEV11",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
@@ -1560,7 +1560,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci98.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "CI100_FAIL_DEFAULT_PATH_GATES_CORRECTED_SOURCE_PENDING",
+    "fullCi": "PENDING_DEV11",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1622,12 +1622,32 @@
         "smooth"
       ],
       "defaultProfile": "compatibility",
-      "nativeAcceptance": "PENDING_EXACT_ACTIONS",
+      "nativeAcceptance": "PASS_ISOLATED_CI_NOT_OWNER_PHYSICAL",
       "ci100": "FAILED_BEFORE_NATIVE_COMPILE_DEFAULT_PATH_FINGERPRINTS",
       "defaultCompatibility": "EXPLICIT_90MS_8STEPS_35MS_HOVER_40MS_HOLD",
-      "nativeProfileSelfTest": "REGISTERED_PENDING_ACTIONS"
+      "nativeProfileSelfTest": "REGISTERED_PENDING_ACTIONS",
+      "source": "241359b57ebda76306f23b81d51ce8fbd928207f",
+      "ciRun": 43189016725,
+      "ciRunNumber": 101,
+      "fullCi": "PASS_9_OF_9",
+      "evidence": "docs/evidence/rmv2/phase2a-ci101.json"
     },
-    "phase2b": "TARGET_VERIFIED_LONG_TYPING_NEXT",
-    "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN"
+    "phase2b": {
+      "status": "SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
+      "beforeTag": "checkpoint/20261112-before-rmv2-phase2b-241359b",
+      "beforeBundleSha256": "3c9477f70a4a00aca1823dcebd81f05c742e6f6c6421ae570e3a46b761ad8c52",
+      "restoreFsck": "PASS",
+      "inlineUtf16Units": 262144,
+      "referenceUtf8Bytes": 16777216,
+      "asynchronous": true,
+      "targetVerified": "CAPABILITY_DEPENDENT_REQUIRED_FAILS_BEFORE_INPUT",
+      "authority": "LOCAL_EACH_CHUNK_SERVER_SIGNED_SNAPSHOT_MAX1000MS",
+      "automaticReplay": false,
+      "deadlineDefaultMs": 600000,
+      "deadlineMaximumMs": 3600000,
+      "nativeFixture": "ACTIONS_PENDING_16K_64K_256K_UNICODE_AND_FOCUS_SWITCH"
+    },
+    "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN",
+    "nextPhase": "CAPTURE_CACHE_ROI_FRESHNESS_THEN_OPTIONAL_DXGI_MEDIA"
   }
 }

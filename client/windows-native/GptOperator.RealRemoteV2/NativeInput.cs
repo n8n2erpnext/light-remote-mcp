@@ -197,6 +197,41 @@ internal static class NativeInput
         }} catch(OwnerInputPause pause) { pause.RequestedUnits=text.Length; pause.SentUnits=sent; throw; }
     }
 
+    internal static void EnsureNoHeldModifiers()
+    {
+        foreach(var key in new[]{0x10,0x11,0x12,0x5B,0x5C})
+            if((GetAsyncKeyState(key)&0x8000)!=0)throw new InvalidOperationException("desktop_text_modifier_held_no_keyup_or_replay");
+    }
+    internal static int WriteLogicalChunk(string text,int intervalMs,Action guard)
+    {
+        if(text.Length is <1 or >4096||intervalMs is <0 or >100)throw new InvalidOperationException("desktop_write_invalid_chunk");
+        var sent=0;var packet=new StringBuilder();
+        void Flush()
+        {
+            if(packet.Length==0)return;
+            guard();Activity?.Check();EnsureNoHeldModifiers();
+            var values=new List<INPUT>(packet.Length*2);
+            foreach(var ch in packet.ToString()) {
+                values.Add(new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{wScan=ch,dwFlags=KEYEVENTF_UNICODE}}});
+                values.Add(new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{wScan=ch,dwFlags=KEYEVENTF_UNICODE|KEYEVENTF_KEYUP}}});
+            }
+            Send(values.ToArray());sent+=packet.Length;packet.Clear();guard();
+        }
+        try {
+            var elements=System.Globalization.StringInfo.GetTextElementEnumerator(text);
+            while(elements.MoveNext()) {
+                var element=elements.GetTextElement();
+                if(packet.Length>0&&(intervalMs>0||packet.Length+element.Length>32))Flush();
+                packet.Append(element);
+                if(intervalMs>0){Flush();InterruptibleDelay(intervalMs);}
+            }
+            Flush();return sent;
+        } catch(Exception error) {
+            var reason=error is OwnerInputPause?"owner_input":error is OperationCanceledException?"agent_cancelled":error.Message;
+            throw new LogicalTextPacketInterrupted(reason,sent,error.Message!="send_input_partial_or_failed_do_not_replay");
+        }
+    }
+
     public static void DeleteText(int count)
     {
         count=Math.Clamp(count,1,4096);

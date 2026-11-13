@@ -672,6 +672,20 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Real Remote V2 target-bound Unicode text acceptance
+        shell: pwsh
+        run: |
+          ./client/windows-native/test-rmv2-text.ps1 -Exe $env:RMV2_EXE -Output (Join-Path $PWD 'dist/windows/rmv2-text-acceptance.json')
+
+      - name: Upload RMv2 native text acceptance receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-rmv2-text-${{ github.sha }}
+          path: dist/windows/rmv2-text-acceptance.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Real Remote V2 full duplex lifecycle
         shell: pwsh
         run: |

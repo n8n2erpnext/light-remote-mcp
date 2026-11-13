@@ -8,7 +8,7 @@ const BOOTSTRAP = new Set(['enrollment-begin','enrollment-poll','device-heartbea
 const CHANNEL = new Set([
   'connect','renew','disconnect','grace','account-auth',
   'fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity','fleet-device-policy','fleet-device-update',
-  'pairing-code','account-owner-proof','access-lookup','access-approve','access-deny','status','session-close','desktop-live-push','activity','update-report','poll','pulse','result',
+  'pairing-code','account-owner-proof','access-lookup','access-approve','access-deny','status','session-close','desktop-live-push','desktop-work-authorize','activity','update-report','poll','pulse','result',
   // Local Wall signed device-scoped Stop/Cancel control; Operator remains the authorization authority.
   'job-cancel',
   // G3: the Operator separately verifies enrollment-signed device proofs.

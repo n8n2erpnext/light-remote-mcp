@@ -20,6 +20,8 @@ internal sealed class ControlActivity : IDisposable
     private readonly Thread? _hookThread;
     private readonly ManualResetEventSlim _hooksReady=new(false);
     private uint _hookThreadId;
+    private long _ownerInputGeneration;
+    internal long OwnerInputGeneration=>Volatile.Read(ref _ownerInputGeneration);
     private long _generation,_startedGeneration,_lastLocalAt,_until;
     private long _desktopCheckedAt,_pausedFeedbackUntil;
     private int _leaseBound;
@@ -122,6 +124,7 @@ internal sealed class ControlActivity : IDisposable
     }
     private void LocalInput()
     {
+        Interlocked.Increment(ref _ownerInputGeneration);
         var controlling=Volatile.Read(ref _running)!=0 || Active;
         Volatile.Write(ref _lastLocalAt,Environment.TickCount64);
         Interlocked.Increment(ref _generation);

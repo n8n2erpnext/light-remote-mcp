@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import crypto from 'node:crypto';
+import {normalizeLogicalTextRequest,strictSemanticValue} from '../lib/rmv2-text-write.mjs';
 import { StringDecoder } from 'node:string_decoder';
 import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
 import { spawn } from 'node:child_process';
@@ -1084,7 +1085,7 @@ async function startDesktopOperation(payload,requestId){
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   let request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
-  const op=String(request.op||'');if(!['status','attach','resume','detach','windows','frame','input','run','observe','act','cancel','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close'].includes(op))throw new Error('desktop_operation_unsupported');
+  const op=String(request.op||'');if(!['status','attach','resume','detach','windows','frame','input','run','observe','act','cancel','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close','text-write-start','text-write-status','text-write-cancel'].includes(op))throw new Error('desktop_operation_unsupported');
   // Resolve the enrolled target platform before validating physical typing.
   // Never accept a caller-supplied platform: a Windows device must continue
   // rejecting the macOS-only HID+AX verified `type` event.
@@ -1093,8 +1094,21 @@ async function startDesktopOperation(payload,requestId){
   const route=targetRoute(session.nodeId,{accountId:session.accountId});
   if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
   const targetPlatform=route.platform==='darwin'?'darwin':'win32';
+  if(op==='text-write-start'){
+    request={op,...normalizeLogicalTextRequest(request)};
+    if(targetPlatform==='darwin'){
+      if(request.sourcePath||request.mode!=='insert'||request.verification==='required'||request.text.length>4096)throw Error('desktop_logical_text_windows_only');
+      request={op:'input',...normalizeDesktopInput({events:[{type:payload.desktop.typingKind==='type'?'type':'text',text:request.text,intervalMs:payload.desktop.intervalMs??(payload.desktop.typingKind==='type'?48:12)}],desktopSessionId:request.desktopSessionId},{platform:'darwin'})};
+    }
+  }
+  if(['text-write-status','text-write-cancel'].includes(op)){
+    if(targetPlatform!=='win32')throw Error('desktop_logical_text_windows_only');
+    if(typeof request.writeId!=='string'||!/^write_[A-Za-z0-9_-]{8,80}$/.test(request.writeId))throw Error('desktop_write_invalid_id');
+    request={op,writeId:request.writeId};
+  }
   if(op==='cancel'&&targetPlatform!=='win32')throw new DeviceError('desktop_cancel_not_supported',409);
   if(op==='input'||(op==='act'&&Array.isArray(request.events)))request={op,...normalizeDesktopInput(request,{platform:targetPlatform})};
+  if(op==='act'&&request.value!=null)request={...request,value:strictSemanticValue(request.value)};
   if(op==='run'){
     const semanticAction=Boolean(String(request.nodeId||'').trim()&&String(request.action||'').trim()&&!Array.isArray(request.events));
     let normalized;
@@ -1108,7 +1122,7 @@ async function startDesktopOperation(payload,requestId){
         afterSeq:Number.isFinite(afterSeq)?Math.max(0,Math.floor(afterSeq)):0,
         settleMs:Math.max(0,Math.min(Number.isFinite(settleMs)?Math.floor(settleMs):90,250))
       };
-      if(request.value!=null)normalized.value=String(request.value).slice(0,4096);
+      if(request.value!=null)normalized.value=strictSemanticValue(request.value);
     }else normalized={op,...normalizeDesktopInput(request,{platform:targetPlatform})};
     const rawWait=request.await&&typeof request.await==='object'&&!Array.isArray(request.await)?request.await:null;
     if(rawWait){
@@ -1123,11 +1137,12 @@ async function startDesktopOperation(payload,requestId){
     if(request.desktopSessionId!=null)normalized.desktopSessionId=String(request.desktopSessionId);
     request=normalized;
   }
-  const requiredCapabilities=(op==='input'||op==='run'||op==='act'||op==='cancel')?['desktop','desktop-input']:['desktop'];
+  const requiredCapabilities=(op==='input'||op==='run'||op==='act'||op==='cancel'||op==='text-write-start'||op==='text-write-cancel')?['desktop','desktop-input']:['desktop'];
+  if(op==='text-write-start'&&request.sourcePath)requiredCapabilities.push('filesystem');
   if(requiredCapabilities.some(cap=>!route.capabilities.includes(cap)))throw new FleetError('target_node_capability_missing',409);
   const fingerprint=crypto.createHash('sha256').update(JSON.stringify({request,sessionId:session.id,nodeId:session.nodeId})).digest('hex'),existing=operationDedupe.get(operationId);
   if(existing){if(existing.fingerprint!==fingerprint)throw new Error('operation_id_conflict');const prior=jobs.get(existing.jobId);if(prior)return prior;operationDedupe.delete(operationId);}
-  const toolMeta={kind:'desktop',op,label:op==='status'?'Desktop status':op==='cancel'?'Cancel RM input':op==='attach'?'Desktop attach':op==='resume'?'Desktop resume':op==='detach'?'Desktop detach':op==='windows'?'Desktop windows':op==='frame'?'Desktop frame':op==='input'?'Desktop input':op==='run'?'Desktop run':op==='observe'?'Computer observe':op==='act'?'Computer act':op==='semantic-attach'?'Semantic attach':op==='semantic-snapshot'?'Semantic snapshot':op==='semantic-events'?'Semantic events':op==='live-open'?'Real Remote live open':op==='live-close'?'Real Remote live close':'Semantic detach'};
+  const toolMeta={kind:'desktop',op,label:op.startsWith('text-write-')?'Desktop '+op:op==='status'?'Desktop status':op==='cancel'?'Cancel RM input':op==='attach'?'Desktop attach':op==='resume'?'Desktop resume':op==='detach'?'Desktop detach':op==='windows'?'Desktop windows':op==='frame'?'Desktop frame':op==='input'?'Desktop input':op==='run'?'Desktop run':op==='observe'?'Computer observe':op==='act'?'Computer act':op==='semantic-attach'?'Semantic attach':op==='semantic-snapshot'?'Semantic snapshot':op==='semantic-events'?'Semantic events':op==='live-open'?'Real Remote live open':op==='live-close'?'Real Remote live close':'Semantic detach'};
   const job={id:crypto.randomUUID(),requestId,operationId,operationFingerprint:fingerprint,accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,nodeId:session.nodeId,note:`native-desktop:${op}`,cwd:'',script:toolMeta.label,status:'running',startedAt:Date.now(),finishedAt:null,exitCode:null,signal:null,timedOut:false,stdout:createAccumulator(),stderr:createAccumulator(),waiters:[],pid:null,timer:null,remote:true,commandId:null,requiredCapabilities,resultData:null,resultSummary:'',toolMeta};
   assertToolCallQuota(job.accountId);const historical=await reserveGoldJob(job);if(historical)return historical;jobs.set(job.id,job);goldJobs.save(job);sessions.attachJob(job.sessionId,job.id);sessions.record(job.sessionId,'toolCalls');operationDedupe.set(operationId,{jobId:job.id,fingerprint,expiresAt:Date.now()+OPERATION_DEDUPE_MS});
   pushEvent({type:'job_started',jobId:job.id,requestId,operationId,accountId:job.accountId,deviceId:job.deviceId,sessionId:job.sessionId,agentId:job.agentId,nodeId:job.nodeId,status:'running',route:'outbound-leaf',requiredCapabilities,note:job.note,toolMeta});

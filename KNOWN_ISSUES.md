@@ -119,3 +119,7 @@ Build94 physical lifecycle FAIL is addressed in dev9 CI98 source with explicit c
 ## Add ordered RM work with fast scoped cancel and explicit pointer profiles
 
 Phase2a queue/profile source needs native CI and measured acceptance. UIA observation/state still shares ordered input lane to avoid provider/root races; further observation optimization remains. Long typing4096/silent semantic slicing/Windows type macOS-only guard and content verification remain unfixed until phase2b. Optional GPU/video and hardware matrix remain pending; Owner physical UAT consolidated later.
+
+## Add target-bound Unicode writes with verified progress and live authority checks
+
+Dev11 long typing is source-complete with portable checks; native compile/provider behavior/large Unicode/focus-switch fixture await exact Actions. UIA providers may be unavailable or stall; no universal content-verification claim. Required verification rejects unsupported/password/read-only semantics before typing where detectable. Win32 keyboard focus remains globally shared; per-packet guards reduce but cannot make a SendInput packet atomic with a concurrent physical focus switch. No auto-resume after interruption/unknown effects. Legacy generic batched physical text still has a4096 technical budget; use the named logical tool for long Windows input. Capture cache/ROI/freshness, measured before-after latency and optional GPU/video remain unfinished. Physical UAT postponed to final combined candidate.

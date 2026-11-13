@@ -12,6 +12,7 @@ internal sealed class RobotContext : ApplicationContext
     private readonly UiSensor _sensor=new();
     private readonly SemanticSessionManager _semantic;
     private readonly VisualSessionManager _visual;
+    private readonly LogicalTextWriter _textWrites;
     private readonly BrowserSemanticProvider _browser;
     private readonly RobotRpcServer _rpc;
     private readonly Stopwatch _uptime=Stopwatch.StartNew();
@@ -51,6 +52,7 @@ internal sealed class RobotContext : ApplicationContext
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
         _semantic=new SemanticSessionManager(_sensor);
         _visual=new VisualSessionManager();
+        _textWrites=new LogicalTextWriter(_sensor,_activity);
         _activity.HasWorkingSession=()=>_activity.VisualSessionId.Length>0&&_visual.IsActive(_activity.VisualSessionId);
         _browser=new BrowserSemanticProvider();
         _sensor.Changed+=value=>{
@@ -66,13 +68,14 @@ internal sealed class RobotContext : ApplicationContext
         var op=Text(request,"op");
         var controlling=op is "cursor.move" or "cursor.click" or "cursor.wheel" or "cursor.drag"
             or "text.write" or "text.type" or "text.delete" or "key.press" or "key.hotkey"
-            or "batch.run" or "desktop.run" or "desktop.input" or "desktop.semantic.act" or "desktop-semantic-act";
+            or "desktop.text.chunk" or "batch.run" or "desktop.run" or "desktop.input" or "desktop.semantic.act" or "desktop-semantic-act";
         var inputVisualId=Text(request,"visualSessionId");
         try {
         if(controlling) {
             // Public Agent input always supplies its owner-checked native lease.
             // Legacy same-user private CLI RPC remains separate, without new authority.
             if(inputVisualId.Length>0)_visual.ValidateInput(inputVisualId,Text(request,"leaseToken"));
+            _textWrites.AssertInput(op,Text(request,"writeId"));
             _activity.VisualSessionId=inputVisualId;
             _activity.Begin();
             if(_ambientGlow is not null)_ambientGlow.Dispatcher.Invoke(()=>_ambientGlow.Show(),System.Windows.Threading.DispatcherPriority.Render);
@@ -129,6 +132,9 @@ internal sealed class RobotContext : ApplicationContext
             "desktop.run" => await RunPlanAsync(request),
             "desktop.input" => DesktopInput(request),
             "desktop.cancel" => CancelInput(request),
+            "desktop.text.start" => StartTextWrite(request),
+            "desktop.text.chunk" => _textWrites.Chunk(Text(request,"writeId"),inputVisualId,Int(request,"offset",-1),Text(request,"text"),Int(request,"intervalMs")),
+            "desktop.text.finish" => FinishTextWrite(request),
             "session.close" => CloseSession(),
             _ => throw new InvalidOperationException("operation_not_supported")
         };
@@ -150,14 +156,30 @@ internal sealed class RobotContext : ApplicationContext
         } }
     }
 
+    private object StartTextWrite(JsonElement request)
+    {
+        var visual=Text(request,"visualSessionId");
+        if(visual.Length==0)throw new InvalidOperationException("desktop_text_visual_scope_required");
+        _visual.ValidateInput(visual,Text(request,"leaseToken"));
+        return _textWrites.Start(Text(request,"writeId"),visual,Int(request,"requestedUnits"),Text(request,"mode","insert"),Text(request,"verification","prefer"));
+    }
+    private object FinishTextWrite(JsonElement request)
+    {
+        var visual=Text(request,"visualSessionId"),id=Text(request,"writeId");
+        if(!_visual.IsActive(visual))return _textWrites.Abandon(id,visual);
+        _visual.ValidateInput(visual,Text(request,"leaseToken"));
+        return _textWrites.Finish(id,visual,Bool(request,"complete"));
+    }
+
     private object CancelInput(JsonElement request)
     {
         var id=Text(request,"visualSessionId");
         if(id.Length==0)throw new InvalidOperationException("visual_session_required_for_cancel");
         _visual.ValidateInput(id,Text(request,"leaseToken"));
         _rpc.CancelScope(id);
+        var textCancelled=_textWrites.CancelScope(id);
         var running=_activity.CancelScope(id);
-        return new {cancelRequested=true,activeInputCancelled=running,queuedInputsFenced=true,
+        return new {cancelRequested=true,activeInputCancelled=running,logicalTextCancelled=textCancelled,queuedInputsFenced=true,
             visualSessionId=id,sessionRetained=true,automaticReplay=false};
     }
 
@@ -191,6 +213,7 @@ internal sealed class RobotContext : ApplicationContext
         catch(InvalidOperationException error) when(error.Message is "visual_session_missing" or "visual_lease_expired")
         { result=new {detached=true,alreadyClosed=true}; }
         _rpc.ForgetScope(id);
+        _textWrites.CancelScope(id);
         var endedCurrent=_activity.VisualSessionId==id||_visual.ActiveSessions==0;
         if(endedCurrent) {
             _activity.Stop();_activity.VisualSessionId="";
@@ -266,6 +289,7 @@ internal sealed class RobotContext : ApplicationContext
         ownerInputBehavior="yield-current-input-keep-agent-session",
         indicator=_ambientGlow is null?null:_ambientGlow.Dispatcher.Invoke(()=>_ambientGlow.Diagnostics()),
         inputContentVerification="unverified-unless-explicit-readback",
+        logicalText=new {supported=true,active=_textWrites.Active,inlineUnits=262144,referenceBytes=16777216,chunkUnits=4096,verification="capability-dependent-no-replay",pacingUnit="grapheme"},
         requestLanes=new {orderedInput=true,independentCapture=true,fastStatusCancel=true,inputQueue=16,captureQueue=2,fastConcurrency=4},
         interactionProfiles=new {defaultProfile="compatibility",supported=new[]{"compatibility","precision","responsive","smooth"},responsiveClickProgrammedMs=17,compatibilityClickProgrammedMs=75,automaticRetry=false},
         ambientGlowActive=_ambientGlow is {IsDisposed:false,Visible:true},
@@ -606,6 +630,7 @@ internal sealed class RobotContext : ApplicationContext
     protected override void ExitThreadCore()
     {
         _closing=true;
+        _textWrites.Clear();
         _visual.Dispose();
         _browser.Dispose();
         _semantic.Dispose();
