@@ -77,6 +77,10 @@ internal sealed class RobotContext : ApplicationContext
             if(inputVisualId.Length>0)_visual.ValidateInput(inputVisualId,Text(request,"leaseToken"));
             _textWrites.AssertInput(op,Text(request,"writeId"));
             _activity.VisualSessionId=inputVisualId;
+            // Logical typing bypasses the legacy keyboard handlers that select
+            // the foreground monitor. Set it before showing the indicator;
+            // the bound-target checks still decide whether input may proceed.
+            if(op=="desktop.text.chunk")_activity.TargetScreen=Screen.FromHandle((nint)NativeInput.ReadForeground().Hwnd).Bounds;
             _activity.Begin();
             if(_ambientGlow is not null)_ambientGlow.Dispatcher.Invoke(()=>_ambientGlow.Show(),System.Windows.Threading.DispatcherPriority.Render);
         }
@@ -300,7 +304,7 @@ internal sealed class RobotContext : ApplicationContext
         inputContentVerification="unverified-unless-explicit-readback",
         uiSignals=new {produced=_rpc.UiEventsProduced,forwarded=_rpc.UiEventsForwarded,coalesceMs=40,pendingCapacity=1},
         captureCapabilities=new {backend=DesktopVisual.RequestedCaptureBackend,maxWidth=1280,maxHeight=720,maxQuality=70,region=true,freshPixelEncodeCache=true,maxSourcePixels=16*1024*1024,actualBackendReportedPerFrame=true,optional=DesktopVisual.CaptureCapabilities()},
-        logicalText=new {supported=true,active=_textWrites.Active,inlineUnits=262144,referenceBytes=16777216,chunkUnits=128,deliveryBackpressure="when-readback-available",verification="capability-dependent-no-replay",pacingUnit="grapheme"},
+        logicalText=new {supported=true,active=_textWrites.Active,inlineUnits=262144,referenceBytes=16777216,referenceUnits=8388608,chunkUnits=LogicalTextWriter.MaxChunkUnits,pacedChunkUnits=128,maxGraphemeUnits=128,preferredPacketUnits=32,deliveryWaitMs=TypingTarget.DeliveryWaitMs,inputAuthorityBudgetMaxMs=1000,deliveryBackpressure="when-readback-available",verification="capability-dependent-no-replay",pacingUnit="grapheme"},
         requestLanes=new {orderedInput=true,independentCapture=true,independentUiaObservation=true,fastStatusCancel=true,inputQueue=16,captureQueue=2,observationQueue=2,fastConcurrency=4},
         interactionProfiles=new {defaultProfile="compatibility",supported=new[]{"compatibility","precision","responsive","smooth"},responsiveClickProgrammedMs=17,compatibilityClickProgrammedMs=75,automaticRetry=false},
         ambientGlowActive=_ambientGlow is {IsDisposed:false,Visible:true},

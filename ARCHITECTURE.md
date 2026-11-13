@@ -128,3 +128,7 @@ Read-only completion observes full expected text with increasing15/30/60/120ms p
 ## Verify slow text completion across explicit editor capacities
 
 Evidence-driven completion budget: an already-admitted window can be delivered by a slow editor after1.5seconds without any input loss. Read-only full-prefix/suffix verification now polls up to5seconds, with bounded backoff and cancel/Owner/focus/desktop checks, inside existing10second chunk RPC timeout. This is not a mutation authority extension: native queued/new input packets retain<=1000ms guard, and the next Agent window must reauthorize. A provider blocked beyond helper timeout still requires reset/reconciliation. Partial or unavailable verification is never promoted to success.
+
+## Align keyboard indicators and explicit text acceptance layouts
+
+Logical keyboard activity chooses Screen.FromHandle(current foreground HWND) before Begin shows the indicator; target-bound identity/focus/Owner guards still gate actual input. Native logical status and Prepared use one MaxChunkUnits constant256; DeliveryWaitMs5000 is shared by polling and status. Window/pacing/packet budgets are distinct. No logical-text mutation semantics changed by this update.

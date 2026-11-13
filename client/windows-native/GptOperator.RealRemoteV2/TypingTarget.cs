@@ -18,6 +18,7 @@ internal sealed class LogicalTextPacketInterrupted(string reason,int sent,bool k
 // Win32 identity and metadata generations; no document read in the typing loop.
 internal sealed class TypingTarget
 {
+    internal const int DeliveryWaitMs=5000;
     private const int BeforeLimit=2*1024*1024;
     private readonly UiSensor _sensor;
     private readonly ControlActivity _activity;
@@ -141,7 +142,7 @@ internal sealed class TypingTarget
         var pause=15;
         while(true) {
             guard();var matched=observe();guard();if(matched)return true;
-            var remaining=5000-elapsed();if(remaining<=0)return false;
+            var remaining=DeliveryWaitMs-elapsed();if(remaining<=0)return false;
             // Full-document provider reads can compete with the target's input
             // pump. Back off pending read-only observations, never send again.
             delay((int)Math.Min(pause,remaining));pause=Math.Min(120,pause*2);

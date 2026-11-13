@@ -148,3 +148,7 @@ Private authorityBudgetMs remains1..1000 and is consumed across helper startup/n
 ## Verify slow text completion across explicit editor capacities
 
 No public request/transport/authority cap changes. Native read-only completion may take up to5seconds; existing Agent chunk RPC10seconds stays. Returned exact observed progress authorizes no further input, and final required verification remains mandatory. Editor/application text capacity is distinct from tool inline262144/reference8M budgets; product never raises application limits or silently substitutes clipboard/SetValue.
+
+## Align keyboard indicators and explicit text acceptance layouts
+
+Native desktop.status.logicalText reports unpaced chunkUnits256, pacedChunkUnits128, maxGraphemeUnits128, preferredPacketUnits32, deliveryWaitMs5000, inputAuthorityBudgetMaxMs1000, deliveryBackpressure when-readback-available. maxChunkUnits in text.start must agree with native status; real native acceptance asserts both endpoints. Large input capacity does not promise any editor accepts a giant single paragraph. CR/LF equivalence is readback comparison only, not silent normalization of submitted input.

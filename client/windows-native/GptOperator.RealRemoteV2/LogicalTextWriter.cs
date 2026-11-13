@@ -5,6 +5,7 @@ namespace GptOperator.RealRemoteV2;
 
 internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity)
 {
+    internal const int MaxChunkUnits=256;
     private sealed class Write
     {
         public required string Id,Visual,Mode,Verification;
@@ -50,7 +51,7 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
     }
     private static object Prepared(Write row)=>new {writeId=row.Id,target=row.Target.Metadata(),
         verificationAvailable=row.Target.VerificationAvailable,verificationMethod=row.Target.VerificationMethod,
-        maxChunkUnits=256,deliveryBackpressure=row.Target.VerificationAvailable,progressUnits="utf16-input-events-accepted-not-inserted-content",automaticReplay=false};
+        maxChunkUnits=MaxChunkUnits,deliveryBackpressure=row.Target.VerificationAvailable,progressUnits="utf16-input-events-accepted-not-inserted-content",automaticReplay=false};
     public void AssertInput(string op,string id)
     {
         lock(_gate)if(_active is {} row&&(op!="desktop.text.chunk"||row.Id!=id))
@@ -65,7 +66,7 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
         if(authorityDeadline<=0||System.Diagnostics.Stopwatch.GetTimestamp()>=authorityDeadline)
             throw new InvalidOperationException("desktop_write_authority_expired_before_native_admission");
         var row=Owned(id,visual);
-        if(text.Length is <1 or >256||offset<0||intervalMs is <0 or >100)
+        if(text.Length<1||text.Length>MaxChunkUnits||offset<0||intervalMs is <0 or >100)
             throw new InvalidOperationException("desktop_write_invalid_chunk");
         var hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
         if(offset==row.LastOffset&&row.LastReceipt is not null) {

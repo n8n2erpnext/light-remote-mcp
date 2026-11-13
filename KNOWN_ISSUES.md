@@ -171,3 +171,7 @@ CI112 input admission/readback separation passed its packet-loop selftest, but a
 ## Verify slow text completion across explicit editor capacities
 
 Classic wrapped262K remains unaccepted: CI113 window73614 was complete and exact only after the old readback budget, proving slow target completion in this case. Larger positive coverage now uses Rich Edit explicitly; no claim that every editor accepts262K or8M units. New5second completion budget may still stop a slower/unresponsive target and requires reconciliation, never replay. Native newline/provider/app diversity and physical Owner UAT remain scoped pending checks. No hardware video/resize/encoder added.
+
+## Align keyboard indicators and explicit text acceptance layouts
+
+CI114 giant wrapped Rich Edit single-paragraph262K failed completion at59556sent/59301observed; direct fixture grew59485->59499->59518 without more input, but full sent prefix was not reached in snapshots. Root cause not proved; product safely interrupts without replay. Classic giant wrapped262K is also NOT_ACCEPTED. Separate paragraph-structured262K coverage cannot generalize acceptance or performance to either failed layout. Arbitrary provider/newline/app diversity, Owner monitor/DPI/physical acceptance and real GPU behavior remain pending.

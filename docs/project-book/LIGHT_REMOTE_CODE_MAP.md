@@ -370,3 +370,7 @@ TypingTarget.PollDelivery isolates the real polling loop for virtual-clock tests
 ## Verify slow text completion across explicit editor capacities
 
 TypingTarget.PollDelivery uses5second read-only budget and virtual-clock timeout test; mutation packet deadlines unchanged. Rmv2TextFixture supports real classic Edit, genuine Rich Edit1M capacity and optional owned classic WM_CHAR delay, all test-only outside staging. test-rmv2-text records controlKind/wordWrap per exact-size case, adds actual delayed completion proof and keeps classic wrapped262K explicitly NOT_ACCEPTED. CI113 late-delivery evidence is pinned.
+
+## Align keyboard indicators and explicit text acceptance layouts
+
+RobotContext.HandleAsync binds logical keyboard activity screen before Begin, retaining existing mutation target guards. LogicalTextWriter.MaxChunkUnits and TypingTarget.DeliveryWaitMs feed both behavior/status. test-rmv2-text asserts status/prepared agreement and full line-ending-only content match for explicit paragraph layout; docs/evidence/rmv2/text-ci114.json pins actual failing giant Rich Edit paragraph plus classic positive receipts.

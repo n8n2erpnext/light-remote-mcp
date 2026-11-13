@@ -1,0 +1,107 @@
+{
+  "sourceCommit": "b6b766f504caf86ed9ee45e29f920424cb1a3b39",
+  "ciRunId": 43451648853,
+  "artifactId": 14053761898,
+  "artifactSha256": "f7110e1aa8bef6382e06f2a95bb88f2fe73f86733556f573806e0f90c393945a",
+  "result": "FAIL",
+  "scope": "isolated_actions_synthetic_text_no_raw_content",
+  "deliverySnapshots": [
+    {
+      "exactSentPrefix": false,
+      "afterStopMs": 318.5758,
+      "actualUnits": 59485,
+      "firstDifference": 59484,
+      "fixtureWmCharCount": 59485,
+      "fixtureMaxLength": 1048576,
+      "expectedUtf16Sha256": "D3AB7D4A366508AE54C37DB93473E58E752C10C682455AA1AF4B7DC09C2FFCE3",
+      "otherUnits": 0,
+      "actualUtf16Sha256": "399EA48FB1C834ED76F54CCBE8AF7D8558B3F99A02E89D1E12BF4ECD42C2EF58",
+      "wordWrap": true,
+      "controlKind": "rich-edit",
+      "sentUnits": 59556,
+      "fixtureKeyDownCount": 59485
+    },
+    {
+      "exactSentPrefix": false,
+      "afterStopMs": 1265.101,
+      "actualUnits": 59499,
+      "firstDifference": 59499,
+      "fixtureWmCharCount": 59499,
+      "fixtureMaxLength": 1048576,
+      "expectedUtf16Sha256": "D3AB7D4A366508AE54C37DB93473E58E752C10C682455AA1AF4B7DC09C2FFCE3",
+      "otherUnits": 0,
+      "actualUtf16Sha256": "69B7444C6B0A0E1DE22FF25EA9179D6DFEBB9CB887D96382DBAA7C478F4DCE63",
+      "wordWrap": true,
+      "controlKind": "rich-edit",
+      "sentUnits": 59556,
+      "fixtureKeyDownCount": 59499
+    },
+    {
+      "exactSentPrefix": false,
+      "afterStopMs": 2210.4723,
+      "actualUnits": 59518,
+      "firstDifference": 59518,
+      "fixtureWmCharCount": 59518,
+      "fixtureMaxLength": 1048576,
+      "expectedUtf16Sha256": "D3AB7D4A366508AE54C37DB93473E58E752C10C682455AA1AF4B7DC09C2FFCE3",
+      "otherUnits": 0,
+      "actualUtf16Sha256": "308E914DE444A3C703D549778E6058120EF5A63662DA42EDF6FB6C79EFE11CBD",
+      "wordWrap": true,
+      "controlKind": "rich-edit",
+      "sentUnits": 59556,
+      "fixtureKeyDownCount": 59518
+    }
+  ],
+  "automaticReplay": false,
+  "completedSizes": [
+    {
+      "units": 16384,
+      "exactFixtureReadback": true,
+      "controlKind": "classic-edit",
+      "wordWrap": true,
+      "elapsedMs": 20086.6592,
+      "nativeVerified": true
+    },
+    {
+      "units": 65536,
+      "exactFixtureReadback": true,
+      "controlKind": "classic-edit",
+      "wordWrap": true,
+      "elapsedMs": 75786.3077,
+      "nativeVerified": true
+    }
+  ],
+  "stage": "typing_chunks",
+  "lateFixtureMatchDoesNotChangeNativeFailure": true,
+  "lastAcknowledgedOffset": 59301,
+  "lastNativeReply": {
+    "writeId": "write_d289614fa7594acbaad9d2beb446557d",
+    "state": "interrupted",
+    "reason": "desktop_text_delivery_not_observed_reconcile",
+    "phase": "delivery-readback",
+    "textTiming": {
+      "targetMs": 3.8807,
+      "sendMs": 19.9647,
+      "deliveryMs": 5467.0155
+    },
+    "authorityExpiredAtReceipt": true,
+    "sentUnits": 59556,
+    "requestedUnits": 262144,
+    "lastObservedInsertedUnits": 59301,
+    "verifiedInsertedUnits": null,
+    "contentVerification": "unverified",
+    "automaticReplay": false,
+    "nativeQueueMs": 0.0241,
+    "nativeHandlerMs": 5491.3201,
+    "nativeTiming": {
+      "requestId": "e154aa0ea9d2407bab221f7640fdec0d",
+      "handlerMs": 5491.3201,
+      "handlerAndQueueMs": 5491.4359,
+      "processId": 5540
+    }
+  },
+  "requestedUnits": 262144,
+  "fullCi": "FAIL_RICH_SINGLE_PARAGRAPH_262K",
+  "ownerPhysical": "PENDING",
+  "interpretation": "Classic single-paragraph16K/64K exact PASS20.09s/75.79s. Rich single-paragraph262K failed at59556 accepted/59301 observed after5.467s readback; post-stop actual59485,59499,59518 still advanced but did not fully match. This establishes continued target delivery, not complete eventual delivery or a proved root cause. No replay/new input. The separate paragraph-structured case cannot accept this failed case."
+}
