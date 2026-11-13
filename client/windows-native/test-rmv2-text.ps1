@@ -73,7 +73,18 @@ try {
   }
   $final=Text-Rpc 'finish' @{writeId=$id;complete=$true}
   Ui-Command 'read'
-  if($final.contentVerification -ne 'verified' -or $final.verifiedInsertedUnits -ne $text.Length -or $shared.result -cne $text){throw "text_full_readback_failed:$size"}
+  if($final.contentVerification -ne 'verified' -or $final.verifiedInsertedUnits -ne $text.Length -or $shared.result -cne $text){
+   $actual=[string]$shared.result;$firstDifference=-1
+   for($k=0;$k -lt [math]::Min($actual.Length,$text.Length);$k++){if($actual[$k] -cne $text[$k]){$firstDifference=$k;break}}
+   if($firstDifference -eq -1 -and $actual.Length -ne $text.Length){$firstDifference=[math]::Min($actual.Length,$text.Length)}
+   $expectedHash=[convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::Unicode.GetBytes($text)))
+   $actualHash=[convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::Unicode.GetBytes($actual)))
+   $normalizedEqual=$false;try{$normalizedEqual=$actual.Normalize([Text.NormalizationForm]::FormC) -ceq $text.Normalize([Text.NormalizationForm]::FormC)}catch{}
+   $diagnostic=@{result='FAIL';scope='isolated_actions_synthetic_text_no_raw_content';requestedUnits=$text.Length;actualUnits=$actual.Length;firstDifference=$firstDifference;expectedUtf16Sha256=$expectedHash;actualUtf16Sha256=$actualHash;nfcEqualDiagnosticOnly=$normalizedEqual;lastChunk=$ack;final=$final}
+   $diagnostic|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $Output -Encoding utf8
+   Write-Host ($diagnostic|ConvertTo-Json -Depth 8 -Compress)
+   throw "text_full_readback_failed:$size"
+  }
   $sizes+=$size
  }
  # Changing focus between acknowledged chunks must not type the suffix into B.

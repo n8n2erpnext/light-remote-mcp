@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-13T03:35:40.486Z",
+  "updatedAt": "2026-11-13T03:52:36.147Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "RMV2_DEV11_PHASE2C_SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
+  "status": "RMV2_DEV11_PREPARATION_COOPERATIVE_NATIVE_TEXT_MISMATCH_OPEN",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -361,7 +361,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow exact new Actions: native cache/selftest/ROI probe and16K/64K/256K same-control text/readback fixture plus full installer regression. Fix actual failures. Then address cooperative preparation/target binding for the largest content references, remaining UIA observation lane/root consistency, optional DXGI/D3D11/video paths and a controlled prior-source latency comparison. Owner consolidated physical UAT later; no Lab cutover/Owner install/public release.",
+  "nextAction": "Follow new CI and inspect metadata-only text failure receipt to fix actual16K/64K/256K Windows content/readback behavior. Then separate UIA read-only work with root/epoch guards, implement optional DXGI/D3D11 with conservative fallback and resolve media-path scope/capabilities; finish controlled prior-source latency comparison and one combined Owner UAT. No premature installer/public release/Lab cutover.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -452,12 +452,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261113-rmv2-phase2c-current-pixel-cache-roi",
-    "status": "DEV11_PHASE2C_SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
-    "summary": "Phase2c dev11 source adds one bounded private current-pixel GDI bitmap/codec/JPEG/base64 cache, early native unchanged-payload omission, screen-local ROI pinned to visual scope, effective limits/timings/counters and opt-in exact latest-frame coordinate mapping with age/topology guards. Capture still reads current pixels on every call; no stale timer screenshot. Generic ui.changed hints coalesce in one pending slot at40ms rather than one unbounded Task per WinEvent; semantic journal path retained. CI103 compiled native and passed selftest/cursor lifecycle, but text fixture stopped after100 interleaved UI events; fix reader to a whole-request deadline. Web test waited only for selected DOM value before async save; now awaits the actual canonical preferences POST response and retains max-value assertion. New native ROI/JPEG/cache-clear and cold/warm capture-only probe is Actions-only and pending.",
-    "verification": "Portable capture4/4, double-normalization/native mapper, helper lifecycle, visual recovery, packaged import closure and Desktop productization gates PASS locally. PowerShell fixtures parse successfully; no local/ARM native build. CI103 run43357408230 source9638594 native compile/selftest/cursor lifecycle PASS; fullCI FAIL at text fixture reader100-event limit and Web async-save assertion race. Neither proves content insertion PASS. New reader has a fixed whole-response deadline instead of100 separate waits; expected assertions unchanged. Before capture checkpoint checkpoint/20261113-before-rmv2-capture-ef54911 bundleSHA b6ab07c2f49c8454bb679b181c4196913fd2a0daeebdf38df0eea25b67f06ae4 restore/fsckPASS. CI102 remainder was cancelled after known native compile failure to unblock corrected CI103.",
-    "nextAction": "Follow exact new Actions: native cache/selftest/ROI probe and16K/64K/256K same-control text/readback fixture plus full installer regression. Fix actual failures. Then address cooperative preparation/target binding for the largest content references, remaining UIA observation lane/root consistency, optional DXGI/D3D11/video paths and a controlled prior-source latency comparison. Owner consolidated physical UAT later; no Lab cutover/Owner install/public release.",
-    "sourceDigest": "acd5bcfddf62e92e72c2d73a2aa818917e8c161d31e1e7d6493a8c8cef95f730",
+    "taskId": "20261113-rmv2-cooperative-text-preparation",
+    "status": "DEV11_COOPERATIVE_PREPARATION_SOURCE_NATIVE_TEXT_ACCEPTANCE_PENDING",
+    "summary": "Make large logical-text preparation cooperative: cheap full transport/Unicode/options checks first, bind native target before expensive grapheme validation, return preparing writeId, yield after8192 units or8ms, recheck authority/cancel/task/deadline and maintain only the exact native lease while preparing. No input until the whole grapheme/pacing preflight passes; acceptedUnits stays0 until then. Reject pacing that cannot fit the chosen deadline before input, bounding useless chunk allocation. Target changes during preparation stop before typing. Portable17 cases PASS. CI104 capture proof independently SHA-verified; fullCI remains FAIL because real16K native text readback mismatched, so add metadata/hash/count-only failure evidence to diagnose, not relax acceptance.",
+    "verification": "Portable logical-text17/17 PASS, including responsive cancel during preparation, event-loop service, target capture before yield, invalid trailing grapheme with zero input, and impossible pacing rejected with zero input. Prior capture/mapping/import/normalization checks PASS. CI104 run43360018767 source27c4637: Core/Web/Linux/macOS/native compile/selftest/cursor/capture PASS; actual native text16K readback FAIL. Capture artifact14007802961 ZIP SHA85115c84865271b3ef31333e8bac5b0b1f58b65760fa4425b81fda814785d541 independently verified; same-source cold/warm capture-only, no prior-release speedup claim. Before preparation checkpoint/20261113-before-rmv2-preparation-27c4637 bundleSHA f1753a4b08b361e79c16b6802d2ee2476876e4df88d602ef868a706907892abe restore/fsckPASS. New native text diagnostic fixture not run locally/ARM.",
+    "nextAction": "Follow new CI and inspect metadata-only text failure receipt to fix actual16K/64K/256K Windows content/readback behavior. Then separate UIA read-only work with root/epoch guards, implement optional DXGI/D3D11 with conservative fallback and resolve media-path scope/capabilities; finish controlled prior-source latency comparison and one combined Owner UAT. No premature installer/public release/Lab cutover.",
+    "sourceDigest": "16a9f81ef6552e79b7c3e834c8f36e0149c0fc962b35503e3e44fdb842616059",
     "sourceFileCount": 1700
   },
   "legacyFilesystemCleanup": {
@@ -1547,7 +1547,7 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "PENDING_PHASE2C",
+    "nativeCi": "CAPTURE_CURSOR_PASS_TEXT_MISMATCH_OPEN",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
@@ -1560,7 +1560,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci98.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PENDING_PHASE2C",
+    "fullCi": "PENDING_NEW_SOURCE_CI104_NATIVE_TEXT_FAIL",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1657,11 +1657,17 @@
         "nativeTextFixture": "NOT_REACHED"
       },
       "nativeCompile": "PASS_CI103_SOURCE9638594",
-      "nativeTextAcceptance": "CI103_NOT_COMPLETED_FIXTURE_READER_INTERLEAVED_EVENTS",
-      "largeReferencePreparation": "COOPERATIVE_PREPARATION_AND_INITIAL_TARGET_BINDING_REVIEW_PENDING"
+      "nativeTextAcceptance": "OPEN_CI104_REAL16K_READBACK_MISMATCH",
+      "largeReferencePreparation": "COOPERATIVE_PREPARATION_AND_INITIAL_TARGET_BINDING_REVIEW_PENDING",
+      "preparation": "COOPERATIVE_8192_UNITS_OR8MS",
+      "targetBinding": "BEFORE_COOPERATIVE_GRAPHEME_VALIDATION",
+      "acceptedUnits": "ZERO_UNTIL_WHOLE_GRAPHEME_AND_PACING_PREFLIGHT_PASSES",
+      "pacing": "IMPOSSIBLE_TOTAL_DELAY_REJECTED_BEFORE_INPUT",
+      "preparationCancel": "ZERO_INPUT_PROVEN_PORTABLE",
+      "nativeTextDiagnostic": "UNITS_SHA256_FIRST_DIFF_FINAL_METADATA_ONLY_NO_RAW_TEXT"
     },
     "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN",
-    "nextPhase": "NATIVE_TEXT_CAPTURE_ACCEPTANCE_THEN_HUGE_TEXT_PREPARATION_UIA_DXGI_MEDIA",
+    "nextPhase": "FIX_NATIVE_TEXT_READBACK_THEN_UIA_DXGI_MEDIA",
     "phase2c": {
       "status": "SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
       "beforeTag": "checkpoint/20261113-before-rmv2-capture-ef54911",
@@ -1679,7 +1685,11 @@
       "coordinateSpace": "OPT_IN_FRAME_EXACT_LATEST_SEQ_AGE_TOPOLOGY_CHECKED",
       "genericUiSignals": "LATEST_SLOT1_COALESCED40MS",
       "nativeProbe": "ACTIONS_PENDING_REAL_ROI_JPEG_AND_SCOPE_CACHE_CLEAR",
-      "performanceProof": "PENDING_CAPTURE_ONLY_COLD_WARM_NOT_PRIOR_RELEASE_OR_NETWORK"
+      "performanceProof": "PENDING_CAPTURE_ONLY_COLD_WARM_NOT_PRIOR_RELEASE_OR_NETWORK",
+      "nativeCapture": "PASS_CI104_SOURCE27c4637",
+      "evidence": "docs/evidence/rmv2/phase2c-ci104-capture.json",
+      "artifactSha256": "85115c84865271b3ef31333e8bac5b0b1f58b65760fa4425b81fda814785d541",
+      "priorSourceSpeedupBenchmark": false
     },
     "ci103": {
       "run": 43357408230,
@@ -1691,6 +1701,13 @@
       "nativeCursorLifecycle": "PASS",
       "textFixture": "FAIL_READER100_EVENTS",
       "web": "FAIL_ASYNC_SAVE_ASSERTION_RACE"
+    },
+    "preparationCheckpoint": {
+      "tag": "checkpoint/20261113-before-rmv2-preparation-27c4637",
+      "bundleSha256": "f1753a4b08b361e79c16b6802d2ee2476876e4df88d602ef868a706907892abe",
+      "archiveSha256": "dbaa05aad69cdaca287996362afe01bb0907423c4f5df6ce5f5bb6d92462e86e",
+      "restore": "PASS",
+      "source": "27c46376011edd94cd59781ab4d1f2ccca3a7cad"
     }
   }
 }

@@ -401,6 +401,11 @@ const RM_TEXT_WRITES=new RmTextWrites({
     return result;
   },
   native:{
+    keepAlive:async row=>{
+      if(Date.now()-(row.nativeRenewedAt||0)<15000)return;
+      await NATIVE_DESKTOP.request('visual-resume',{visualSessionId:row.visualSessionId,leaseToken:row.leaseToken,leaseMs:row.idleTimeoutMs},{timeoutMs:3000});
+      row.nativeRenewedAt=Date.now();
+    },
     start:(row,p)=>NATIVE_DESKTOP.request('text-start',{...p,visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000}),
     chunk:async(row,p)=>{
       try{return await NATIVE_DESKTOP.request('text-chunk',{...p,visualSessionId:row.visualSessionId,leaseToken:row.leaseToken},{timeoutMs:10000});}
