@@ -56,7 +56,7 @@ internal sealed class TypingTarget
                 if(!target._element.Current.IsEnabled)throw new InvalidOperationException("desktop_text_target_disabled");
                 if(!target._password&&(verification!="none"||mode=="append")&&target._runtime is {Length:>0})target.CaptureReadback(mode);
             }
-        } catch(InvalidOperationException error) when(error.Message is "desktop_text_append_requires_caret_at_end" or "desktop_text_target_disabled") {throw;}
+        } catch(InvalidOperationException error) when(error.Message is "desktop_text_append_requires_caret_at_end" or "desktop_text_target_disabled" or "desktop_text_target_read_only") {throw;}
           catch {target.VerificationAvailable=false;target.VerificationMethod="provider_unavailable";}
         if(target._processStart==0){target.VerificationAvailable=false;target.VerificationMethod="process_generation_unavailable";}
         if(mode=="append"&&!target.VerificationAvailable)throw new InvalidOperationException("desktop_text_append_requires_selection_readback");
@@ -67,6 +67,15 @@ internal sealed class TypingTarget
     }
     private void CaptureReadback(string mode)
     {
+        // An empty ValuePattern has unambiguous insertion semantics and avoids
+        // provider-specific empty TextPattern paragraph/end-point artifacts.
+        // This is readback only: typing still uses real Unicode SendInput.
+        if(_element!.TryGetCurrentPattern(ValuePattern.Pattern,out var valueRaw)&&valueRaw is ValuePattern empty) {
+            if(empty.Current.IsReadOnly)throw new InvalidOperationException("desktop_text_target_read_only");
+            if(empty.Current.Value.Length==0) {
+                _value=empty;VerificationAvailable=true;VerificationMethod="uia-empty-value-line-endings";return;
+            }
+        }
         if(_element!.TryGetCurrentPattern(TextPattern.Pattern,out var raw)&&raw is TextPattern text) {
             var selection=text.GetSelection();
             if(selection.Length!=1)return;
@@ -113,17 +122,24 @@ internal sealed class TypingTarget
     {
         CheckFull();
         if(!VerificationAvailable)return new {contentVerification="unverified",verifiedInsertedUnits=(int?)null,verificationMethod=VerificationMethod};
+        if(WaitForDelivery(sent,()=>{}))return new {contentVerification=complete?"verified":"partial",verifiedInsertedUnits=(int?)sentUnits,verificationMethod=VerificationMethod};
+        return new {contentVerification="mismatch",verifiedInsertedUnits=(int?)null,verificationMethod=VerificationMethod};
+    }
+    public bool WaitForDelivery(string sent,Action guard)
+    {
+        if(!VerificationAvailable)return false;
         var expected=Normalize(_prefix+sent+_suffix);
         var maximum=Math.Min(20*1024*1024,Math.Max(32,2*(_prefix.Length+sent.Length+_suffix.Length)+16));
         var clock=Stopwatch.StartNew();
         while(true) {
-            CheckFull();
+            guard();CheckFull();
             var actual=_text is not null?_text.DocumentRange.GetText(maximum):_value!.Current.Value;
-            if(Normalize(actual)==expected)return new {contentVerification=complete?"verified":"partial",verifiedInsertedUnits=(int?)sentUnits,verificationMethod=VerificationMethod};
+            guard();
+            if(Normalize(actual)==expected)return true;
             if(clock.ElapsedMilliseconds>=1500)break;
-            Thread.Sleep(30);
+            Thread.Sleep(15);
         }
-        return new {contentVerification="mismatch",verifiedInsertedUnits=(int?)null,verificationMethod=VerificationMethod};
+        return false;
     }
     private static string Normalize(string value)=>value.Replace("\r\n","\n",StringComparison.Ordinal).Replace('\r','\n');
     private static long ProcessStart(uint pid) {try {using var process=Process.GetProcessById((int)pid);return process.StartTime.ToUniversalTime().Ticks;}catch{return 0;} }

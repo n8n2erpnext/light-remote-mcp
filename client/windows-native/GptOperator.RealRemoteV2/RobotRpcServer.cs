@@ -93,7 +93,11 @@ internal sealed class RobotRpcServer : IDisposable
             var op=root.TryGetProperty("op",out var operation)?operation.GetString()??"":"";
             var scope=root.TryGetProperty("visualSessionId",out var visual)?visual.GetString()??"":"";
             var clock=System.Diagnostics.Stopwatch.StartNew();
-            var data=await _scheduler.Schedule(op,scope,()=>_handler(root)).ConfigureAwait(false);
+            root=BindAuthorityDeadline(root,op,out var authorityDeadline);
+            var data=await _scheduler.Schedule(op,scope,()=>{
+                RequireAuthorityDeadline(authorityDeadline);
+                return _handler(root);
+            }).ConfigureAwait(false);
             var receipt=JsonSerializer.SerializeToNode(data);
             if(receipt is System.Text.Json.Nodes.JsonObject obj) {
                 obj["nativeTiming"]=JsonSerializer.SerializeToNode(new {requestId=id,handlerMs=obj["nativeHandlerMs"]?.GetValue<double>()??clock.Elapsed.TotalMilliseconds,handlerAndQueueMs=clock.Elapsed.TotalMilliseconds,processId=Environment.ProcessId});
@@ -103,6 +107,35 @@ internal sealed class RobotRpcServer : IDisposable
         } catch(Exception error) {
             try { await SendAsync(new {type="response",id,ok=false,error=error.Message}); } catch {}
         }
+    }
+
+    internal static JsonElement BindAuthorityDeadline(JsonElement root,string op,out long deadline)
+    {
+        deadline=0;if(op!="desktop.text.chunk")return root;
+        if(!root.TryGetProperty("authorityBudgetMs",out var node)||node.ValueKind!=JsonValueKind.Number||!node.TryGetInt32(out var budget)||budget is <1 or >1000)
+            throw new InvalidOperationException("desktop_write_native_authority_budget_required");
+        deadline=System.Diagnostics.Stopwatch.GetTimestamp()+budget*System.Diagnostics.Stopwatch.Frequency/1000;
+        var guarded=System.Text.Json.Nodes.JsonNode.Parse(root.GetRawText())!.AsObject();
+        // The receiving process owns this monotonic deadline, including queue
+        // time. A caller cannot extend it with a forged absolute timestamp.
+        guarded["nativeAuthorityDeadline"]=deadline;return JsonSerializer.SerializeToElement(guarded);
+    }
+    internal static void RequireAuthorityDeadline(long deadline)
+    {
+        if(deadline>0&&System.Diagnostics.Stopwatch.GetTimestamp()>=deadline)
+            throw new InvalidOperationException("desktop_write_authority_expired_before_native_admission");
+    }
+    internal static bool AuthoritySelfTest()
+    {
+        var root=JsonSerializer.SerializeToElement(new {authorityBudgetMs=1000,nativeAuthorityDeadline=long.MaxValue});
+        var bound=BindAuthorityDeadline(root,"desktop.text.chunk",out var deadline);
+        if(bound.GetProperty("nativeAuthorityDeadline").GetInt64()!=deadline||deadline>=long.MaxValue-System.Diagnostics.Stopwatch.Frequency)return false;
+        RequireAuthorityDeadline(deadline);
+        try{RequireAuthorityDeadline(System.Diagnostics.Stopwatch.GetTimestamp()-1);return false;}catch(InvalidOperationException){}
+        foreach(var budget in new[]{0,1001}) {
+            try{BindAuthorityDeadline(JsonSerializer.SerializeToElement(new {authorityBudgetMs=budget}),"desktop.text.chunk",out _);return false;}catch(InvalidOperationException){}
+        }
+        return true;
     }
 
     public void PublishEvent(object value) => PublishEvent("ui.changed",value);

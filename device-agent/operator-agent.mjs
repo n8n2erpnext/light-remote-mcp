@@ -412,7 +412,7 @@ const RM_TEXT_WRITES=new RmTextWrites({
       catch(error){
         // These errors occur before the handler admits any packet. Keep the last
         // acknowledged offset; transport/provider failures remain indeterminate.
-        if(/^(remote_input_(cancelled|paused)|operation_cancelled_before_start)/.test(String(error?.message)))
+        if(/^(remote_input_(cancelled|paused)|operation_cancelled_before_start|desktop_write_authority_expired_before_native_admission)/.test(String(error?.message)))
           return {state:'interrupted',reason:String(error.message),sentUnits:p.offset};
         throw error;
       }

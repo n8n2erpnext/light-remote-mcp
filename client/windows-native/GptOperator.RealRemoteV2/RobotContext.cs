@@ -50,7 +50,7 @@ internal sealed class RobotContext : ApplicationContext
         NativeInput.Activity=_activity;
 
         _rpc=new RobotRpcServer(pipeName,HandleAsync,OnPipeDisconnected);
-        _semantic=new SemanticSessionManager(_sensor);
+        _semantic=new SemanticSessionManager(_sensor,_activity);
         _visual=new VisualSessionManager();
         _textWrites=new LogicalTextWriter(_sensor,_activity);
         _activity.HasWorkingSession=()=>_activity.VisualSessionId.Length>0&&_visual.IsActive(_activity.VisualSessionId);
@@ -133,7 +133,7 @@ internal sealed class RobotContext : ApplicationContext
             "desktop.input" => DesktopInput(request),
             "desktop.cancel" => CancelInput(request),
             "desktop.text.start" => StartTextWrite(request),
-            "desktop.text.chunk" => _textWrites.Chunk(Text(request,"writeId"),inputVisualId,Int(request,"offset",-1),Text(request,"text"),Int(request,"intervalMs")),
+            "desktop.text.chunk" => _textWrites.Chunk(Text(request,"writeId"),inputVisualId,Int(request,"offset",-1),Text(request,"text"),Int(request,"intervalMs"),Long(request,"nativeAuthorityDeadline",0)),
             "desktop.text.finish" => FinishTextWrite(request),
             "session.close" => CloseSession(),
             _ => throw new InvalidOperationException("operation_not_supported")
@@ -300,7 +300,7 @@ internal sealed class RobotContext : ApplicationContext
         inputContentVerification="unverified-unless-explicit-readback",
         uiSignals=new {produced=_rpc.UiEventsProduced,forwarded=_rpc.UiEventsForwarded,coalesceMs=40,pendingCapacity=1},
         captureCapabilities=new {backend=DesktopVisual.RequestedCaptureBackend,maxWidth=1280,maxHeight=720,maxQuality=70,region=true,freshPixelEncodeCache=true,maxSourcePixels=16*1024*1024,actualBackendReportedPerFrame=true,optional=DesktopVisual.CaptureCapabilities()},
-        logicalText=new {supported=true,active=_textWrites.Active,inlineUnits=262144,referenceBytes=16777216,chunkUnits=4096,verification="capability-dependent-no-replay",pacingUnit="grapheme"},
+        logicalText=new {supported=true,active=_textWrites.Active,inlineUnits=262144,referenceBytes=16777216,chunkUnits=128,deliveryBackpressure="when-readback-available",verification="capability-dependent-no-replay",pacingUnit="grapheme"},
         requestLanes=new {orderedInput=true,independentCapture=true,independentUiaObservation=true,fastStatusCancel=true,inputQueue=16,captureQueue=2,observationQueue=2,fastConcurrency=4},
         interactionProfiles=new {defaultProfile="compatibility",supported=new[]{"compatibility","precision","responsive","smooth"},responsiveClickProgrammedMs=17,compatibilityClickProgrammedMs=75,automaticRetry=false},
         ambientGlowActive=_ambientGlow is {IsDisposed:false,Visible:true},

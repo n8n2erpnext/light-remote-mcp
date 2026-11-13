@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 286,
+    "total": 288,
     "markdown": 230,
-    "json": 56
+    "json": 58
   },
   "files": [
     {
@@ -589,6 +589,23 @@
       ]
     },
     {
+      "path": "docs/evidence/rmv2/nuget-ci108.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 523,
+      "sha256": "06d7f337d88d47b52a53af4dd0774136478a4453d56b88528e515ee6761f18df",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "lockPath",
+        "normalizedLockSha256",
+        "sourceCompile",
+        "lockIntake"
+      ]
+    },
+    {
       "path": "docs/evidence/rmv2/phase1-ci87.json",
       "shelf": "evidence",
       "extension": "json",
@@ -754,6 +771,27 @@
         "firstDifference",
         "actualUnits",
         "actualUtf16Sha256"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/text-ci107.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 1557,
+      "sha256": "2be07886ead370af162c9ef7df8604ef16020306849f37be9c98e3c10eb66548",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "final",
+        "nfcEqualDiagnosticOnly",
+        "scope",
+        "actualUtf16Sha256",
+        "requestedUnits",
+        "expectedUtf16Sha256",
+        "firstDifference",
+        "actualUnits"
       ]
     },
     {
@@ -2647,8 +2685,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 62751,
-      "sha256": "bf855dd456e1d01a9bcadc5fa36c7fddfaaff877578a51e2e1858aec86316046",
+      "bytes": 65458,
+      "sha256": "f8f625fd582e1939266e5dda9f970e395a52ce73e93c9270bcfedb8beed7cb01",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {

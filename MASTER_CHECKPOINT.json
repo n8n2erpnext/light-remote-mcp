@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-13T08:44:31.183Z",
+  "updatedAt": "2026-11-13T09:13:27.685Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "DEV11_OPTIONAL_DXGI_SOURCE_NATIVE_GRAPH_AND_ACCEPTANCE_PENDING",
+  "status": "DEV11_DELIVERY_BACKPRESSURE_LOCKED_GPU_SOURCE_NATIVE_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -361,7 +361,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow CI107 isolated text diagnosis and fix actual product/readback only as evidence requires. Follow GPU source Actions compile/probe, fetch SHA-verified generated packages.lock.json into source and enforce locked restore. Inspect exact-source controlled capture comparison honestly, finish remaining failures, then one complete combined internal installer and Owner physical UAT. H264/video streaming/GPU resize require a separately negotiated viewer/encoder path and are not advertised or enabled by this JPEG implementation. No public release or production/Lab cutover before full acceptance.",
+  "nextAction": "Follow exact new Actions native compile/selftest, GDI/DXGI-or-fallback probe, exact-source capture benchmark and16K/64K/256K/focus-switch text acceptance. Fix remaining actual failures without relaxing assertions, verify complete installer/hash/source manifest, update the existing rolling docs/checkpoint and prepare one combined Owner internal UAT. Labdev6 unchanged until verified candidate integration; no public/production release. GPU video/resize/encoding remain explicitly unavailable.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -452,13 +452,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261113-rmv2-optional-dxgi-capture",
-    "status": "DEV11_OPTIONAL_DXGI_SOURCE_NATIVE_GRAPH_AND_ACCEPTANCE_PENDING",
-    "summary": "Add opt-in on-demand DXGI/D3D11 desktop capture under the existing authorized JPEG image path; GDI remains default. Match the exact display name, adapter and geometry; identity rotation only, bounded staging,16ms frame acquisition and explicit fresh-GDI fallback on timeout/unavailable/access loss. Never return a cached desktop as a fresh GPU frame. Copy validated BGRA ROI to the existing bounded BGR/JPEG cache; resize/encoding remain CPU, not zero-copy video. Clear GPU resources with the last visual scope/helper cleanup, recover with bounded backoff and keep status nonblocking during driver work. Pin direct NuGet versions and include full MIT notices. Actions will publish resolved NuGet graph for final source lock, probe actual DXGI or explicit fallback and record same-runner ABBA capture/pipe measurements against exact prior GitHub source241359b. No local/ARM native build, enabled GPU default, hardware acceptance or speedup claim.",
-    "verification": "Portable ROI/mapping4/4PASS and prior logical-text17/17PASS; all changed PowerShell scripts parsed without execution. Native pixel conversion selftest and actual GDI/DXGI/fallback/controlled comparison execute only in Actions, pending. Direct package nupkg/source metadata verified for .NET8; full transitive lock is pending Actions restore, so not a final reproducible candidate. Full pre-publication checkpoint checkpoint/20261113-before-rmv2-dxgi-1287508 bundleSHA 8f0e10ae0c89c9b9f13e5087fd9d510b64ce309fe10bceaa999edf1a116608ee independent restore/fsckPASS. CI106 text mismatch is preserved, CI107 separate STA fixture remains pending.",
-    "nextAction": "Follow CI107 isolated text diagnosis and fix actual product/readback only as evidence requires. Follow GPU source Actions compile/probe, fetch SHA-verified generated packages.lock.json into source and enforce locked restore. Inspect exact-source controlled capture comparison honestly, finish remaining failures, then one complete combined internal installer and Owner physical UAT. H264/video streaming/GPU resize require a separately negotiated viewer/encoder path and are not advertised or enabled by this JPEG implementation. No public release or production/Lab cutover before full acceptance.",
-    "sourceDigest": "3f4e4dd191e2713b018dd74fe383a4b834aa169372a94edd774469af299713ad",
-    "sourceFileCount": 1704
+    "taskId": "20261113-rmv2-text-delivery-backpressure",
+    "status": "DEV11_DELIVERY_BACKPRESSURE_LOCKED_GPU_SOURCE_NATIVE_CI_PENDING",
+    "summary": "Address real native text backlog: CI107 ordinary STA fixture received only4205 exact-prefix WM_CHAR units after16384 events were accepted, so sending is not delivery. Use grapheme-safe128-unit logical chunks and wait for full expected prefix/suffix readback before admitting the next chunk when verification is available. Initial empty ValuePattern is an unambiguous readback source; no semantic SetValue/clipboard/DOM replacement is used. Keep full final verification, no replay/refocus and cancellation/focus/Owner guards. A stalled/mismatched prefix stops unsent suffix and reports historical observed units separately from final verified content. Preserve inline262144/reference8M units; only internal per-chunk/grapheme budget becomes128. Propagate remaining<=1000ms authorization budget, subtract helper startup time, bind a receiver-owned monotonic deadline including native queue delay, reject expired work before input and check during guarded work. Refresh near-expiry snapshots. Mark UIA concurrentInput for physical/direct typing too. Fix CI108 DXGI overload by explicit output types, commit SHA-verified Actions-resolved NuGet graph and enable locked restore. All new native behavior remains CI-pending, not Owner PASS.",
+    "verification": "Portable logical-text18/18PASS, input mapping/bridge admission expiry contractPASS, import closurePASS. Actual CI107 source1287508 text FAIL:4205 WM_CHAR/key-down units and identical4205-prefix versus16384 sent; artifact14023016023 SHA05c564676045d1ba140832d60bdc6d693d52e6c98092bc7fbe2702268b773bc6 independently verified. CI108 sourcefbde839 failed only native compile CS0121 ambiguous Vortice overload, not GPU acceptance. Its NuGet lock artifact14022692902 SHA570f19be2fcb7e7a8f6296ba075ab2e984d6215a5ea92080773d3b074bd54ce9 verified and normalized lockSHA540b0ebfc658bf62d6f8e3e3f176347a03a7f86431bad93d210e7e9b3e14e306 committed. New native tests run only in Actions. Before delivery checkpoint checkpoint/20261113-before-rmv2-delivery-fbde839 bundleSHA 469f59ffc20045a4fd094b34a109820f904de937a0485a50945a632248a91d0b independent restore/fsckPASS.",
+    "nextAction": "Follow exact new Actions native compile/selftest, GDI/DXGI-or-fallback probe, exact-source capture benchmark and16K/64K/256K/focus-switch text acceptance. Fix remaining actual failures without relaxing assertions, verify complete installer/hash/source manifest, update the existing rolling docs/checkpoint and prepare one combined Owner internal UAT. Labdev6 unchanged until verified candidate integration; no public/production release. GPU video/resize/encoding remain explicitly unavailable.",
+    "sourceDigest": "452da75d1f5ef7d1157dc28434e4a615add377b78f969d9d4d29a061c2fbd9c3",
+    "sourceFileCount": 1705
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1560,7 +1560,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci98.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PENDING_GPU_GRAPH_AND_TEXT",
+    "fullCi": "PENDING_DELIVERY_GPU_AND_BENCHMARK",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1667,10 +1667,30 @@
       "nativeTextDiagnostic": "UNITS_SHA256_FIRST_DIFF_FINAL_METADATA_ONLY_NO_RAW_TEXT",
       "diagnostics": "STAGE_LENGTH_OFFSET_HASH_ONLY",
       "nativeFixtureStepBudgetMinutes": 8,
-      "nativeTextEvidence": "docs/evidence/rmv2/text-ci106.json",
+      "nativeTextEvidence": "docs/evidence/rmv2/text-ci107.json",
       "fixture": "SEPARATE_STA_WINFORMS_PROCESS_WITH_CURRENT_USER_ONLY_PIPE",
       "newFixtureNativeCi": "PENDING",
-      "noAcceptanceRelaxation": true
+      "noAcceptanceRelaxation": true,
+      "source": "DELIVERY_BACKPRESSURE_NATIVE_CI_PENDING",
+      "internalChunkUnits": 128,
+      "maxGraphemeUnits": 128,
+      "totalInlineUnits": 262144,
+      "referenceUnits": 8388608,
+      "delivery": "EXPECTED_PREFIX_SUFFIX_READBACK_BEFORE_NEXT_CHUNK_WHEN_AVAILABLE",
+      "initialEmptyReadback": "VALUE_PATTERN_GETTER_ONLY_NO_SETVALUE",
+      "finalAcceptance": "UNCHANGED_FULL_NATIVE_READBACK_AND_FIXTURE_TEXT",
+      "inputMethod": "REAL_UNICODE_SENDINPUT",
+      "unknownEffects": "RECONCILE_NO_RESUME",
+      "nativeAuthority": "REMAINING_BUDGET_HELPER_STARTUP_NATIVE_QUEUE_AND_GUARD_FENCED",
+      "historicalObservedUnits": "SEPARATE_FROM_FINAL_VERIFIED_CONTENT",
+      "nativeCi": "PENDING",
+      "before": {
+        "tag": "checkpoint/20261113-before-rmv2-delivery-fbde839",
+        "bundleSha256": "469f59ffc20045a4fd094b34a109820f904de937a0485a50945a632248a91d0b",
+        "archiveSha256": "b0fa0309e18f68aac37e0f7ac65c74728f89aa7170191a34f9a953332fb06c14",
+        "restore": "PASS",
+        "source": "fbde8398bd2de856d563a44299e20760728e0fee"
+      }
     },
     "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN",
     "nextPhase": "FIX_NATIVE_TEXT_THEN_OPTIONAL_GPU_MEDIA_BENCHMARKS",
@@ -1732,10 +1752,11 @@
         "source": "e34d85c23625b59e2a6460f24f0e1a56e5d53f89"
       },
       "nativeSchedulerSelfTest": "PASS_CI106",
-      "physicalAccepted": false
+      "physicalAccepted": false,
+      "concurrentInput": "SEMANTIC_DIRECT_NATIVE_AND_PHYSICAL_OWNER_GENERATIONS"
     },
     "gpu": {
-      "source": "IMPLEMENTED_NATIVE_CI_PENDING",
+      "source": "CS0121_OVERLOAD_FIXED_NATIVE_CI_PENDING",
       "nativeBuild": false,
       "enabledByDefault": false,
       "defaultBackend": "GDI",
@@ -1751,14 +1772,16 @@
       "hardwareEncoding": false,
       "videoStreaming": false,
       "physicalAccepted": false,
-      "nugetLock": "PENDING_ACTIONS_RESOLVE_AND_SOURCE_COMMIT",
+      "nugetLock": "COMMITTED_ACTIONS_GRAPH_LOCKED_RESTORE",
       "before": {
         "tag": "checkpoint/20261113-before-rmv2-dxgi-1287508",
         "bundleSha256": "8f0e10ae0c89c9b9f13e5087fd9d510b64ce309fe10bceaa999edf1a116608ee",
         "archiveSha256": "11302d2314b07aa310d1a2f21cb42fe8afdba31ee88754aef4309329356a2eb8",
         "restore": "PASS",
         "source": "128750891afb9326dd721c0d3039e6af6027a835"
-      }
+      },
+      "nugetEvidence": "docs/evidence/rmv2/nuget-ci108.json",
+      "nativeCi": "PENDING"
     },
     "captureComparison": {
       "status": "ACTIONS_PENDING",

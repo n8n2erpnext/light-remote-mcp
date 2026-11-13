@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode>true</RestoreLockedMode>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>LightRemote.RM</AssemblyName>
     <RootNamespace>GptOperator.RealRemoteV2</RootNamespace>

@@ -1,0 +1,10 @@
+{
+  "sourceCommit": "fbde8398bd2de856d563a44299e20760728e0fee",
+  "ciRunId": 43395607363,
+  "artifactId": 14022692902,
+  "artifactSha256": "570f19be2fcb7e7a8f6296ba075ab2e984d6215a5ea92080773d3b074bd54ce9",
+  "lockPath": "client/windows-native/GptOperator.RealRemoteV2/packages.lock.json",
+  "normalizedLockSha256": "540b0ebfc658bf62d6f8e3e3f176347a03a7f86431bad93d210e7e9b3e14e306",
+  "sourceCompile": "CI108_CS0121_OVERLOAD_FIX_PENDING_NO_GPU_ACCEPTANCE",
+  "lockIntake": "VERIFIED_ARTIFACT_BYTES_NORMALIZED_JSON_ONLY"
+}

@@ -1,0 +1,47 @@
+{
+  "sourceCommit": "128750891afb9326dd721c0d3039e6af6027a835",
+  "ciRunId": 43394879867,
+  "artifactId": 14023016023,
+  "artifactSha256": "05c564676045d1ba140832d60bdc6d693d52e6c98092bc7fbe2702268b773bc6",
+  "final": {
+    "contentVerification": "mismatch",
+    "verifiedInsertedUnits": null,
+    "verificationMethod": "uia-text-pattern-selection-line-endings",
+    "nativeQueueMs": 0.0352,
+    "nativeHandlerMs": 1564.4452,
+    "nativeTiming": {
+      "requestId": "405e7b961b024c33bdab7effca9a3421",
+      "handlerMs": 1564.4452,
+      "handlerAndQueueMs": 1564.5623,
+      "processId": 1144
+    }
+  },
+  "nfcEqualDiagnosticOnly": false,
+  "scope": "isolated_actions_synthetic_text_no_raw_content",
+  "actualUtf16Sha256": "24072C8966005EC415F7D2D7C33B6DCF53F5D054EE74401AF23D9AA16CA3DEE9",
+  "requestedUnits": 16384,
+  "expectedUtf16Sha256": "672A9558121695530BA0E3898B888DCFF274C631BE85C0A8CCAE986BA8241FF8",
+  "firstDifference": 4205,
+  "actualUnits": 4205,
+  "lastChunk": {
+    "writeId": "write_365c7ec80d4c48b3a78c7c2dcd9597b8",
+    "state": "running",
+    "reason": null,
+    "sentUnits": 16384,
+    "requestedUnits": 16384,
+    "verifiedInsertedUnits": null,
+    "contentVerification": "unverified",
+    "automaticReplay": false,
+    "nativeQueueMs": 0.0204,
+    "nativeHandlerMs": 44.507,
+    "nativeTiming": {
+      "requestId": "4a1e6205a02542c09a517d7dbaf99bcc",
+      "handlerMs": 44.507,
+      "handlerAndQueueMs": 44.5949,
+      "processId": 1144
+    }
+  },
+  "fixtureKeyDownCount": 4205,
+  "fixtureWmCharCount": 4205,
+  "result": "FAIL"
+}

@@ -22,6 +22,9 @@ internal sealed class ControlActivity : IDisposable
     private uint _hookThreadId;
     private long _ownerInputGeneration;
     internal long OwnerInputGeneration=>Volatile.Read(ref _ownerInputGeneration);
+    private long _inputObservationGeneration;
+    internal long InputObservationGeneration=>Volatile.Read(ref _inputObservationGeneration);
+    internal bool InputRunning=>Volatile.Read(ref _running)!=0;
     private long _generation,_startedGeneration,_lastLocalAt,_until;
     private long _desktopCheckedAt,_pausedFeedbackUntil;
     private int _leaseBound;
@@ -89,6 +92,7 @@ internal sealed class ControlActivity : IDisposable
             { Stop("paused-local-input"); throw new OwnerInputPause(); }
         _startedGeneration=generation;
         Volatile.Write(ref _paused,0); Volatile.Write(ref _running,1);
+        Interlocked.Increment(ref _inputObservationGeneration);
         try { Check(); Touch(); } catch { End(); throw; }
     }
     public void Touch()
@@ -113,7 +117,7 @@ internal sealed class ControlActivity : IDisposable
         Volatile.Write(ref _until,Environment.TickCount64+30_000);
     }
     public bool CancelScope(string id) { if(VisualSessionId!=id)return false;Stop("paused-cancelled");return true; }
-    public void End() { Volatile.Write(ref _running,0); Changed?.Invoke(); }
+    public void End() { Volatile.Write(ref _running,0); Interlocked.Increment(ref _inputObservationGeneration); Changed?.Invoke(); }
     public void Stop(string reason="idle")
     {
         Interlocked.Increment(ref _generation);

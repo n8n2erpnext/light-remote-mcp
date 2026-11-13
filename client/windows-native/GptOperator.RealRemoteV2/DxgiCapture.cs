@@ -94,7 +94,7 @@ internal sealed class DxgiCapture
                     if(!desc.AttachedToDesktop||rect.Left!=bounds.Left||rect.Top!=bounds.Top||rect.Right!=bounds.Right||rect.Bottom!=bounds.Bottom||desc.Rotation!=ModeRotation.Identity)
                         throw new InvalidOperationException("dxgi_output_rotated_or_geometry_changed");
                     D3D11.D3D11CreateDevice(adapter,DriverType.Unknown,DeviceCreationFlags.BgraSupport,
-                        new[]{FeatureLevel.Level_11_0,FeatureLevel.Level_10_1,FeatureLevel.Level_10_0},out var device,out var context).CheckError();
+                        new[]{FeatureLevel.Level_11_0,FeatureLevel.Level_10_1,FeatureLevel.Level_10_0},out ID3D11Device device,out ID3D11DeviceContext context).CheckError();
                     _device=device;_context=context;
                     using var output1=output.QueryInterface<IDXGIOutput1>();
                     _duplication=output1.DuplicateOutput(device);

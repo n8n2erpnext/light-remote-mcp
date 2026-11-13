@@ -44,6 +44,7 @@ try {
  $view=Invoke-Rm @{op='desktop.visual.attach';leaseMs=45000}
  function Text-Rpc([string]$Op,[hashtable]$Payload){
   $Payload.op='desktop.text.'+$Op;$Payload.visualSessionId=$view.visualSessionId;$Payload.leaseToken=$view.leaseToken
+  if($Op -eq 'chunk'){$Payload.authorityBudgetMs=1000}
   return Invoke-Rm $Payload
  }
  $sizes=@()
@@ -59,7 +60,7 @@ try {
   if(-not $prepared.verificationAvailable){throw 'text_fixture_readback_unavailable'}
   $offset=0;$nextReport=0;Write-TextStage 'typing_chunks'
   while($offset -lt $text.Length){
-   $take=[math]::Min(480,$text.Length-$offset)
+   $take=[math]::Min(128,$text.Length-$offset)
    # Use .NET grapheme enumeration, not arbitrary UTF16 slicing.
    $remaining=$text.Substring($offset);$elements=[Globalization.StringInfo]::GetTextElementEnumerator($remaining);$chunk=''
    while($elements.MoveNext()){$e=$elements.GetTextElement();if($chunk.Length+$e.Length -gt $take){break};$chunk+=$e}

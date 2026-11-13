@@ -38,7 +38,7 @@ internal sealed class SemanticSessionManager : IDisposable
 
     // Only primitive metadata crosses lanes. UIA elements stay on the worker
     // that created them, and a detached/re-rooted observation cannot publish.
-    private sealed record RootRead(long Hwnd,string Title,long Epoch,long StateSeq,long InputSeq,long FocusGeneration);
+    private sealed record RootRead(long Hwnd,string Title,long Epoch,long StateSeq,long InputSeq,long FocusGeneration,long NativeInputGeneration,long OwnerInputGeneration,bool InputRunning);
     private void RequireLive(Session session)
     {
         if(_disposed)throw new ObjectDisposedException(nameof(SemanticSessionManager));
@@ -49,7 +49,8 @@ internal sealed class SemanticSessionManager : IDisposable
     {
         lock(_gate) {
             RequireLive(session);
-            return new(session.RootHwnd,session.RootTitle,session.RootEpoch,session.Journal.StateSeq,session.Journal.InputSeq,_sensor.FocusGeneration);
+            return new(session.RootHwnd,session.RootTitle,session.RootEpoch,session.Journal.StateSeq,session.Journal.InputSeq,_sensor.FocusGeneration,
+                _activity.InputObservationGeneration,_activity.OwnerInputGeneration,_activity.InputRunning);
         }
     }
     private void ValidateRoot(Session session,RootRead root)
@@ -60,6 +61,7 @@ internal sealed class SemanticSessionManager : IDisposable
     }
 
     private readonly UiSensor _sensor;
+    private readonly ControlActivity _activity;
     private readonly object _gate=new();
     private readonly Dictionary<string,Session> _sessions=new(StringComparer.Ordinal);
     private readonly Dictionary<string,PendingSignal> _pendingSignals=new(StringComparer.Ordinal);
@@ -74,9 +76,9 @@ internal sealed class SemanticSessionManager : IDisposable
         get { lock(_gate) return !_disposed && _sessions.Count>0; }
     }
 
-    public SemanticSessionManager(UiSensor sensor)
+    public SemanticSessionManager(UiSensor sensor,ControlActivity activity)
     {
-        _sensor=sensor;
+        _sensor=sensor;_activity=activity;
         _signalTimer=new System.Threading.Timer(_=>FlushSignals(),null,Timeout.Infinite,Timeout.Infinite);
         _sensor.Changed+=OnUiChanged;
     }
@@ -144,7 +146,8 @@ internal sealed class SemanticSessionManager : IDisposable
         lock(_gate) {
         ValidateRoot(session,root);
         var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=root.Hwnd;
-        var concurrentInput=session.Journal.InputSeq!=root.InputSeq;
+        var concurrentInput=session.Journal.InputSeq!=root.InputSeq||root.InputRunning||_activity.InputRunning||
+            _activity.InputObservationGeneration!=root.NativeInputGeneration||_activity.OwnerInputGeneration!=root.OwnerInputGeneration;
         var concurrentUiChange=session.Journal.StateSeq!=root.StateSeq||_sensor.FocusGeneration!=root.FocusGeneration;
         var stateSeq=session.Journal.AdvanceSnapshot();
         return new {

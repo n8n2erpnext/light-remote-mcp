@@ -12,6 +12,7 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
         public required int Requested;
         public readonly StringBuilder SentText=new();
         public int Sent;
+        public int LastObserved;
         public bool Known=true;
         public volatile bool Cancelled;
         public string State="running",Reason="";
@@ -49,7 +50,7 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
     }
     private static object Prepared(Write row)=>new {writeId=row.Id,target=row.Target.Metadata(),
         verificationAvailable=row.Target.VerificationAvailable,verificationMethod=row.Target.VerificationMethod,
-        maxChunkUnits=4096,progressUnits="utf16-input-events-accepted-not-inserted-content",automaticReplay=false};
+        maxChunkUnits=128,deliveryBackpressure=row.Target.VerificationAvailable,progressUnits="utf16-input-events-accepted-not-inserted-content",automaticReplay=false};
     public void AssertInput(string op,string id)
     {
         lock(_gate)if(_active is {} row&&(op!="desktop.text.chunk"||row.Id!=id))
@@ -59,10 +60,12 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
     {
         lock(_gate) {if(_active is not {} row||row.Visual!=visual)return false;row.Cancelled=true;return true;}
     }
-    public object Chunk(string id,string visual,int offset,string text,int intervalMs)
+    public object Chunk(string id,string visual,int offset,string text,int intervalMs,long authorityDeadline)
     {
+        if(authorityDeadline<=0||System.Diagnostics.Stopwatch.GetTimestamp()>=authorityDeadline)
+            throw new InvalidOperationException("desktop_write_authority_expired_before_native_admission");
         var row=Owned(id,visual);
-        if(text.Length is <1 or >4096||offset<0||intervalMs is <0 or >100)
+        if(text.Length is <1 or >128||offset<0||intervalMs is <0 or >100)
             throw new InvalidOperationException("desktop_write_invalid_chunk");
         var hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
         if(offset==row.LastOffset&&row.LastReceipt is not null) {
@@ -73,14 +76,22 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
             throw new InvalidOperationException("desktop_write_offset_requires_reconciliation");
         if(row.State!="running")throw new InvalidOperationException("desktop_write_already_interrupted");
         var accepted=0;
+        void Guard()
+        {
+            if(row.Cancelled)throw new TypingTargetInterrupted("agent_cancelled");
+            if(System.Diagnostics.Stopwatch.GetTimestamp()>=authorityDeadline)throw new TypingTargetInterrupted("desktop_write_authority_expired_reconcile");
+            row.Target.CheckFast();
+        }
         try {
             row.Target.CheckFull();
-            accepted=NativeInput.WriteLogicalChunk(text,intervalMs,()=>{
-                if(row.Cancelled)throw new TypingTargetInterrupted("agent_cancelled");
-                row.Target.CheckFast();
-            });
+            accepted=NativeInput.WriteLogicalChunk(text,intervalMs,Guard);
             row.Sent+=accepted;row.SentText.Append(text);
             row.Target.CheckFull();
+            if(row.Verification!="none"&&row.Target.VerificationAvailable) {
+                if(!row.Target.WaitForDelivery(row.SentText.ToString(),Guard))
+                    throw new TypingTargetInterrupted("desktop_text_delivery_not_observed_reconcile");
+                row.LastObserved=row.Sent;
+            }
         } catch(LogicalTextPacketInterrupted interruption) {
             row.Known=interruption.ProgressKnown;
             if(row.Known) {row.Sent+=interruption.SentUnits;row.SentText.Append(text.AsSpan(0,interruption.SentUnits));}
@@ -92,7 +103,7 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
             row.Known=false;row.State="indeterminate";row.Reason=error.Message;
         }
         var receipt=new {writeId=row.Id,state=row.State,reason=row.Reason.Length==0?null:row.Reason,
-            sentUnits=row.Known?(int?)row.Sent:null,requestedUnits=row.Requested,verifiedInsertedUnits=(int?)null,
+            sentUnits=row.Known?(int?)row.Sent:null,requestedUnits=row.Requested,lastObservedInsertedUnits=row.LastObserved,verifiedInsertedUnits=(int?)null,
             contentVerification="unverified",automaticReplay=false};
         row.LastOffset=offset;row.LastHash=hash;row.LastReceipt=receipt;return receipt;
     }

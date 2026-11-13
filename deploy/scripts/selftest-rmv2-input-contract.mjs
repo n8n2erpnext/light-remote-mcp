@@ -48,6 +48,12 @@ try {
   assert.throws(()=>normalizeDesktopInput({events:[{type:'move',x:1,y:2,profile:'unsafe'}]}),/desktop_input_invalid_profile/);
   await bridge.request('cancel',{visualSessionId:'vis_private123',leaseToken:'vlease_private123'});
   assert.equal(native.op,'desktop.cancel');assert.equal(native.visualSessionId,'vis_private123');assert.equal(native.leaseToken,'vlease_private123');
+  await bridge.request('text-chunk',{writeId:'write_contract123',text:'abc',offset:0,authorityBudgetMs:1000});
+  assert.equal(native.op,'desktop.text.chunk');assert.ok(native.authorityBudgetMs>0&&native.authorityBudgetMs<=1000);
+  for(const invalid of [undefined,0,1001,NaN])await assert.rejects(bridge.request('text-chunk',{text:'abc',authorityBudgetMs:invalid}),/authority_budget_required/);
+  const beforeExpired=native;const start=bridge._start;bridge._start=async()=>new Promise(resolve=>setTimeout(resolve,20));
+  await assert.rejects(bridge.request('text-chunk',{text:'abc',authorityBudgetMs:1}),/authority_expired_before_native_admission/);
+  assert.equal(native,beforeExpired);bridge._start=start;
   for(const invalid of [{durationMs:-1},{durationMs:501},{steps:0},{steps:33}])
     assert.throws(()=>normalizeDesktopInput({events:[{type:'move',x:0,y:0,...invalid}]}),/desktop_input_invalid/);
   assert.deepEqual(normalizeDesktopInput({events:[{type:'move',x:1,y:2}]}).events,[{type:'move',x:1,y:2}]);

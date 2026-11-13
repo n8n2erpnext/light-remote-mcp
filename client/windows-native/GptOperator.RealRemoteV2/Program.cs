@@ -63,7 +63,7 @@ internal static class Program
             var systemCursorOverrideOk=SystemCursorOverride.SelfTest();
             var frameCacheOk=GdiFrameCache.SelfTest() && DesktopVisual.CropSelfTest() && DxgiCapture.SelfTest();
             var interactionProfileOk=InteractionProfile.SelfTest();
-            var rpcSchedulerOk=RpcWorkScheduler.SelfTest();
+            var rpcSchedulerOk=RpcWorkScheduler.SelfTest() && RobotRpcServer.AuthoritySelfTest();
             var controlActivityOk=ControlActivity.SelfTest() && CursorGlowOverlay.SelfTest();
             var allOk=frameCacheOk && interactionProfileOk && rpcSchedulerOk && controlActivityOk && semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk && semanticScopeOk && smoothMoveMathOk && agentCursorVisualOk && systemCursorOverrideOk;
             var result = new
