@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-13T08:38:58.954Z",
+  "updatedAt": "2026-11-13T08:44:31.183Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "DEV11_NATIVE_TEXT_MISMATCH_REPRODUCING_IN_ISOLATED_STA_FIXTURE",
+  "status": "DEV11_OPTIONAL_DXGI_SOURCE_NATIVE_GRAPH_AND_ACCEPTANCE_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -361,7 +361,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Inspect exact new native fixture result/WM_CHAR counts to isolate actual input loss from the old PowerShell UI message pump, fix product only as evidence requires, then publish optional DXGI/fallback and controlled capture comparison with resolved dependency lock; finish one consolidated Owner UAT. No interim installer or deployment.",
+  "nextAction": "Follow CI107 isolated text diagnosis and fix actual product/readback only as evidence requires. Follow GPU source Actions compile/probe, fetch SHA-verified generated packages.lock.json into source and enforce locked restore. Inspect exact-source controlled capture comparison honestly, finish remaining failures, then one complete combined internal installer and Owner physical UAT. H264/video streaming/GPU resize require a separately negotiated viewer/encoder path and are not advertised or enabled by this JPEG implementation. No public release or production/Lab cutover before full acceptance.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -452,13 +452,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261113-rmv2-isolated-text-fixture",
-    "status": "DEV11_NATIVE_TEXT_MISMATCH_REPRODUCING_IN_ISOLATED_STA_FIXTURE",
-    "summary": "CI106 native compile and UIA scheduler selftest/cursor/capture passed. Safe exact-source text evidence shows16384 sent events versus7406 actual UTF16 units, mismatch at index0; cause is still under investigation. The PowerShell-hosted WinForms fixture then hung during cleanup. Replace only that fixture with a separate ordinary STA WinForms test process and current-user pipe; record WM_CHAR/key-down counts without raw logs and use bounded process cleanup. Preserve exact16K/64K/256K text and required native readback assertions. No product typing behavior or success criterion changed in this packet. Optional GPU code/benchmark work remains local-only until this diagnostic is resolved.",
-    "verification": "CI106 run43391426307 sourcef968ed0: Core/Web/Linux/macOS and Windows compile/selftest/cursor/capture PASS; Windows failed text mismatch then fixture cleanup timeout. Text artifact14022196313 SHA256bec20431bbd209b4aafb01a4731a29882c2cc1eb338a90dcde5a59fc474a0313 independently verified. No text/full installer PASS. New fixture compiles/runs only in Actions; local work only parses PowerShell/XML. Full checkpoint checkpoint/20261113-before-rmv2-gpu-f968ed0 restore/fsckPASS.",
-    "nextAction": "Inspect exact new native fixture result/WM_CHAR counts to isolate actual input loss from the old PowerShell UI message pump, fix product only as evidence requires, then publish optional DXGI/fallback and controlled capture comparison with resolved dependency lock; finish one consolidated Owner UAT. No interim installer or deployment.",
-    "sourceDigest": "7279ded7712dc8f56ba247530d56c1a696570f13087bb46769a93afcbc76f447",
-    "sourceFileCount": 1702
+    "taskId": "20261113-rmv2-optional-dxgi-capture",
+    "status": "DEV11_OPTIONAL_DXGI_SOURCE_NATIVE_GRAPH_AND_ACCEPTANCE_PENDING",
+    "summary": "Add opt-in on-demand DXGI/D3D11 desktop capture under the existing authorized JPEG image path; GDI remains default. Match the exact display name, adapter and geometry; identity rotation only, bounded staging,16ms frame acquisition and explicit fresh-GDI fallback on timeout/unavailable/access loss. Never return a cached desktop as a fresh GPU frame. Copy validated BGRA ROI to the existing bounded BGR/JPEG cache; resize/encoding remain CPU, not zero-copy video. Clear GPU resources with the last visual scope/helper cleanup, recover with bounded backoff and keep status nonblocking during driver work. Pin direct NuGet versions and include full MIT notices. Actions will publish resolved NuGet graph for final source lock, probe actual DXGI or explicit fallback and record same-runner ABBA capture/pipe measurements against exact prior GitHub source241359b. No local/ARM native build, enabled GPU default, hardware acceptance or speedup claim.",
+    "verification": "Portable ROI/mapping4/4PASS and prior logical-text17/17PASS; all changed PowerShell scripts parsed without execution. Native pixel conversion selftest and actual GDI/DXGI/fallback/controlled comparison execute only in Actions, pending. Direct package nupkg/source metadata verified for .NET8; full transitive lock is pending Actions restore, so not a final reproducible candidate. Full pre-publication checkpoint checkpoint/20261113-before-rmv2-dxgi-1287508 bundleSHA 8f0e10ae0c89c9b9f13e5087fd9d510b64ce309fe10bceaa999edf1a116608ee independent restore/fsckPASS. CI106 text mismatch is preserved, CI107 separate STA fixture remains pending.",
+    "nextAction": "Follow CI107 isolated text diagnosis and fix actual product/readback only as evidence requires. Follow GPU source Actions compile/probe, fetch SHA-verified generated packages.lock.json into source and enforce locked restore. Inspect exact-source controlled capture comparison honestly, finish remaining failures, then one complete combined internal installer and Owner physical UAT. H264/video streaming/GPU resize require a separately negotiated viewer/encoder path and are not advertised or enabled by this JPEG implementation. No public release or production/Lab cutover before full acceptance.",
+    "sourceDigest": "3f4e4dd191e2713b018dd74fe383a4b834aa169372a94edd774469af299713ad",
+    "sourceFileCount": 1704
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1560,7 +1560,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci98.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PENDING_NEW_NATIVE_FIXTURE",
+    "fullCi": "PENDING_GPU_GRAPH_AND_TEXT",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1735,9 +1735,39 @@
       "physicalAccepted": false
     },
     "gpu": {
-      "source": "LOCAL_ONLY_NOT_PUBLISHED",
+      "source": "IMPLEMENTED_NATIVE_CI_PENDING",
       "nativeBuild": false,
-      "enabledByDefault": false
+      "enabledByDefault": false,
+      "defaultBackend": "GDI",
+      "ownerOptIn": "LIGHT_REMOTE_RM_CAPTURE_BACKEND=dxgi",
+      "capture": "DXGI_D3D11_EXACT_OUTPUT_ADAPTER",
+      "freshFallback": "GDI_WITH_EXPLICIT_REASON_NO_STALE_FRAME",
+      "rotation": "NON_IDENTITY_FALLBACK_GDI",
+      "acquireTimeoutMs": 16,
+      "retryBackoffMs": 2000,
+      "maxStagingPixels": 16777216,
+      "maxGpuEntries": 1,
+      "gpuResize": false,
+      "hardwareEncoding": false,
+      "videoStreaming": false,
+      "physicalAccepted": false,
+      "nugetLock": "PENDING_ACTIONS_RESOLVE_AND_SOURCE_COMMIT",
+      "before": {
+        "tag": "checkpoint/20261113-before-rmv2-dxgi-1287508",
+        "bundleSha256": "8f0e10ae0c89c9b9f13e5087fd9d510b64ce309fe10bceaa999edf1a116608ee",
+        "archiveSha256": "11302d2314b07aa310d1a2f21cb42fe8afdba31ee88754aef4309329356a2eb8",
+        "restore": "PASS",
+        "source": "128750891afb9326dd721c0d3039e6af6027a835"
+      }
+    },
+    "captureComparison": {
+      "status": "ACTIONS_PENDING",
+      "baselineSource": "241359b57ebda76306f23b81d51ce8fbd928207f",
+      "samplesPerSource": 30,
+      "warmupPerSource": 3,
+      "order": "15_ABBA_ROUNDS",
+      "scope": "SAME_RUNNER_CAPTURE_AND_LOCAL_PIPE_ONLY",
+      "noInputNetworkOrOwnerClaim": true
     }
   }
 }

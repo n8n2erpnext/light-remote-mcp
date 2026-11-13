@@ -1,8 +1,9 @@
-param([Parameter(Mandatory=$true)][string]$Exe,[Parameter(Mandatory=$true)][string]$Output)
+param([Parameter(Mandatory=$true)][string]$Exe,[Parameter(Mandatory=$true)][string]$Output,[ValidateSet('gdi','dxgi')][string]$RequestedBackend='gdi')
 $ErrorActionPreference='Stop'
 # Actual isolated Actions screen. These numbers are capture-only cold/warm
 # measurements, not end-to-end latency or a comparison against a prior release.
 $pipeName="lightremote-rmv2-capture-$PID"
+$priorBackend=$env:LIGHT_REMOTE_RM_CAPTURE_BACKEND;$env:LIGHT_REMOTE_RM_CAPTURE_BACKEND=$RequestedBackend
 $process=Start-Process -FilePath $Exe -ArgumentList @('--pipe',$pipeName) -PassThru -WindowStyle Hidden
 $pipe=$null;$reader=$null;$writer=$null
 try {
@@ -22,7 +23,16 @@ try {
  if($screen.Width -lt 300 -or $screen.Height -lt 200){throw 'capture_ci_screen_too_small'}
  $crop=Invoke-Rm @{op='desktop.frame';screen=0;region=$region;maxWidth=640;maxHeight=360;quality=50}
  if($crop.bounds.x -ne ($screen.X+30) -or $crop.bounds.y -ne ($screen.Y+30) -or $crop.frame.width -ne 257 -or $crop.frame.height -ne 129){throw 'capture_roi_geometry_mismatch'}
- if(-not $crop.freshPixelsChecked -or $crop.captureBackend -ne 'gdi'){throw 'capture_backend_metadata_missing'}
+ function Assert-Backend($frame){
+  if(-not $frame.freshPixelsChecked -or $frame.requestedCaptureBackend -ne $RequestedBackend){throw 'capture_backend_metadata_missing'}
+  if($RequestedBackend -eq 'gdi' -and $frame.captureBackend -ne 'gdi'){throw 'capture_default_gdi_changed'}
+  if($frame.captureBackend -notin @('gdi','dxgi-d3d11')){throw 'capture_backend_unknown'}
+  if($RequestedBackend -eq 'dxgi' -and $frame.captureBackend -eq 'gdi' -and -not $frame.captureFallback){throw 'capture_silent_gpu_fallback'}
+  if($frame.gpuResize -or $frame.hardwareEncoding){throw 'capture_unimplemented_acceleration_claim'}
+ }
+ Assert-Backend $crop
+ $gpuFrames=0;$fallbackFrames=0
+ if($crop.captureBackend -eq 'dxgi-d3d11'){$gpuFrames++}elseif($RequestedBackend -eq 'dxgi'){$fallbackFrames++}
  $jpeg=[convert]::FromBase64String($crop.data)
  if($jpeg.Length -ne $crop.dataBytes -or $jpeg[0] -ne 255 -or $jpeg[1] -ne 216){throw 'capture_jpeg_payload_invalid'}
  $cleanup=Invoke-Rm @{op='desktop.visual.attach';leaseMs=45000}
@@ -34,11 +44,15 @@ try {
  for($i=0;$i -lt 6;$i++){
   $view=Invoke-Rm @{op='desktop.visual.attach';screen=0;region=$region;leaseMs=45000;quality=50;maxWidth=640;maxHeight=360}
   $first=Invoke-Rm @{op='desktop.visual.frame';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken}
+  Assert-Backend $first.frame
+  if($first.frame.captureBackend -eq 'dxgi-d3d11'){$gpuFrames++}elseif($RequestedBackend -eq 'dxgi'){$fallbackFrames++}
   if($first.frame.encodeReused){throw 'closed_scope_retained_private_capture_cache'}
   $cold+=[double]$first.frame.captureDurationMs
   $previous=$first.frame.frameSha256;$seq=$first.frameSeq
   for($j=0;$j -lt 4;$j++){
    $next=Invoke-Rm @{op='desktop.visual.frame';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken;previousFrameSha256=$previous;omitUnchanged=$true}
+   Assert-Backend $next.frame
+   if($next.frame.captureBackend -eq 'dxgi-d3d11'){$gpuFrames++}elseif($RequestedBackend -eq 'dxgi'){$fallbackFrames++}
    if(-not $next.frame.freshPixelsChecked -or $next.frameSeq -le $seq){throw 'capture_returned_stale_frame_or_sequence'}
    if($next.frame.encodeReused){$reused++}
    if($next.frame.unchanged){if($null -ne $next.frame.data){throw 'unchanged_jpeg_was_not_omitted'};$omitted++}
@@ -50,10 +64,11 @@ try {
  # Synthetic cache self-test verifies identical-pixel reuse deterministically;
  # actual screen reuse is recorded without assuming the CI desktop is static.
  function Percentile($values,[double]$p){$sorted=@($values|Sort-Object);return $sorted[[int][math]::Ceiling(($sorted.Count-1)*$p)]}
- $receipt=@{result='PASS';scope='isolated_actions_actual_gdi_screen_not_owner_physical';roi=$region;roiJpegValid=$true;freshPixelsEveryRead=$true;scopeCloseClearsCache=$true;frameSeqMonotonic=$true;coldSamples=$cold.Count;warmSamples=$warm.Count;coldCaptureP50Ms=(Percentile $cold .5);coldCaptureP95Ms=(Percentile $cold .95);warmCaptureP50Ms=(Percentile $warm .5);warmCaptureP95Ms=(Percentile $warm .95);actualEncodeReuseCount=$reused;actualPayloadOmissionCount=$omitted;comparison='SAME_SOURCE_CAPTURE_ONLY_COLD_ALLOCATION_VS_WARM_CACHE_NOT_PRIOR_RELEASE_OR_NETWORK';gpuPhysical='NOT_RUN';mixedDpiPhysical='PENDING_OWNER'}
+ $receipt=@{result='PASS';scope='isolated_actions_capture_geometry_freshness_fallback_not_owner_gpu_acceptance';requestedBackend=$RequestedBackend;gpuFrameCount=$gpuFrames;fallbackFrameCount=$fallbackFrames;gpuAcceptance=$(if($gpuFrames -gt 0){'RUNNER_CAPTURE_ONLY_NOT_OWNER_HARDWARE'}elseif($RequestedBackend -eq 'dxgi'){'UNAVAILABLE_FALLBACK_ONLY'}else{'NOT_RUN'});roi=$region;roiJpegValid=$true;freshPixelsEveryRead=$true;scopeCloseClearsCache=$true;frameSeqMonotonic=$true;coldSamples=$cold.Count;warmSamples=$warm.Count;coldCaptureP50Ms=(Percentile $cold .5);coldCaptureP95Ms=(Percentile $cold .95);warmCaptureP50Ms=(Percentile $warm .5);warmCaptureP95Ms=(Percentile $warm .95);actualEncodeReuseCount=$reused;actualPayloadOmissionCount=$omitted;comparison='SAME_SOURCE_CAPTURE_ONLY_COLD_ALLOCATION_VS_WARM_CACHE_NOT_PRIOR_RELEASE_OR_NETWORK';gpuPhysical='NOT_RUN';mixedDpiPhysical='PENDING_OWNER'}
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Depth 6 -Compress)
 } finally {
  if($null -ne $writer){$writer.Dispose()};if($null -ne $reader){$reader.Dispose()};if($null -ne $pipe){$pipe.Dispose()}
  if(-not $process.HasExited){Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue}
+ $env:LIGHT_REMOTE_RM_CAPTURE_BACKEND=$priorBackend
 }

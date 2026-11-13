@@ -102,7 +102,12 @@ internal static class DesktopVisual
     }
 
     private static readonly GdiFrameCache FrameCache=new();
-    public static void ClearCaptureCache()=>FrameCache.Clear();
+    private static readonly DxgiCapture Dxgi=new();
+    private static readonly object CaptureGate=new();
+    public static string RequestedCaptureBackend=>String.Equals(Environment.GetEnvironmentVariable("LIGHT_REMOTE_RM_CAPTURE_BACKEND"),"dxgi",StringComparison.OrdinalIgnoreCase)?"dxgi":"gdi";
+    public static object CaptureCapabilities()=>new {requestedBackend=RequestedCaptureBackend,defaultBackend="gdi",dxgi=Dxgi.Metadata(),
+        transport="existing-authorized-image-jpeg",videoStreaming=false,gpuResize=false,hardwareEncoding=false};
+    public static void ClearCaptureCache(){lock(CaptureGate){FrameCache.Clear();Dxgi.Clear();}}
     internal static Rectangle Crop(Rectangle bounds,Rectangle? region)
     {
         var local=region??new Rectangle(0,0,bounds.Width,bounds.Height);
@@ -114,6 +119,7 @@ internal static class DesktopVisual
     public static object Capture(int screenIndex=0,int maxWidth=960,int maxHeight=540,int quality=50,
         Rectangle? region=null,string previousSha="",bool omitUnchanged=false)
     {
+        lock(CaptureGate) {
         var all=Screen.AllScreens;
         if(screenIndex<0||screenIndex>=all.Length)throw new InvalidOperationException("screen_invalid");
         maxWidth=Math.Clamp(maxWidth,160,1280);maxHeight=Math.Clamp(maxHeight,90,720);quality=Math.Clamp(quality,25,70);
@@ -122,9 +128,12 @@ internal static class DesktopVisual
         var clock=System.Diagnostics.Stopwatch.StartNew();
         var scale=Math.Min(1d,Math.Min((double)maxWidth/b.Width,(double)maxHeight/b.Height));
         var outW=Math.Max(1,(int)Math.Round(b.Width*scale));var outH=Math.Max(1,(int)Math.Round(b.Height*scale));
-        var key=$"{topologyBefore}:{screenIndex}:{b.X},{b.Y},{b.Width},{b.Height}:{outW},{outH}:{quality}";
-        var captured=FrameCache.Capture(key,b.Width,b.Height,outW,outH,quality,
-            g=>g.CopyFromScreen(b.X,b.Y,0,0,new Size(b.Width,b.Height),CopyPixelOperation.SourceCopy));
+        var requestedBackend=RequestedCaptureBackend;var backend="gdi";var fallback="";
+        var key=$"{requestedBackend}:{topologyBefore}:{screenIndex}:{b.X},{b.Y},{b.Width},{b.Height}:{outW},{outH}:{quality}";
+        var captured=FrameCache.CaptureBitmap(key,b.Width,b.Height,outW,outH,quality,(bitmap,graphics)=>{
+            if(requestedBackend=="dxgi"&&Dxgi.TryCopy(bitmap,screen.DeviceName,screenBounds,b,topologyBefore,out fallback)){backend="dxgi-d3d11";return;}
+            graphics.CopyFromScreen(b.X,b.Y,0,0,new Size(b.Width,b.Height),CopyPixelOperation.SourceCopy);
+        });
         var topologyId=ReadTopologyId();
         if(topologyBefore!=topologyId)throw new InvalidOperationException("display_topology_changed_during_capture");
         var dpi=ReadDpi(screen);var unchanged=omitUnchanged&&previousSha==captured.Sha256;
@@ -135,7 +144,9 @@ internal static class DesktopVisual
             dpiX=dpi.X,dpiY=dpi.Y,displayTopologyId=topologyId,frameSha256=captured.Sha256,
             dataBytes=captured.Bytes,mime="image/jpeg",unchanged,
             capturedAt=startedAt,captureDurationMs=clock.Elapsed.TotalMilliseconds,
-            captureBackend="gdi",freshPixelsChecked=true,encodeReused=captured.EncodeReused,
+            captureBackend=backend,requestedCaptureBackend=requestedBackend,captureFallback=fallback.Length>0?fallback:null,
+            gpuCapture=backend=="dxgi-d3d11",gpuResize=false,hardwareEncoding=false,
+            freshPixelsChecked=true,encodeReused=captured.EncodeReused,
             captureTiming=new {copyMs=captured.CopyMs,pixelHashMs=captured.HashMs,encodeMs=captured.EncodeMs},
             captureCounters=new {captures=captured.Captures,encodes=captured.Encodes},
             effectiveLimits=new {maxWidth=1280,maxHeight=720,minQuality=25,maxQuality=70,maxSourcePixels=16*1024*1024,latestCacheEntries=1},
@@ -143,6 +154,7 @@ internal static class DesktopVisual
                 coordinateConvention="frame-pixel-centers-to-physical-virtual-no-extra-dpi"},
             data=unchanged?null:captured.Data
         };
+        }
     }
     internal static bool CropSelfTest()
     {

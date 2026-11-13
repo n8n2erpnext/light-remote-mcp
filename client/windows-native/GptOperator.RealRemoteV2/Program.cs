@@ -61,7 +61,7 @@ internal static class Program
             var smoothMoveMathOk=NativeInput.SmoothMoveMathSelfTest();
             var agentCursorVisualOk=AgentCursorVisualState.SelfTest();
             var systemCursorOverrideOk=SystemCursorOverride.SelfTest();
-            var frameCacheOk=GdiFrameCache.SelfTest() && DesktopVisual.CropSelfTest();
+            var frameCacheOk=GdiFrameCache.SelfTest() && DesktopVisual.CropSelfTest() && DxgiCapture.SelfTest();
             var interactionProfileOk=InteractionProfile.SelfTest();
             var rpcSchedulerOk=RpcWorkScheduler.SelfTest();
             var controlActivityOk=ControlActivity.SelfTest() && CursorGlowOverlay.SelfTest();

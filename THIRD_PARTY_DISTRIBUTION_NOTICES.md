@@ -50,3 +50,21 @@ CI must fail if the bundled runtime license/notice files are absent or empty. In
 
 ## Project license files in release packages
 Public beta Windows, Linux client, Linux Server and Vercel bridge bundles also carry the Light Remote MCP root `LICENSE` and `NOTICE`. Those project files are separate from the upstream runtime notices described above.
+
+## Optional RM desktop duplication bindings
+
+Windows RM includes Vortice.Direct3D11, Vortice.DXGI and Vortice.DirectX 3.8.3, Vortice.Mathematics 2.1.0, and SharpGen.Runtime / SharpGen.Runtime.COM 2.4.2-beta for its optional DXGI capture backend. The default GDI image path remains available. No Sunshine source is bundled.
+
+Vortice: Copyright (c) Amer Koleci and Contributors.
+Upstream: https://github.com/amerkoleci/Vortice.Windows (package source commit 9e609cb9439c9872aa1b339f177e40ec96f77239) and https://github.com/amerkoleci/Vortice.Mathematics .
+
+SharpGen: Copyright (c) 2010-2017 Alexandre Mutel, 2017-2023 Jeremy Koritzinsky, 2023-2024 Amer Koleci.
+Upstream: https://github.com/SharpGenTools/SharpGenTools .
+
+These components use the MIT License reproduced below. System.Text.Json 10.0.15 and its Microsoft runtime dependencies also use the MIT license, Copyright (c) .NET Foundation and Contributors; the distribution includes the .NET license and third-party notices identified above.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

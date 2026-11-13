@@ -6,6 +6,8 @@
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>LightRemote.RM</AssemblyName>
     <RootNamespace>GptOperator.RealRemoteV2</RootNamespace>
@@ -25,6 +27,13 @@
     <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Vortice.Direct3D11" Version="[3.8.3]" />
+    <PackageReference Include="Vortice.DXGI" Version="[3.8.3]" />
+    <PackageReference Include="Vortice.DirectX" Version="[3.8.3]" />
+    <PackageReference Include="Vortice.Mathematics" Version="[2.1.0]" />
+    <PackageReference Include="SharpGen.Runtime" Version="[2.4.2-beta]" />
+    <PackageReference Include="SharpGen.Runtime.COM" Version="[2.4.2-beta]" />
+    <PackageReference Include="System.Text.Json" Version="[10.0.15]" />
     <Resource Include="..\..\..\assets\fonts\web\GoogleSans-Variable.ttf" Link="Assets\GoogleSans-Variable.ttf" />
   </ItemGroup>
 </Project>

@@ -641,6 +641,15 @@ jobs:
           if (-not (Test-Path $exe)) { throw 'Real Remote V2 executable missing' }
           "RMV2_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Upload RMv2 resolved NuGet graph for source pinning
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-rmv2-nuget-${{ github.sha }}
+          path: client/windows-native/GptOperator.RealRemoteV2/packages.lock.json
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Real Remote V2 self test
         shell: pwsh
         run: |
@@ -683,6 +692,55 @@ jobs:
         with:
           name: light-remote-rmv2-capture-${{ github.sha }}
           path: dist/windows/rmv2-capture-acceptance.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Real Remote V2 optional DXGI capture or explicit fresh-GDI fallback
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          ./client/windows-native/test-rmv2-capture.ps1 -Exe $env:RMV2_EXE -RequestedBackend dxgi -Output (Join-Path $PWD 'dist/windows/rmv2-dxgi-probe.json')
+
+      - name: Upload RMv2 optional capture capability probe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-rmv2-dxgi-${{ github.sha }}
+          path: dist/windows/rmv2-dxgi-probe.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Checkout exact prior RM capture baseline for controlled comparison
+        uses: actions/checkout@v4
+        with:
+          ref: 241359b57ebda76306f23b81d51ce8fbd928207f
+          path: dist/rmv2-benchmark-source
+          persist-credentials: false
+
+      - name: Build exact prior RM capture baseline on Actions only
+        timeout-minutes: 4
+        shell: pwsh
+        run: |
+          $source = Join-Path $PWD 'dist/rmv2-benchmark-source'
+          $sha = (& git -C $source rev-parse HEAD).Trim()
+          if ($sha -ne '241359b57ebda76306f23b81d51ce8fbd928207f') { throw 'RM benchmark baseline source mismatch' }
+          & git -C $source diff --exit-code
+          if ($LASTEXITCODE -ne 0) { throw 'RM benchmark baseline source dirty' }
+          dotnet publish (Join-Path $source 'client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj') -c Release -r win-x64 --self-contained true -o (Join-Path $PWD 'dist/rmv2-benchmark-native')
+          if ($LASTEXITCODE -ne 0) { throw 'RM benchmark baseline publish failed' }
+
+      - name: Record same-runner prior-source capture and pipe comparison
+        timeout-minutes: 4
+        shell: pwsh
+        run: |
+          ./client/windows-native/benchmark-rmv2-capture.ps1 -BaselineExe (Join-Path $PWD 'dist/rmv2-benchmark-native/LightRemote.RM.exe') -CurrentExe $env:RMV2_EXE -CurrentSource '${{ github.sha }}' -Output (Join-Path $PWD 'dist/windows/rmv2-capture-comparison.json')
+
+      - name: Upload RMv2 exact-source capture comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-rmv2-comparison-${{ github.sha }}
+          path: dist/windows/rmv2-capture-comparison.json
           if-no-files-found: warn
           retention-days: 14
 

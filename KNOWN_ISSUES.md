@@ -143,3 +143,7 @@ OPEN: native exact16K content/readback mismatch from CI104; CI105 hung in the fi
 ## Isolate native text acceptance from PowerShell UI runspaces
 
 CI106 exact-source native text FAIL is pinned in docs/evidence/rmv2/text-ci106.json:16384 acknowledged UTF16 sent units,7406 control units, firstDifference0, native readback mismatch. Cannot infer full insertion or normalization-only mismatch. Fixture cleanup hung after failure; isolate with a normal separate STA WinForms process before deciding whether keyboard batching, queue pressure, provider readback or old PowerShell message pump caused the content discrepancy. No raw text is logged. New fixture may reveal product defects; no acceptance criteria are relaxed.
+
+## Add optional exact-monitor DXGI capture with fresh GDI recovery
+
+Optional DXGI source is unaccepted until exact native CI and Owner hardware tests. Rotated outputs, unsupported adapters, lock/RDP/access loss and missing frames use explicit fresh-GDI fallback; mixed-DPI/multi-GPU/lock/driver recovery matrix remains Owner UAT. GPU resize, hardware encoding, H264/WebRTC viewer and zero-copy transmission are not implemented or advertised; MCP image/jpeg consumers continue working. Windows driver Map may block capture despite a16ms acquisition timeout; fast status/input lanes remain separate, and existing helper timeout reset/reobservation is required. Full dependency graph must be committed from Actions before a final candidate. CI106 text mismatch is not fixed by this capture change.

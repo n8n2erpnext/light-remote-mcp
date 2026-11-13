@@ -124,3 +124,7 @@ Windows text start may return state=preparing with writeId after initial target 
 ## Separate root-guarded UIA observation from ordered input
 
 Additive semantic snapshot fields concurrentInput/concurrentUiChange imply resyncRecommended and require reobservation before input. Changed live task root during traversal fails semantic_snapshot_changed_reobserve without applying input. Semantic mutation resolution checks the pinned root before applying. Post-mutation acknowledgement root changes return resync metadata/automaticReplay=false rather than asking to repeat an already applied operation. Existing A/B, device authorization, local policy, visual scope and explicit close-before-final-report contract are unchanged.
+
+## Add optional exact-monitor DXGI capture with fresh GDI recovery
+
+Additive native capture fields requestedCaptureBackend/captureBackend/captureFallback/gpuCapture/gpuResize/hardwareEncoding distinguish requested opt-in, actual backend, explicit fallback and unimplemented acceleration. Default gdi is retained; gpuResize/hardwareEncoding/videoStreaming remain false. Existing image/jpeg payload/frameSeq/topology/mapping/omitUnchanged contracts are unchanged. GPU capability compiled does not mean hardware validated. Native status advertises independentUiaObservation/observationQueue2 and configured capture plus per-frame actual reporting. Backend selection is an Owner environment setting, not new Agent authority.

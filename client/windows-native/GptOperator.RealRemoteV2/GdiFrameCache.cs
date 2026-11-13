@@ -26,6 +26,8 @@ internal sealed class GdiFrameCache : IDisposable
     private long _captures,_encodes;
     private bool _disposed;
     public EncodedCapture Capture(string key,int width,int height,int outWidth,int outHeight,int quality,Action<Graphics> copy)
+        =>CaptureBitmap(key,width,height,outWidth,outHeight,quality,(_,graphics)=>copy(graphics));
+    public EncodedCapture CaptureBitmap(string key,int width,int height,int outWidth,int outHeight,int quality,Action<Bitmap,Graphics> copy)
     {
         lock(_gate) {
             ObjectDisposedException.ThrowIf(_disposed,this);
@@ -41,7 +43,7 @@ internal sealed class GdiFrameCache : IDisposable
                     _resizeGraphics.PixelOffsetMode=PixelOffsetMode.HighQuality;
                 }
             }
-            var clock=Stopwatch.StartNew();copy(_copyGraphics!);_copyGraphics!.Flush(FlushIntention.Sync);_captures++;
+            var clock=Stopwatch.StartNew();_copyGraphics!.Flush(FlushIntention.Sync);copy(_source!,_copyGraphics);_copyGraphics.Flush(FlushIntention.Sync);_captures++;
             var copyMs=clock.Elapsed.TotalMilliseconds;clock.Restart();
             var locked=_source!.LockBits(new Rectangle(0,0,width,height),ImageLockMode.ReadOnly,PixelFormat.Format24bppRgb);
             try {

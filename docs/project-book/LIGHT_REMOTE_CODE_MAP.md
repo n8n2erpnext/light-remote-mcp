@@ -342,3 +342,7 @@ RpcWorkScheduler adds a separate bounded observation channel and persistent MTA 
 ## Isolate native text acceptance from PowerShell UI runspaces
 
 client/windows-native/TestFixtures/Rmv2TextFixture contains an Actions-only two-control STA WinForms executable, metadata counters and a current-user pipe. test-rmv2-text.ps1 remains the same exact logical-write/offset/full-readback/focus-switch acceptance driver, but delegates only control creation/reset/read/focus to that process. No change to NativeInput, TypingTarget or product logical writer is included in this diagnostic packet.
+
+## Add optional exact-monitor DXGI capture with fresh GDI recovery
+
+DxgiCapture.cs owns optional exact-adapter desktop duplication, bounded staging, validated row-pitch/ROI BGRA-to-BGR conversion, finally release/unmap and default-GDI recovery. Its native selftest covers ROI/channels/padding/negative stride/invalid geometry. DesktopVisual and GdiFrameCache share the existing JPEG/fresh-pixel cache for both providers with serialized capture/clear; RobotContext reports actual/capability distinctions without granting authority. Test-rmv2-capture.ps1 validates both strict default GDI and opt-in DXGI/explicit fresh fallback, and records fallback-only separately. benchmark-rmv2-capture.ps1 alternates same-runner exact prior/current GitHub-built capture samples with source/EXE hashes. New test fixture and baseline comparison outputs stay outside product staging.
