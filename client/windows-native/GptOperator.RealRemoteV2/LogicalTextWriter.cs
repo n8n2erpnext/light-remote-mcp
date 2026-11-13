@@ -50,7 +50,7 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
     }
     private static object Prepared(Write row)=>new {writeId=row.Id,target=row.Target.Metadata(),
         verificationAvailable=row.Target.VerificationAvailable,verificationMethod=row.Target.VerificationMethod,
-        maxChunkUnits=128,deliveryBackpressure=row.Target.VerificationAvailable,progressUnits="utf16-input-events-accepted-not-inserted-content",automaticReplay=false};
+        maxChunkUnits=256,deliveryBackpressure=row.Target.VerificationAvailable,progressUnits="utf16-input-events-accepted-not-inserted-content",automaticReplay=false};
     public void AssertInput(string op,string id)
     {
         lock(_gate)if(_active is {} row&&(op!="desktop.text.chunk"||row.Id!=id))
@@ -65,7 +65,7 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
         if(authorityDeadline<=0||System.Diagnostics.Stopwatch.GetTimestamp()>=authorityDeadline)
             throw new InvalidOperationException("desktop_write_authority_expired_before_native_admission");
         var row=Owned(id,visual);
-        if(text.Length is <1 or >128||offset<0||intervalMs is <0 or >100)
+        if(text.Length is <1 or >256||offset<0||intervalMs is <0 or >100)
             throw new InvalidOperationException("desktop_write_invalid_chunk");
         var hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
         if(offset==row.LastOffset&&row.LastReceipt is not null) {
@@ -86,12 +86,13 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
             row.Target.CheckFull();
             accepted=NativeInput.WriteLogicalChunk(text,intervalMs,Guard);
             row.Sent+=accepted;row.SentText.Append(text);
-            row.Target.CheckFull();
             if(row.Verification!="none"&&row.Target.VerificationAvailable) {
+                // WaitForDelivery performs CheckFull before every read. Do not
+                // issue a duplicate focused-element/provider lookup here.
                 if(!row.Target.WaitForDelivery(row.SentText.ToString(),Guard))
                     throw new TypingTargetInterrupted("desktop_text_delivery_not_observed_reconcile");
                 row.LastObserved=row.Sent;
-            }
+            } else row.Target.CheckFull();
         } catch(LogicalTextPacketInterrupted interruption) {
             row.Known=interruption.ProgressKnown;
             if(row.Known) {row.Sent+=interruption.SentUnits;row.SentText.Append(text.AsSpan(0,interruption.SentUnits));}

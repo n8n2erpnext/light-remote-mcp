@@ -1,0 +1,20 @@
+{
+  "sourceCommit": "3e4a1861893976c7034dea11df2407754ac9f1a2",
+  "ciRunId": 43403461871,
+  "artifactId": 14027068555,
+  "artifactSha256": "4e4ad261e1630febe2324a3b0a3ee7ccc12fcb0fb9bda87e5f9eae4904a4d074",
+  "stage": "typing_chunks",
+  "scope": "isolated_actions_synthetic_text_no_raw_content",
+  "at": "2026-11-13T10:05:06.8617732Z",
+  "sentOffset": 174576,
+  "result": "RUNNING",
+  "requestedUnits": 262144,
+  "fullCi": "FAIL_TEXT_STEP_15_MINUTE_TIMEOUT",
+  "completedSizesFromJobLog": [
+    16384,
+    65536
+  ],
+  "completedSizesEvidence": "Native finish verified and exact fixture comparison completed before resetting the next size; decoded job131812639073 stages09:50:42.698 and09:52:52.194UTC.",
+  "lastKnownOffsetIsNotFullVerification": true,
+  "ownerPhysical": "PENDING"
+}

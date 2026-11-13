@@ -120,8 +120,7 @@ internal sealed class TypingTarget
     }
     public object Verify(string sent,int sentUnits,bool complete)
     {
-        CheckFull();
-        if(!VerificationAvailable)return new {contentVerification="unverified",verifiedInsertedUnits=(int?)null,verificationMethod=VerificationMethod};
+        if(!VerificationAvailable){CheckFull();return new {contentVerification="unverified",verifiedInsertedUnits=(int?)null,verificationMethod=VerificationMethod};}
         if(WaitForDelivery(sent,()=>{}))return new {contentVerification=complete?"verified":"partial",verifiedInsertedUnits=(int?)sentUnits,verificationMethod=VerificationMethod};
         return new {contentVerification="mismatch",verifiedInsertedUnits=(int?)null,verificationMethod=VerificationMethod};
     }

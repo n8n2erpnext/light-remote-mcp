@@ -155,3 +155,7 @@ The new delivery/backpressure implementation is source-tested but real16K/64K/25
 ## Keep RM capture cleanup responsive and correct native measurements
 
 CI109 actualDXGI capture/fallback proof does not establish Owner GPU, multi-monitor/HDR/rotation/driver recovery or speed improvement. Its prior-source capture timing was invalid due missing field; corrected shared handler timing must be rerun. Native long-text delivery after backpressure remains unaccepted because CI109 stopped before the text fixture. Capture cleanup may remain pending during a genuinely stuck native driver; helper recovery remains necessary, but status/expiry/close no longer wait on capture gate.
+
+## Amortize verified text windows without dropping target checks
+
+CI110 real16K/64K writes passed native/full fixture readback, but256K did not complete within15minutes. New window/check amortization is pending native measurement, not accepted yet. Exact source capture benchmark improved in this one-run30sample GDI/pipe comparison; do not generalize to network/Owner/GPU performance. Native newline variants, provider/app diversity and physical focus-switch races require further scoped acceptance; no claim that queued input can be recalled.

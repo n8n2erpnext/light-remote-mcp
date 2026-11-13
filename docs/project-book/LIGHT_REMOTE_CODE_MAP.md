@@ -354,3 +354,7 @@ TypingTarget.WaitForDelivery reuses exact prefix/suffix readback with focus/Owne
 ## Keep RM capture cleanup responsive and correct native measurements
 
 DesktopVisual.ClearCaptureCache now atomically requests cleanup and TryEnter avoids waiting while VisualSessionManager gate is held; Capture drains before/after and CleanupSelfTest validates contention. CaptureCapabilities.cleanupPending exposes deferred cleanup. test-rmv2-capture asserts closed-scope resources clear. benchmark-rmv2-capture uses shared handlerMs, typed closed-pipe disposal catches; test-rmv2-text terminates both processes before pipe disposal. deploy/unified/build-manifest adds native locked dependency hash.
+
+## Amortize verified text windows without dropping target checks
+
+rmv2-text-write.textChunks and LogicalTextWriter.Prepared/Chunk agree on unpaced256-unit windows with max-grapheme128 retained. LogicalTextWriter delegates the verified post-send CheckFull to TypingTarget.WaitForDelivery; TypingTarget.Verify avoids its duplicate initial check only when the same readback performs it. test-rmv2-text honors native bounded window and records per-size elapsed/last handler/queue counters. CI110 timeout and corrected capture comparison are pinned under docs/evidence/rmv2.

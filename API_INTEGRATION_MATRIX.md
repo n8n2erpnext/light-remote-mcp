@@ -136,3 +136,7 @@ Existing logical-text tools keep total inline262144UTF16/reference16MiB UTF8/8M 
 ## Keep RM capture cleanup responsive and correct native measurements
 
 Capture capabilities add cleanupPending for a deferred resource cleanup request; active metadata is not a live control authorization. No new authority or public tool. Controlled native benchmark uses the same nativeTiming.handlerMs boundary in prior/current sources, rejecting missing/nonpositive timing instead of coercing it to zero.
+
+## Amortize verified text windows without dropping target checks
+
+Logical-text total inline/reference budgets and required/prefer verification do not change. Native prepared maxChunkUnits becomes256; Agent uses256 only unpaced, paced remains<=128 and max grapheme128. Authority<=1000ms, current focus/Owner identity, cancellation/no replay and full final verification remain required. No larger public transport cap or new capability.

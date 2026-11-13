@@ -2,9 +2,10 @@ param([Parameter(Mandatory=$true)][string]$Exe,[Parameter(Mandatory=$true)][stri
 $ErrorActionPreference='Stop'
 # Isolated Actions desktop only. Never run on the Owner's installed desktop.
 $script:lastStage='starting';$script:testUnits=0;$script:testOffset=0
+$script:totalClock=[diagnostics.stopwatch]::StartNew();$script:sizeClock=$null;$script:chunkTiming=@();$script:completedSizes=@()
 function Write-TextStage([string]$Stage){
  $script:lastStage=$Stage
- $row=@{result='RUNNING';scope='isolated_actions_synthetic_text_no_raw_content';stage=$Stage;requestedUnits=$script:testUnits;sentOffset=$script:testOffset;at=[datetime]::UtcNow.ToString('o')}
+ $row=@{result='RUNNING';scope='isolated_actions_synthetic_text_no_raw_content';stage=$Stage;requestedUnits=$script:testUnits;sentOffset=$script:testOffset;at=[datetime]::UtcNow.ToString('o');elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;sizeElapsedMs=$(if($script:sizeClock){$script:sizeClock.Elapsed.TotalMilliseconds}else{0});completedSizes=$script:completedSizes;lastChunkTiming=$script:chunkTiming}
  $row|ConvertTo-Json -Depth 4|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host "RM_TEXT_STAGE $Stage units=$script:testUnits offset=$script:testOffset"
 }
@@ -49,7 +50,7 @@ try {
  }
  $sizes=@()
  foreach($size in @(16384,65536,262144)){
-  $script:testUnits=$size;$script:testOffset=0;Write-TextStage 'resetting_control'
+  $script:testUnits=$size;$script:testOffset=0;$script:sizeClock=[diagnostics.stopwatch]::StartNew();Write-TextStage 'resetting_control'
   Ui-Command 'reset'
   # A surrogate pair and a combining sequence remain together in every chunk.
   $seed='Unicode '+[char]0x0110+[char]0x00e2+'y '+[char]::ConvertFromUtf32(0x1f600)+' e'+[char]0x0301+' '
@@ -58,13 +59,16 @@ try {
   Write-TextStage 'binding_target'
   $prepared=Text-Rpc 'start' @{writeId=$id;requestedUnits=$text.Length;verification='required';mode='insert'}
   if(-not $prepared.verificationAvailable){throw 'text_fixture_readback_unavailable'}
+  $chunkLimit=[int]$prepared.maxChunkUnits
+  if($chunkLimit -lt 1 -or $chunkLimit -gt 256){throw 'text_fixture_native_window_invalid'}
   $offset=0;$nextReport=0;Write-TextStage 'typing_chunks'
   while($offset -lt $text.Length){
-   $take=[math]::Min(128,$text.Length-$offset)
+   $take=[math]::Min($chunkLimit,$text.Length-$offset)
    # Use .NET grapheme enumeration, not arbitrary UTF16 slicing.
    $remaining=$text.Substring($offset);$elements=[Globalization.StringInfo]::GetTextElementEnumerator($remaining);$chunk=''
    while($elements.MoveNext()){$e=$elements.GetTextElement();if($chunk.Length+$e.Length -gt $take){break};$chunk+=$e}
    $ack=Text-Rpc 'chunk' @{writeId=$id;offset=$offset;text=$chunk;intervalMs=0}
+   $script:chunkTiming=@{nativeHandlerMs=$ack.nativeTiming.handlerMs;nativeQueueMs=$ack.nativeQueueMs;sentUnits=$ack.sentUnits;observedUnits=$ack.lastObservedInsertedUnits}
    if($ack.state -ne 'running' -or $ack.sentUnits -ne ($offset+$chunk.Length)){throw "text_chunk_interrupted:$($ack|ConvertTo-Json -Compress)"}
    $offset+=$chunk.Length
    $script:testOffset=$offset
@@ -88,6 +92,7 @@ try {
    throw "text_full_readback_failed:$size"
   }
   $sizes+=$size
+  $script:completedSizes+=,@{units=$size;elapsedMs=$script:sizeClock.Elapsed.TotalMilliseconds;exactFixtureReadback=$true;nativeVerified=$true}
  }
  Write-TextStage 'focus_switch_test'
  # Changing focus between acknowledged chunks must not type the suffix into B.
@@ -102,7 +107,7 @@ try {
  if($shared.result -cne 'prefix' -or $shared.other -cne ''){throw 'text_suffix_leaked_to_other_control'}
  $closed=Invoke-Rm @{op='desktop.visual.detach';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken}
  if(-not $closed.scopeClosed){throw 'text_scope_not_closed'}
- $receipt=@{result='PASS';scope='isolated_actions_winforms_native_not_owner_physical';unicodeReadbackSizes=$sizes;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
+ $receipt=@{result='PASS';scope='isolated_actions_winforms_native_not_owner_physical';unicodeReadbackSizes=$sizes;sizeMeasurements=$script:completedSizes;elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Compress)
 } catch {

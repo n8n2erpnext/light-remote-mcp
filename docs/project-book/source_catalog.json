@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 289,
+    "total": 291,
     "markdown": 230,
-    "json": 59
+    "json": 61
   },
   "files": [
     {
@@ -589,6 +589,27 @@
       ]
     },
     {
+      "path": "docs/evidence/rmv2/comparison-ci110.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3404,
+      "sha256": "06c42ab01cc0ce914c376390d3f3bc2d155e69454d55cd579bf000799f7b2812",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "roundtripP95ChangePercent",
+        "ownerPhysical",
+        "currentSource",
+        "current",
+        "sampleOrder",
+        "warmupPerSource",
+        "image",
+        "currentExeSha256"
+      ]
+    },
+    {
       "path": "docs/evidence/rmv2/dxgi-ci109.json",
       "shelf": "evidence",
       "extension": "json",
@@ -813,6 +834,27 @@
         "expectedUtf16Sha256",
         "firstDifference",
         "actualUnits"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/text-ci110.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 784,
+      "sha256": "77fd855ad05a602511e54010a0d9e70560bf68fa42a89377f686931aa6e56ac9",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "stage",
+        "scope",
+        "at",
+        "sentOffset",
+        "result",
+        "requestedUnits",
+        "fullCi",
+        "completedSizesFromJobLog"
       ]
     },
     {
@@ -2706,8 +2748,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 67495,
-      "sha256": "b2a50acc83db84b1ce6cd6234808b922aa8f18ee098192fef984ec7e51a75d40",
+      "bytes": 69664,
+      "sha256": "669deafd07279c7c41469a9ab30063bdd1fbdc64b3bf9388e5a85572af6e055e",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {
