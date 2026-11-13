@@ -285,3 +285,7 @@ Owner instruction (2026-11-11): **fix source only; do not build now**. Final imp
 ## Record CI84 internal installer acceptance, Lab rollout and preserved Google callback
 
 Internal installer/tray/Google follow-up accepted from GitHub source `3064f21adb402b1d3eb866405d5a81796789f1a2` (dev.6), [CI84](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42989298732), all9 jobs PASS. Six actual native setup/uninstall views, one-primary/lifecycle/rollback and artifact digests verified. Canonical outcome: PROJECT_HANDOFF.md task20261111-installer-tray-google-ci84-closeout and docs/evidence/windows-distribution/20261111-acceptance.json. Lab backend updated; Google retains production client/callback and waits for Owner domain rotation. Owner physical test remains pending; no public release/feed.
+
+## Reuse fresh RM capture buffers and add crop-aware frame coordinates
+
+Development follow-up on permanent work: dev11 long-text and capture/cache/ROI implementation is pending exact native/full CI. Internal installer links remain pinned to their own compiled sources; no new public release, Lab cutover or Owner installation is implied. Read the current-source lead in PROJECT_TRUTH.md, single MASTER_CHECKPOINT.json and rolling PROJECT_HANDOFF.md before continuing.

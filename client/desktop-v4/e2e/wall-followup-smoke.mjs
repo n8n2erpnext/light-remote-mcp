@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {chromium} from 'playwright';
+import {loadCanonicalEndpoints} from '../../../lib/canonical-endpoints.mjs';
+const preferencePath=loadCanonicalEndpoints(new URL('../../../config/endpoints.json',import.meta.url)).routeCatalog.wallCodexPreferences.path;
 import {startLocalWall} from '../../../device-agent/local-wall.mjs';
 import {DeviceLocalActivityLog} from '../../../device-agent/local-activity-log.mjs';
 import {createGoldWallModules} from '../../../device-agent/gold-wall-modules.mjs';
@@ -57,7 +59,9 @@ try{
  connected=true; // Deliberately leave a stale pending login in the response.
  await page.waitForFunction(()=>document.getElementById('goldCodexPlusDevice').hidden,{timeout:12000});
  assert.equal(await page.locator('#goldCodexPlusCode').inputValue(),'');
+ const saved=page.waitForResponse(response=>new URL(response.url()).pathname===preferencePath&&response.request().method()==='POST');
  await page.locator('#goldCodexEffort').selectOption('max');
+ const savedResponse=await saved;assert.equal(savedResponse.ok(),true);
  await page.waitForFunction(()=>document.getElementById('goldCodexEffort').value==='max');
  assert.equal(choice.reasoningEffort,'max');assert.match(await page.locator('#goldCodexMetrics').textContent(),/37% used/);
  results.push('Codex selectable/copy code, automatic connected cleanup, catalog/effort preferences and reported usage');

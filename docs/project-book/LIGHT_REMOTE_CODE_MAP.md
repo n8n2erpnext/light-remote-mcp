@@ -326,3 +326,7 @@ lib/rmv2-text-write.mjs owns device-local async orchestration, full preflight, d
 ## Correct native logical write variable declaration for CSharp
 
 CI102 Windows failed at native compile CS0819 before the new text fixture. Split RobotContext FinishTextWrite local var declarations; no behavioral/test/threshold changes. Core/backend/Web passed for sourceef54911. New Actions proof pending; no CI102 artifact accepted, no Lab/Owner/production changes.
+
+## Reuse fresh RM capture buffers and add crop-aware frame coordinates
+
+GdiFrameCache.cs owns one private bitmap/pixel/codec/stream/encoded entry and fresh-pixel change detection; DesktopVisual.cs validates screen-local crop, pins topology across capture and reports actual limits/mapping/timing. VisualSessionManager retains crop and supplies prior SHA omission hints. RobotContext clears capture cache at final visual close/helper exit. lib/rmv2-capture.mjs validates ROI and converts opt-in exact-latest-frame pixel centers to physical virtual coordinates using Agent-held metadata; real-remote-input.cjs preserves its validated common fields through two normalizers. Agent stores/clears mapping on actual reads/native recovery; native bridge forwards pinned ROI/previous SHA. RobotRpcServer coalesces generic ui.changed events with one-slot channel; semantic events remain separate. test-rmv2-capture.ps1 is Actions-only ROI/JPEG/cache-clear measurement; text fixture and wall-followup browser fixture now synchronize actual responses.

@@ -101,77 +101,56 @@ internal static class DesktopVisual
         return rows.ToArray();
     }
 
-    public static object Capture(int screenIndex=0,int maxWidth=960,int maxHeight=540,int quality=50)
+    private static readonly GdiFrameCache FrameCache=new();
+    public static void ClearCaptureCache()=>FrameCache.Clear();
+    internal static Rectangle Crop(Rectangle bounds,Rectangle? region)
+    {
+        var local=region??new Rectangle(0,0,bounds.Width,bounds.Height);
+        if(local.X<0||local.Y<0||local.Width<1||local.Height<1||
+           (long)local.X+local.Width>bounds.Width||(long)local.Y+local.Height>bounds.Height)
+            throw new InvalidOperationException("frame_region_outside_screen");
+        return new Rectangle(bounds.X+local.X,bounds.Y+local.Y,local.Width,local.Height);
+    }
+    public static object Capture(int screenIndex=0,int maxWidth=960,int maxHeight=540,int quality=50,
+        Rectangle? region=null,string previousSha="",bool omitUnchanged=false)
     {
         var all=Screen.AllScreens;
-        if(screenIndex<0||screenIndex>=all.Length) throw new InvalidOperationException("screen_invalid");
-        maxWidth=Math.Clamp(maxWidth,160,1280);
-        maxHeight=Math.Clamp(maxHeight,90,720);
-        quality=Math.Clamp(quality,25,70);
-        var screen=all[screenIndex];
-        var b=screen.Bounds;
-        if(b.Width<=0||b.Height<=0) throw new InvalidOperationException("screen_bounds_invalid");
-
-        using var full=new Bitmap(b.Width,b.Height,PixelFormat.Format24bppRgb);
-        using(var g=Graphics.FromImage(full))
-            g.CopyFromScreen(b.X,b.Y,0,0,new Size(b.Width,b.Height),CopyPixelOperation.SourceCopy);
-
+        if(screenIndex<0||screenIndex>=all.Length)throw new InvalidOperationException("screen_invalid");
+        maxWidth=Math.Clamp(maxWidth,160,1280);maxHeight=Math.Clamp(maxHeight,90,720);quality=Math.Clamp(quality,25,70);
+        var screen=all[screenIndex];var screenBounds=screen.Bounds;var b=Crop(screenBounds,region);
+        var topologyBefore=ReadTopologyId();var startedAt=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var clock=System.Diagnostics.Stopwatch.StartNew();
         var scale=Math.Min(1d,Math.Min((double)maxWidth/b.Width,(double)maxHeight/b.Height));
-        var outW=Math.Max(1,(int)Math.Round(b.Width*scale));
-        var outH=Math.Max(1,(int)Math.Round(b.Height*scale));
-        using var output=scale<0.999d?Resize(full,outW,outH):new Bitmap(full);
-
-        byte[] bytes=Array.Empty<byte>();
-        var appliedQuality=quality;
-        for(var q=quality;q>=25;q-=5)
-        {
-            bytes=EncodeJpeg(output,q);
-            appliedQuality=q;
-            if(bytes.Length<=650*1024) break;
-        }
-        if(bytes.Length>650*1024) throw new InvalidOperationException("frame_too_large");
-
-        var dpi=ReadDpi(screen);
+        var outW=Math.Max(1,(int)Math.Round(b.Width*scale));var outH=Math.Max(1,(int)Math.Round(b.Height*scale));
+        var key=$"{topologyBefore}:{screenIndex}:{b.X},{b.Y},{b.Width},{b.Height}:{outW},{outH}:{quality}";
+        var captured=FrameCache.Capture(key,b.Width,b.Height,outW,outH,quality,
+            g=>g.CopyFromScreen(b.X,b.Y,0,0,new Size(b.Width,b.Height),CopyPixelOperation.SourceCopy));
         var topologyId=ReadTopologyId();
-        var hash=Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        if(topologyBefore!=topologyId)throw new InvalidOperationException("display_topology_changed_during_capture");
+        var dpi=ReadDpi(screen);var unchanged=omitUnchanged&&previousSha==captured.Sha256;
         return new {
-            screen=screenIndex,
-            bounds=new {x=b.X,y=b.Y,width=b.Width,height=b.Height},
-            frame=new {width=output.Width,height=output.Height,quality=appliedQuality},
-            dpiX=dpi.X,
-            dpiY=dpi.Y,
-            displayTopologyId=topologyId,
-            frameSha256=hash,
-            dataBytes=bytes.Length,
-            mime="image/jpeg",
-            inputMapping=new {
-                xOffset=b.X,
-                yOffset=b.Y,
-                xScale=(double)b.Width/output.Width,
-                yScale=(double)b.Height/output.Height
-            },
-            data=Convert.ToBase64String(bytes)
+            screen=screenIndex,bounds=new {x=b.X,y=b.Y,width=b.Width,height=b.Height},
+            screenBounds=new {x=screenBounds.X,y=screenBounds.Y,width=screenBounds.Width,height=screenBounds.Height},
+            frame=new {width=captured.Width,height=captured.Height,quality=captured.Quality},
+            dpiX=dpi.X,dpiY=dpi.Y,displayTopologyId=topologyId,frameSha256=captured.Sha256,
+            dataBytes=captured.Bytes,mime="image/jpeg",unchanged,
+            capturedAt=startedAt,captureDurationMs=clock.Elapsed.TotalMilliseconds,
+            captureBackend="gdi",freshPixelsChecked=true,encodeReused=captured.EncodeReused,
+            captureTiming=new {copyMs=captured.CopyMs,pixelHashMs=captured.HashMs,encodeMs=captured.EncodeMs},
+            captureCounters=new {captures=captured.Captures,encodes=captured.Encodes},
+            effectiveLimits=new {maxWidth=1280,maxHeight=720,minQuality=25,maxQuality=70,maxSourcePixels=16*1024*1024,latestCacheEntries=1},
+            inputMapping=new {xOffset=b.X,yOffset=b.Y,xScale=(double)b.Width/captured.Width,yScale=(double)b.Height/captured.Height,
+                coordinateConvention="frame-pixel-centers-to-physical-virtual-no-extra-dpi"},
+            data=unchanged?null:captured.Data
         };
     }
-
-    private static Bitmap Resize(Bitmap source,int width,int height)
+    internal static bool CropSelfTest()
     {
-        var target=new Bitmap(width,height,PixelFormat.Format24bppRgb);
-        using var g=Graphics.FromImage(target);
-        g.InterpolationMode=InterpolationMode.HighQualityBicubic;
-        g.PixelOffsetMode=PixelOffsetMode.HighQuality;
-        g.DrawImage(source,new Rectangle(0,0,width,height));
-        return target;
-    }
-
-    private static byte[] EncodeJpeg(Image image,int quality)
-    {
-        var codec=ImageCodecInfo.GetImageEncoders().First(c=>c.MimeType=="image/jpeg");
-        using var ms=new MemoryStream();
-        using var ep=new EncoderParameters(1);
-        ep.Param[0]=new EncoderParameter(System.Drawing.Imaging.Encoder.Quality,(long)quality);
-        image.Save(ms,codec,ep);
-        return ms.ToArray();
+        var b=new Rectangle(-1920,-200,1920,1080);var c=Crop(b,new Rectangle(40,50,100,80));
+        if(c!=new Rectangle(-1880,-150,100,80))return false;
+        try{Crop(b,new Rectangle(1910,0,20,20));return false;}catch(InvalidOperationException){}
+        try{Crop(b,new Rectangle(-1,0,20,20));return false;}catch(InvalidOperationException){}
+        return true;
     }
 
     private static (uint X,uint Y) ReadDpi(Screen screen)

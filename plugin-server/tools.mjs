@@ -10,6 +10,8 @@ import {runGoldMemoryViaAuthorizedSession} from './gold-memory-bridge.mjs';
 
 const id=z.string().regex(/^[A-Za-z0-9._:-]{1,160}$/);
 const opId=z.string().regex(/^[A-Za-z0-9._:-]{16,160}$/).optional();
+const captureRegion=z.object({x:z.number().int().min(0).max(32768),y:z.number().int().min(0).max(32768),width:z.number().int().min(1).max(32768),height:z.number().int().min(1).max(32768)});
+const frameCoordinates={coordinateSpace:z.enum(['virtual','frame']).optional(),frameSeq:z.number().int().min(1).optional(),maxFrameAgeMs:z.number().int().min(1000).max(45000).optional()};
 const pathText=z.string().min(1).max(4096);
 const jsonObject=z.record(z.string(),z.any());
 const security=scopes=>[{type:'oauth2',scopes:[...scopes]}];
@@ -161,8 +163,8 @@ const legacySchemas={
   light_remote_terminal:z.object({sessionId:id,operation:z.enum(['start','input','output','resize','signal','list','stop']),operationId:opId,terminalId:z.string().max(160).optional(),shell:z.string().max(80).optional(),cwd:pathText.optional(),term:z.string().max(64).optional(),data:z.string().max(1_048_576).optional(),offset:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1_048_576).optional(),cols:z.number().int().min(20).max(500).optional(),rows:z.number().int().min(5).max(200).optional(),signal:z.enum(['interrupt','terminate','kill']).optional(),force:z.boolean().optional()}),
   light_remote_scp_download:z.object({sessionId:id,operationId:opId,operation:z.enum(['download-begin','download-chunk','status','cancel']),transferId:z.string().max(160).optional(),source:pathText.optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional()}),
   light_remote_scp:z.object({sessionId:id,operationId:opId,operation:z.enum(['upload-begin','upload-chunk','upload-commit','status','cancel']),transferId:z.string().max(160).optional(),destination:pathText.optional(),source:pathText.optional(),totalBytes:z.number().int().min(1).optional(),sha256:z.string().regex(/^[a-f0-9]{64}$/i).optional(),chunkBytes:z.number().int().min(64*1024).max(4*1024*1024).optional(),index:z.number().int().min(0).optional(),data:z.string().max(6_000_000).optional(),overwrite:z.boolean().optional(),createParents:z.boolean().optional()}),
-  light_remote_desktop:z.object({sessionId:id,operationId:opId,operation:z.enum(['status','attach','resume','detach','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close']),desktopSessionId:z.string().max(160).optional(),semanticSessionId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional(),screen:z.number().int().min(-1).max(31).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),minIntervalMs:z.number().int().min(0).max(5000).optional(),omitUnchanged:z.boolean().optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional(),provider:z.enum(['windows-uia','browser-cdp']).optional(),scope:z.string().max(160).optional(),cdpEndpoint:z.string().max(256).optional(),targetId:z.string().max(256).optional(),urlMatch:z.string().max(512).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),waitMs:z.number().int().min(0).max(7000).optional()}),
-  light_remote_desktop_input:z.object({sessionId:id,operationId:opId,operation:z.enum(['act','input','run']),semanticSessionId:z.string().max(160).optional(),nodeId:z.string().max(512).optional(),action:z.string().max(80).optional(),value:z.any().optional(),events:z.array(jsonObject).max(128).optional(),displayTopologyId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),settleMs:z.number().int().min(0).max(15000).optional(),await:z.object({foregroundTitleContains:z.string().max(512).optional(),foregroundTitleEquals:z.string().max(512).optional(),focusedNameContains:z.string().max(512).optional(),timeoutMs:z.number().int().min(50).max(15000).optional()}).optional(),waitMs:z.number().int().min(0).max(7000).optional()})
+  light_remote_desktop:z.object({sessionId:id,operationId:opId,operation:z.enum(['status','attach','resume','detach','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close']),desktopSessionId:z.string().max(160).optional(),semanticSessionId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional(),screen:z.number().int().min(-1).max(31).optional(),region:captureRegion.optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),minIntervalMs:z.number().int().min(0).max(5000).optional(),omitUnchanged:z.boolean().optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional(),provider:z.enum(['windows-uia','browser-cdp']).optional(),scope:z.string().max(160).optional(),cdpEndpoint:z.string().max(256).optional(),targetId:z.string().max(256).optional(),urlMatch:z.string().max(512).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),waitMs:z.number().int().min(0).max(7000).optional()}),
+  light_remote_desktop_input:z.object({sessionId:id,operationId:opId,operation:z.enum(['act','input','run']),...frameCoordinates,semanticSessionId:z.string().max(160).optional(),nodeId:z.string().max(512).optional(),action:z.string().max(80).optional(),value:z.any().optional(),events:z.array(jsonObject).max(128).optional(),displayTopologyId:z.string().max(160).optional(),afterSeq:z.number().int().min(0).optional(),settleMs:z.number().int().min(0).max(15000).optional(),await:z.object({foregroundTitleContains:z.string().max(512).optional(),foregroundTitleEquals:z.string().max(512).optional(),focusedNameContains:z.string().max(512).optional(),timeoutMs:z.number().int().min(50).max(15000).optional()}).optional(),waitMs:z.number().int().min(0).max(7000).optional()})
 };
 const legacyScopes={
   light_remote_session_control:['remote:write'],light_remote_search_files:['remote:read'],light_remote_filesystem:['remote:write'],
@@ -187,8 +189,8 @@ export async function callLegacyMultiplexedTool(identity,name,input={}){
     else if(name==='light_remote_terminal')value=await terminalOperation(a,x,x.operation);
     else if(name==='light_remote_scp_download')value=await scpOperation(a,x,x.operation,['transferId','source','chunkBytes','index']);
     else if(name==='light_remote_scp')value=await scpOperation(a,x,x.operation,['transferId','destination','totalBytes','sha256','chunkBytes','index','data','overwrite','createParents']);
-    else if(name==='light_remote_desktop')value=await desktopOperation(a,x,x.operation,['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes']);
-    else if(name==='light_remote_desktop_input')value=await desktopOperation(a,x,x.operation,['semanticSessionId','nodeId','action','value','events','displayTopologyId','afterSeq','settleMs','await']);
+    else if(name==='light_remote_desktop')value=await desktopOperation(a,x,x.operation,['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes']);
+    else if(name==='light_remote_desktop_input')value=await desktopOperation(a,x,x.operation,['semanticSessionId','nodeId','action','value','events','displayTopologyId','coordinateSpace','frameSeq','maxFrameAgeMs','afterSeq','settleMs','await']);
     else return null;
     return result(value);
   }catch(error){return pluginToolErrorResult(error);}
@@ -605,79 +607,79 @@ export function registerPluginTools(server,identity){
     title:'Read remote desktop status',
     description:'Read Real Remote V2 desktop session status for the selected Light Remote session without attaching or sending input.',
     inputSchema:{sessionId:id,operationId:opId},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'status',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'status',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_desktop_attach',{
     title:'Attach remote desktop observation',
-    description:'REQUIRED before RM input: open an owner-bound RM task/observation scope. This does not send input or grant desktop-input permission. Keep its desktopSessionId for screen reads and every input. MUST close every opened scope with light_remote_desktop_detach and confirm taskEnded before the final task report, including failure/cancel paths. Real RM activity renews the45s quiet fallback; status does not. Reopen after close/expiry.',
-    inputSchema:{sessionId:id,operationId:opId,screen:z.number().int().min(-1).max(31).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),minIntervalMs:z.number().int().min(0).max(5000).optional(),omitUnchanged:z.boolean().optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'attach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+    description:'REQUIRED before RM input: open an owner-bound RM task/observation scope. This does not send input or grant desktop-input permission. Keep its desktopSessionId for screen reads and every input. Windows optional region pins a screen-local physical crop to this scope. MUST close every opened scope with light_remote_desktop_detach and confirm taskEnded before the final task report, including failure/cancel paths. Real RM activity renews the45s quiet fallback; status does not. Reopen after close/expiry.',
+    inputSchema:{sessionId:id,operationId:opId,screen:z.number().int().min(-1).max(31).optional(),region:captureRegion.optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),minIntervalMs:z.number().int().min(0).max(5000).optional(),omitUnchanged:z.boolean().optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'attach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_desktop_resume',{
     title:'Resume remote desktop observation',
     description:'Resume one existing Real Remote V2 desktop observation session without sending user input.',
     inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,true)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'resume',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'resume',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_desktop_detach',{
     title:'Detach remote desktop observation',
     description:'REQUIRED task completion step: close this RM task/observation scope and wait for confirmed taskEnded/scopeClosed before reporting completion. Stops this scope control indicator; preserves A/B and other Agent scopes. Input after close requires a new desktop_attach. Retry an unconfirmed close; never claim cleanup from request submission alone.',
     inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,true)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'detach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'detach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_desktop_windows',{
     title:'List remote desktop windows',
     description:'Read the visible window inventory from the authorized remote desktop without sending input.',
     inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().max(160).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'windows',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'windows',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_desktop_frame',{
     title:'Read a remote desktop frame',
-    description:'Read one bounded desktop frame for bootstrap or resynchronization without sending keyboard or pointer input.',
-    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().max(160).optional(),screen:z.number().int().min(-1).max(31).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'frame',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+    description:'Read one fresh desktop frame for bootstrap/resynchronization. Windows optional screen-local region crops pixels before encoding; for scoped reads select region at attach. Effective limits and crop-to-virtual mapping are returned. Does not send input.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().max(160).optional(),screen:z.number().int().min(-1).max(31).optional(),region:captureRegion.optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'frame',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_desktop_observe',{
     title:'Observe remote desktop state',
     description:'Read one bounded Real Remote V2 observation from an authorized desktop without sending input.',
-    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().max(160).optional(),screen:z.number().int().min(-1).max(31).optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),omitUnchanged:z.boolean().optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'observe',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().max(160).optional(),screen:z.number().int().min(-1).max(31).optional(),region:captureRegion.optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional(),omitUnchanged:z.boolean().optional(),waitMs:z.number().int().min(0).max(7000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'observe',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_semantic_attach',{
     title:'Attach semantic desktop observation',
     description:'Attach a bounded semantic desktop provider for structured UI observation. This creates observation state and does not send input.',
     inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160).optional(),provider:z.enum(['windows-uia','browser-cdp']).optional(),scope:z.string().max(160).optional(),cdpEndpoint:z.string().max(256).optional(),targetId:z.string().max(256).optional(),urlMatch:z.string().max(512).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-attach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-attach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_semantic_snapshot',{
     title:'Read a semantic desktop snapshot',
     description:'Read one structured semantic UI snapshot from an existing authorized semantic observation session.',
     inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160).optional(),semanticSessionId:z.string().min(1).max(160),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-snapshot',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-snapshot',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_semantic_events',{
     title:'Read semantic desktop events',
     description:'Read bounded semantic UI events after a sequence number without changing the remote desktop.',
     inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160).optional(),semanticSessionId:z.string().min(1).max(160),afterSeq:z.number().int().min(0).optional(),limit:z.number().int().min(1).max(1000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-events',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-events',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_semantic_detach',{
     title:'Detach semantic desktop observation',
     description:'Detach one semantic observation session. This stops observation state and does not alter desktop content.',
     inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160).optional(),semanticSessionId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,true)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-detach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'semantic-detach',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_desktop_live_open',{
     title:'Open live semantic desktop observation',
     description:'Open a bounded live semantic observation lane for an authorized desktop. This creates observation state and sends no keyboard or pointer input.',
     inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160).optional(),provider:z.enum(['windows-uia','browser-cdp']).optional(),scope:z.string().max(160).optional(),cdpEndpoint:z.string().max(256).optional(),targetId:z.string().max(256).optional(),urlMatch:z.string().max(512).optional(),maxDepth:z.number().int().min(1).max(64).optional(),maxNodes:z.number().int().min(1).max(20000).optional(),idleTimeoutMs:z.number().int().min(250).max(900000).optional()},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'live-open',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'live-open',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_desktop_live_close',{
     title:'Close live semantic desktop observation',
     description:'Close one live semantic observation lane. This stops observation state and does not alter desktop content.',
     inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160).optional(),semanticSessionId:z.string().min(1).max(160)},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,true)
-  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'live-close',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'live-close',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
   add(server,'light_remote_desktop_live_read',{
     title:'Read buffered Real Remote V2 live state',
@@ -726,7 +728,7 @@ export function registerPluginTools(server,identity){
   const screen=z.number().int().min(0).max(31).optional();
   const button=z.enum(['left','right','middle']);
   const profile=z.enum(['compatibility','precision','responsive','smooth']).optional();
-  const physicalFields={sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160).optional(),displayTopologyId:z.string().min(1).max(160).optional(),...waitFields};
+  const physicalFields={...frameCoordinates,sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160).optional(),displayTopologyId:z.string().min(1).max(160).optional(),...waitFields};
   const logicalTextFields={text:z.string().min(1).max(262144).optional(),sourcePath:pathText.optional(),sourceSha256:z.string().regex(/^[a-f0-9]{64}$/i).optional(),mode:z.enum(['insert','append']).optional(),verification:z.enum(['none','prefer','required']).optional(),maxDurationMs:z.number().int().min(1000).max(3600000).optional(),intervalMs:z.number().int().min(0).max(100).optional()};
   for(const name of ['write_text','type_text'])add(server,'light_remote_desktop_'+name,{
     title:'Desktop '+name.replaceAll('_',' '),
@@ -752,14 +754,14 @@ export function registerPluginTools(server,identity){
   for(const [name,type,description,eventFields] of physicalActions){
     add(server,'light_remote_desktop_'+name,{
       title:'Desktop '+name.replaceAll('_',' '),
-      description:description+' This tool performs only this named OS operation, optionally followed by a bounded UI state observation. Device-local approval remains mandatory. Requires an open desktop_attach scope; supply desktopSessionId when multiple scopes exist. MUST desktop_detach all task scopes and confirm taskEnded before final report; no input after close without a new attach.',
+      description:description+' Windows coordinateSpace=frame accepts image pixel coordinates only with the latest scoped frameSeq; default maxFrameAgeMs15000 (up to45000). Agent maps observed crop/scale to physical pixels, rejects stale/topology/mixed-screen inputs. Legacy virtual and explicit screen coordinates remain supported. This tool performs only this named OS operation, optionally followed by a bounded UI state observation. Device-local approval remains mandatory. Requires an open desktop_attach scope; supply desktopSessionId when multiple scopes exist. MUST desktop_detach all task scopes and confirm taskEnded before final report; no input after close without a new attach.',
       inputSchema:{...physicalFields,...eventFields},
       securitySchemes:security(['remote:execute']),annotations:annotations(false,true,true,false)
     },guarded(identity,['remote:execute'],(a,x)=>{
       if(['click','scroll'].includes(name)&&((x.x===undefined)!==(x.y===undefined)))throw Error('desktop_coordinates_must_be_paired');
       if(name==='scroll'&&x.delta===0)throw Error('desktop_scroll_delta_nonzero_required');
       const event={type,...pick(x,Object.keys(eventFields))};
-      return desktopOperation(a,{...x,events:[event]},x.await?'run':'input',['events','displayTopologyId','await']);
+      return desktopOperation(a,{...x,events:[event]},x.await?'run':'input',['events','displayTopologyId','await','coordinateSpace','frameSeq','maxFrameAgeMs']);
     }));
   }
 

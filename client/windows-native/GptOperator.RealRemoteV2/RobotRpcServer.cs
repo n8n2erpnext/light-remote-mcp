@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading.Channels;
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
@@ -13,6 +14,11 @@ internal sealed class RobotRpcServer : IDisposable
     private readonly Func<JsonElement,Task<object?>> _handler;
     private readonly Action _disconnected;
     private readonly SemaphoreSlim _writeGate=new(1,1);
+    private readonly Channel<object> _uiEvents=Channel.CreateBounded<object>(new BoundedChannelOptions(1){SingleReader=true,FullMode=BoundedChannelFullMode.DropOldest});
+    private readonly Task _uiPump;
+    private long _uiProduced,_uiForwarded;
+    public long UiEventsProduced=>Interlocked.Read(ref _uiProduced);
+    public long UiEventsForwarded=>Interlocked.Read(ref _uiForwarded);
     private readonly RpcWorkScheduler _scheduler=new();
     public void CancelScope(string id)=>_scheduler.CancelScope(id);
     public void ForgetScope(string id)=>_scheduler.ForgetScope(id);
@@ -22,6 +28,7 @@ internal sealed class RobotRpcServer : IDisposable
     public RobotRpcServer(string pipeName,Func<JsonElement,Task<object?>> handler,Action disconnected)
     {
         _pipeName=pipeName;_handler=handler;_disconnected=disconnected;
+        _uiPump=Task.Run(DrainUiEventsAsync);
     }
 
     public static bool IsValidPipeName(string value)
@@ -103,9 +110,23 @@ internal sealed class RobotRpcServer : IDisposable
     public void PublishEvent(string eventName,object value)
     {
         if(_writer is null||_disposed) return;
+        // Generic UI signals are latest-state hints, not a semantic journal.
+        // Coalesce key-induced WinEvents without delaying request replies behind
+        // thousands of fire-and-forget writes. Semantic deltas retain their path.
+        if(eventName=="ui.changed") {Interlocked.Increment(ref _uiProduced);_uiEvents.Writer.TryWrite(value);return;}
         _=Task.Run(async()=>{
             try { await SendAsync(new {type="event",eventName,data=value}); } catch {}
         });
+    }
+
+    private async Task DrainUiEventsAsync()
+    {
+        await foreach(var item in _uiEvents.Reader.ReadAllAsync()) {
+            var latest=item;await Task.Delay(40).ConfigureAwait(false);
+            while(_uiEvents.Reader.TryRead(out var next))latest=next;
+            if(_disposed)return;
+            try {await SendAsync(new {type="event",eventName="ui.changed",data=latest}).ConfigureAwait(false);Interlocked.Increment(ref _uiForwarded);}catch{}
+        }
     }
 
     private async Task SendAsync(object value)
@@ -121,6 +142,7 @@ internal sealed class RobotRpcServer : IDisposable
     public void Dispose()
     {
         _disposed=true;
+        _uiEvents.Writer.TryComplete();
         _writer=null;
         _scheduler.Dispose(); // outstanding writes can still release their gate
     }

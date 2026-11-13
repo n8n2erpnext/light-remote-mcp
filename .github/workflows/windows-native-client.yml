@@ -672,6 +672,20 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Real Remote V2 current-pixel capture and crop acceptance
+        shell: pwsh
+        run: |
+          ./client/windows-native/test-rmv2-capture.ps1 -Exe $env:RMV2_EXE -Output (Join-Path $PWD 'dist/windows/rmv2-capture-acceptance.json')
+
+      - name: Upload RMv2 capture acceptance receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-rmv2-capture-${{ github.sha }}
+          path: dist/windows/rmv2-capture-acceptance.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Real Remote V2 target-bound Unicode text acceptance
         shell: pwsh
         run: |

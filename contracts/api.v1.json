@@ -352,5 +352,47 @@
     "statusRenewsRmTask": false,
     "closeBeforeFinalReport": true,
     "macos": "existing short HID+AX/legacy Unicode path; advanced logical requests rejected before input"
+  },
+  "rmCapture": {
+    "version": "rm-capture.v1",
+    "backend": "gdi",
+    "region": "optional integer x/y/width/height in selected screen physical pixels; pinned at attach for scoped frames",
+    "effectiveLimits": {
+      "maxWidth": 1280,
+      "maxHeight": 720,
+      "maxQuality": 70,
+      "maxSourcePixels": 16777216,
+      "privateCacheEntries": 1
+    },
+    "cache": "copy current pixels every request; compare full cropped pixel hash before JPEG/base64; reuse only matching settings/topology/pixels; clear when final visual scope closes",
+    "unchanged": "omit JPEG payload at native boundary when Agent-supplied prior encoded SHA matches; never read old pixels on a timer",
+    "metadata": [
+      "capturedAt",
+      "captureDurationMs",
+      "captureTiming",
+      "captureCounters",
+      "effectiveLimits",
+      "inputMapping",
+      "freshPixelsChecked",
+      "encodeReused"
+    ],
+    "frameCoordinates": {
+      "coordinateSpace": "frame",
+      "frameSeq": "exact latest owned native scoped observation",
+      "maxFrameAgeMs": {
+        "default": 15000,
+        "maximum": 45000
+      },
+      "mapping": "pixel centers to physical virtual coordinates using observed cropped bounds; no extra DPI factor",
+      "rejection": [
+        "stale frame/sequence",
+        "wrong topology",
+        "out of image",
+        "mixed screen offsets",
+        "read-only native recovery before reobserve"
+      ]
+    },
+    "benchmarks": "isolated same-source capture-only cold allocations vs warm reuse; not prior-release or network/physical comparison",
+    "optionalGpu": "NOT_IMPLEMENTED_IN_THIS_PHASE"
   }
 }

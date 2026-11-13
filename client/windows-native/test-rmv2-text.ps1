@@ -40,11 +40,12 @@ try {
  $reader=[IO.StreamReader]::new($pipe);$writer=[IO.StreamWriter]::new($pipe);$writer.AutoFlush=$true
  function Invoke-Rm([hashtable]$Request){
   $Request.id=[guid]::NewGuid().ToString('N');$writer.WriteLine(($Request|ConvertTo-Json -Depth 10 -Compress))
-  for($i=0;$i -lt 100;$i++){
-   $read=$reader.ReadLineAsync();if(-not $read.Wait(15000)){throw 'text_native_timeout'}
-   $row=$read.Result|ConvertFrom-Json
+  $deadline=[diagnostics.stopwatch]::StartNew();$events=0
+  while($deadline.ElapsedMilliseconds -lt 15000){
+   $read=$reader.ReadLineAsync();$remaining=[math]::Max(1,15000-$deadline.ElapsedMilliseconds);if(-not $read.Wait([int]$remaining)){throw 'text_native_timeout'}
+   $row=$read.Result|ConvertFrom-Json;if($row.type -eq 'event'){$events++}
    if($row.type -eq 'response' -and $row.id -eq $Request.id){if(-not $row.ok){throw "text_native_failure:$($row.error)"};return $row.data}
-  };throw 'text_native_reply_missing'
+  };throw "text_native_reply_missing op=$($Request.op) events=$events"
  }
  $view=Invoke-Rm @{op='desktop.visual.attach';leaseMs=45000}
  function Text-Rpc([string]$Op,[hashtable]$Payload){

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import {RM_TASK_IDLE_MS,requireOwnedRmTask,rmTaskMayExpire,withRmTask,closeRmTask,rememberRmTaskClose,confirmedRmTaskClose} from '../lib/rmv2-task-lifecycle.mjs';
+import {normalizeCaptureRegion,frameCoordinateInput} from '../lib/rmv2-capture.mjs';
 import {RmTextWrites,normalizeLogicalTextRequest,strictSemanticValue} from '../lib/rmv2-text-write.mjs';
 import {readLogicalTextSource} from '../lib/rmv2-text-source.mjs';
 import {loadCanonicalEndpoints} from '../lib/canonical-endpoints.mjs';
@@ -483,13 +484,13 @@ async function attachRealRemoteVisual(p,request){
     maxWidth:Math.max(160,Math.min(Number(request.maxWidth)||960,1280)),
     maxHeight:Math.max(90,Math.min(Number(request.maxHeight)||540,720)),
     quality:Math.max(25,Math.min(Number(request.quality)||50,70)),
-    leaseMs:idleTimeoutMs,
+    region:normalizeCaptureRegion(request.region),leaseMs:idleTimeoutMs,
     owner:(owner.sessionId+':'+owner.agentId).slice(0,80)
   },{timeoutMs:10000});
   const desktopSessionId='desk_'+crypto.randomBytes(12).toString('base64url');
   const row={desktopSessionId,visualSessionId:String(native.visualSessionId||''),leaseToken:String(native.leaseToken||''),...owner,
     idleTimeoutMs,minIntervalMs:Math.max(0,Math.min(Number.isFinite(Number(request.minIntervalMs))&&request.minIntervalMs!=null?Number(request.minIntervalMs):250,5000)),omitUnchanged:request.omitUnchanged!==false,
-    screen:native.screen,maxWidth:native.maxWidth,maxHeight:native.maxHeight,quality:native.quality,
+    screen:native.screen,maxWidth:native.maxWidth,maxHeight:native.maxHeight,quality:native.quality,region:normalizeCaptureRegion(native.region),
     displayTopologyId:String(native.displayTopologyId||''),nativeEpoch:String(native.epoch||''),nativeStale:false,recovering:null,
     lastFrameSha:null,lastObservedAt:0,expiresAt:0,timer:null,inFlight:0,closing:false,semanticChildren:new Set(),release:NATIVE_DESKTOP.retain(),stopping:null};
   if(!row.visualSessionId||!row.leaseToken){try{row.release();}catch{};throw new Error('desktop_visual_attach_invalid');}
@@ -529,12 +530,14 @@ async function frameRealRemoteVisual(p,request,{observe=false}={}){
       screen:request.screen==null||Number(request.screen)<0?0:Math.max(0,Math.min(Number(request.screen)||0,31)),
       maxWidth:Math.max(160,Math.min(Number(request.maxWidth)||960,1280)),
       maxHeight:Math.max(90,Math.min(Number(request.maxHeight)||540,720)),
-      quality:Math.max(25,Math.min(Number(request.quality)||50,70))
+      quality:Math.max(25,Math.min(Number(request.quality)||50,70)),region:normalizeCaptureRegion(request.region)
     },{timeoutMs:10000});
   }
-  const row=requireRealRemoteVisual(p,id),now=Date.now(),remaining=Math.max(0,row.minIntervalMs-(now-row.lastObservedAt));
+  const row=requireRealRemoteVisual(p,id);
+  if(request.region!=null&&JSON.stringify(normalizeCaptureRegion(request.region))!==JSON.stringify(row.region))throw Error('desktop_frame_region_pinned_to_attach');
+  const now=Date.now(),remaining=Math.max(0,row.minIntervalMs-(now-row.lastObservedAt));
   if(observe&&remaining>0){armRealRemoteVisual(row);return {desktopSessionId:id,unchanged:true,throttled:true,retryAfterMs:remaining,frameSeq:null,expiresAt:row.expiresAt};}
-  let native,recovered=false;
+  let native,recovered=false;const captureRequestedMono=performance.now();
   const reacquire=()=>reacquireNativeVisual(row,{requestNative:(...args)=>NATIVE_DESKTOP.request(...args),
     isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r&&!r.closing,
     onRecovered:r=>{try{r.release?.();}catch{}r.release=NATIVE_DESKTOP.retain();}});
@@ -544,7 +547,8 @@ async function frameRealRemoteVisual(p,request,{observe=false}={}){
     const nativeIdBeforeFrame=row.visualSessionId;
     try{
       native=await NATIVE_DESKTOP.request('visual-frame',{
-        visualSessionId:row.visualSessionId,leaseToken:row.leaseToken
+        visualSessionId:row.visualSessionId,leaseToken:row.leaseToken,
+        previousFrameSha256:observe&&row.omitUnchanged?row.lastFrameSha:undefined,omitUnchanged:Boolean(observe&&row.omitUnchanged)
       },{timeoutMs:10000});
     }catch(error){
       if(!recoverableVisualFrameError(error)||row.stopping)throw error;
@@ -552,7 +556,8 @@ async function frameRealRemoteVisual(p,request,{observe=false}={}){
       if(row.visualSessionId===nativeIdBeforeFrame)await reacquire();
       recovered=true;
       native=await NATIVE_DESKTOP.request('visual-frame',{
-        visualSessionId:row.visualSessionId,leaseToken:row.leaseToken
+        visualSessionId:row.visualSessionId,leaseToken:row.leaseToken,
+        previousFrameSha256:observe&&row.omitUnchanged?row.lastFrameSha:undefined,omitUnchanged:Boolean(observe&&row.omitUnchanged)
       },{timeoutMs:10000});
     }
   }catch(error){
@@ -564,6 +569,10 @@ async function frameRealRemoteVisual(p,request,{observe=false}={}){
     event:'desktop_visual_native_lease_recovered',desktopSessionId:id,epochChanged:true
   }));
   const capture=native?.frame&&typeof native.frame==='object'?native.frame:null,hash=String(capture?.frameSha256||'');
+  if(capture&&Number.isSafeInteger(native.frameSeq)&&native.frameSeq>0){
+    row.lastFrameMap={frameSeq:native.frameSeq,capturedMono:captureRequestedMono,displayTopologyId:String(capture.displayTopologyId||''),
+      width:capture.frame?.width,height:capture.frame?.height,bounds:capture.bounds};
+  }
   const unchanged=Boolean(observe&&row.omitUnchanged&&hash&&row.lastFrameSha===hash);
   if(hash)row.lastFrameSha=hash;
   if(!unchanged)return visualPublicView(row,{...native,...(recovered?{epochChanged:true,resyncRecommended:true}:{})});
@@ -908,7 +917,7 @@ async function executeSearchCommand(state,p){
 }
 
 async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
-  const request=p.desktop&&typeof p.desktop==='object'&&!Array.isArray(p.desktop)?p.desktop:{};
+  let request=p.desktop&&typeof p.desktop==='object'&&!Array.isArray(p.desktop)?p.desktop:{};
   const op=String(request.op||''),effective=effectiveCapabilitiesForState(state);
   if(!effective.includes('desktop'))throw new Error('local capability denied: desktop');
   if(!REAL_REMOTE_AVAILABLE)throw new Error('real_remote_unavailable');
@@ -966,6 +975,7 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
       return result;
     },armRealRemoteVisual);
   }
+  if(request.coordinateSpace==='frame')request=frameCoordinateInput(request,rmScope?.lastFrameMap);
   const scopePayload=value=>rmScope?{...value,visualSessionId:rmScope.visualSessionId,leaseToken:rmScope.leaseToken}:value;
   if(op==='status')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('status',{}),rmTasks:[...REAL_REMOTE_VISUAL.values()].filter(r=>r.sessionId===String(p.sessionId||'')&&r.agentId===String(p.agentId||'')).map(r=>({desktopSessionId:r.desktopSessionId,closing:r.closing,inFlight:r.inFlight,remainingQuietMs:Math.max(0,r.expiresAt-Date.now()),closeRequired:true}))};
   if(op==='live-open'){
@@ -1009,6 +1019,7 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
     const semanticSessionId=String(request.semanticSessionId||'').trim();
     const semanticRequested=Boolean(semanticSessionId||request.provider||request.cdpEndpoint||request.targetId||request.urlMatch);
     if(semanticRequested){
+      if(request.region!=null)throw Error('desktop_frame_region_is_not_semantic_scope');
       if(semanticSessionId){
         if(request.afterSeq!=null){
           const afterSeq=Number(request.afterSeq),limit=Number(request.limit);

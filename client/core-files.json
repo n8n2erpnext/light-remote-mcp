@@ -550,6 +550,10 @@
       "destination": "lib/real-remote-policy.mjs"
     },
     {
+      "source": "lib/rmv2-capture.mjs",
+      "destination": "lib/rmv2-capture.mjs"
+    },
+    {
       "source": "lib/rmv2-semantic-value.cjs",
       "destination": "lib/rmv2-semantic-value.cjs"
     },

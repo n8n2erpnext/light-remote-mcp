@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import crypto from 'node:crypto';
+import {normalizeCaptureRegion} from '../lib/rmv2-capture.mjs';
 import {normalizeLogicalTextRequest,strictSemanticValue} from '../lib/rmv2-text-write.mjs';
 import { StringDecoder } from 'node:string_decoder';
 import { decryptEnvelope as decryptSealedEnvelope } from './crypto.mjs';
@@ -1094,6 +1095,10 @@ async function startDesktopOperation(payload,requestId){
   const route=targetRoute(session.nodeId,{accountId:session.accountId});
   if(route.deviceId!==session.deviceId)throw new SessionError('session_target_mismatch',409);
   const targetPlatform=route.platform==='darwin'?'darwin':'win32';
+  if(request.region!=null){
+    if(!['attach','frame','observe'].includes(op)||targetPlatform!=='win32')throw Error('desktop_frame_region_not_supported');
+    request={...request,region:normalizeCaptureRegion(request.region)};
+  }
   if(op==='text-write-start'){
     request={op,...normalizeLogicalTextRequest(request)};
     if(targetPlatform==='darwin'){

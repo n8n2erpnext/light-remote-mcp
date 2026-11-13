@@ -1,3 +1,5 @@
+using System.Drawing;
+
 namespace GptOperator.RealRemoteV2;
 
 internal sealed class VisualSessionManager : IDisposable
@@ -22,6 +24,7 @@ internal sealed class VisualSessionManager : IDisposable
         public required int LeaseMs { get; set; }
         public required long ExpiresAt { get; set; }
         public required long LastSeenAt { get; set; }
+        public Rectangle? Region {get;init;}
         public long FrameSeq { get; set; }
     }
 
@@ -56,12 +59,13 @@ internal sealed class VisualSessionManager : IDisposable
         int maxHeight=540,
         int quality=50,
         int leaseMs=DefaultLeaseMs,
-        string owner="")
+        string owner="",Rectangle? region=null)
     {
         ThrowIfDisposed();
         var screenCount=DesktopVisual.ReadScreenCount();
         if(screen<0||screen>=screenCount) throw new InvalidOperationException("visual_screen_invalid");
 
+        _=DesktopVisual.Crop(Screen.AllScreens[screen].Bounds,region);
         owner=(owner??"").Trim();
         if(owner.Length>80) throw new InvalidOperationException("visual_owner_invalid");
 
@@ -81,7 +85,7 @@ internal sealed class VisualSessionManager : IDisposable
             Screen=screen,
             MaxWidth=maxWidth,
             MaxHeight=maxHeight,
-            Quality=quality,
+            Quality=quality,Region=region,
             CreatedAt=now,
             LeaseMs=leaseMs,
             ExpiresAt=now+leaseMs,
@@ -106,6 +110,7 @@ internal sealed class VisualSessionManager : IDisposable
             maxWidth=session.MaxWidth,
             maxHeight=session.MaxHeight,
             quality=session.Quality,
+            region=session.Region is {} roi?new {x=roi.X,y=roi.Y,width=roi.Width,height=roi.Height}:null,
             frameSeq=session.FrameSeq,
             leaseMs=session.LeaseMs,
             expiresAt=session.ExpiresAt,
@@ -129,11 +134,11 @@ internal sealed class VisualSessionManager : IDisposable
         return Summary(session,false);
     }
 
-    public object Frame(string visualSessionId,string leaseToken)
+    public object Frame(string visualSessionId,string leaseToken,string previousSha="",bool omitUnchanged=false)
     {
         var session=GetAuthorized(visualSessionId,leaseToken);
         EnsureTopology(session);
-        var frame=DesktopVisual.Capture(session.Screen,session.MaxWidth,session.MaxHeight,session.Quality);
+        var frame=DesktopVisual.Capture(session.Screen,session.MaxWidth,session.MaxHeight,session.Quality,session.Region,previousSha,omitUnchanged);
         EnsureTopology(session);
 
         long frameSeq;
@@ -204,6 +209,7 @@ internal sealed class VisualSessionManager : IDisposable
         maxWidth=session.MaxWidth,
         maxHeight=session.MaxHeight,
         quality=session.Quality,
+            region=session.Region is {} roi?new {x=roi.X,y=roi.Y,width=roi.Width,height=roi.Height}:null,
         frameSeq=session.FrameSeq,
         leaseMs=session.LeaseMs,
         expiresAt=session.ExpiresAt,

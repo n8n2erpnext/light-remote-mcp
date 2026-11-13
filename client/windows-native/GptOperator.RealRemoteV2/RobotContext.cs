@@ -87,7 +87,7 @@ internal sealed class RobotContext : ApplicationContext
             "cursor.preview.start" => StartPassivePreview(request),
             "cursor.preview.stop" => StopPassivePreview(),
             "desktop.windows" => DesktopVisual.ListWindows(Int(request,"maxWindows",100)),
-            "desktop.frame" => DesktopVisual.Capture(Int(request,"screen",0),Int(request,"maxWidth",960),Int(request,"maxHeight",540),Int(request,"quality",50)),
+            "desktop.frame" => DesktopVisual.Capture(Int(request,"screen",0),Int(request,"maxWidth",960),Int(request,"maxHeight",540),Int(request,"quality",50),ReadRegion(request)),
             "cursor.move" => Move(request),
             "cursor.click" => Click(request),
             "cursor.wheel" => Wheel(request),
@@ -124,8 +124,8 @@ internal sealed class RobotContext : ApplicationContext
                 Int(request,"leaseMs",0)
             ),
             "desktop.visual.frame" or "desktop-visual-frame" => _visual.Frame(
-                Text(request,"visualSessionId"),
-                Text(request,"leaseToken")
+                Text(request,"visualSessionId"),Text(request,"leaseToken"),
+                Text(request,"previousFrameSha256"),Bool(request,"omitUnchanged")
             ),
             "desktop.visual.detach" or "desktop-visual-detach" => DetachVisualWithCursor(request),
             "batch.run" => RunBatch(request,32),
@@ -201,9 +201,17 @@ internal sealed class RobotContext : ApplicationContext
         });
     }
 
+    private static Rectangle? ReadRegion(JsonElement request)
+    {
+        if(!request.TryGetProperty("region",out var region)||region.ValueKind==JsonValueKind.Null)return null;
+        if(region.ValueKind!=JsonValueKind.Object)throw new InvalidOperationException("frame_region_invalid");
+        int Read(string key) {if(!region.TryGetProperty(key,out var value)||!value.TryGetInt32(out var number))throw new InvalidOperationException("frame_region_invalid");return number;}
+        return new Rectangle(Read("x"),Read("y"),Read("width"),Read("height"));
+    }
+
     private object AttachVisualWithCursor(JsonElement request)=>_visual.Attach(
         Int(request,"screen",0),Int(request,"maxWidth",960),Int(request,"maxHeight",540),
-        Int(request,"quality",50),Int(request,"leaseMs",30_000),Text(request,"owner",""));
+        Int(request,"quality",50),Int(request,"leaseMs",30_000),Text(request,"owner",""),ReadRegion(request));
 
     private object DetachVisualWithCursor(JsonElement request)
     {
@@ -213,6 +221,7 @@ internal sealed class RobotContext : ApplicationContext
         catch(InvalidOperationException error) when(error.Message is "visual_session_missing" or "visual_lease_expired")
         { result=new {detached=true,alreadyClosed=true}; }
         _rpc.ForgetScope(id);
+        if(_visual.ActiveSessions==0)DesktopVisual.ClearCaptureCache();
         _textWrites.CancelScope(id);
         var endedCurrent=_activity.VisualSessionId==id||_visual.ActiveSessions==0;
         if(endedCurrent) {
@@ -289,6 +298,8 @@ internal sealed class RobotContext : ApplicationContext
         ownerInputBehavior="yield-current-input-keep-agent-session",
         indicator=_ambientGlow is null?null:_ambientGlow.Dispatcher.Invoke(()=>_ambientGlow.Diagnostics()),
         inputContentVerification="unverified-unless-explicit-readback",
+        uiSignals=new {produced=_rpc.UiEventsProduced,forwarded=_rpc.UiEventsForwarded,coalesceMs=40,pendingCapacity=1},
+        captureCapabilities=new {backend="gdi",maxWidth=1280,maxHeight=720,maxQuality=70,region=true,freshPixelEncodeCache=true,maxSourcePixels=16*1024*1024},
         logicalText=new {supported=true,active=_textWrites.Active,inlineUnits=262144,referenceBytes=16777216,chunkUnits=4096,verification="capability-dependent-no-replay",pacingUnit="grapheme"},
         requestLanes=new {orderedInput=true,independentCapture=true,fastStatusCancel=true,inputQueue=16,captureQueue=2,fastConcurrency=4},
         interactionProfiles=new {defaultProfile="compatibility",supported=new[]{"compatibility","precision","responsive","smooth"},responsiveClickProgrammedMs=17,compatibilityClickProgrammedMs=75,automaticRetry=false},
@@ -632,6 +643,7 @@ internal sealed class RobotContext : ApplicationContext
         _closing=true;
         _textWrites.Clear();
         _visual.Dispose();
+        DesktopVisual.ClearCaptureCache();
         _browser.Dispose();
         _semantic.Dispose();
         _sensor.Dispose();

@@ -281,3 +281,7 @@ Dev11 adds Actions-only test-rmv2-text.ps1: real WinForms UI controls in an inde
 ## Correct native logical write variable declaration for CSharp
 
 CI102 Windows failed at native compile CS0819 before the new text fixture. Split RobotContext FinishTextWrite local var declarations; no behavioral/test/threshold changes. Core/backend/Web passed for sourceef54911. New Actions proof pending; no CI102 artifact accepted, no Lab/Owner/production changes.
+
+## Reuse fresh RM capture buffers and add crop-aware frame coordinates
+
+CI103 source9638594 passed native compile, helper selftest and actual cursor/lifecycle fixture; its full run failed before installer due the text reader100-event assumption and a Web preference-save assertion race. Corrected fixture readers now enforce a whole-request deadline while skipping interleaved events, and Web test awaits canonical preferences POST response with the same max assertion. New GdiFrameCache/Crop native selftests and test-rmv2-capture.ps1 verify real ROI JPEG dimensions, fresh pixels/frameSeq, cache cleared after final scope close and record same-source capture-only cold/warm timings. These are Actions-only and not yet executed for this source. Timings are not a prior-release/network/physical speedup claim; optional GPU hardware and mixed-DPI Owner acceptance remain pending.
