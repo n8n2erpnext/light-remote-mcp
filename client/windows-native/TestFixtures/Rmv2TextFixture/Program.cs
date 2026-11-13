@@ -1,7 +1,44 @@
 using System.IO.Pipes;
 using System.Text.Json;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Rmv2TextFixture;
+
+// A genuine Win32 EDIT HWND, without a managed TextBox accessibility provider.
+// Keep managed editor coverage separately; their large-target failures remain.
+internal sealed class NativeEdit:NativeWindow,IDisposable
+{
+    public int Characters,KeyDowns;
+    public NativeEdit(nint parent)
+    {
+        var hwnd=CreateWindowEx(0,"EDIT","",0x50A01044,20,20,540,160,parent,0,0,0);
+        if(hwnd==0)throw new System.ComponentModel.Win32Exception();
+        AssignHandle(hwnd);SendMessage(hwnd,0x00C5,(nint)1048576,0);ShowWindow(hwnd,0);
+    }
+    public void Reset(string text)
+    {
+        SetWindowText(Handle,text);Characters=KeyDowns=0;ShowWindow(Handle,5);
+        SetFocus(Handle);SendMessage(Handle,0x00B1,(nint)text.Length,(nint)text.Length);
+    }
+    public void Hide()=>ShowWindow(Handle,0);
+    public string ReadText(){var value=new StringBuilder(GetWindowTextLength(Handle)+1);GetWindowText(Handle,value,value.Capacity);return value.ToString();}
+    protected override void WndProc(ref Message message)
+    {
+        if(message.Msg==0x0102)Characters++;
+        if(message.Msg==0x0100)KeyDowns++;
+        base.WndProc(ref message);
+    }
+    public void Dispose(){if(Handle!=0){DestroyWindow(Handle);ReleaseHandle();}}
+    [DllImport("user32.dll",CharSet=CharSet.Unicode,EntryPoint="CreateWindowExW",SetLastError=true)] private static extern nint CreateWindowEx(uint ex,string name,string text,uint style,int x,int y,int width,int height,nint parent,nint menu,nint instance,nint parameter);
+    [DllImport("user32.dll",CharSet=CharSet.Unicode,EntryPoint="SetWindowTextW")] private static extern bool SetWindowText(nint hwnd,string text);
+    [DllImport("user32.dll",CharSet=CharSet.Unicode,EntryPoint="GetWindowTextLengthW")] private static extern int GetWindowTextLength(nint hwnd);
+    [DllImport("user32.dll",CharSet=CharSet.Unicode,EntryPoint="GetWindowTextW")] private static extern int GetWindowText(nint hwnd,StringBuilder value,int maximum);
+    [DllImport("user32.dll",EntryPoint="SendMessageW")] private static extern nint SendMessage(nint hwnd,uint message,nint wparam,nint lparam);
+    [DllImport("user32.dll")] private static extern nint SetFocus(nint hwnd);
+    [DllImport("user32.dll")] private static extern bool ShowWindow(nint hwnd,int command);
+    [DllImport("user32.dll")] private static extern bool DestroyWindow(nint hwnd);
+}
 
 internal sealed class MeasuredTextBox:TextBox
 {
@@ -40,6 +77,7 @@ internal static class Program
         using var rich=new MeasuredRichEdit{Multiline=true,MaxLength=1048576,WordWrap=true,DetectUrls=false,Visible=false};rich.SetBounds(20,20,540,160);
         TextBoxBase active=a;var activeKind="classic-edit";
         form.Controls.AddRange(new Control[]{a,b,rich});
+        using var native=new NativeEdit(form.Handle);
         form.Shown+=(_,_)=>Task.Run(async()=>{
             try {
                 using var pipe=new NamedPipeServerStream(args[0],PipeDirection.InOut,1,PipeTransmissionMode.Byte,PipeOptions.Asynchronous|PipeOptions.CurrentUserOnly);
@@ -56,14 +94,16 @@ internal static class Program
                             object data;
                             switch(op) {
                                 case "reset":
-                                    if(kind is not ("classic" or "rich")||delay is <0 or >100||kind=="rich"&&delay!=0)throw new InvalidOperationException("fixture_editor_options_invalid");
-                                    a.DelayMs=delay;active=kind=="rich"?rich:a;activeKind=kind=="rich"?"rich-edit":"classic-edit";
-                                    a.Visible=kind!="rich";rich.Visible=kind=="rich";
+                                    if(kind is not ("classic" or "rich" or "native")||delay is <0 or >100||kind!="classic"&&delay!=0)throw new InvalidOperationException("fixture_editor_options_invalid");
+                                    a.DelayMs=delay;active=kind=="rich"?rich:a;activeKind=kind=="native"?"win32-edit":kind=="rich"?"rich-edit":"classic-edit";
+                                    native.Hide();a.Visible=kind=="classic";rich.Visible=kind=="rich";
                                     form.Show();form.WindowState=FormWindowState.Normal;active.Text=initial;b.Clear();
                                     a.Characters=a.KeyDowns=b.Characters=b.KeyDowns=rich.Characters=rich.KeyDowns=0;
-                                    form.Activate();active.Focus();active.Select(active.Text.Length,0);data=new {reset=true,controlKind=activeKind};break;
+                                    form.Activate();
+                                    if(kind=="native")native.Reset(initial);else{active.Focus();active.Select(active.Text.Length,0);}
+                                    data=new {reset=true,controlKind=activeKind};break;
                                 case "other":b.Focus();data=new {other=true};break;
-                                case "read":data=new {text=active.Text,other=b.Text,characters=active==a?a.Characters:rich.Characters,keyDowns=active==a?a.KeyDowns:rich.KeyDowns,otherCharacters=b.Characters,selectionStart=active.SelectionStart,selectionLength=active.SelectionLength,controlMaxLength=active.MaxLength,wordWrap=active.WordWrap,controlKind=activeKind,delayMs=active==a?a.DelayMs:0};break;
+                                case "read":data=new {text=activeKind=="win32-edit"?native.ReadText():active.Text,other=b.Text,characters=activeKind=="win32-edit"?native.Characters:active==a?a.Characters:rich.Characters,keyDowns=activeKind=="win32-edit"?native.KeyDowns:active==a?a.KeyDowns:rich.KeyDowns,otherCharacters=b.Characters,selectionStart=activeKind=="win32-edit"?0:active.SelectionStart,selectionLength=activeKind=="win32-edit"?0:active.SelectionLength,controlMaxLength=activeKind=="win32-edit"?1048576:active.MaxLength,wordWrap=activeKind=="win32-edit"||active.WordWrap,controlKind=activeKind,delayMs=activeKind=="classic-edit"?a.DelayMs:0};break;
                                 case "close":data=new {closed=true};break;
                                 default:throw new InvalidOperationException("fixture_operation_invalid");
                             }

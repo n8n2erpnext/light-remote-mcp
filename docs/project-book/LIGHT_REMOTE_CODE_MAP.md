@@ -378,3 +378,7 @@ RobotContext.HandleAsync binds logical keyboard activity screen before Begin, re
 ## Deliver line breaks only to bound native multiline editors
 
 NativeInput.WriteLogicalChunkCore handles native multiline line breaks inside the same guarded packet loop. TypingTarget.NativeLineBreakPolicy binds/checks native HWND class and ES_MULTILINE+ES_WANTRETURN; Metadata reports capability. Program native selftest requires nativeLineBreakPolicyOk and extended logicalPacketGuardsOk. Rmv2TextFixture explicitly declares WANTRETURN; test-rmv2-text tests6LF/CRLF/CR cases before sizes. CI115 scoped evidence pinned.
+
+## Separate native Edit acceptance from managed editor stress cases
+
+TestFixtures/Rmv2TextFixture.NativeEdit creates a genuine Windows EDIT HWND with CreateWindowExW; NativeWindow records counters, default native WndProc/UIA provider remains. Managed controls remain separate. test-rmv2-text runs9newline cases and delayed completion before sizes, tests262K only on declared pure native EDIT paragraph layout, and records all managed262K limitations. CI116 native/capture/text evidence is pinned.

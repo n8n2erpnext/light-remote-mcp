@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-13T16:01:01.263Z",
+  "updatedAt": "2026-11-13T16:22:31.921Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "DEV11_NATIVE_MULTILINE_DELIVERY_CI_PENDING",
+  "status": "DEV11_WIN32_EDITOR_SCOPED_ACCEPTANCE_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -361,7 +361,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow exact new Actions native packet and line-break policy selftests, real six-case multiline readback, editor/layout large-text matrix, delayed completion/focus switch and full installer/upgrade/rollback. Preserve all prior giant-paragraph FAILs; no blanket262K acceptance claim. After fullCI verify source/artifact/hash, consolidate coherent truth/checkpoint and align isolated Lab before consolidated Owner UAT. Optional GPU preprocessing/hardware video/viewer remain unimplemented.",
+  "nextAction": "Follow exact Actions9newline cases, deliberate slow completion, managed16K/64K and pure Win32 EDIT paragraph262K full content acceptance, focus switch and full installer upgrade/rollback. Do not generalize Win32 acceptance to the failed managed Rich Edit stress cases. Preserve all failures and scoped proof; verify source/artifact/hash before isolated Lab integration and consolidated Owner UAT. GPU preprocessing/hardware video/viewer remain not implemented.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -452,12 +452,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261113-rmv2-native-multiline-newline-delivery",
-    "status": "DEV11_NATIVE_MULTILINE_DELIVERY_CI_PENDING",
-    "summary": "CI115 exposed a real newline bug: native sent256 Unicode events, fixture received256WM_CHAR but text255units stably missed CR at144; correct readback stopped before success. Add source-newline handling ONLY for bound known native Edit/RichEdit classes explicitly ES_MULTILINE+ES_WANTRETURN: CR,LF,CRLF become one guarded Return pair per logical newline, with original source-unit accounting and no replay. Arbitrary fields keep existing Unicode packets and receive no new Return behavior. Recheck native editor policy in target guards. Recording-sender packet tests cover3logical newlines/CRLF accounting and unchanged legacy Unicode path; policy selftest rejects single-line, missing WANTRETURN and unknown/browser HWND classes. Real Actions fixture explicitly declares native WANTRETURN and tests LF/CRLF/CR on both classic and rich before large sizes, full native+fixture comparison. No clipboard/SetValue/DOM, no product capacity or authority change.",
-    "verification": "CI115 run43455766148 source1421d22 text artifact14054297308 SHA029d547f2429c6117cd86185c7d603b631b2a0fecc9425651c5a79d6993704de verified FAIL. Native cursor/lifecycle and DXGI/fresh fallback PASS; exact-source capture comparison recorded p95localcapture+pipe99.3024->77.4687ms on30samples/source, not network/input/Owner speedup. PowerShell AST PASS. Full checkpoint checkpoint/20261113-before-rmv2-dev11-closeout-1421d22 bundleSHA 075ed66876aa8da33c0c03a01f643dc17e29366365e4c5b03e3a6f0ff5b54b23 restore/fsckPASS. Native compilation/selftests/OS input only in Actions, never Owner PC.",
-    "nextAction": "Follow exact new Actions native packet and line-break policy selftests, real six-case multiline readback, editor/layout large-text matrix, delayed completion/focus switch and full installer/upgrade/rollback. Preserve all prior giant-paragraph FAILs; no blanket262K acceptance claim. After fullCI verify source/artifact/hash, consolidate coherent truth/checkpoint and align isolated Lab before consolidated Owner UAT. Optional GPU preprocessing/hardware video/viewer remain unimplemented.",
-    "sourceDigest": "fc0b1aafdc8bce14af8bdfbea3e6c08341754b71f345a9eaea1e696024ac81a9",
+    "taskId": "20261113-rmv2-win32-editor-scoped-acceptance",
+    "status": "DEV11_WIN32_EDITOR_SCOPED_ACCEPTANCE_CI_PENDING",
+    "summary": "Separate genuine Win32 EDIT large-input acceptance from managed editor stress limitations. Test fixture creates a real EDIT HWND with CreateWindowExW and declared multiline/WANTRETURN/1M capacity, assigns NativeWindow only for event counters and uses built-in Windows control/provider; it has no managed TextBox/RichTextBox accessibility object. Reset/read are test-fixture-only; actual input still goes through product native keyboard packets and UIA full readback. Keep managed classic16K/64K and managed classic/rich small newline cases; add nativeLF/CRLF/CR cases, use explicitly paragraph-structured nativeEDIT262K, and serialize all newline cases even on failure. Run actual delayed delivery before expensive sizes. CI116 managed rich paragraph262K remains NOT_ACCEPTED alongside both giant-paragraph cases. No product mutation/verification/timeout behavior changed by this fixture update.",
+    "verification": "CI116 run43458403841 sourced349155 text artifact14055852590 SHA4be68b683bb17d24e36d77b23f119b30e54c6ccd6b682730460055aaa8aa283c verified FAIL. Its six newline cases completed before16K/64K full-native+fixture PASS; managed rich262K failed but full31728source-unit prefix arrived after stop without replay. Native selftests/cursor/lifecycle/DXGI fallback PASS and exact capture benchmark recorded separately. PowerShell AST PASS; new native fixture compile/OS input only Actions. Full checkpoint checkpoint/20261113-before-rmv2-dev11-final-d349155 bundleSHA 7869d54ad0d9d2926aa0d3acd819852e349c3d16180bb9fe450c3ba98b6d7353 independent restore/fsckPASS.",
+    "nextAction": "Follow exact Actions9newline cases, deliberate slow completion, managed16K/64K and pure Win32 EDIT paragraph262K full content acceptance, focus switch and full installer upgrade/rollback. Do not generalize Win32 acceptance to the failed managed Rich Edit stress cases. Preserve all failures and scoped proof; verify source/artifact/hash before isolated Lab integration and consolidated Owner UAT. GPU preprocessing/hardware video/viewer remain not implemented.",
+    "sourceDigest": "3422f4f5e799cb3a3c78af110cdd67963987e20a5fefe91e5c31cabf8531d4d0",
     "sourceFileCount": 1705
   },
   "legacyFilesystemCleanup": {
@@ -1533,7 +1533,7 @@
   },
   "rmv2Implementation": {
     "phase": 2,
-    "status": "DEV11_NATIVE_MULTILINE_DELIVERY_CI_PENDING",
+    "status": "DEV11_WIN32_EDITOR_SCOPED_ACCEPTANCE_CI_PENDING",
     "version": "0.10.1-dev.11",
     "beforeCommit": "a2173d525e67945843ecfa307304ce1228c7c096",
     "beforeTag": "checkpoint/20261111-before-rmv2-phase1-a2173d5",
@@ -1547,7 +1547,7 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "PENDING_NATIVE_MULTILINE_AND_FULL_MATRIX",
+    "nativeCi": "PENDING_WIN32_AND_MANAGED_EDITOR_MATRIX",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
@@ -1560,7 +1560,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci112.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PENDING_NATIVE_AND_INSTALLER",
+    "fullCi": "PENDING_SCOPED_NATIVE_AND_INSTALLER",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1657,7 +1657,7 @@
         "nativeTextFixture": "NOT_REACHED"
       },
       "nativeCompile": "PASS_CI103_SOURCE9638594",
-      "nativeTextAcceptance": "CI115_CLASSIC_16K_64K_PASS_RICH_NEWLINE_FAIL_PRESERVED",
+      "nativeTextAcceptance": "CI116_MANAGED_16K_64K_AND6_NEWLINES_PASS_MANAGED_RICH262K_FAIL",
       "largeReferencePreparation": "COOPERATIVE_PREPARATION_AND_INITIAL_TARGET_BINDING_REVIEW_PENDING",
       "preparation": "COOPERATIVE_8192_UNITS_OR8MS",
       "targetBinding": "BEFORE_COOPERATIVE_GRAPHEME_VALIDATION",
@@ -1667,11 +1667,11 @@
       "nativeTextDiagnostic": "UNITS_SHA256_FIRST_DIFF_FINAL_METADATA_ONLY_NO_RAW_TEXT",
       "diagnostics": "STAGE_LENGTH_OFFSET_HASH_ONLY",
       "nativeFixtureStepBudgetMinutes": 15,
-      "nativeTextEvidence": "docs/evidence/rmv2/text-ci115.json",
+      "nativeTextEvidence": "docs/evidence/rmv2/text-ci116.json",
       "fixture": "SEPARATE_STA_WINFORMS_PROCESS_WITH_CURRENT_USER_ONLY_PIPE",
       "newFixtureNativeCi": "PENDING",
       "noAcceptanceRelaxation": true,
-      "source": "NATIVE_MULTILINE_DELIVERY_CI_PENDING",
+      "source": "WIN32_EDITOR_SCOPED_ACCEPTANCE_CI_PENDING",
       "internalChunkUnits": 256,
       "maxGraphemeUnits": 128,
       "totalInlineUnits": 262144,
@@ -1685,11 +1685,11 @@
       "historicalObservedUnits": "SEPARATE_FROM_FINAL_VERIFIED_CONTENT",
       "nativeCi": "PENDING_SIX_NEWLINE_CASES_AND_LARGE_LAYOUT_MATRIX",
       "before": {
-        "tag": "checkpoint/20261113-before-rmv2-dev11-closeout-1421d22",
-        "bundleSha256": "075ed66876aa8da33c0c03a01f643dc17e29366365e4c5b03e3a6f0ff5b54b23",
-        "archiveSha256": "4df3305143a50ce477e69d7605ed085a919dc3c52734a57b2b1a1d9215ae7e3d",
+        "tag": "checkpoint/20261113-before-rmv2-dev11-final-d349155",
+        "bundleSha256": "7869d54ad0d9d2926aa0d3acd819852e349c3d16180bb9fe450c3ba98b6d7353",
+        "archiveSha256": "df6e045434ff7a44b4e719147ee69ab37922c48f28cf3a537164de30a056fa48",
         "restore": "PASS",
-        "source": "1421d22ea7a81dc54d3e5aa6d2be7c99186ac739"
+        "source": "d3491551a6d0ce1c6ece77d974e97a999be7fee7"
       },
       "acceptance": "EXACT_CONTENT_AND_NATIVE_VERIFICATION_UNCHANGED",
       "pacedChunkUnits": 128,
@@ -1719,27 +1719,38 @@
       "chunkRpcTimeoutMs": 10000,
       "nativeFixtureMatrix": [
         {
-          "control": "classic-edit",
+          "control": "managed-classic-edit",
           "units": [
             16384,
             65536
           ],
-          "wordWrap": true,
           "layout": "single-paragraph"
         },
         {
-          "control": "rich-edit",
+          "control": "win32-edit",
           "units": [
             262144
           ],
-          "wordWrap": true,
           "layout": "paragraphs-cr",
-          "comparison": "full-content-line-ending-equivalence-only"
+          "provider": "BUILT_IN_NO_MANAGED_TEXTBOX_ACCESSIBILITY"
         },
         {
-          "control": "classic-edit",
-          "perWmCharDelayMs": 80,
-          "proof": "EXACT_COMPLETION_AFTER_ADMISSION_EXPIRY"
+          "control": [
+            "managed-classic",
+            "managed-rich",
+            "win32-edit"
+          ],
+          "lineEndings": [
+            "LF",
+            "CRLF",
+            "CR"
+          ],
+          "expectedCases": 9
+        },
+        {
+          "control": "managed-classic",
+          "delayPerWmCharMs": 80,
+          "beforeLargeSizes": true
         }
       ],
       "classicWrapped262K": "NOT_ACCEPTED",
@@ -1749,7 +1760,8 @@
       "richSingleParagraph262K": "NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT",
       "nativeLineBreaks": "BOUND_KNOWN_NATIVE_EDIT_MULTILINE_WANTRETURN_ONLY",
       "unknownFieldReturnBehavior": "UNCHANGED_UNICODE_NO_NEW_RETURN",
-      "newlineSourceAccounting": "CRLF_TWO_SOURCE_UNITS_ONE_RETURN"
+      "newlineSourceAccounting": "CRLF_TWO_SOURCE_UNITS_ONE_RETURN",
+      "managedRichParagraphs262K": "NOT_ACCEPTED_CI116_DELIVERY_TIMEOUT"
     },
     "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN",
     "nextPhase": "FIX_NATIVE_TEXT_THEN_OPTIONAL_GPU_MEDIA_BENCHMARKS",

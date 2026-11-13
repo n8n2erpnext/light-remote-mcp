@@ -179,3 +179,7 @@ CI114 giant wrapped Rich Edit single-paragraph262K failed completion at59556sent
 ## Deliver line breaks only to bound native multiline editors
 
 CI115 paragraph262K failed in its first256unit window because stable text omitted CR. This is distinct from slow giant-paragraph delivery in CI113/114. New guarded native multiline support is not universal browser/terminal newline support or an atomic targeted insertion guarantee. Existing giant-paragraph262K classic/rich FAILs remain. Original asynchronous queued Windows input can still race a focus change; no replay or claim of zero leaked characters under every mid-packet race.
+
+## Separate native Edit acceptance from managed editor stress cases
+
+Managed Rich Edit paragraph262K is NOT_ACCEPTED: CI1165.049second completion limit stopped at31728sent/31472observed. Full normalized prefix arrived+1.159s after stop, so this failed window was delayed, not proved lost. Provider-vs-editor cause remains unproved. Built-in native EDIT large-text acceptance is a separate target/provider case and does not fix or erase this limitation. Earlier giant single-paragraph classic/rich failures remain. Actual queued input may race focus changes, so no absolute no-leak claim or replay.

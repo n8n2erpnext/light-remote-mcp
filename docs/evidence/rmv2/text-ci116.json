@@ -1,0 +1,114 @@
+{
+  "sourceCommit": "d3491551a6d0ce1c6ece77d974e97a999be7fee7",
+  "ciRunId": 43458403841,
+  "artifactId": 14055852590,
+  "artifactSha256": "4be68b683bb17d24e36d77b23f119b30e54c6ccd6b682730460055aaa8aa283c",
+  "completedSizes": [
+    {
+      "nativeVerified": true,
+      "comparison": "full-content-line-ending-equivalence-only",
+      "fullFixtureReadback": true,
+      "units": 16384,
+      "wordWrap": true,
+      "elapsedMs": 38102.6948,
+      "controlKind": "classic-edit",
+      "layout": "single-paragraph"
+    },
+    {
+      "nativeVerified": true,
+      "comparison": "full-content-line-ending-equivalence-only",
+      "fullFixtureReadback": true,
+      "units": 65536,
+      "wordWrap": true,
+      "elapsedMs": 123238.3648,
+      "controlKind": "classic-edit",
+      "layout": "single-paragraph"
+    }
+  ],
+  "lateFixtureMatchDoesNotChangeNativeFailure": true,
+  "lastAcknowledgedOffset": 31472,
+  "requestedUnits": 262144,
+  "automaticReplay": false,
+  "deliverySnapshots": [
+    {
+      "fixtureWmCharCount": 31699,
+      "actualUtf16Sha256": "B6C0D8A336A7049C64C9572D30D88EAA9C25FAAD82E35895C3F8F5D0CAA35D4B",
+      "afterStopMs": 223.0085,
+      "firstDifference": 31699,
+      "wordWrap": true,
+      "fixtureKeyDownCount": 31699,
+      "fixtureMaxLength": 1048576,
+      "expectedUtf16Sha256": "CC5A0ED2C5694F5E467293088EA40621D77520286FED541800138CEBA5E589BA",
+      "sentUnits": 31728,
+      "otherUnits": 0,
+      "controlKind": "rich-edit",
+      "actualUnits": 31699,
+      "exactSentPrefix": false
+    },
+    {
+      "fixtureWmCharCount": 31728,
+      "actualUtf16Sha256": "8C1EC10818982503A4C0608C79E5367AB812DF145DAA2F113A83CC89143BBB90",
+      "afterStopMs": 1159.4778,
+      "firstDifference": -1,
+      "wordWrap": true,
+      "fixtureKeyDownCount": 31728,
+      "fixtureMaxLength": 1048576,
+      "expectedUtf16Sha256": "CC5A0ED2C5694F5E467293088EA40621D77520286FED541800138CEBA5E589BA",
+      "sentUnits": 31728,
+      "otherUnits": 0,
+      "controlKind": "rich-edit",
+      "actualUnits": 31728,
+      "exactSentPrefix": true
+    },
+    {
+      "fixtureWmCharCount": 31728,
+      "actualUtf16Sha256": "8C1EC10818982503A4C0608C79E5367AB812DF145DAA2F113A83CC89143BBB90",
+      "afterStopMs": 2086.096,
+      "firstDifference": -1,
+      "wordWrap": true,
+      "fixtureKeyDownCount": 31728,
+      "fixtureMaxLength": 1048576,
+      "expectedUtf16Sha256": "CC5A0ED2C5694F5E467293088EA40621D77520286FED541800138CEBA5E589BA",
+      "sentUnits": 31728,
+      "otherUnits": 0,
+      "controlKind": "rich-edit",
+      "actualUnits": 31728,
+      "exactSentPrefix": true
+    }
+  ],
+  "stage": "typing_chunks",
+  "scope": "isolated_actions_synthetic_text_no_raw_content",
+  "result": "FAIL",
+  "lastNativeReply": {
+    "writeId": "write_0678033d029a4904b7721cc1f959761c",
+    "state": "interrupted",
+    "reason": "desktop_text_delivery_not_observed_reconcile",
+    "phase": "delivery-readback",
+    "textTiming": {
+      "targetMs": 5.4015,
+      "sendMs": 44.6998,
+      "deliveryMs": 5048.7704
+    },
+    "authorityExpiredAtReceipt": true,
+    "sentUnits": 31728,
+    "requestedUnits": 262144,
+    "lastObservedInsertedUnits": 31472,
+    "verifiedInsertedUnits": null,
+    "contentVerification": "unverified",
+    "automaticReplay": false,
+    "nativeQueueMs": 0.0344,
+    "nativeHandlerMs": 5099.3424,
+    "nativeTiming": {
+      "requestId": "6be62dd8a0304d8c82e329dbbc8c8d0c",
+      "handlerMs": 5099.3424,
+      "handlerAndQueueMs": 5099.4834,
+      "processId": 4324
+    }
+  },
+  "interpretation": "FAIL preserved: managed Rich Edit paragraph262K stopped at31728accepted/31472observed after5.049s completion. Direct fixture31699 initially, then exactly31728 under line-ending equivalence by+1.159s, stable+2.086s; no replay/new input, other0. Six managed classic/rich LF/CRLF/CR cases all completed before later size cases according to exact-source test control flow; managed16K/64K full readback passed38.10s/123.24s. This does not prove a provider root cause or accept managed Rich Edit262K.",
+  "newlineCasesControlFlowEvidence": {
+    "cases": 6,
+    "basis": "Exact source requires every LF/CRLF/CR classic/rich case to verify before subsequent sizes; log reached/completed16K and64K. Prior failure receipt did not serialize per-case array.",
+    "directSerializedCaseArray": false
+  }
+}

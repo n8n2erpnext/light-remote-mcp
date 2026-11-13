@@ -5,7 +5,7 @@ $script:lastStage='starting';$script:testUnits=0;$script:testOffset=0
 $script:totalClock=[diagnostics.stopwatch]::StartNew();$script:sizeClock=$null;$script:chunkTiming=@();$script:completedSizes=@()
 function Write-TextStage([string]$Stage){
  $script:lastStage=$Stage
- $row=@{result='RUNNING';scope='isolated_actions_synthetic_text_no_raw_content';stage=$Stage;requestedUnits=$script:testUnits;sentOffset=$script:testOffset;at=[datetime]::UtcNow.ToString('o');elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;sizeElapsedMs=$(if($script:sizeClock){$script:sizeClock.Elapsed.TotalMilliseconds}else{0});completedSizes=$script:completedSizes;lastChunkTiming=$script:chunkTiming}
+ $row=@{result='RUNNING';scope='isolated_actions_synthetic_text_no_raw_content';stage=$Stage;requestedUnits=$script:testUnits;sentOffset=$script:testOffset;at=[datetime]::UtcNow.ToString('o');elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;sizeElapsedMs=$(if($script:sizeClock){$script:sizeClock.Elapsed.TotalMilliseconds}else{0});completedSizes=$script:completedSizes;lastChunkTiming=$script:chunkTiming;nativeMultilineLineEndings=$script:newlineReports}
  $row|ConvertTo-Json -Depth 4|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host "RM_TEXT_STAGE $Stage units=$script:testUnits offset=$script:testOffset"
 }
@@ -53,7 +53,7 @@ try {
  # Test LF/CRLF/CR before the expensive sizes. These are explicit native
  # multiline WANTRETURN controls; arbitrary form fields never gain Enter keys.
  $newlineReports=@()
- foreach($kind in @('classic','rich')){
+ foreach($kind in @('classic','rich','native')){
   foreach($lineEnding in @("`n","`r`n","`r")){
    Ui-Command 'reset' '' $kind
    $id='write_'+[guid]::NewGuid().ToString('N');$lineText='first'+$lineEnding+'second'+$lineEnding+'third'
@@ -67,13 +67,25 @@ try {
    $newlineReports+=,@{controlKind=$kind;lineEndingCodeUnits=@([char[]]$lineEnding|ForEach-Object {[int]$_});sourceUnits=$lineText.Length;nativeVerified=$true;fullFixtureReadback=$true}
   }
  }
+ # Actual deliberately slow keyboard delivery must be observed before more
+ # input; no clipboard/SetValue, replay or reclassification of a failed ACK.
+ Ui-Command 'reset' '' 'classic' 80
+ $slowText='read-only completion after send';$id='write_'+[guid]::NewGuid().ToString('N')
+ $script:testUnits=$slowText.Length;$script:testOffset=0;Write-TextStage 'delayed_delivery_test'
+ $null=Text-Rpc 'start' @{writeId=$id;requestedUnits=$slowText.Length;verification='required';mode='insert'}
+ $slowClock=[diagnostics.stopwatch]::StartNew();$slowAck=Text-Rpc 'chunk' @{writeId=$id;offset=0;text=$slowText;intervalMs=0}
+ $ack=$slowAck
+ if($slowAck.state -ne 'running' -or $slowAck.sentUnits -ne $slowText.Length -or -not $slowAck.authorityExpiredAtReceipt -or $slowClock.ElapsedMilliseconds -lt 1500){throw 'text_delayed_delivery_not_verified_after_admission_expiry'}
+ $slowFinal=Text-Rpc 'finish' @{writeId=$id;complete=$true};Ui-Command 'read'
+ if($slowFinal.contentVerification -ne 'verified' -or $slowFinal.verifiedInsertedUnits -ne $slowText.Length -or $shared.result -cne $slowText){throw 'text_delayed_delivery_full_readback_failed'}
+ $slowReport=@{units=$slowText.Length;elapsedMs=$slowClock.Elapsed.TotalMilliseconds;nativeVerified=$true;exactFixtureReadback=$true;authorityExpiredAfterSend=$true;delayPerWmCharMs=$shared.delayMs}
  $sizes=@()
  foreach($size in @(16384,65536,262144)){
   $script:testUnits=$size;$script:testOffset=0;$script:sizeClock=[diagnostics.stopwatch]::StartNew();Write-TextStage 'resetting_control'
-  # Single-paragraph Edit remains covered at16K/64K. The262K case is explicitly
-  # paragraph-structured Rich Edit. CI114's giant rich single paragraph failed
-  # delivery and is NOT accepted by this separate layout case.
-  $kind=$(if($size -gt 65536){'rich'}else{'classic'});Ui-Command 'reset' '' $kind
+  # Managed Edit remains covered at16K/64K. The262K case is a genuine Win32
+  # EDIT HWND, not a managed TextBox/RichTextBox accessibility wrapper. CI116's
+  # managed rich paragraph case remains NOT_ACCEPTED by this separate target.
+  $kind=$(if($size -gt 65536){'native'}else{'classic'});Ui-Command 'reset' '' $kind
   # A surrogate pair and a combining sequence remain together in every chunk.
   $seed='Unicode '+[char]0x0110+[char]0x00e2+'y '+[char]::ConvertFromUtf32(0x1f600)+' e'+[char]0x0301+' '
   $layout='single-paragraph'
@@ -110,7 +122,7 @@ try {
      }
      $snapshots+=,@{afterStopMs=$stopped.Elapsed.TotalMilliseconds;actualUnits=$actual.Length;sentUnits=$sent;exactSentPrefix=$equal;firstDifference=$firstDifference;expectedUtf16Sha256=$expectedHash;actualUtf16Sha256=([convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::Unicode.GetBytes($actual))));fixtureWmCharCount=$shared.characters;fixtureKeyDownCount=$shared.keyDowns;otherUnits=([string]$shared.other).Length;fixtureMaxLength=$shared.controlMaxLength;wordWrap=$shared.wordWrap;controlKind=$shared.controlKind}
     }
-    $failure=@{result='FAIL';scope='isolated_actions_synthetic_text_no_raw_content';stage=$script:lastStage;requestedUnits=$script:testUnits;lastAcknowledgedOffset=$offset;lastNativeReply=$ack;completedSizes=$script:completedSizes;deliverySnapshots=$snapshots;automaticReplay=$false;lateFixtureMatchDoesNotChangeNativeFailure=$true}
+    $failure=@{result='FAIL';scope='isolated_actions_synthetic_text_no_raw_content';stage=$script:lastStage;requestedUnits=$script:testUnits;lastAcknowledgedOffset=$offset;lastNativeReply=$ack;completedSizes=$script:completedSizes;nativeMultilineLineEndings=$newlineReports;deliverySnapshots=$snapshots;automaticReplay=$false;lateFixtureMatchDoesNotChangeNativeFailure=$true}
     $failure|ConvertTo-Json -Depth 9|Set-Content -LiteralPath $Output -Encoding utf8
     throw "text_chunk_interrupted:$($ack|ConvertTo-Json -Compress)"
    }
@@ -138,18 +150,6 @@ try {
   $sizes+=$size
   $script:completedSizes+=,@{units=$size;elapsedMs=$script:sizeClock.Elapsed.TotalMilliseconds;fullFixtureReadback=$true;comparison='full-content-line-ending-equivalence-only';nativeVerified=$true;controlKind=$shared.controlKind;wordWrap=$shared.wordWrap;layout=$layout}
  }
- # Actual deliberately slow keyboard delivery must be observed before more
- # input; no clipboard/SetValue, replay or reclassification of a failed ACK.
- Ui-Command 'reset' '' 'classic' 80
- $slowText='read-only completion after send';$id='write_'+[guid]::NewGuid().ToString('N')
- $script:testUnits=$slowText.Length;$script:testOffset=0;Write-TextStage 'delayed_delivery_test'
- $null=Text-Rpc 'start' @{writeId=$id;requestedUnits=$slowText.Length;verification='required';mode='insert'}
- $slowClock=[diagnostics.stopwatch]::StartNew();$slowAck=Text-Rpc 'chunk' @{writeId=$id;offset=0;text=$slowText;intervalMs=0}
- $ack=$slowAck
- if($slowAck.state -ne 'running' -or $slowAck.sentUnits -ne $slowText.Length -or -not $slowAck.authorityExpiredAtReceipt -or $slowClock.ElapsedMilliseconds -lt 1500){throw 'text_delayed_delivery_not_verified_after_admission_expiry'}
- $slowFinal=Text-Rpc 'finish' @{writeId=$id;complete=$true};Ui-Command 'read'
- if($slowFinal.contentVerification -ne 'verified' -or $slowFinal.verifiedInsertedUnits -ne $slowText.Length -or $shared.result -cne $slowText){throw 'text_delayed_delivery_full_readback_failed'}
- $slowReport=@{units=$slowText.Length;elapsedMs=$slowClock.Elapsed.TotalMilliseconds;nativeVerified=$true;exactFixtureReadback=$true;authorityExpiredAfterSend=$true;delayPerWmCharMs=$shared.delayMs}
  $script:testUnits=12;$script:testOffset=0;Write-TextStage 'focus_switch_test'
  # Changing focus between acknowledged chunks must not type the suffix into B.
  Ui-Command 'reset';$id='write_'+[guid]::NewGuid().ToString('N')
@@ -163,7 +163,7 @@ try {
  if($shared.result -cne 'prefix' -or $shared.other -cne ''){throw 'text_suffix_leaked_to_other_control'}
  $closed=Invoke-Rm @{op='desktop.visual.detach';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken}
  if(-not $closed.scopeClosed){throw 'text_scope_not_closed'}
- $receipt=@{result='PASS';scope='isolated_actions_winforms_native_not_owner_physical';nativeMultilineLineEndings=$newlineReports;unicodeReadbackSizes=$sizes;sizeMeasurements=$script:completedSizes;delayedDelivery=$slowReport;classicWrapped262K='NOT_ACCEPTED_SEPARATE_SLOW_TARGET_CASE';richSingleParagraph262K='NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT';elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
+ $receipt=@{result='PASS';scope='isolated_actions_native_and_managed_editors_not_owner_physical';nativeMultilineLineEndings=$newlineReports;unicodeReadbackSizes=$sizes;sizeMeasurements=$script:completedSizes;delayedDelivery=$slowReport;classicWrapped262K='NOT_ACCEPTED_SEPARATE_SLOW_TARGET_CASE';richSingleParagraph262K='NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT';managedRichParagraphs262K='NOT_ACCEPTED_CI116_DELIVERY_TIMEOUT';elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Compress)
 } catch {
@@ -171,7 +171,7 @@ try {
  # stage/ack/timing instead of leaving a misleading RUNNING artifact behind.
  $existing=Get-Content -LiteralPath $Output -Raw|ConvertFrom-Json
  if($existing.result -eq 'RUNNING'){
-  $failure=@{result='FAIL';scope='isolated_actions_synthetic_text_no_raw_content';stage=$script:lastStage;requestedUnits=$script:testUnits;lastAcknowledgedOffset=$script:testOffset;completedSizes=$script:completedSizes;elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;lastNativeReply=$ack;error=$_.Exception.Message}
+  $failure=@{result='FAIL';scope='isolated_actions_synthetic_text_no_raw_content';stage=$script:lastStage;requestedUnits=$script:testUnits;lastAcknowledgedOffset=$script:testOffset;completedSizes=$script:completedSizes;nativeMultilineLineEndings=$newlineReports;elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;lastNativeReply=$ack;error=$_.Exception.Message}
   $failure|ConvertTo-Json -Depth 9|Set-Content -LiteralPath $Output -Encoding utf8
  }
  Write-Host "RM_TEXT_FAILED stage=$script:lastStage units=$script:testUnits offset=$script:testOffset error=$($_.Exception.Message)"
