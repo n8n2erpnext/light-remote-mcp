@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-13T03:52:36.147Z",
+  "updatedAt": "2026-11-13T08:12:26.813Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "RMV2_DEV11_PREPARATION_COOPERATIVE_NATIVE_TEXT_MISMATCH_OPEN",
+  "status": "DEV11_UIA_OBSERVATION_SOURCE_NATIVE_TEXT_DIAGNOSTIC_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -361,7 +361,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow new CI and inspect metadata-only text failure receipt to fix actual16K/64K/256K Windows content/readback behavior. Then separate UIA read-only work with root/epoch guards, implement optional DXGI/D3D11 with conservative fallback and resolve media-path scope/capabilities; finish controlled prior-source latency comparison and one combined Owner UAT. No premature installer/public release/Lab cutover.",
+  "nextAction": "Follow exact new CI, inspect last-stage/length/hash native text receipt, repair actual keyboard/readback failure without weakening exact acceptance, then optional DXGI/D3D11 and media capability path, controlled prior-source benchmarks and one combined Owner physical UAT. No interim installer, production deployment or public release.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -452,12 +452,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261113-rmv2-cooperative-text-preparation",
-    "status": "DEV11_COOPERATIVE_PREPARATION_SOURCE_NATIVE_TEXT_ACCEPTANCE_PENDING",
-    "summary": "Make large logical-text preparation cooperative: cheap full transport/Unicode/options checks first, bind native target before expensive grapheme validation, return preparing writeId, yield after8192 units or8ms, recheck authority/cancel/task/deadline and maintain only the exact native lease while preparing. No input until the whole grapheme/pacing preflight passes; acceptedUnits stays0 until then. Reject pacing that cannot fit the chosen deadline before input, bounding useless chunk allocation. Target changes during preparation stop before typing. Portable17 cases PASS. CI104 capture proof independently SHA-verified; fullCI remains FAIL because real16K native text readback mismatched, so add metadata/hash/count-only failure evidence to diagnose, not relax acceptance.",
-    "verification": "Portable logical-text17/17 PASS, including responsive cancel during preparation, event-loop service, target capture before yield, invalid trailing grapheme with zero input, and impossible pacing rejected with zero input. Prior capture/mapping/import/normalization checks PASS. CI104 run43360018767 source27c4637: Core/Web/Linux/macOS/native compile/selftest/cursor/capture PASS; actual native text16K readback FAIL. Capture artifact14007802961 ZIP SHA85115c84865271b3ef31333e8bac5b0b1f58b65760fa4425b81fda814785d541 independently verified; same-source cold/warm capture-only, no prior-release speedup claim. Before preparation checkpoint/20261113-before-rmv2-preparation-27c4637 bundleSHA f1753a4b08b361e79c16b6802d2ee2476876e4df88d602ef868a706907892abe restore/fsckPASS. New native text diagnostic fixture not run locally/ARM.",
-    "nextAction": "Follow new CI and inspect metadata-only text failure receipt to fix actual16K/64K/256K Windows content/readback behavior. Then separate UIA read-only work with root/epoch guards, implement optional DXGI/D3D11 with conservative fallback and resolve media-path scope/capabilities; finish controlled prior-source latency comparison and one combined Owner UAT. No premature installer/public release/Lab cutover.",
-    "sourceDigest": "16a9f81ef6552e79b7c3e834c8f36e0149c0fc962b35503e3e44fdb842616059",
+    "taskId": "20261113-rmv2-uia-observation-lane",
+    "status": "DEV11_UIA_OBSERVATION_SOURCE_NATIVE_TEXT_DIAGNOSTIC_PENDING",
+    "summary": "Move read-only uia.snapshot and semantic snapshot/events to one separate windowless MTA with a bounded two-entry queue; input/mutations/attach/detach remain ordered. Pin semantic root/epoch metadata before traversal, verify the same live session/root afterward, report concurrent input/UI changes and require reobservation rather than mixing trees/root metadata. Keep AutomationElements on their creating worker. Guard resolved mutation root before applying; changed acknowledgement metadata never triggers replay. Scheduler selftest checks observation during held input and input/status during held observation. CI105 Core/Web/Linux/macOS/native compile/cursor/capture passed, but text fixture hung and Windows job was cancelled without final text receipt. Add no-content progress checkpoints and an eight-minute fixture step timeout; actual16K text mismatch remains unresolved, not PASS.",
+    "verification": "Portable logical-text17/17 and existing import/input contracts pass. Native compile, MTA scheduler isolation/selftest and actual text acceptance are pending exact new Actions source; no native local/ARM build. CI105 run43361834599 was cancelled in Windows Unicode fixture after other checks PASS; it cannot provide a full candidate or text PASS. Before UIA checkpoint checkpoint/20261113-before-rmv2-uia-e34d85c bundleSHA a2c698726666ebc720949c920e496b199605e0067374a36ca396dee082206c6c independently restored/fsckPASS.",
+    "nextAction": "Follow exact new CI, inspect last-stage/length/hash native text receipt, repair actual keyboard/readback failure without weakening exact acceptance, then optional DXGI/D3D11 and media capability path, controlled prior-source benchmarks and one combined Owner physical UAT. No interim installer, production deployment or public release.",
+    "sourceDigest": "80d0aa7dc7bd89f22bae8c459b1a16e32fef183f8f118a4af507a423df35ab19",
     "sourceFileCount": 1700
   },
   "legacyFilesystemCleanup": {
@@ -1547,7 +1547,7 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "CAPTURE_CURSOR_PASS_TEXT_MISMATCH_OPEN",
+    "nativeCi": "PENDING_UIA_AND_TEXT",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
@@ -1560,7 +1560,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci98.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PENDING_NEW_SOURCE_CI104_NATIVE_TEXT_FAIL",
+    "fullCi": "PENDING_NEW_SOURCE",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1657,17 +1657,19 @@
         "nativeTextFixture": "NOT_REACHED"
       },
       "nativeCompile": "PASS_CI103_SOURCE9638594",
-      "nativeTextAcceptance": "OPEN_CI104_REAL16K_READBACK_MISMATCH",
+      "nativeTextAcceptance": "OPEN_CI104_MISMATCH_CI105_HUNG_NO_FINAL_RECEIPT",
       "largeReferencePreparation": "COOPERATIVE_PREPARATION_AND_INITIAL_TARGET_BINDING_REVIEW_PENDING",
       "preparation": "COOPERATIVE_8192_UNITS_OR8MS",
       "targetBinding": "BEFORE_COOPERATIVE_GRAPHEME_VALIDATION",
       "acceptedUnits": "ZERO_UNTIL_WHOLE_GRAPHEME_AND_PACING_PREFLIGHT_PASSES",
       "pacing": "IMPOSSIBLE_TOTAL_DELAY_REJECTED_BEFORE_INPUT",
       "preparationCancel": "ZERO_INPUT_PROVEN_PORTABLE",
-      "nativeTextDiagnostic": "UNITS_SHA256_FIRST_DIFF_FINAL_METADATA_ONLY_NO_RAW_TEXT"
+      "nativeTextDiagnostic": "UNITS_SHA256_FIRST_DIFF_FINAL_METADATA_ONLY_NO_RAW_TEXT",
+      "diagnostics": "STAGE_LENGTH_OFFSET_HASH_ONLY",
+      "nativeFixtureStepBudgetMinutes": 8
     },
     "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN",
-    "nextPhase": "FIX_NATIVE_TEXT_READBACK_THEN_UIA_DXGI_MEDIA",
+    "nextPhase": "FIX_NATIVE_TEXT_THEN_OPTIONAL_GPU_MEDIA_BENCHMARKS",
     "phase2c": {
       "status": "SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
       "beforeTag": "checkpoint/20261113-before-rmv2-capture-ef54911",
@@ -1708,6 +1710,23 @@
       "archiveSha256": "dbaa05aad69cdaca287996362afe01bb0907423c4f5df6ce5f5bb6d92462e86e",
       "restore": "PASS",
       "source": "27c46376011edd94cd59781ab4d1f2ccca3a7cad"
+    },
+    "uiaObservation": {
+      "source": "IMPLEMENTED_NATIVE_CI_PENDING",
+      "queueCapacity": 2,
+      "apartment": "DEDICATED_WINDOWLESS_MTA",
+      "inputMutationOrdering": "UNCHANGED",
+      "crossLaneObjects": "METADATA_ONLY",
+      "publishGuard": "SAME_LIVE_SESSION_ROOT_HWND_AND_ROOT_EPOCH",
+      "concurrentUiOrInput": "RESYNC_RECOMMENDED",
+      "blockedProviderRecovery": "NO_UNSAFE_THREAD_ABORT_EXISTING_HELPER_RESTART",
+      "before": {
+        "tag": "checkpoint/20261113-before-rmv2-uia-e34d85c",
+        "bundleSha256": "a2c698726666ebc720949c920e496b199605e0067374a36ca396dee082206c6c",
+        "archiveSha256": "f340da6b67fdde9f8f3c83992857218f6d9ee723763b351d9eea64ae48469a8b",
+        "restore": "PASS",
+        "source": "e34d85c23625b59e2a6460f24f0e1a56e5d53f89"
+      }
     }
   }
 }

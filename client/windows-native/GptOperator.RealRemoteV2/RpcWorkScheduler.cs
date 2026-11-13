@@ -3,12 +3,13 @@ using System.Threading.Channels;
 namespace GptOperator.RealRemoteV2;
 
 // Named-pipe reads never wait behind a synchronous native operation. Input and
-// semantic state stay ordered; capture and bounded status/cancel use other lanes.
+// semantic mutations stay ordered. Read-only UIA traversal owns a separate MTA
+// with a bounded queue; its AutomationElements never cross into the input lane.
 internal sealed class RpcWorkScheduler : IDisposable
 {
     private sealed record Work(string Scope,long Epoch,Func<Task<object?>> Run,
         TaskCompletionSource<object?> Reply,long EnqueuedAt);
-    private readonly Channel<Work> _ordered=Queue(16),_capture=Queue(2);
+    private readonly Channel<Work> _ordered=Queue(16),_capture=Queue(2),_observation=Queue(2);
     private readonly SemaphoreSlim _fast=new(4,4);
     private readonly object _gate=new();
     private readonly Dictionary<string,long> _epochs=new(StringComparer.Ordinal);
@@ -16,7 +17,7 @@ internal sealed class RpcWorkScheduler : IDisposable
     private static Channel<Work> Queue(int size)=>Channel.CreateBounded<Work>(new BoundedChannelOptions(size){SingleReader=true,FullMode=BoundedChannelFullMode.Wait});
     public RpcWorkScheduler()
     {
-        foreach(var (queue,name) in new[]{(_ordered,"RM ordered input"),(_capture,"RM frame capture")}) {
+        foreach(var (queue,name) in new[]{(_ordered,"RM ordered input"),(_capture,"RM frame capture"),(_observation,"RM UIA observation")}) {
             var worker=new Thread(()=>Drain(queue)){IsBackground=true,Name=name};
             worker.SetApartmentState(ApartmentState.MTA);worker.Start();
         }
@@ -29,9 +30,11 @@ internal sealed class RpcWorkScheduler : IDisposable
         if(_disposed)return Task.FromException<object?>(new ObjectDisposedException(nameof(RpcWorkScheduler)));
         if(op is "ping" or "status" or "desktop.status" or "desktop.cancel")return Fast(run);
         var frame=op is "desktop.frame" or "desktop.visual.frame" or "desktop-visual-frame";
+        var observe=op is "uia.snapshot" or "desktop.semantic.snapshot" or "desktop-semantic-snapshot"
+            or "desktop.semantic.events" or "desktop-semantic-events";
         var reply=new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var row=new Work(scope,Epoch(scope),run,reply,System.Diagnostics.Stopwatch.GetTimestamp());
-        if(!(frame?_capture:_ordered).Writer.TryWrite(row))reply.TrySetException(new InvalidOperationException("native_request_queue_busy"));
+        if(!(frame?_capture:observe?_observation:_ordered).Writer.TryWrite(row))reply.TrySetException(new InvalidOperationException("native_request_queue_busy"));
         return reply.Task;
     }
     private async Task<object?> Fast(Func<Task<object?>> run)
@@ -57,7 +60,7 @@ internal sealed class RpcWorkScheduler : IDisposable
             } catch(Exception error) { row.Reply.TrySetException(error); }
         }
     }
-    public void Dispose() { _disposed=true;_ordered.Writer.TryComplete();_capture.Writer.TryComplete(); }
+    public void Dispose() { _disposed=true;_ordered.Writer.TryComplete();_capture.Writer.TryComplete();_observation.Writer.TryComplete(); }
     internal static bool SelfTest()=>SelfTestAsync().GetAwaiter().GetResult();
     private static async Task<bool> SelfTestAsync()
     {
@@ -70,11 +73,22 @@ internal sealed class RpcWorkScheduler : IDisposable
         var queued=scheduler.Schedule("desktop.input","scope",()=>{executed=true;return Task.FromResult<object?>(new {done=true});});
         var status=await scheduler.Schedule("desktop.status","",()=>Task.FromResult<object?>(new {ready=true})).WaitAsync(TimeSpan.FromSeconds(3));
         var frame=await scheduler.Schedule("desktop.frame","",()=>Task.FromResult<object?>(new {frame=true})).WaitAsync(TimeSpan.FromSeconds(3));
-        if(first.IsCompleted||queued.IsCompleted||executed||status is null||frame is null)return false;
+        var observationMta=false;
+        var observation=await scheduler.Schedule("desktop.semantic.snapshot","",()=>{observationMta=Thread.CurrentThread.GetApartmentState()==ApartmentState.MTA;return Task.FromResult<object?>(new {observed=true});}).WaitAsync(TimeSpan.FromSeconds(3));
+        if(first.IsCompleted||queued.IsCompleted||executed||status is null||frame is null||observation is null||!observationMta)return false;
         scheduler.CancelScope("scope");release.SetResult();await first.WaitAsync(TimeSpan.FromSeconds(3));
         try { await queued;return false; } catch(InvalidOperationException error) when(error.Message=="operation_cancelled_before_start") {}
         if(executed)return false;
         var next=await scheduler.Schedule("desktop.input","scope",()=>Task.FromResult<object?>(new {fresh=true}));
-        return next is not null;
+        if(next is null)return false;
+        var reading=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var allowRead=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var held=scheduler.Schedule("uia.snapshot","",async()=>{reading.SetResult();await allowRead.Task;return new {observed=true};});
+        await reading.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        try {
+            var input=await scheduler.Schedule("desktop.input","",()=>Task.FromResult<object?>(new {applied=true})).WaitAsync(TimeSpan.FromSeconds(3));
+            var responsive=await scheduler.Schedule("desktop.status","",()=>Task.FromResult<object?>(new {ready=true})).WaitAsync(TimeSpan.FromSeconds(3));
+            return !held.IsCompleted&&input is not null&&responsive is not null;
+        } finally {allowRead.TrySetResult();await held.WaitAsync(TimeSpan.FromSeconds(3));}
     }
 }

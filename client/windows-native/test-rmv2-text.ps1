@@ -1,6 +1,14 @@
 param([Parameter(Mandatory=$true)][string]$Exe,[Parameter(Mandatory=$true)][string]$Output)
 $ErrorActionPreference='Stop'
 # Isolated Actions desktop only. Never run on the Owner's installed desktop.
+$script:lastStage='starting';$script:testUnits=0;$script:testOffset=0
+function Write-TextStage([string]$Stage){
+ $script:lastStage=$Stage
+ $row=@{result='RUNNING';scope='isolated_actions_synthetic_text_no_raw_content';stage=$Stage;requestedUnits=$script:testUnits;sentOffset=$script:testOffset;at=[datetime]::UtcNow.ToString('o')}
+ $row|ConvertTo-Json -Depth 4|Set-Content -LiteralPath $Output -Encoding utf8
+ Write-Host "RM_TEXT_STAGE $Stage units=$script:testUnits offset=$script:testOffset"
+}
+Write-TextStage 'starting_fixture'
 $shared=[hashtable]::Synchronized(@{ready=$false;command='';done=$false;initial='';result='';error=''})
 $space=[runspacefactory]::CreateRunspace();$space.ApartmentState='STA';$space.ThreadOptions='ReuseThread';$space.Open()
 $ui=[powershell]::Create();$ui.Runspace=$space
@@ -47,6 +55,7 @@ try {
    if($row.type -eq 'response' -and $row.id -eq $Request.id){if(-not $row.ok){throw "text_native_failure:$($row.error)"};return $row.data}
   };throw "text_native_reply_missing op=$($Request.op) events=$events"
  }
+ Write-TextStage 'attaching_visual'
  $view=Invoke-Rm @{op='desktop.visual.attach';leaseMs=45000}
  function Text-Rpc([string]$Op,[hashtable]$Payload){
   $Payload.op='desktop.text.'+$Op;$Payload.visualSessionId=$view.visualSessionId;$Payload.leaseToken=$view.leaseToken
@@ -54,14 +63,16 @@ try {
  }
  $sizes=@()
  foreach($size in @(16384,65536,262144)){
+  $script:testUnits=$size;$script:testOffset=0;Write-TextStage 'resetting_control'
   Ui-Command 'reset'
   # A surrogate pair and a combining sequence remain together in every chunk.
   $seed='Unicode '+[char]0x0110+[char]0x00e2+'y '+[char]::ConvertFromUtf32(0x1f600)+' e'+[char]0x0301+' '
   $text=($seed*([int][math]::Floor($size/$seed.Length)))+('x'*($size%$seed.Length))
   $id='write_'+[guid]::NewGuid().ToString('N')
+  Write-TextStage 'binding_target'
   $prepared=Text-Rpc 'start' @{writeId=$id;requestedUnits=$text.Length;verification='required';mode='insert'}
   if(-not $prepared.verificationAvailable){throw 'text_fixture_readback_unavailable'}
-  $offset=0
+  $offset=0;$nextReport=0;Write-TextStage 'typing_chunks'
   while($offset -lt $text.Length){
    $take=[math]::Min(480,$text.Length-$offset)
    # Use .NET grapheme enumeration, not arbitrary UTF16 slicing.
@@ -70,9 +81,14 @@ try {
    $ack=Text-Rpc 'chunk' @{writeId=$id;offset=$offset;text=$chunk;intervalMs=0}
    if($ack.state -ne 'running' -or $ack.sentUnits -ne ($offset+$chunk.Length)){throw "text_chunk_interrupted:$($ack|ConvertTo-Json -Compress)"}
    $offset+=$chunk.Length
+   $script:testOffset=$offset
+   if($offset -ge $nextReport){Write-TextStage 'typing_chunks';$nextReport=$offset+8192}
   }
+  Write-TextStage 'verifying_native_readback'
   $final=Text-Rpc 'finish' @{writeId=$id;complete=$true}
+  Write-TextStage 'reading_fixture_control'
   Ui-Command 'read'
+  Write-TextStage 'comparing_complete_text'
   if($final.contentVerification -ne 'verified' -or $final.verifiedInsertedUnits -ne $text.Length -or $shared.result -cne $text){
    $actual=[string]$shared.result;$firstDifference=-1
    for($k=0;$k -lt [math]::Min($actual.Length,$text.Length);$k++){if($actual[$k] -cne $text[$k]){$firstDifference=$k;break}}
@@ -87,6 +103,7 @@ try {
   }
   $sizes+=$size
  }
+ Write-TextStage 'focus_switch_test'
  # Changing focus between acknowledged chunks must not type the suffix into B.
  Ui-Command 'reset';$id='write_'+[guid]::NewGuid().ToString('N')
  $null=Text-Rpc 'start' @{writeId=$id;requestedUnits=12;verification='required';mode='insert'}
@@ -102,9 +119,14 @@ try {
  $receipt=@{result='PASS';scope='isolated_actions_winforms_native_not_owner_physical';unicodeReadbackSizes=$sizes;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Compress)
+} catch {
+ Write-Host "RM_TEXT_FAILED stage=$script:lastStage units=$script:testUnits offset=$script:testOffset error=$($_.Exception.Message)"
+ throw
 } finally {
- if($null -ne $writer){$writer.Dispose()};if($null -ne $reader){$reader.Dispose()};if($null -ne $pipe){$pipe.Dispose()}
+ Write-Host "RM_TEXT_CLEANUP stage=$script:lastStage"
+ # Kill the isolated helper first so any outstanding pipe/UIA read unblocks.
  if($null -ne $process -and -not $process.HasExited){Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue}
+ if($null -ne $pipe){$pipe.Dispose()};if($null -ne $reader){$reader.Dispose()};if($null -ne $writer){$writer.Dispose()}
  if($shared.ready -and -not $shared.error){try{Ui-Command 'close'}catch{}}
  if($uiTask.IsCompleted){$null=$ui.EndInvoke($uiTask)};$ui.Dispose();$space.Dispose()
 }

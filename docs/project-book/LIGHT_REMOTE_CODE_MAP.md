@@ -334,3 +334,7 @@ GdiFrameCache.cs owns one private bitmap/pixel/codec/stream/encoded entry and fr
 ## Bind typing target before cooperative large-text preparation
 
 lib/rmv2-text-write.mjs now separates cheap logicalTextSpec from a shared grapheme generator and asynchronous collector. RmTextWrites.start captures the native target, then the full owner-scoped background promise includes cooperative preparation and input/readback. prepareAndRun reports0 accepted/sent until full validation and handles preparation errors without replay; unexpected run errors remain indeterminate. Agent native adapter renews only the exact existing native visual lease during actual running preparation. test-rmv2-text.ps1 now records safe synthetic failure units/hash/first-difference/final metadata, not raw control content. CI104 capture receipt is pinned separately from its failed overall text run.
+
+## Separate root-guarded UIA observation from ordered input
+
+RpcWorkScheduler adds a separate bounded observation channel and persistent MTA for uia.snapshot, semantic snapshot/events and aliases. SemanticSessionManager pins roots, guards publication/live membership, atomically reads event/root metadata and rejects pre-action root drift; post-action acknowledgement changes carry resync/no-replay. No AutomationElement is transferred between lanes. test-rmv2-text.ps1 records metadata-only progress and kills isolated helper before pipe cleanup; windows-native-client.yml limits that step to eight minutes without changing acceptance criteria.

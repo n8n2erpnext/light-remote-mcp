@@ -36,6 +36,29 @@ internal sealed class SemanticSessionManager : IDisposable
         public SemanticJournal Journal { get; }=new();
     }
 
+    // Only primitive metadata crosses lanes. UIA elements stay on the worker
+    // that created them, and a detached/re-rooted observation cannot publish.
+    private sealed record RootRead(long Hwnd,string Title,long Epoch,long StateSeq,long InputSeq,long FocusGeneration);
+    private void RequireLive(Session session)
+    {
+        if(_disposed)throw new ObjectDisposedException(nameof(SemanticSessionManager));
+        if(!_sessions.TryGetValue(session.Id,out var current)||!ReferenceEquals(current,session))
+            throw new InvalidOperationException("semantic_session_missing");
+    }
+    private RootRead PinRoot(Session session)
+    {
+        lock(_gate) {
+            RequireLive(session);
+            return new(session.RootHwnd,session.RootTitle,session.RootEpoch,session.Journal.StateSeq,session.Journal.InputSeq,_sensor.FocusGeneration);
+        }
+    }
+    private void ValidateRoot(Session session,RootRead root)
+    {
+        RequireLive(session);
+        if(session.RootHwnd!=root.Hwnd||session.RootEpoch!=root.Epoch)
+            throw new InvalidOperationException("semantic_snapshot_changed_reobserve");
+    }
+
     private readonly UiSensor _sensor;
     private readonly object _gate=new();
     private readonly Dictionary<string,Session> _sessions=new(StringComparer.Ordinal);
@@ -83,14 +106,16 @@ internal sealed class SemanticSessionManager : IDisposable
             MaxNodes=maxNodes,
             AttachedAt=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         };
+        var focusBefore=_sensor.FocusGeneration;
         var snapshot=_sensor.SemanticSnapshot(fg.Hwnd,maxDepth,maxNodes,session.Epoch);
+        if(NativeInput.ReadForeground().Hwnd!=fg.Hwnd||_sensor.FocusGeneration!=focusBefore)
+            throw new InvalidOperationException("semantic_snapshot_changed_reobserve");
 
         lock(_gate)
         {
+            ThrowIfDisposed();
             if(_sessions.Count>=MaxSessions) throw new InvalidOperationException("semantic_session_limit");
             _sessions.Add(session.Id,session);
-        }
-
         return new {
             semanticSessionId=session.Id,
             epoch=session.Epoch,
@@ -105,39 +130,50 @@ internal sealed class SemanticSessionManager : IDisposable
             attachedAt=session.AttachedAt,
             snapshot
         };
+        }
     }
 
     public object Snapshot(string semanticSessionId)
     {
         var session=Get(semanticSessionId);
         RefreshTaskRoot(session);
-        var snapshot=_sensor.SemanticSnapshot(session.RootHwnd,session.MaxDepth,session.MaxNodes,session.Epoch);
-        var stateSeq=session.Journal.AdvanceSnapshot();
+        var root=PinRoot(session);
+        var snapshot=_sensor.SemanticSnapshot(root.Hwnd,session.MaxDepth,session.MaxNodes,session.Epoch);
         var foreground=NativeInput.ReadForeground();
-        var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=session.RootHwnd;
-
+        if(session.Scope=="desktop")AdoptTaskRoot(session,foreground);
+        lock(_gate) {
+        ValidateRoot(session,root);
+        var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=root.Hwnd;
+        var concurrentInput=session.Journal.InputSeq!=root.InputSeq;
+        var concurrentUiChange=session.Journal.StateSeq!=root.StateSeq||_sensor.FocusGeneration!=root.FocusGeneration;
+        var stateSeq=session.Journal.AdvanceSnapshot();
         return new {
             semanticSessionId=session.Id,
             epoch=session.Epoch,
             stateSeq,
             inputSeq=session.Journal.InputSeq,
             scope=session.Scope,
-            rootHwnd=session.RootHwnd,
-            rootTitle=session.RootTitle,
-            rootEpoch=session.RootEpoch,
+            rootHwnd=root.Hwnd,
+            rootTitle=root.Title,
+            rootEpoch=root.Epoch,
             foreground,
             focusOutsideScope,
-            resyncRecommended=focusOutsideScope,
+            concurrentInput,
+            concurrentUiChange,
+            resyncRecommended=focusOutsideScope||concurrentInput||concurrentUiChange,
             snapshot
         };
+        }
     }
 
     public object Events(string semanticSessionId,long afterSeq,int limit=100)
     {
         var session=Get(semanticSessionId);
         RefreshTaskRoot(session);
-        var read=session.Journal.Read(afterSeq,limit);
         var foreground=NativeInput.ReadForeground();
+        lock(_gate) {
+        RequireLive(session);
+        var read=session.Journal.Read(afterSeq,limit);
         var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=session.RootHwnd;
         var scopeChanged=read.Events.Any(e=>e.ScopeChanged);
         var resyncRecommended=read.Gap || focusOutsideScope || read.Events.Any(e=>e.ResyncRecommended);
@@ -161,6 +197,7 @@ internal sealed class SemanticSessionManager : IDisposable
             events=read.Events,
             foreground
         };
+        }
     }
 
     public void ValidateInput(string semanticSessionId,long afterSeq)
@@ -178,8 +215,10 @@ internal sealed class SemanticSessionManager : IDisposable
             AdoptTaskRoot(session,foreground);
             return;
         }
-        if(foreground.Hwnd!=session.RootHwnd)
-            throw new InvalidOperationException("semantic_scope_changed");
+        lock(_gate) {
+            RequireLive(session);
+            if(foreground.Hwnd!=session.RootHwnd)throw new InvalidOperationException("semantic_scope_changed");
+        }
     }
 
     public object AcknowledgeInput(string semanticSessionId,long afterSeq,int settleMs,object mutation)
@@ -189,21 +228,27 @@ internal sealed class SemanticSessionManager : IDisposable
         if(settleMs>0) Thread.Sleep(settleMs);
 
         RefreshTaskRoot(session);
+        var root=PinRoot(session);
+        var focused=_sensor.FocusedSemantic();
+        var foreground=NativeInput.ReadForeground();
+        lock(_gate) {
+        RequireLive(session);
+        // The mutation already happened. A later root change is an uncertain
+        // acknowledgement requiring observation, never a reason to replay it.
+        var rootChanged=session.RootHwnd!=root.Hwnd||session.RootEpoch!=root.Epoch;
         var inputSeq=session.Journal.NextInputSeq();
         var read=session.Journal.Read(afterSeq,SemanticJournal.MaxRead);
-        var foreground=NativeInput.ReadForeground();
-        var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=session.RootHwnd;
+        var focusOutsideScope=session.Scope=="foreground" && foreground.Hwnd!=root.Hwnd;
         var scopeChanged=read.Events.Any(e=>e.ScopeChanged);
-        var focused=_sensor.FocusedSemantic();
-        var resyncRecommended=read.Gap || focusOutsideScope || read.Events.Any(e=>e.ResyncRecommended);
+        var resyncRecommended=rootChanged||read.Gap || focusOutsideScope || read.Events.Any(e=>e.ResyncRecommended);
 
         return new {
             semanticSessionId=session.Id,
             epoch=session.Epoch,
             scope=session.Scope,
-            rootHwnd=session.RootHwnd,
-            rootTitle=session.RootTitle,
-            rootEpoch=session.RootEpoch,
+            rootHwnd=root.Hwnd,
+            rootTitle=root.Title,
+            rootEpoch=root.Epoch,
             inputSeq,
             stateSeq=read.StateSeq,
             afterSeq,
@@ -211,7 +256,11 @@ internal sealed class SemanticSessionManager : IDisposable
             mutation,
             cursor=NativeInput.ReadStatus().Cursor,
             foreground,
-            focused,
+            focused=rootChanged?null:focused,
+            rootChanged,
+            currentRootHwnd=session.RootHwnd,
+            currentRootEpoch=session.RootEpoch,
+            automaticReplay=false,
             gap=read.Gap,
             droppedBeforeSeq=read.DroppedBeforeSeq,
             scopeChanged,
@@ -220,6 +269,7 @@ internal sealed class SemanticSessionManager : IDisposable
             hasMore=read.HasMore,
             events=read.Events
         };
+        }
     }
 
     public object ActMutation(string semanticSessionId,string nodeId,string action,string? value=null,long afterSeq=0)
@@ -228,13 +278,19 @@ internal sealed class SemanticSessionManager : IDisposable
         if(afterSeq>0) session.Journal.ValidateAfterSeq(afterSeq);
         ValidateScope(session);
         RefreshTaskRoot(session);
-        var element=_sensor.ResolveSemanticElement(session.RootHwnd,session.MaxDepth,session.MaxNodes,session.Epoch,nodeId);
+        var root=PinRoot(session);
+        var element=_sensor.ResolveSemanticElement(root.Hwnd,session.MaxDepth,session.MaxNodes,session.Epoch,nodeId);
         action=(action??"").Trim().ToLowerInvariant();
         if(action.Length==0) throw new InvalidOperationException("semantic_action_required");
 
         string method;
         try
         {
+            // A concurrent read/hook may discover a different task window while
+            // resolving. Never apply the previously resolved node to that root.
+            lock(_gate)ValidateRoot(session,root);
+            if(NativeInput.ReadForeground().Hwnd!=root.Hwnd||_sensor.FocusGeneration!=root.FocusGeneration)
+                throw new InvalidOperationException("semantic_scope_changed");
             method=action switch
             {
                 "invoke"=>InvokeElement(element),
@@ -387,9 +443,10 @@ internal sealed class SemanticSessionManager : IDisposable
 
     private void AdoptTaskRoot(Session session,ForegroundInfo foreground)
     {
-        if(session.Scope!="desktop" || foreground.Hwnd==0 || foreground.Hwnd==session.RootHwnd) return;
         lock(_gate)
         {
+            RequireLive(session);
+            if(session.Scope!="desktop" || foreground.Hwnd==0)return;
             if(session.RootHwnd==foreground.Hwnd) return;
             session.RootHwnd=foreground.Hwnd;
             session.RootTitle=foreground.Title;
@@ -399,14 +456,10 @@ internal sealed class SemanticSessionManager : IDisposable
 
     private void OnUiChanged(UiChangeEvent evt)
     {
-        Session[] sessions;
         lock(_gate)
         {
             if(_disposed||_sessions.Count==0) return;
-            sessions=_sessions.Values.ToArray();
-        }
-
-        foreach(var session in sessions)
+        foreach(var session in _sessions.Values)
         {
             var rootChanged=false;
             if(session.Scope=="desktop" && evt.Kind=="foreground" && evt.Hwnd!=0)
@@ -435,13 +488,14 @@ internal sealed class SemanticSessionManager : IDisposable
 
             QueueSignal(session,entry);
         }
+        }
     }
 
     private void QueueSignal(Session session,SemanticJournalEntry entry)
     {
         lock(_gate)
         {
-            if(_disposed) return;
+            if(_disposed||!_sessions.TryGetValue(session.Id,out var current)||!ReferenceEquals(current,session)) return;
             if(!_pendingSignals.TryGetValue(session.Id,out var pending))
             {
                 pending=new PendingSignal {

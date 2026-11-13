@@ -135,3 +135,7 @@ Current-pixel capture/ROI/frame-mapping source and generic UI signal coalescing 
 ## Bind typing target before cooperative large-text preparation
 
 OPEN: CI104 Windows real-control16K content/readback did not match; cause not inferred from a sent-event count. Need exact new failure units/hashes/provider/final metadata before choosing a fix. Capture and other platform checks passed but cannot substitute for text acceptance. Huge-reference preparation is now cooperative and native target is captured before it; Owner file-reference I/O still precedes this controller preflight. Strict target guards and initial target validation do not create isolated Windows foreground input. UIA full observation lane/root consistency and optional DXGI/D3D11/video remain pending; no controlled prior-source latency or Owner physical acceptance claim.
+
+## Separate root-guarded UIA observation from ordered input
+
+OPEN: native exact16K content/readback mismatch from CI104; CI105 hung in the fixture without a final diagnostic, so neither cause nor PASS is inferred. New per-stage receipt/step budget is diagnostic, not a product fix. A stuck third-party UIA provider may still monopolize the bounded observation worker, while input/control/capture lanes remain independent; no unsafe provider-thread abort. Physical root/focus/Owner input races and mixed-DPI multimonitor UAT remain pending. Optional DXGI/video and controlled prior-source latency comparison are unfinished.

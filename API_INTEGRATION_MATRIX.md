@@ -120,3 +120,7 @@ Windows attach/direct frame accept optional region{x,y,width,height} in selected
 ## Bind typing target before cooperative large-text preparation
 
 Windows text start may return state=preparing with writeId after initial target preflight; poll existing desktop_text_status. preparation.validatedUnits is only validated prefix progress, acceptedUnits remains0 until the whole logical payload passes grapheme/pacing validation, and sentUnits remains0 throughout preparation. This is not completed insertion. A pacing request whose minimum delay exceeds maxDurationMs fails before input; Agent can choose a suitable deadline/unpaced input. Cancellation/status remain responsive during cooperative preparation. Existing remote:execute/read/file-root/current-A-B boundaries and close-before-final-report obligation are unchanged.
+
+## Separate root-guarded UIA observation from ordered input
+
+Additive semantic snapshot fields concurrentInput/concurrentUiChange imply resyncRecommended and require reobservation before input. Changed live task root during traversal fails semantic_snapshot_changed_reobserve without applying input. Semantic mutation resolution checks the pinned root before applying. Post-mutation acknowledgement root changes return resync metadata/automaticReplay=false rather than asking to repeat an already applied operation. Existing A/B, device authorization, local policy, visual scope and explicit close-before-final-report contract are unchanged.

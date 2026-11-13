@@ -687,6 +687,7 @@ jobs:
           retention-days: 14
 
       - name: Real Remote V2 target-bound Unicode text acceptance
+        timeout-minutes: 8
         shell: pwsh
         run: |
           ./client/windows-native/test-rmv2-text.ps1 -Exe $env:RMV2_EXE -Output (Join-Path $PWD 'dist/windows/rmv2-text-acceptance.json')
