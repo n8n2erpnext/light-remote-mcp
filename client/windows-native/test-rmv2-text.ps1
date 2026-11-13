@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Exe,[Parameter(Mandatory=$true)][string]$Output)
+param([Parameter(Mandatory=$true)][string]$Exe,[Parameter(Mandatory=$true)][string]$Output,[Parameter(Mandatory=$true)][string]$FixtureExe)
 $ErrorActionPreference='Stop'
 # Isolated Actions desktop only. Never run on the Owner's installed desktop.
 $script:lastStage='starting';$script:testUnits=0;$script:testOffset=0
@@ -9,39 +9,24 @@ function Write-TextStage([string]$Stage){
  Write-Host "RM_TEXT_STAGE $Stage units=$script:testUnits offset=$script:testOffset"
 }
 Write-TextStage 'starting_fixture'
-$shared=[hashtable]::Synchronized(@{ready=$false;command='';done=$false;initial='';result='';error=''})
-$space=[runspacefactory]::CreateRunspace();$space.ApartmentState='STA';$space.ThreadOptions='ReuseThread';$space.Open()
-$ui=[powershell]::Create();$ui.Runspace=$space
-$null=$ui.AddScript({param($s)
- try {
-  Add-Type -AssemblyName System.Windows.Forms
-  $f=[Windows.Forms.Form]::new();$f.Text='RM isolated text acceptance';$f.Width=600;$f.Height=440;$f.TopMost=$true
-  $a=[Windows.Forms.TextBox]::new();$a.Multiline=$true;$a.MaxLength=0;$a.SetBounds(20,20,540,160)
-  $b=[Windows.Forms.TextBox]::new();$b.Multiline=$true;$b.MaxLength=0;$b.SetBounds(20,200,540,160)
-  $f.Controls.AddRange(@($a,$b));$timer=[Windows.Forms.Timer]::new();$timer.Interval=30
-  $timer.Add_Tick({
-   if($s.command){
-    $c=$s.command;$s.command=''
-    if($c -eq 'reset'){$a.Text=$s.initial;$b.Clear();$f.Activate();$a.Focus();$a.Select($a.Text.Length,0)}
-    if($c -eq 'other'){$b.Focus()}
-    if($c -eq 'read'){$s.result=$a.Text;$s.other=$b.Text}
-    if($c -eq 'close'){$f.Close()}
-    $s.done=$true
-   }
-  }.GetNewClosure());$f.Add_Shown({$s.ready=$true;$a.Focus()}.GetNewClosure());$timer.Start()
-  [Windows.Forms.Application]::Run($f);$timer.Dispose();$f.Dispose()
- }catch{$s.error=$_.Exception.Message;$s.ready=$true}
-}).AddArgument($shared)
-$uiTask=$ui.BeginInvoke();$process=$null;$pipe=$null;$reader=$null;$writer=$null
+if($env:GITHUB_ACTIONS -ne 'true'){throw 'text_fixture_actions_only'}
+$fixtureName="lightremote-text-fixture-$PID"
+$fixtureProcess=Start-Process -FilePath $FixtureExe -ArgumentList @($fixtureName) -PassThru -WindowStyle Hidden
+$fixturePipe=$null;$fixtureReader=$null;$fixtureWriter=$null
+$shared=@{result='';other='';characters=0;keyDowns=0}
+$process=$null;$pipe=$null;$reader=$null;$writer=$null
 function Ui-Command([string]$Command,[string]$Initial=''){
- $shared.initial=$Initial;$shared.done=$false;$shared.command=$Command
- $wait=[diagnostics.stopwatch]::StartNew()
- while(-not $shared.done){if($shared.error){throw $shared.error};if($wait.ElapsedMilliseconds -gt 5000){throw 'text_fixture_timeout'};Start-Sleep -Milliseconds 20}
- Start-Sleep -Milliseconds 350
+ $request=@{id=[guid]::NewGuid().ToString('N');op=$Command;initial=$Initial}
+ $fixtureWriter.WriteLine(($request|ConvertTo-Json -Compress))
+ $read=$fixtureReader.ReadLineAsync();if(-not $read.Wait(15000)){throw "text_fixture_timeout:$Command"}
+ $reply=$read.Result|ConvertFrom-Json
+ if($reply.id -ne $request.id -or -not $reply.ok){throw 'text_fixture_reply_invalid'}
+ if($Command -eq 'read'){$shared.result=$reply.data.text;$shared.other=$reply.data.other;$shared.characters=$reply.data.characters;$shared.keyDowns=$reply.data.keyDowns}
+ Start-Sleep -Milliseconds 150
 }
 try {
- for($i=0;$i -lt 200 -and -not $shared.ready;$i++){Start-Sleep -Milliseconds 30}
- if(-not $shared.ready -or $shared.error){throw "text_fixture_start_failed:$($shared.error)"}
+ $fixturePipe=[IO.Pipes.NamedPipeClientStream]::new('.',$fixtureName,[IO.Pipes.PipeDirection]::InOut);$fixturePipe.Connect(10000)
+ $fixtureReader=[IO.StreamReader]::new($fixturePipe);$fixtureWriter=[IO.StreamWriter]::new($fixturePipe);$fixtureWriter.AutoFlush=$true
  $pipeName="lightremote-rmv2-text-$PID"
  $process=Start-Process -FilePath $Exe -ArgumentList @('--pipe',$pipeName) -PassThru -WindowStyle Hidden
  $pipe=[IO.Pipes.NamedPipeClientStream]::new('.',$pipeName,[IO.Pipes.PipeDirection]::InOut);$pipe.Connect(10000)
@@ -96,7 +81,7 @@ try {
    $expectedHash=[convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::Unicode.GetBytes($text)))
    $actualHash=[convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::Unicode.GetBytes($actual)))
    $normalizedEqual=$false;try{$normalizedEqual=$actual.Normalize([Text.NormalizationForm]::FormC) -ceq $text.Normalize([Text.NormalizationForm]::FormC)}catch{}
-   $diagnostic=@{result='FAIL';scope='isolated_actions_synthetic_text_no_raw_content';requestedUnits=$text.Length;actualUnits=$actual.Length;firstDifference=$firstDifference;expectedUtf16Sha256=$expectedHash;actualUtf16Sha256=$actualHash;nfcEqualDiagnosticOnly=$normalizedEqual;lastChunk=$ack;final=$final}
+   $diagnostic=@{result='FAIL';scope='isolated_actions_synthetic_text_no_raw_content';requestedUnits=$text.Length;actualUnits=$actual.Length;firstDifference=$firstDifference;expectedUtf16Sha256=$expectedHash;actualUtf16Sha256=$actualHash;nfcEqualDiagnosticOnly=$normalizedEqual;fixtureWmCharCount=$shared.characters;fixtureKeyDownCount=$shared.keyDowns;lastChunk=$ack;final=$final}
    $diagnostic|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $Output -Encoding utf8
    Write-Host ($diagnostic|ConvertTo-Json -Depth 8 -Compress)
    throw "text_full_readback_failed:$size"
@@ -127,6 +112,7 @@ try {
  # Kill the isolated helper first so any outstanding pipe/UIA read unblocks.
  if($null -ne $process -and -not $process.HasExited){Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue}
  if($null -ne $pipe){$pipe.Dispose()};if($null -ne $reader){$reader.Dispose()};if($null -ne $writer){$writer.Dispose()}
- if($shared.ready -and -not $shared.error){try{Ui-Command 'close'}catch{}}
- if($uiTask.IsCompleted){$null=$ui.EndInvoke($uiTask)};$ui.Dispose();$space.Dispose()
+ # Test fixture is its own process: no PowerShell UI runspace disposal wait.
+ if(-not $fixtureProcess.HasExited){Stop-Process -Id $fixtureProcess.Id -Force -ErrorAction SilentlyContinue}
+ if($fixturePipe){$fixturePipe.Dispose()};if($fixtureReader){$fixtureReader.Dispose()};if($fixtureWriter){$fixtureWriter.Dispose()}
 }

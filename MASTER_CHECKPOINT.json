@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-13T08:12:26.813Z",
+  "updatedAt": "2026-11-13T08:38:58.954Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "DEV11_UIA_OBSERVATION_SOURCE_NATIVE_TEXT_DIAGNOSTIC_PENDING",
+  "status": "DEV11_NATIVE_TEXT_MISMATCH_REPRODUCING_IN_ISOLATED_STA_FIXTURE",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -361,7 +361,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow exact new CI, inspect last-stage/length/hash native text receipt, repair actual keyboard/readback failure without weakening exact acceptance, then optional DXGI/D3D11 and media capability path, controlled prior-source benchmarks and one combined Owner physical UAT. No interim installer, production deployment or public release.",
+  "nextAction": "Inspect exact new native fixture result/WM_CHAR counts to isolate actual input loss from the old PowerShell UI message pump, fix product only as evidence requires, then publish optional DXGI/fallback and controlled capture comparison with resolved dependency lock; finish one consolidated Owner UAT. No interim installer or deployment.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -452,13 +452,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261113-rmv2-uia-observation-lane",
-    "status": "DEV11_UIA_OBSERVATION_SOURCE_NATIVE_TEXT_DIAGNOSTIC_PENDING",
-    "summary": "Move read-only uia.snapshot and semantic snapshot/events to one separate windowless MTA with a bounded two-entry queue; input/mutations/attach/detach remain ordered. Pin semantic root/epoch metadata before traversal, verify the same live session/root afterward, report concurrent input/UI changes and require reobservation rather than mixing trees/root metadata. Keep AutomationElements on their creating worker. Guard resolved mutation root before applying; changed acknowledgement metadata never triggers replay. Scheduler selftest checks observation during held input and input/status during held observation. CI105 Core/Web/Linux/macOS/native compile/cursor/capture passed, but text fixture hung and Windows job was cancelled without final text receipt. Add no-content progress checkpoints and an eight-minute fixture step timeout; actual16K text mismatch remains unresolved, not PASS.",
-    "verification": "Portable logical-text17/17 and existing import/input contracts pass. Native compile, MTA scheduler isolation/selftest and actual text acceptance are pending exact new Actions source; no native local/ARM build. CI105 run43361834599 was cancelled in Windows Unicode fixture after other checks PASS; it cannot provide a full candidate or text PASS. Before UIA checkpoint checkpoint/20261113-before-rmv2-uia-e34d85c bundleSHA a2c698726666ebc720949c920e496b199605e0067374a36ca396dee082206c6c independently restored/fsckPASS.",
-    "nextAction": "Follow exact new CI, inspect last-stage/length/hash native text receipt, repair actual keyboard/readback failure without weakening exact acceptance, then optional DXGI/D3D11 and media capability path, controlled prior-source benchmarks and one combined Owner physical UAT. No interim installer, production deployment or public release.",
-    "sourceDigest": "80d0aa7dc7bd89f22bae8c459b1a16e32fef183f8f118a4af507a423df35ab19",
-    "sourceFileCount": 1700
+    "taskId": "20261113-rmv2-isolated-text-fixture",
+    "status": "DEV11_NATIVE_TEXT_MISMATCH_REPRODUCING_IN_ISOLATED_STA_FIXTURE",
+    "summary": "CI106 native compile and UIA scheduler selftest/cursor/capture passed. Safe exact-source text evidence shows16384 sent events versus7406 actual UTF16 units, mismatch at index0; cause is still under investigation. The PowerShell-hosted WinForms fixture then hung during cleanup. Replace only that fixture with a separate ordinary STA WinForms test process and current-user pipe; record WM_CHAR/key-down counts without raw logs and use bounded process cleanup. Preserve exact16K/64K/256K text and required native readback assertions. No product typing behavior or success criterion changed in this packet. Optional GPU code/benchmark work remains local-only until this diagnostic is resolved.",
+    "verification": "CI106 run43391426307 sourcef968ed0: Core/Web/Linux/macOS and Windows compile/selftest/cursor/capture PASS; Windows failed text mismatch then fixture cleanup timeout. Text artifact14022196313 SHA256bec20431bbd209b4aafb01a4731a29882c2cc1eb338a90dcde5a59fc474a0313 independently verified. No text/full installer PASS. New fixture compiles/runs only in Actions; local work only parses PowerShell/XML. Full checkpoint checkpoint/20261113-before-rmv2-gpu-f968ed0 restore/fsckPASS.",
+    "nextAction": "Inspect exact new native fixture result/WM_CHAR counts to isolate actual input loss from the old PowerShell UI message pump, fix product only as evidence requires, then publish optional DXGI/fallback and controlled capture comparison with resolved dependency lock; finish one consolidated Owner UAT. No interim installer or deployment.",
+    "sourceDigest": "7279ded7712dc8f56ba247530d56c1a696570f13087bb46769a93afcbc76f447",
+    "sourceFileCount": 1702
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1560,7 +1560,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci98.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PENDING_NEW_SOURCE",
+    "fullCi": "PENDING_NEW_NATIVE_FIXTURE",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1657,7 +1657,7 @@
         "nativeTextFixture": "NOT_REACHED"
       },
       "nativeCompile": "PASS_CI103_SOURCE9638594",
-      "nativeTextAcceptance": "OPEN_CI104_MISMATCH_CI105_HUNG_NO_FINAL_RECEIPT",
+      "nativeTextAcceptance": "FAIL_CI106_16384_SENT_7406_ACTUAL_FIRST_DIFF0",
       "largeReferencePreparation": "COOPERATIVE_PREPARATION_AND_INITIAL_TARGET_BINDING_REVIEW_PENDING",
       "preparation": "COOPERATIVE_8192_UNITS_OR8MS",
       "targetBinding": "BEFORE_COOPERATIVE_GRAPHEME_VALIDATION",
@@ -1666,7 +1666,11 @@
       "preparationCancel": "ZERO_INPUT_PROVEN_PORTABLE",
       "nativeTextDiagnostic": "UNITS_SHA256_FIRST_DIFF_FINAL_METADATA_ONLY_NO_RAW_TEXT",
       "diagnostics": "STAGE_LENGTH_OFFSET_HASH_ONLY",
-      "nativeFixtureStepBudgetMinutes": 8
+      "nativeFixtureStepBudgetMinutes": 8,
+      "nativeTextEvidence": "docs/evidence/rmv2/text-ci106.json",
+      "fixture": "SEPARATE_STA_WINFORMS_PROCESS_WITH_CURRENT_USER_ONLY_PIPE",
+      "newFixtureNativeCi": "PENDING",
+      "noAcceptanceRelaxation": true
     },
     "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN",
     "nextPhase": "FIX_NATIVE_TEXT_THEN_OPTIONAL_GPU_MEDIA_BENCHMARKS",
@@ -1712,7 +1716,7 @@
       "source": "27c46376011edd94cd59781ab4d1f2ccca3a7cad"
     },
     "uiaObservation": {
-      "source": "IMPLEMENTED_NATIVE_CI_PENDING",
+      "source": "PUBLISHED_F968ED0",
       "queueCapacity": 2,
       "apartment": "DEDICATED_WINDOWLESS_MTA",
       "inputMutationOrdering": "UNCHANGED",
@@ -1726,7 +1730,14 @@
         "archiveSha256": "f340da6b67fdde9f8f3c83992857218f6d9ee723763b351d9eea64ae48469a8b",
         "restore": "PASS",
         "source": "e34d85c23625b59e2a6460f24f0e1a56e5d53f89"
-      }
+      },
+      "nativeSchedulerSelfTest": "PASS_CI106",
+      "physicalAccepted": false
+    },
+    "gpu": {
+      "source": "LOCAL_ONLY_NOT_PUBLISHED",
+      "nativeBuild": false,
+      "enabledByDefault": false
     }
   }
 }

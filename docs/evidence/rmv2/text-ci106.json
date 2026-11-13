@@ -1,0 +1,45 @@
+{
+  "sourceCommit": "f968ed0b713741b1584e38efc8db013d1c0190ca",
+  "ciRunId": 43391426307,
+  "artifactId": 14022196313,
+  "artifactSha256": "bec20431bbd209b4aafb01a4731a29882c2cc1eb338a90dcde5a59fc474a0313",
+  "scope": "isolated_actions_synthetic_text_no_raw_content",
+  "final": {
+    "contentVerification": "mismatch",
+    "verifiedInsertedUnits": null,
+    "verificationMethod": "uia-text-pattern-selection-line-endings",
+    "nativeQueueMs": 0.0167,
+    "nativeHandlerMs": 1542.9665,
+    "nativeTiming": {
+      "requestId": "dd16a0a8a3fa4a858a210c36ea5030ed",
+      "handlerMs": 1542.9665,
+      "handlerAndQueueMs": 1543.0553,
+      "processId": 720
+    }
+  },
+  "lastChunk": {
+    "writeId": "write_306f8a48d86742d8af0f559917b18b23",
+    "state": "running",
+    "reason": null,
+    "sentUnits": 16384,
+    "requestedUnits": 16384,
+    "verifiedInsertedUnits": null,
+    "contentVerification": "unverified",
+    "automaticReplay": false,
+    "nativeQueueMs": 0.0506,
+    "nativeHandlerMs": 54.9108,
+    "nativeTiming": {
+      "requestId": "205f28da981c4b50bb4b316286d60e87",
+      "handlerMs": 54.9108,
+      "handlerAndQueueMs": 55.0244,
+      "processId": 720
+    }
+  },
+  "result": "FAIL",
+  "nfcEqualDiagnosticOnly": false,
+  "firstDifference": 0,
+  "actualUnits": 7406,
+  "actualUtf16Sha256": "5740550667C7371522859510F0FDB522D6F85335349E8A9E686CC646D4270D89",
+  "expectedUtf16Sha256": "672A9558121695530BA0E3898B888DCFF274C631BE85C0A8CCAE986BA8241FF8",
+  "requestedUnits": 16384
+}
