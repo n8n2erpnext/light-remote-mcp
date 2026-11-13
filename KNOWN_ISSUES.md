@@ -123,3 +123,7 @@ Phase2a queue/profile source needs native CI and measured acceptance. UIA observ
 ## Add target-bound Unicode writes with verified progress and live authority checks
 
 Dev11 long typing is source-complete with portable checks; native compile/provider behavior/large Unicode/focus-switch fixture await exact Actions. UIA providers may be unavailable or stall; no universal content-verification claim. Required verification rejects unsupported/password/read-only semantics before typing where detectable. Win32 keyboard focus remains globally shared; per-packet guards reduce but cannot make a SendInput packet atomic with a concurrent physical focus switch. No auto-resume after interruption/unknown effects. Legacy generic batched physical text still has a4096 technical budget; use the named logical tool for long Windows input. Capture cache/ROI/freshness, measured before-after latency and optional GPU/video remain unfinished. Physical UAT postponed to final combined candidate.
+
+## Correct native logical write variable declaration for CSharp
+
+CI102 Windows failed at native compile CS0819 before the new text fixture. Split RobotContext FinishTextWrite local var declarations; no behavioral/test/threshold changes. Core/backend/Web passed for sourceef54911. New Actions proof pending; no CI102 artifact accepted, no Lab/Owner/production changes.

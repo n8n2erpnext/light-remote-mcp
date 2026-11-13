@@ -277,3 +277,7 @@ CI100 source d11f32d has no accepted native artifact: early source gates caught 
 ## Add target-bound Unicode writes with verified progress and live authority checks
 
 Dev11 adds Actions-only test-rmv2-text.ps1: real WinForms UI controls in an independent process, required readback16K/64K/256K Unicode, then focus switch before suffix with second control unchanged and explicit scope close. Portable tests are automatically discovered in existing unified unit directories. New private runtime imports are listed in client/core-files.json. This source has not yet passed native build; do not install/release/deploy or reuse CI101 hashes for dev11. CI1019/9PASS belongs exactly241359b/dev10, native receipt docs/evidence/rmv2/phase2a-ci101.json; no complete-installer hash claim for that run.
+
+## Correct native logical write variable declaration for CSharp
+
+CI102 Windows failed at native compile CS0819 before the new text fixture. Split RobotContext FinishTextWrite local var declarations; no behavioral/test/threshold changes. Core/backend/Web passed for sourceef54911. New Actions proof pending; no CI102 artifact accepted, no Lab/Owner/production changes.

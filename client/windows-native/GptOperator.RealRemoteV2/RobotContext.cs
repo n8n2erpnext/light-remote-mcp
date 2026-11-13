@@ -165,7 +165,7 @@ internal sealed class RobotContext : ApplicationContext
     }
     private object FinishTextWrite(JsonElement request)
     {
-        var visual=Text(request,"visualSessionId"),id=Text(request,"writeId");
+        var visual=Text(request,"visualSessionId");var id=Text(request,"writeId");
         if(!_visual.IsActive(visual))return _textWrites.Abandon(id,visual);
         _visual.ValidateInput(visual,Text(request,"leaseToken"));
         return _textWrites.Finish(id,visual,Bool(request,"complete"));

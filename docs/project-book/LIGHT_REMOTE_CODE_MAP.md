@@ -322,3 +322,7 @@ Compatibility timing stays explicit in NativeDesktopBridge event mapping and Nat
 ## Add target-bound Unicode writes with verified progress and live authority checks
 
 lib/rmv2-text-write.mjs owns device-local async orchestration, full preflight, deadlines, per-chunk authority, dedupe and truthful uncertain-effect receipts; rmv2-text-source.mjs owns pinned read-root-bound UTF8 reference; rmv2-semantic-value.cjs rejects invalid complete semantic values. operator-host/rmv2-work-authority.mjs is called only behind verifiedChannelContext. Device public proxy explicitly whitelists its action. Operator/Plugin named text tools dispatch new text-write-* ops; Agent holds full RM task lifetime and maps private desktop.text.start/chunk/finish. Native LogicalTextWriter.cs and TypingTarget.cs retain target/readback privately on the ordered MTA worker; NativeInput.WriteLogicalChunk coalesces grapheme-safe key-event packets with per-packet focus/owner guards. test-rmv2-text.ps1 is Actions-only real-control acceptance.
+
+## Correct native logical write variable declaration for CSharp
+
+CI102 Windows failed at native compile CS0819 before the new text fixture. Split RobotContext FinishTextWrite local var declarations; no behavioral/test/threshold changes. Core/backend/Web passed for sourceef54911. New Actions proof pending; no CI102 artifact accepted, no Lab/Owner/production changes.
