@@ -6,6 +6,7 @@ namespace Rmv2TextFixture;
 internal sealed class MeasuredTextBox:TextBox
 {
     public int Characters,KeyDowns,DelayMs;
+    protected override CreateParams CreateParams {get {var value=base.CreateParams;value.Style|=0x1000;return value;}}
     protected override void WndProc(ref Message message)
     {
         if(message.Msg==0x0102){if(DelayMs>0)Thread.Sleep(DelayMs);Characters++;}
@@ -16,6 +17,7 @@ internal sealed class MeasuredTextBox:TextBox
 internal sealed class MeasuredRichEdit:RichTextBox
 {
     public int Characters,KeyDowns;
+    protected override CreateParams CreateParams {get {var value=base.CreateParams;value.Style|=0x1000;return value;}}
     protected override void WndProc(ref Message message)
     {
         if(message.Msg==0x0102)Characters++;
@@ -33,8 +35,8 @@ internal static class Program
         {Environment.ExitCode=2;return;}
         ApplicationConfiguration.Initialize();
         using var form=new Form{Text="RM isolated native text acceptance",Width=600,Height=440,TopMost=true};
-        using var a=new MeasuredTextBox{Multiline=true,MaxLength=1048576};a.SetBounds(20,20,540,160);
-        using var b=new MeasuredTextBox{Multiline=true,MaxLength=1048576};b.SetBounds(20,200,540,160);
+        using var a=new MeasuredTextBox{Multiline=true,AcceptsReturn=true,MaxLength=1048576};a.SetBounds(20,20,540,160);
+        using var b=new MeasuredTextBox{Multiline=true,AcceptsReturn=true,MaxLength=1048576};b.SetBounds(20,200,540,160);
         using var rich=new MeasuredRichEdit{Multiline=true,MaxLength=1048576,WordWrap=true,DetectUrls=false,Visible=false};rich.SetBounds(20,20,540,160);
         TextBoxBase active=a;var activeKind="classic-edit";
         form.Controls.AddRange(new Control[]{a,b,rich});

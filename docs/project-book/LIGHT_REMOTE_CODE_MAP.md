@@ -374,3 +374,7 @@ TypingTarget.PollDelivery uses5second read-only budget and virtual-clock timeout
 ## Align keyboard indicators and explicit text acceptance layouts
 
 RobotContext.HandleAsync binds logical keyboard activity screen before Begin, retaining existing mutation target guards. LogicalTextWriter.MaxChunkUnits and TypingTarget.DeliveryWaitMs feed both behavior/status. test-rmv2-text asserts status/prepared agreement and full line-ending-only content match for explicit paragraph layout; docs/evidence/rmv2/text-ci114.json pins actual failing giant Rich Edit paragraph plus classic positive receipts.
+
+## Deliver line breaks only to bound native multiline editors
+
+NativeInput.WriteLogicalChunkCore handles native multiline line breaks inside the same guarded packet loop. TypingTarget.NativeLineBreakPolicy binds/checks native HWND class and ES_MULTILINE+ES_WANTRETURN; Metadata reports capability. Program native selftest requires nativeLineBreakPolicyOk and extended logicalPacketGuardsOk. Rmv2TextFixture explicitly declares WANTRETURN; test-rmv2-text tests6LF/CRLF/CR cases before sizes. CI115 scoped evidence pinned.

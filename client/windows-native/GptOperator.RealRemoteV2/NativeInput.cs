@@ -202,14 +202,14 @@ internal static class NativeInput
         foreach(var key in new[]{0x10,0x11,0x12,0x5B,0x5C})
             if((GetAsyncKeyState(key)&0x8000)!=0)throw new InvalidOperationException("desktop_text_modifier_held_no_keyup_or_replay");
     }
-    internal static int WriteLogicalChunk(string text,int intervalMs,Action guard,Action afterPacket)
+    internal static int WriteLogicalChunk(string text,int intervalMs,Action guard,Action afterPacket,bool nativeMultilineLineBreaks=false)
         => WriteLogicalChunkCore(text,intervalMs,guard,afterPacket,
-            ()=>{Activity?.Check();EnsureNoHeldModifiers();},Send,InterruptibleDelay);
+            ()=>{Activity?.Check();EnsureNoHeldModifiers();},Send,InterruptibleDelay,nativeMultilineLineBreaks);
 
     // The same packet loop is tested with a recording sender; self-tests never
     // inject keyboard input. Only admission guards authorize a NEW OS packet.
     private static int WriteLogicalChunkCore(string text,int intervalMs,Action guard,Action afterPacket,
-        Action validate,Action<INPUT[]> send,Action<int> delay)
+        Action validate,Action<INPUT[]> send,Action<int> delay,bool nativeMultilineLineBreaks=false)
     {
         if(text.Length is <1 or >4096||intervalMs is <0 or >100)throw new InvalidOperationException("desktop_write_invalid_chunk");
         var sent=0;var packet=new StringBuilder();
@@ -218,7 +218,17 @@ internal static class NativeInput
             if(packet.Length==0)return;
             validate();guard();
             var values=new List<INPUT>(packet.Length*2);
-            foreach(var ch in packet.ToString()) {
+            var source=packet.ToString();
+            for(var i=0;i<source.Length;i++) {
+                var ch=source[i];
+                // VK_PACKET CR is not a Return key in every editor. Only a
+                // bound native multiline Edit with WANTRETURN admits this
+                // path. Never turn newlines in arbitrary web/form fields into
+                // submit keys. CRLF is one line break but retains2 source units.
+                if(nativeMultilineLineBreaks&&(ch is '\r' or '\n')) {
+                    if(ch=='\r'&&i+1<source.Length&&source[i+1]=='\n')i++;
+                    values.Add(KeyInput(0x0D,false));values.Add(KeyInput(0x0D,true));continue;
+                }
                 values.Add(new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{wScan=ch,dwFlags=KEYEVENTF_UNICODE}}});
                 values.Add(new INPUT{type=INPUT_KEYBOARD,U=new INPUTUNION{ki=new KEYBDINPUT{wScan=ch,dwFlags=KEYEVENTF_UNICODE|KEYEVENTF_KEYUP}}});
             }
@@ -256,7 +266,13 @@ internal static class NativeInput
         if(WriteLogicalChunkCore(new string('x',32),0,Admit,Observe,()=>{},Record,_=>{})!=32||sent!=32||observations!=1||!expired)return false;
         expired=false;sent=0;
         try{WriteLogicalChunkCore("x",0,Admit,Observe,()=>{},_=>throw new InvalidOperationException("send_input_partial_or_failed_do_not_replay"),_=>{});return false;}
-        catch(LogicalTextPacketInterrupted e){return !e.ProgressKnown&&e.SentUnits==0&&sent==0;}
+        catch(LogicalTextPacketInterrupted e){if(e.ProgressKnown||e.SentUnits!=0||sent!=0)return false;}
+        var recorded=new List<INPUT>();const string lines="a\r\nb\nc\rd";
+        var units=WriteLogicalChunkCore(lines,0,()=>{},()=>{},()=>{},recorded.AddRange,_=>{},true);
+        if(units!=lines.Length||recorded.Count!=14||recorded.Count(x=>x.U.ki.wVk==0x0D&&x.U.ki.dwFlags==0)!=3||recorded.Any(x=>x.U.ki.wScan is '\r' or '\n'))return false;
+        recorded.Clear();
+        return WriteLogicalChunkCore(lines,0,()=>{},()=>{},()=>{},recorded.AddRange,_=>{})==lines.Length
+            &&recorded.Count==lines.Length*2&&recorded.All(x=>x.U.ki.wVk==0&&(x.U.ki.dwFlags&KEYEVENTF_UNICODE)!=0);
     }
 
     public static void DeleteText(int count)

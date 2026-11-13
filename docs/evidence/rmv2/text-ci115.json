@@ -1,0 +1,109 @@
+{
+  "sourceCommit": "1421d22ea7a81dc54d3e5aa6d2be7c99186ac739",
+  "ciRunId": 43455766148,
+  "artifactId": 14054297308,
+  "artifactSha256": "029d547f2429c6117cd86185c7d603b631b2a0fecc9425651c5a79d6993704de",
+  "deliverySnapshots": [
+    {
+      "exactSentPrefix": false,
+      "fixtureMaxLength": 1048576,
+      "firstDifference": 144,
+      "fixtureWmCharCount": 256,
+      "controlKind": "rich-edit",
+      "expectedUtf16Sha256": "1A18011013848C022CFCEB423B1C686F15822F7492F3D86284CF963794DD1AD8",
+      "actualUnits": 255,
+      "otherUnits": 0,
+      "wordWrap": true,
+      "afterStopMs": 165.3267,
+      "sentUnits": 256,
+      "fixtureKeyDownCount": 256,
+      "actualUtf16Sha256": "1658508D34CA61BAE0E0DE43216D2C6BA524CBA15EA1EC8D3F0A8701AFC51D39"
+    },
+    {
+      "exactSentPrefix": false,
+      "fixtureMaxLength": 1048576,
+      "firstDifference": 144,
+      "fixtureWmCharCount": 256,
+      "controlKind": "rich-edit",
+      "expectedUtf16Sha256": "1A18011013848C022CFCEB423B1C686F15822F7492F3D86284CF963794DD1AD8",
+      "actualUnits": 255,
+      "otherUnits": 0,
+      "wordWrap": true,
+      "afterStopMs": 1085.4598,
+      "sentUnits": 256,
+      "fixtureKeyDownCount": 256,
+      "actualUtf16Sha256": "1658508D34CA61BAE0E0DE43216D2C6BA524CBA15EA1EC8D3F0A8701AFC51D39"
+    },
+    {
+      "exactSentPrefix": false,
+      "fixtureMaxLength": 1048576,
+      "firstDifference": 144,
+      "fixtureWmCharCount": 256,
+      "controlKind": "rich-edit",
+      "expectedUtf16Sha256": "1A18011013848C022CFCEB423B1C686F15822F7492F3D86284CF963794DD1AD8",
+      "actualUnits": 255,
+      "otherUnits": 0,
+      "wordWrap": true,
+      "afterStopMs": 1996.0255,
+      "sentUnits": 256,
+      "fixtureKeyDownCount": 256,
+      "actualUtf16Sha256": "1658508D34CA61BAE0E0DE43216D2C6BA524CBA15EA1EC8D3F0A8701AFC51D39"
+    }
+  ],
+  "stage": "typing_chunks",
+  "requestedUnits": 262144,
+  "automaticReplay": false,
+  "scope": "isolated_actions_synthetic_text_no_raw_content",
+  "completedSizes": [
+    {
+      "nativeVerified": true,
+      "fullFixtureReadback": true,
+      "elapsedMs": 29145.8599,
+      "comparison": "full-content-line-ending-equivalence-only",
+      "controlKind": "classic-edit",
+      "units": 16384,
+      "wordWrap": true,
+      "layout": "single-paragraph"
+    },
+    {
+      "nativeVerified": true,
+      "fullFixtureReadback": true,
+      "elapsedMs": 114420.6274,
+      "comparison": "full-content-line-ending-equivalence-only",
+      "controlKind": "classic-edit",
+      "units": 65536,
+      "wordWrap": true,
+      "layout": "single-paragraph"
+    }
+  ],
+  "lastAcknowledgedOffset": 0,
+  "result": "FAIL",
+  "lastNativeReply": {
+    "writeId": "write_28fadce489b04f6ebd1db3a396e3ce9a",
+    "state": "interrupted",
+    "reason": "desktop_text_delivery_not_observed_reconcile",
+    "phase": "delivery-readback",
+    "textTiming": {
+      "targetMs": 4.3367,
+      "sendMs": 72.6225,
+      "deliveryMs": 5010.7024
+    },
+    "authorityExpiredAtReceipt": true,
+    "sentUnits": 256,
+    "requestedUnits": 262144,
+    "lastObservedInsertedUnits": 0,
+    "verifiedInsertedUnits": null,
+    "contentVerification": "unverified",
+    "automaticReplay": false,
+    "nativeQueueMs": 0.0552,
+    "nativeHandlerMs": 5088.153,
+    "nativeTiming": {
+      "requestId": "4fc38337034c4ff3b4495ae47bbac7f1",
+      "handlerMs": 5088.153,
+      "handlerAndQueueMs": 5088.3061,
+      "processId": 9416
+    }
+  },
+  "lateFixtureMatchDoesNotChangeNativeFailure": true,
+  "interpretation": "FAIL preserved: first256 events fully reached fixture, but actual255units lacked the CR separator at144 and stayed unchanged in all3post-stop snapshots. Native full-content readback correctly refused success. This is an actual newline delivery defect distinct from earlier huge-paragraph slowness. Other-field0; no replay."
+}

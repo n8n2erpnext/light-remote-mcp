@@ -50,6 +50,23 @@ try {
   if($Op -eq 'chunk'){$Payload.authorityBudgetMs=1000}
   return Invoke-Rm $Payload
  }
+ # Test LF/CRLF/CR before the expensive sizes. These are explicit native
+ # multiline WANTRETURN controls; arbitrary form fields never gain Enter keys.
+ $newlineReports=@()
+ foreach($kind in @('classic','rich')){
+  foreach($lineEnding in @("`n","`r`n","`r")){
+   Ui-Command 'reset' '' $kind
+   $id='write_'+[guid]::NewGuid().ToString('N');$lineText='first'+$lineEnding+'second'+$lineEnding+'third'
+   $script:testUnits=$lineText.Length;$script:testOffset=0;Write-TextStage 'native_multiline_line_endings'
+   $prepared=Text-Rpc 'start' @{writeId=$id;requestedUnits=$lineText.Length;verification='required';mode='insert'}
+   if(-not $prepared.target.nativeMultilineLineBreaks){throw 'text_fixture_native_multiline_policy_not_bound'}
+   $ack=Text-Rpc 'chunk' @{writeId=$id;offset=0;text=$lineText;intervalMs=0}
+   if($ack.state -ne 'running' -or $ack.sentUnits -ne $lineText.Length){throw 'text_native_multiline_chunk_failed'}
+   $final=Text-Rpc 'finish' @{writeId=$id;complete=$true};Ui-Command 'read'
+   if($final.contentVerification -ne 'verified' -or $final.verifiedInsertedUnits -ne $lineText.Length -or (Normalize-LineEndings $shared.result) -cne (Normalize-LineEndings $lineText) -or $shared.other -cne ''){throw 'text_native_multiline_full_content_failed'}
+   $newlineReports+=,@{controlKind=$kind;lineEndingCodeUnits=@([char[]]$lineEnding|ForEach-Object {[int]$_});sourceUnits=$lineText.Length;nativeVerified=$true;fullFixtureReadback=$true}
+  }
+ }
  $sizes=@()
  foreach($size in @(16384,65536,262144)){
   $script:testUnits=$size;$script:testOffset=0;$script:sizeClock=[diagnostics.stopwatch]::StartNew();Write-TextStage 'resetting_control'
@@ -146,7 +163,7 @@ try {
  if($shared.result -cne 'prefix' -or $shared.other -cne ''){throw 'text_suffix_leaked_to_other_control'}
  $closed=Invoke-Rm @{op='desktop.visual.detach';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken}
  if(-not $closed.scopeClosed){throw 'text_scope_not_closed'}
- $receipt=@{result='PASS';scope='isolated_actions_winforms_native_not_owner_physical';unicodeReadbackSizes=$sizes;sizeMeasurements=$script:completedSizes;delayedDelivery=$slowReport;classicWrapped262K='NOT_ACCEPTED_SEPARATE_SLOW_TARGET_CASE';richSingleParagraph262K='NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT';elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
+ $receipt=@{result='PASS';scope='isolated_actions_winforms_native_not_owner_physical';nativeMultilineLineEndings=$newlineReports;unicodeReadbackSizes=$sizes;sizeMeasurements=$script:completedSizes;delayedDelivery=$slowReport;classicWrapped262K='NOT_ACCEPTED_SEPARATE_SLOW_TARGET_CASE';richSingleParagraph262K='NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT';elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Compress)
 } catch {

@@ -34,6 +34,7 @@ internal sealed class TypingTarget
     public bool VerificationAvailable {get;private set;}
     public string VerificationMethod {get;private set;}="unavailable";
     public string Fingerprint {get;private set;}="";
+    public bool NativeMultilineLineBreaks {get;}
 
     private TypingTarget(UiSensor sensor,ControlActivity activity)
     {
@@ -43,6 +44,7 @@ internal sealed class TypingTarget
         if(_root==0)throw new InvalidOperationException("desktop_text_foreground_required");
         var thread=GetWindowThreadProcessId(_root,out _pid);
         _focus=ReadFocus(thread);_processStart=ProcessStart(_pid);
+        NativeMultilineLineBreaks=ReadNativeLineBreakPolicy(_focus);
     }
     public static TypingTarget Capture(UiSensor sensor,ControlActivity activity,string mode,string verification)
     {
@@ -96,7 +98,7 @@ internal sealed class TypingTarget
             _value=value;VerificationAvailable=true;VerificationMethod="uia-empty-value-line-endings";
         }
     }
-    public object Metadata()=>new {fingerprint=Fingerprint,password=_password,
+    public object Metadata()=>new {fingerprint=Fingerprint,password=_password,nativeMultilineLineBreaks=NativeMultilineLineBreaks,
         binding=_runtime is {Length:>0}?"win32-foreground-focus+uia-runtime":"win32-foreground-focus",
         verificationAvailable=VerificationAvailable,verificationMethod=VerificationMethod};
     public void CheckFast()
@@ -106,6 +108,7 @@ internal sealed class TypingTarget
         if(!ControlActivity.InputDesktopAvailable())throw new TypingTargetInterrupted("input_desktop_unavailable");
         var root=GetForegroundWindow();var thread=GetWindowThreadProcessId(root,out var pid);
         if(root!=_root||pid!=_pid||ReadFocus(thread)!=_focus)throw new TypingTargetInterrupted("target_changed");
+        if(NativeMultilineLineBreaks&&!ReadNativeLineBreakPolicy(_focus))throw new TypingTargetInterrupted("native_multiline_target_changed");
     }
     public void CheckFull()
     {
@@ -160,6 +163,25 @@ internal sealed class TypingTarget
         catch(TypingTargetInterrupted){return reads==1;}
     }
     private static string Normalize(string value)=>value.Replace("\r\n","\n",StringComparison.Ordinal).Replace('\r','\n');
+    private static bool NativeLineBreakPolicy(string name,uint style)
+    {
+        // Requiring WANTRETURN avoids making a newline into a dialog submit.
+        const uint required=0x0004|0x1000; // ES_MULTILINE | ES_WANTRETURN
+        return (style&required)==required&&(name.Equals("Edit",StringComparison.OrdinalIgnoreCase)
+            ||name.StartsWith("RichEdit",StringComparison.OrdinalIgnoreCase)
+            ||name.StartsWith("WindowsForms10.Edit.",StringComparison.OrdinalIgnoreCase)
+            ||name.StartsWith("WindowsForms10.RichEdit",StringComparison.OrdinalIgnoreCase));
+    }
+    private static bool ReadNativeLineBreakPolicy(nint hwnd)
+    {
+        var name=new StringBuilder(256);
+        return hwnd!=0&&GetClassName(hwnd,name,name.Capacity)>0&&NativeLineBreakPolicy(name.ToString(),GetWindowLong(hwnd,-16));
+    }
+    internal static bool NativeLineBreakPolicySelfTest()=>NativeLineBreakPolicy("Edit",0x1004)
+        &&NativeLineBreakPolicy("WindowsForms10.RICHEDIT50W.app.0.test",0x1004)
+        &&!NativeLineBreakPolicy("Chrome_RenderWidgetHostHWND",0x1004)
+        &&!NativeLineBreakPolicy("Edit",0x1000)&&!NativeLineBreakPolicy("Edit",0x0004)
+        &&!NativeLineBreakPolicy("Edit",0);
     private static long ProcessStart(uint pid) {try {using var process=Process.GetProcessById((int)pid);return process.StartTime.ToUniversalTime().Ticks;}catch{return 0;} }
     private static nint ReadFocus(uint thread)
     {
@@ -172,4 +194,6 @@ internal sealed class TypingTarget
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hwnd,out uint pid);
     [DllImport("user32.dll")] private static extern bool GetGUIThreadInfo(uint thread,ref GuiThreadInfo info);
+    [DllImport("user32.dll",CharSet=CharSet.Unicode,EntryPoint="GetClassNameW")] private static extern int GetClassName(nint hwnd,StringBuilder value,int maximum);
+    [DllImport("user32.dll",EntryPoint="GetWindowLongW")] private static extern uint GetWindowLong(nint hwnd,int index);
 }

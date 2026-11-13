@@ -152,3 +152,7 @@ No public request/transport/authority cap changes. Native read-only completion m
 ## Align keyboard indicators and explicit text acceptance layouts
 
 Native desktop.status.logicalText reports unpaced chunkUnits256, pacedChunkUnits128, maxGraphemeUnits128, preferredPacketUnits32, deliveryWaitMs5000, inputAuthorityBudgetMaxMs1000, deliveryBackpressure when-readback-available. maxChunkUnits in text.start must agree with native status; real native acceptance asserts both endpoints. Large input capacity does not promise any editor accepts a giant single paragraph. CR/LF equivalence is readback comparison only, not silent normalization of submitted input.
+
+## Deliver line breaks only to bound native multiline editors
+
+desktop.text.start.target.nativeMultilineLineBreaks reports bound native editor capability. A CRLF logical newline retains2source UTF16units but emits one Return pair only on proven known native multiline WANTRETURN HWNDs. Other fields receive no new Return behavior. Final verifiedInsertedUnits still counts source input units under line-ending-only equivalence, never OS event count. No public payload/permission/TTL/transport cap changed.

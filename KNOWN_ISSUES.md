@@ -175,3 +175,7 @@ Classic wrapped262K remains unaccepted: CI113 window73614 was complete and exact
 ## Align keyboard indicators and explicit text acceptance layouts
 
 CI114 giant wrapped Rich Edit single-paragraph262K failed completion at59556sent/59301observed; direct fixture grew59485->59499->59518 without more input, but full sent prefix was not reached in snapshots. Root cause not proved; product safely interrupts without replay. Classic giant wrapped262K is also NOT_ACCEPTED. Separate paragraph-structured262K coverage cannot generalize acceptance or performance to either failed layout. Arbitrary provider/newline/app diversity, Owner monitor/DPI/physical acceptance and real GPU behavior remain pending.
+
+## Deliver line breaks only to bound native multiline editors
+
+CI115 paragraph262K failed in its first256unit window because stable text omitted CR. This is distinct from slow giant-paragraph delivery in CI113/114. New guarded native multiline support is not universal browser/terminal newline support or an atomic targeted insertion guarantee. Existing giant-paragraph262K classic/rich FAILs remain. Original asynchronous queued Windows input can still race a focus change; no replay or claim of zero leaked characters under every mid-packet race.

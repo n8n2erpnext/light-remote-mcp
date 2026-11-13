@@ -95,7 +95,7 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
         try {
             row.Target.CheckFull();
             targetMs=clock.Elapsed.TotalMilliseconds;phase="sending";clock.Restart();
-            accepted=NativeInput.WriteLogicalChunk(text,intervalMs,AdmitPacket,ObserveGuard);
+            accepted=NativeInput.WriteLogicalChunk(text,intervalMs,AdmitPacket,ObserveGuard,row.Target.NativeMultilineLineBreaks);
             sendMs=clock.Elapsed.TotalMilliseconds;phase="delivery-readback";clock.Restart();
             row.Sent+=accepted;row.SentText.Append(text);
             if(row.Verification!="none"&&row.Target.VerificationAvailable) {
