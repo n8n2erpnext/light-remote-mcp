@@ -16,13 +16,13 @@ $fixtureProcess=Start-Process -FilePath $FixtureExe -ArgumentList @($fixtureName
 $fixturePipe=$null;$fixtureReader=$null;$fixtureWriter=$null
 $shared=@{result='';other='';characters=0;keyDowns=0}
 $process=$null;$pipe=$null;$reader=$null;$writer=$null
-function Ui-Command([string]$Command,[string]$Initial=''){
- $request=@{id=[guid]::NewGuid().ToString('N');op=$Command;initial=$Initial}
+function Ui-Command([string]$Command,[string]$Initial='',[string]$Kind='classic',[int]$DelayMs=0){
+ $request=@{id=[guid]::NewGuid().ToString('N');op=$Command;initial=$Initial;kind=$Kind;delayMs=$DelayMs}
  $fixtureWriter.WriteLine(($request|ConvertTo-Json -Compress))
  $read=$fixtureReader.ReadLineAsync();if(-not $read.Wait(15000)){throw "text_fixture_timeout:$Command"}
  $reply=$read.Result|ConvertFrom-Json
  if($reply.id -ne $request.id -or -not $reply.ok){throw 'text_fixture_reply_invalid'}
- if($Command -eq 'read'){$shared.result=$reply.data.text;$shared.other=$reply.data.other;$shared.characters=$reply.data.characters;$shared.keyDowns=$reply.data.keyDowns;$shared.controlMaxLength=$reply.data.controlMaxLength;$shared.wordWrap=$reply.data.wordWrap}
+ if($Command -eq 'read'){$shared.result=$reply.data.text;$shared.other=$reply.data.other;$shared.characters=$reply.data.characters;$shared.keyDowns=$reply.data.keyDowns;$shared.controlMaxLength=$reply.data.controlMaxLength;$shared.wordWrap=$reply.data.wordWrap;$shared.controlKind=$reply.data.controlKind;$shared.delayMs=$reply.data.delayMs}
  Start-Sleep -Milliseconds 150
 }
 try {
@@ -51,7 +51,9 @@ try {
  $sizes=@()
  foreach($size in @(16384,65536,262144)){
   $script:testUnits=$size;$script:testOffset=0;$script:sizeClock=[diagnostics.stopwatch]::StartNew();Write-TextStage 'resetting_control'
-  Ui-Command 'reset'
+  # Standard Edit remains covered at16K/64K. A genuine Rich Edit control with
+  # declared1M capacity covers262K; do not infer classic wrapped262K acceptance.
+  $kind=$(if($size -gt 65536){'rich'}else{'classic'});Ui-Command 'reset' '' $kind
   # A surrogate pair and a combining sequence remain together in every chunk.
   $seed='Unicode '+[char]0x0110+[char]0x00e2+'y '+[char]::ConvertFromUtf32(0x1f600)+' e'+[char]0x0301+' '
   $text=($seed*([int][math]::Floor($size/$seed.Length)))+('x'*($size%$seed.Length))
@@ -82,7 +84,7 @@ try {
       if($firstDifference -eq -1 -and $actual.Length -ne $expectedPrefix.Length){$firstDifference=[math]::Min($actual.Length,$expectedPrefix.Length)}
       $expectedHash=[convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::Unicode.GetBytes($expectedPrefix)))
      }
-     $snapshots+=,@{afterStopMs=$stopped.Elapsed.TotalMilliseconds;actualUnits=$actual.Length;sentUnits=$sent;exactSentPrefix=$equal;firstDifference=$firstDifference;expectedUtf16Sha256=$expectedHash;actualUtf16Sha256=([convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::Unicode.GetBytes($actual))));fixtureWmCharCount=$shared.characters;fixtureKeyDownCount=$shared.keyDowns;otherUnits=([string]$shared.other).Length;fixtureMaxLength=$shared.controlMaxLength;wordWrap=$shared.wordWrap}
+     $snapshots+=,@{afterStopMs=$stopped.Elapsed.TotalMilliseconds;actualUnits=$actual.Length;sentUnits=$sent;exactSentPrefix=$equal;firstDifference=$firstDifference;expectedUtf16Sha256=$expectedHash;actualUtf16Sha256=([convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::Unicode.GetBytes($actual))));fixtureWmCharCount=$shared.characters;fixtureKeyDownCount=$shared.keyDowns;otherUnits=([string]$shared.other).Length;fixtureMaxLength=$shared.controlMaxLength;wordWrap=$shared.wordWrap;controlKind=$shared.controlKind}
     }
     $failure=@{result='FAIL';scope='isolated_actions_synthetic_text_no_raw_content';stage=$script:lastStage;requestedUnits=$script:testUnits;lastAcknowledgedOffset=$offset;lastNativeReply=$ack;completedSizes=$script:completedSizes;deliverySnapshots=$snapshots;automaticReplay=$false;lateFixtureMatchDoesNotChangeNativeFailure=$true}
     $failure|ConvertTo-Json -Depth 9|Set-Content -LiteralPath $Output -Encoding utf8
@@ -110,9 +112,21 @@ try {
    throw "text_full_readback_failed:$size"
   }
   $sizes+=$size
-  $script:completedSizes+=,@{units=$size;elapsedMs=$script:sizeClock.Elapsed.TotalMilliseconds;exactFixtureReadback=$true;nativeVerified=$true}
+  $script:completedSizes+=,@{units=$size;elapsedMs=$script:sizeClock.Elapsed.TotalMilliseconds;exactFixtureReadback=$true;nativeVerified=$true;controlKind=$shared.controlKind;wordWrap=$shared.wordWrap}
  }
- Write-TextStage 'focus_switch_test'
+ # Actual deliberately slow keyboard delivery must be observed before more
+ # input; no clipboard/SetValue, replay or reclassification of a failed ACK.
+ Ui-Command 'reset' '' 'classic' 80
+ $slowText='read-only completion after send';$id='write_'+[guid]::NewGuid().ToString('N')
+ $script:testUnits=$slowText.Length;$script:testOffset=0;Write-TextStage 'delayed_delivery_test'
+ $null=Text-Rpc 'start' @{writeId=$id;requestedUnits=$slowText.Length;verification='required';mode='insert'}
+ $slowClock=[diagnostics.stopwatch]::StartNew();$slowAck=Text-Rpc 'chunk' @{writeId=$id;offset=0;text=$slowText;intervalMs=0}
+ $ack=$slowAck
+ if($slowAck.state -ne 'running' -or $slowAck.sentUnits -ne $slowText.Length -or -not $slowAck.authorityExpiredAtReceipt -or $slowClock.ElapsedMilliseconds -lt 1500){throw 'text_delayed_delivery_not_verified_after_admission_expiry'}
+ $slowFinal=Text-Rpc 'finish' @{writeId=$id;complete=$true};Ui-Command 'read'
+ if($slowFinal.contentVerification -ne 'verified' -or $slowFinal.verifiedInsertedUnits -ne $slowText.Length -or $shared.result -cne $slowText){throw 'text_delayed_delivery_full_readback_failed'}
+ $slowReport=@{units=$slowText.Length;elapsedMs=$slowClock.Elapsed.TotalMilliseconds;nativeVerified=$true;exactFixtureReadback=$true;authorityExpiredAfterSend=$true;delayPerWmCharMs=$shared.delayMs}
+ $script:testUnits=12;$script:testOffset=0;Write-TextStage 'focus_switch_test'
  # Changing focus between acknowledged chunks must not type the suffix into B.
  Ui-Command 'reset';$id='write_'+[guid]::NewGuid().ToString('N')
  $null=Text-Rpc 'start' @{writeId=$id;requestedUnits=12;verification='required';mode='insert'}
@@ -125,7 +139,7 @@ try {
  if($shared.result -cne 'prefix' -or $shared.other -cne ''){throw 'text_suffix_leaked_to_other_control'}
  $closed=Invoke-Rm @{op='desktop.visual.detach';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken}
  if(-not $closed.scopeClosed){throw 'text_scope_not_closed'}
- $receipt=@{result='PASS';scope='isolated_actions_winforms_native_not_owner_physical';unicodeReadbackSizes=$sizes;sizeMeasurements=$script:completedSizes;elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
+ $receipt=@{result='PASS';scope='isolated_actions_winforms_native_not_owner_physical';unicodeReadbackSizes=$sizes;sizeMeasurements=$script:completedSizes;delayedDelivery=$slowReport;classicWrapped262K='NOT_ACCEPTED_SEPARATE_SLOW_TARGET_CASE';elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Compress)
 } catch {

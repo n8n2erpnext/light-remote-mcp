@@ -1,0 +1,100 @@
+{
+  "sourceCommit": "d6d302cbc21fd53370006b67b72addfbccfacaba",
+  "ciRunId": 43447565461,
+  "artifactId": 14049787318,
+  "artifactSha256": "809b5711c809faad589d394c985c19edf7fdf56c2f79559d2f599139dd6d119b",
+  "completedSizes": [
+    {
+      "exactFixtureReadback": true,
+      "elapsedMs": 31954.7549,
+      "nativeVerified": true,
+      "units": 16384
+    },
+    {
+      "exactFixtureReadback": true,
+      "elapsedMs": 131230.6477,
+      "nativeVerified": true,
+      "units": 65536
+    }
+  ],
+  "automaticReplay": false,
+  "deliverySnapshots": [
+    {
+      "wordWrap": true,
+      "firstDifference": 73575,
+      "fixtureWmCharCount": 73575,
+      "otherUnits": 0,
+      "sentUnits": 73614,
+      "exactSentPrefix": false,
+      "actualUnits": 73575,
+      "fixtureKeyDownCount": 73575,
+      "actualUtf16Sha256": "896A15BAD5AA181F66A2AF13440245570CEAAC614028AF62B7D307BBF773FADE",
+      "fixtureMaxLength": 1048576,
+      "expectedUtf16Sha256": "C6873B5D109F05B286E180442054137D5BE4761DA6F78C81F2ADC684F57812C3",
+      "afterStopMs": 251.1341
+    },
+    {
+      "wordWrap": true,
+      "firstDifference": -1,
+      "fixtureWmCharCount": 73614,
+      "otherUnits": 0,
+      "sentUnits": 73614,
+      "exactSentPrefix": true,
+      "actualUnits": 73614,
+      "fixtureKeyDownCount": 73614,
+      "actualUtf16Sha256": "C6873B5D109F05B286E180442054137D5BE4761DA6F78C81F2ADC684F57812C3",
+      "fixtureMaxLength": 1048576,
+      "expectedUtf16Sha256": "C6873B5D109F05B286E180442054137D5BE4761DA6F78C81F2ADC684F57812C3",
+      "afterStopMs": 1209.1164
+    },
+    {
+      "wordWrap": true,
+      "firstDifference": -1,
+      "fixtureWmCharCount": 73614,
+      "otherUnits": 0,
+      "sentUnits": 73614,
+      "exactSentPrefix": true,
+      "actualUnits": 73614,
+      "fixtureKeyDownCount": 73614,
+      "actualUtf16Sha256": "C6873B5D109F05B286E180442054137D5BE4761DA6F78C81F2ADC684F57812C3",
+      "fixtureMaxLength": 1048576,
+      "expectedUtf16Sha256": "C6873B5D109F05B286E180442054137D5BE4761DA6F78C81F2ADC684F57812C3",
+      "afterStopMs": 2162.2767
+    }
+  ],
+  "scope": "isolated_actions_synthetic_text_no_raw_content",
+  "lastAcknowledgedOffset": 73359,
+  "result": "FAIL",
+  "lateFixtureMatchDoesNotChangeNativeFailure": true,
+  "lastNativeReply": {
+    "writeId": "write_700208a65755410195f6f200765462da",
+    "state": "interrupted",
+    "reason": "desktop_text_delivery_not_observed_reconcile",
+    "phase": "delivery-readback",
+    "textTiming": {
+      "targetMs": 5.0335,
+      "sendMs": 57.5147,
+      "deliveryMs": 1637.1002
+    },
+    "authorityExpiredAtReceipt": true,
+    "sentUnits": 73614,
+    "requestedUnits": 262144,
+    "lastObservedInsertedUnits": 73359,
+    "verifiedInsertedUnits": null,
+    "contentVerification": "unverified",
+    "automaticReplay": false,
+    "nativeQueueMs": 0.0311,
+    "nativeHandlerMs": 1700.35,
+    "nativeTiming": {
+      "requestId": "0c9265fade614bc794783c288f0aaee8",
+      "handlerMs": 1700.35,
+      "handlerAndQueueMs": 1700.5921,
+      "processId": 2084
+    }
+  },
+  "requestedUnits": 262144,
+  "stage": "typing_chunks",
+  "fullCi": "FAIL_CLASSIC_WRAPPED_262K_READBACK_WAIT",
+  "ownerPhysical": "PENDING",
+  "interpretation": "The failed window was delivered exactly after the native1.5s wait: direct fixture first snapshot73575/73614 units, second and third73614 with identical expected hash. This proves late completion for this window, not a global claim that previous missing-text reports were latency only. No replay or further input occurred and the test remained FAILED."
+}

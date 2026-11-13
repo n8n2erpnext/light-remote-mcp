@@ -366,3 +366,7 @@ NativeInput.WriteLogicalChunkCore centralizes actual packet construction/guard/s
 ## Back off delivery observations and diagnose exact fixture content
 
 TypingTarget.PollDelivery isolates the real polling loop for virtual-clock tests; backoff caps120ms and retains guards/exact compare/1500ms. Program selftest reports deliveryPollingOk. test-rmv2-text writes three direct fixture snapshot diagnostics after a failed ACK without sending/replaying input or weakening failure. Rmv2TextFixture declares1M capacity and reports capacity/word-wrap metadata. CI112 text/cursor/DXGI evidence is pinned under docs/evidence/rmv2.
+
+## Verify slow text completion across explicit editor capacities
+
+TypingTarget.PollDelivery uses5second read-only budget and virtual-clock timeout test; mutation packet deadlines unchanged. Rmv2TextFixture supports real classic Edit, genuine Rich Edit1M capacity and optional owned classic WM_CHAR delay, all test-only outside staging. test-rmv2-text records controlKind/wordWrap per exact-size case, adds actual delayed completion proof and keeps classic wrapped262K explicitly NOT_ACCEPTED. CI113 late-delivery evidence is pinned.

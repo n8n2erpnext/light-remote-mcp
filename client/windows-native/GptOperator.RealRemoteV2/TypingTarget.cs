@@ -141,7 +141,7 @@ internal sealed class TypingTarget
         var pause=15;
         while(true) {
             guard();var matched=observe();guard();if(matched)return true;
-            var remaining=1500-elapsed();if(remaining<=0)return false;
+            var remaining=5000-elapsed();if(remaining<=0)return false;
             // Full-document provider reads can compete with the target's input
             // pump. Back off pending read-only observations, never send again.
             delay((int)Math.Min(pause,remaining));pause=Math.Min(120,pause*2);
@@ -153,7 +153,7 @@ internal sealed class TypingTarget
         void Wait(int milliseconds){waits.Add(milliseconds);elapsed+=milliseconds;}
         if(!PollDelivery(()=>{reads++;return elapsed>=240;},()=>{},()=>elapsed,Wait)||reads>7||waits.Any(x=>x<1||x>120))return false;
         elapsed=0;reads=0;waits.Clear();
-        if(PollDelivery(()=>{reads++;return false;},()=>{},()=>elapsed,Wait)||elapsed!=1500||reads>20||waits.Any(x=>x<1||x>120))return false;
+        if(PollDelivery(()=>{reads++;return false;},()=>{},()=>elapsed,Wait)||elapsed!=5000||reads>50||waits.Any(x=>x<1||x>120))return false;
         elapsed=0;reads=0;var cancelled=false;
         try {PollDelivery(()=>{reads++;return false;},()=>{if(cancelled)throw new TypingTargetInterrupted("agent_cancelled");},()=>elapsed,ms=>{elapsed+=ms;cancelled=true;});return false;}
         catch(TypingTargetInterrupted){return reads==1;}

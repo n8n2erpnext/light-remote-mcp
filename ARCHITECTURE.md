@@ -124,3 +124,7 @@ Mutation admission and read-only completion have distinct guard roles. Native qu
 ## Back off delivery observations and diagnose exact fixture content
 
 Read-only completion observes full expected text with increasing15/30/60/120ms pauses rather than repeatedly querying every15ms. The1500ms polling budget and guards before/after each provider read are unchanged; waiting never sends another input packet. A stuck UIA call still needs helper timeout/reset, not unsafe thread abort. Pure virtual-clock polling selftests verify bounded waits, timeout, eventual match and cancellation. Slow delivery/provider competition remains a hypothesis until direct fixture evidence separates it from actual character loss.
+
+## Verify slow text completion across explicit editor capacities
+
+Evidence-driven completion budget: an already-admitted window can be delivered by a slow editor after1.5seconds without any input loss. Read-only full-prefix/suffix verification now polls up to5seconds, with bounded backoff and cancel/Owner/focus/desktop checks, inside existing10second chunk RPC timeout. This is not a mutation authority extension: native queued/new input packets retain<=1000ms guard, and the next Agent window must reauthorize. A provider blocked beyond helper timeout still requires reset/reconciliation. Partial or unavailable verification is never promoted to success.

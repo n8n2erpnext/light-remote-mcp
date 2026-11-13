@@ -144,3 +144,7 @@ Logical-text total inline/reference budgets and required/prefer verification do 
 ## Fence new text packets while completing read-only verification
 
 Private authorityBudgetMs remains1..1000 and is consumed across helper startup/native queue. It expires permission to SEND a new packet; read-only completion of previously admitted events can return after it expires, with authorityExpiredAtReceipt/phase/textTiming diagnostics. An expired completion receipt does not authorize new input or renew A/B. Public logical progress/final verification remains unchanged; no raw target document or payload is returned in these diagnostics. New windows still require fresh current authorization.
+
+## Verify slow text completion across explicit editor capacities
+
+No public request/transport/authority cap changes. Native read-only completion may take up to5seconds; existing Agent chunk RPC10seconds stays. Returned exact observed progress authorizes no further input, and final required verification remains mandatory. Editor/application text capacity is distinct from tool inline262144/reference8M budgets; product never raises application limits or silently substitutes clipboard/SetValue.

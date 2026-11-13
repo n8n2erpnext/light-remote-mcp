@@ -167,3 +167,7 @@ CI111 expedited16K/64K exact readback to22.49s/86.42s on that runner but stopped
 ## Back off delivery observations and diagnose exact fixture content
 
 CI112 input admission/readback separation passed its packet-loop selftest, but actual256K readback still failed at97641accepted units after1500ms. Target binding5.14ms/send55.05ms show this failure is completion observation, not deadline admission. Actual loss versus slow target/provider remains unresolved; no256K or complete installer acceptance. New polling changes are pending proof and no blanket speedup is claimed. FixtureMaxLength0 behavior is removed as an ambiguity only, not asserted as the cause.
+
+## Verify slow text completion across explicit editor capacities
+
+Classic wrapped262K remains unaccepted: CI113 window73614 was complete and exact only after the old readback budget, proving slow target completion in this case. Larger positive coverage now uses Rich Edit explicitly; no claim that every editor accepts262K or8M units. New5second completion budget may still stop a slower/unresponsive target and requires reconciliation, never replay. Native newline/provider/app diversity and physical Owner UAT remain scoped pending checks. No hardware video/resize/encoder added.

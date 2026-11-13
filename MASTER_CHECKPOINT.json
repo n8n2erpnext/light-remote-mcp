@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-13T14:56:26.206Z",
+  "updatedAt": "2026-11-13T15:20:27.731Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "DEV11_ADAPTIVE_DELIVERY_OBSERVATION_NATIVE_CI_PENDING",
+  "status": "DEV11_SLOW_COMPLETION_EDITOR_MATRIX_NATIVE_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -361,7 +361,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Inspect exact new native readback result and post-stop fixture evidence, fix any actual loss/provider issue, and complete unchanged16K/64K/256K/focus-switch acceptance plus full installer CI. Verify artifact/source/hash and coherent checkpoint before consolidated Owner UAT/isolated Lab update. No interim candidate, Owner install, public feed or production change.",
+  "nextAction": "Follow exact new Actions native compile/selftests, classic16K/64K, rich262K, real delayed completion and focus-switch/full content acceptance. Keep classic wrapped262K limitation explicit; inspect real editor/provider evidence if positive cases fail. Then finish installer/upgrade/rollback CI, verify source/artifact/hash and final coherent truth/checkpoint for consolidated Owner UAT and isolated Lab alignment. No interim installer or production/Owner changes.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -452,12 +452,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261113-rmv2-adaptive-delivery-observation",
-    "status": "DEV11_ADAPTIVE_DELIVERY_OBSERVATION_NATIVE_CI_PENDING",
-    "summary": "CI112 passed actual admission packet-loop selftests, cursor/lifecycle, GDI/DXGI and other platform checks. Real16K/64K exact text passed;256K stopped after97641 accepted/97385 observed units in delivery-readback, not sending (target5.14ms,send55.05ms,readback1501.96ms). Keep failure classification honest: current evidence does not distinguish target lag, provider lag or actual dropped characters. Back off unmatched read-only UIA polling15/30/60/120ms (cap120), with the SAME1500ms wait and full expected prefix/suffix comparison, cancel/Owner/focus/desktop guards. This reduces competing provider calls; starvation is a hypothesis, not a confirmed cause. Add pure native polling tests for bounded timeout, eventual match and cancellation. On a failed native ACK observe the owned fixture three times without any further input, record exact-prefix/hash/first-difference/WM_CHAR/key-down/other-control counters; a late match still leaves the native test FAILED. Declare fixture-only capacity1048576 explicitly, preserve word wrap and real keyboard injection. Product never changes an application text limit.",
-    "verification": "CI112 run43443362284 source74cc29e native text artifact14047249217 SHAaf163714b9cf1e957cf63c9afbf2bee42aab1eea0f1008d2762bc7626c6a235f verified; exact16K/64K PASS32.12s/125.17s, no256K PASS. Native phase1 artifact14047652041 SHAe59254de1b4c1e110850ea180eebfa1af38bbb4fd328f83be0ce55d4dcb6cd4e proves11cursor roles/tiny moves/blue edges/explicit close/reopen/45s status-proof expiry. DXGI artifact14047582130 SHAb0c6e3171dfef0c909492211ed741e968779c3ff53fa7e3659d1f421ec45caad proves13actualDXGI/18freshGDI fallbacks on runner, not Owner hardware acceptance. PowerShell AST parsed; changed native code/tests execute Actions only. Before change checkpoint/20261113-before-rmv2-delivery-poll-74cc29e bundleSHA 4bcf7829a1adb4db99df2854f8efae14e8581e63bed27f20bc1c2aef84217f07 restore/fsckPASS.",
-    "nextAction": "Inspect exact new native readback result and post-stop fixture evidence, fix any actual loss/provider issue, and complete unchanged16K/64K/256K/focus-switch acceptance plus full installer CI. Verify artifact/source/hash and coherent checkpoint before consolidated Owner UAT/isolated Lab update. No interim candidate, Owner install, public feed or production change.",
-    "sourceDigest": "56b8df3853dc922097542f6703ba718ebfe60df4b471854f75e526e99747dc88",
+    "taskId": "20261113-rmv2-slow-completion-editor-matrix",
+    "status": "DEV11_SLOW_COMPLETION_EDITOR_MATRIX_NATIVE_CI_PENDING",
+    "summary": "CI113 direct post-stop snapshots prove target lag for the failed window: native stopped at73614accepted/73359observed after1.637s readback; fixture initially had73575units, then exactly73614 with matching full-prefix hash by+1.209s, stable at+2.162s, no replay/new input. Raise ONLY bounded read-only completion polling to5seconds, below the existing10second Agent chunk RPC budget; retain one-second native queue/new-packet authority, focus/Owner/cancel guards, exact full-content comparison and no replay. Keep classic Edit16K/64K; declare and test262K on a genuine large-capacity wrapped Rich Edit as editor-specific positive coverage. Classic wrapped262K remains NOT_ACCEPTED, never relabeled PASS. Add an actual classic fixture with80ms-per-WM_CHAR delay: required exact keyboard readback must succeed after>1.5s and after input-authority expiry, proving completion does not authorize another packet. Pure packet expiry selftests remain. No app text limit is changed by product code, no clipboard/SetValue/DOM substitution.",
+    "verification": "CI113 run43447565461 sourced6d302c text artifact14049787318 SHA809b5711c809faad589d394c985c19edf7fdf56c2f79559d2f599139dd6d119b verified. Classic16K/64K exact native+fixture PASS31.95s/131.23s; classic262K FAIL preserved. Three post-stop snapshots show complete exact sent prefix arrived late, other field0units,1M fixture capacity and wordWraptrue. This scope supports a longer read-only wait and explicit editor matrix, not changed mutation permissions or blanket performance success. PowerShell AST parsed; native code/tests run only Actions. Full checkpoint checkpoint/20261113-before-rmv2-delivery-capacity-d6d302c bundleSHA 7aab6863d38da52ee0c60b22e4c8b8e066df354c92dcee5b34f9273fbf837ad8 restore/fsckPASS.",
+    "nextAction": "Follow exact new Actions native compile/selftests, classic16K/64K, rich262K, real delayed completion and focus-switch/full content acceptance. Keep classic wrapped262K limitation explicit; inspect real editor/provider evidence if positive cases fail. Then finish installer/upgrade/rollback CI, verify source/artifact/hash and final coherent truth/checkpoint for consolidated Owner UAT and isolated Lab alignment. No interim installer or production/Owner changes.",
+    "sourceDigest": "5b2b701ac6f6c809f9464ecc247f7e903c86759d2c834fede838983067e4adef",
     "sourceFileCount": 1705
   },
   "legacyFilesystemCleanup": {
@@ -1533,7 +1533,7 @@
   },
   "rmv2Implementation": {
     "phase": 2,
-    "status": "DEV11_ADAPTIVE_DELIVERY_OBSERVATION_NATIVE_CI_PENDING",
+    "status": "DEV11_SLOW_COMPLETION_EDITOR_MATRIX_NATIVE_CI_PENDING",
     "version": "0.10.1-dev.11",
     "beforeCommit": "a2173d525e67945843ecfa307304ce1228c7c096",
     "beforeTag": "checkpoint/20261111-before-rmv2-phase1-a2173d5",
@@ -1547,7 +1547,7 @@
     "portableSourceGroups": 71,
     "portableUnitCases": 299,
     "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "PENDING_ADAPTIVE_DELIVERY_OBSERVATION",
+    "nativeCi": "PENDING_SLOW_COMPLETION_EDITOR_MATRIX",
     "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
     "firstCiRunId": 43032628902,
     "nativeProductCompile": "PASS_CI86",
@@ -1560,7 +1560,7 @@
     "nativeEvidence": "docs/evidence/rmv2/phase1-ci112.json",
     "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
     "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PENDING_NATIVE_TEXT_AND_FULL_INSTALLER",
+    "fullCi": "PENDING_NATIVE_EDITOR_MATRIX_AND_FULL_INSTALLER",
     "beforeAfterBenchmark": false,
     "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
     "supersededCiRunId": 43036093867,
@@ -1657,7 +1657,7 @@
         "nativeTextFixture": "NOT_REACHED"
       },
       "nativeCompile": "PASS_CI103_SOURCE9638594",
-      "nativeTextAcceptance": "CI112_16K_64K_EXACT_PASS_256K_READBACK_TIMEOUT_97641",
+      "nativeTextAcceptance": "CI113_16K_64K_PASS_262K_LATE_DELIVERY_PROVEN_NOT_ACCEPTED",
       "largeReferencePreparation": "COOPERATIVE_PREPARATION_AND_INITIAL_TARGET_BINDING_REVIEW_PENDING",
       "preparation": "COOPERATIVE_8192_UNITS_OR8MS",
       "targetBinding": "BEFORE_COOPERATIVE_GRAPHEME_VALIDATION",
@@ -1667,11 +1667,11 @@
       "nativeTextDiagnostic": "UNITS_SHA256_FIRST_DIFF_FINAL_METADATA_ONLY_NO_RAW_TEXT",
       "diagnostics": "STAGE_LENGTH_OFFSET_HASH_ONLY",
       "nativeFixtureStepBudgetMinutes": 15,
-      "nativeTextEvidence": "docs/evidence/rmv2/text-ci112.json",
+      "nativeTextEvidence": "docs/evidence/rmv2/text-ci113.json",
       "fixture": "SEPARATE_STA_WINFORMS_PROCESS_WITH_CURRENT_USER_ONLY_PIPE",
       "newFixtureNativeCi": "PENDING",
       "noAcceptanceRelaxation": true,
-      "source": "ADAPTIVE_READBACK_CI_PENDING",
+      "source": "SLOW_COMPLETION_EDITOR_MATRIX_CI_PENDING",
       "internalChunkUnits": 256,
       "maxGraphemeUnits": 128,
       "totalInlineUnits": 262144,
@@ -1683,13 +1683,13 @@
       "unknownEffects": "RECONCILE_NO_RESUME",
       "nativeAuthority": "DEADLINE_BEFORE_EVERY_NEW_PACKET_AFTER_TARGET_CHECK_NATIVE_QUEUE_FENCED",
       "historicalObservedUnits": "SEPARATE_FROM_FINAL_VERIFIED_CONTENT",
-      "nativeCi": "PENDING_ADAPTIVE_READBACK",
+      "nativeCi": "PENDING_EDITOR_MATRIX_AND_SLOW_COMPLETION",
       "before": {
-        "tag": "checkpoint/20261113-before-rmv2-delivery-poll-74cc29e",
-        "bundleSha256": "4bcf7829a1adb4db99df2854f8efae14e8581e63bed27f20bc1c2aef84217f07",
-        "archiveSha256": "49ec1aabf729c1ebba94e60c5c92fb8d8c5b0604e715148e83d0949225c503cb",
+        "tag": "checkpoint/20261113-before-rmv2-delivery-capacity-d6d302c",
+        "bundleSha256": "7aab6863d38da52ee0c60b22e4c8b8e066df354c92dcee5b34f9273fbf837ad8",
+        "archiveSha256": "4e6438476c511fbb55394b144a94c85f842a07bba6188fda78cd26f1824ffff3",
         "restore": "PASS",
-        "source": "74cc29e21cb45e0123e6c3dd8f617e406113af25"
+        "source": "d6d302cbc21fd53370006b67b72addfbccfacaba"
       },
       "acceptance": "EXACT_CONTENT_AND_NATIVE_VERIFICATION_UNCHANGED",
       "pacedChunkUnits": 128,
@@ -1712,9 +1712,34 @@
         60,
         120
       ],
-      "deliveryWaitMs": 1500,
+      "deliveryWaitMs": 5000,
       "postStopDiagnostics": "THREE_METADATA_ONLY_FIXTURE_SNAPSHOTS_NO_INPUT_NO_SUCCESS_OVERRIDE",
-      "fixtureCapacityUnits": 1048576
+      "fixtureCapacityUnits": 1048576,
+      "inputAuthorityBudgetMaxMs": 1000,
+      "chunkRpcTimeoutMs": 10000,
+      "nativeFixtureMatrix": [
+        {
+          "control": "classic-edit",
+          "units": [
+            16384,
+            65536
+          ],
+          "wordWrap": true
+        },
+        {
+          "control": "rich-edit",
+          "units": [
+            262144
+          ],
+          "wordWrap": true
+        },
+        {
+          "control": "classic-edit",
+          "perWmCharDelayMs": 80,
+          "proof": "EXACT_COMPLETION_AFTER_ADMISSION_EXPIRY"
+        }
+      ],
+      "classicWrapped262K": "NOT_ACCEPTED_SLOW_TARGET_REGRESSION_RETAINED"
     },
     "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN",
     "nextPhase": "FIX_NATIVE_TEXT_THEN_OPTIONAL_GPU_MEDIA_BENCHMARKS",
