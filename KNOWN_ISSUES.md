@@ -159,3 +159,7 @@ CI109 actualDXGI capture/fallback proof does not establish Owner GPU, multi-moni
 ## Amortize verified text windows without dropping target checks
 
 CI110 real16K/64K writes passed native/full fixture readback, but256K did not complete within15minutes. New window/check amortization is pending native measurement, not accepted yet. Exact source capture benchmark improved in this one-run30sample GDI/pipe comparison; do not generalize to network/Owner/GPU performance. Native newline variants, provider/app diversity and physical focus-switch races require further scoped acceptance; no claim that queued input can be recalled.
+
+## Fence new text packets while completing read-only verification
+
+CI111 expedited16K/64K exact readback to22.49s/86.42s on that runner but stopped at65946accepted units because the mutation freshness timer also covered completion. New completion separation is pending native CI and does not claim256K success. If expiry occurs before another packet or during actual packet delivery, it must still stop unsent content and require reconciliation. UIA providers may block beyond the polling interval; native helper timeout/reset remains the recovery boundary. Read-only completion cannot retract already queued OS input or guarantee independent Windows focus.

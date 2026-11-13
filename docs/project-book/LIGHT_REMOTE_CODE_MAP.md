@@ -358,3 +358,7 @@ DesktopVisual.ClearCaptureCache now atomically requests cleanup and TryEnter avo
 ## Amortize verified text windows without dropping target checks
 
 rmv2-text-write.textChunks and LogicalTextWriter.Prepared/Chunk agree on unpaced256-unit windows with max-grapheme128 retained. LogicalTextWriter delegates the verified post-send CheckFull to TypingTarget.WaitForDelivery; TypingTarget.Verify avoids its duplicate initial check only when the same readback performs it. test-rmv2-text honors native bounded window and records per-size elapsed/last handler/queue counters. CI110 timeout and corrected capture comparison are pinned under docs/evidence/rmv2.
+
+## Fence new text packets while completing read-only verification
+
+NativeInput.WriteLogicalChunkCore centralizes actual packet construction/guard/send/delay and is exercised by LogicalPacketSelfTest with a recording sender. Production wrapper retains activity/modifier validation; no test sender is exposed through RPC. LogicalTextWriter uses AdmitPacket before new input and ObserveGuard for post-send/readback, records phase and textTiming plus deadline-at-receipt. Program selftest reports logicalPacketGuardsOk. test-rmv2-text persists actual failure ACK/phase rather than leaving RUNNING unless the external runner forcibly times out.

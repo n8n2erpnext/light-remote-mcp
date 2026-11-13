@@ -75,24 +75,39 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
         if(!row.Known||offset!=row.Sent||row.Sent+text.Length>row.Requested)
             throw new InvalidOperationException("desktop_write_offset_requires_reconciliation");
         if(row.State!="running")throw new InvalidOperationException("desktop_write_already_interrupted");
-        var accepted=0;
-        void Guard()
+        var accepted=0;var phase="target-preflight";
+        double targetMs=0,sendMs=0,deliveryMs=0;
+        var clock=System.Diagnostics.Stopwatch.StartNew();
+        void ObserveGuard()
         {
             if(row.Cancelled)throw new TypingTargetInterrupted("agent_cancelled");
-            if(System.Diagnostics.Stopwatch.GetTimestamp()>=authorityDeadline)throw new TypingTargetInterrupted("desktop_write_authority_expired_reconcile");
             row.Target.CheckFast();
+        }
+        void AdmitPacket()
+        {
+            if(System.Diagnostics.Stopwatch.GetTimestamp()>=authorityDeadline)throw new TypingTargetInterrupted("desktop_write_authority_expired_reconcile");
+            ObserveGuard();
+            // Recheck after potentially slow Win32 target validation, directly
+            // before the packet sender is called.
+            if(System.Diagnostics.Stopwatch.GetTimestamp()>=authorityDeadline)throw new TypingTargetInterrupted("desktop_write_authority_expired_reconcile");
         }
         try {
             row.Target.CheckFull();
-            accepted=NativeInput.WriteLogicalChunk(text,intervalMs,Guard);
+            targetMs=clock.Elapsed.TotalMilliseconds;phase="sending";clock.Restart();
+            accepted=NativeInput.WriteLogicalChunk(text,intervalMs,AdmitPacket,ObserveGuard);
+            sendMs=clock.Elapsed.TotalMilliseconds;phase="delivery-readback";clock.Restart();
             row.Sent+=accepted;row.SentText.Append(text);
             if(row.Verification!="none"&&row.Target.VerificationAvailable) {
                 // WaitForDelivery performs CheckFull before every read. Do not
                 // issue a duplicate focused-element/provider lookup here.
-                if(!row.Target.WaitForDelivery(row.SentText.ToString(),Guard))
+                // Authority freshness fences new packets, not observation of
+                // already admitted effects. Completion never sends more input;
+                // its bounded polling still checks cancel/Owner/focus/desktop.
+                if(!row.Target.WaitForDelivery(row.SentText.ToString(),ObserveGuard))
                     throw new TypingTargetInterrupted("desktop_text_delivery_not_observed_reconcile");
                 row.LastObserved=row.Sent;
             } else row.Target.CheckFull();
+            deliveryMs=clock.Elapsed.TotalMilliseconds;phase="complete";
         } catch(LogicalTextPacketInterrupted interruption) {
             row.Known=interruption.ProgressKnown;
             if(row.Known) {row.Sent+=interruption.SentUnits;row.SentText.Append(text.AsSpan(0,interruption.SentUnits));}
@@ -103,7 +118,11 @@ internal sealed class LogicalTextWriter(UiSensor sensor,ControlActivity activity
         } catch(Exception error) {
             row.Known=false;row.State="indeterminate";row.Reason=error.Message;
         }
+        if(phase=="target-preflight")targetMs=clock.Elapsed.TotalMilliseconds;
+        else if(phase=="sending")sendMs=clock.Elapsed.TotalMilliseconds;
+        else if(phase=="delivery-readback")deliveryMs=clock.Elapsed.TotalMilliseconds;
         var receipt=new {writeId=row.Id,state=row.State,reason=row.Reason.Length==0?null:row.Reason,
+            phase,textTiming=new {targetMs,sendMs,deliveryMs},authorityExpiredAtReceipt=System.Diagnostics.Stopwatch.GetTimestamp()>=authorityDeadline,
             sentUnits=row.Known?(int?)row.Sent:null,requestedUnits=row.Requested,lastObservedInsertedUnits=row.LastObserved,verifiedInsertedUnits=(int?)null,
             contentVerification="unverified",automaticReplay=false};
         row.LastOffset=offset;row.LastHash=hash;row.LastReceipt=receipt;return receipt;

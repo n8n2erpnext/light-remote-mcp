@@ -68,7 +68,7 @@ try {
    $remaining=$text.Substring($offset);$elements=[Globalization.StringInfo]::GetTextElementEnumerator($remaining);$chunk=''
    while($elements.MoveNext()){$e=$elements.GetTextElement();if($chunk.Length+$e.Length -gt $take){break};$chunk+=$e}
    $ack=Text-Rpc 'chunk' @{writeId=$id;offset=$offset;text=$chunk;intervalMs=0}
-   $script:chunkTiming=@{nativeHandlerMs=$ack.nativeTiming.handlerMs;nativeQueueMs=$ack.nativeQueueMs;sentUnits=$ack.sentUnits;observedUnits=$ack.lastObservedInsertedUnits}
+   $script:chunkTiming=@{nativeHandlerMs=$ack.nativeTiming.handlerMs;nativeQueueMs=$ack.nativeQueueMs;sentUnits=$ack.sentUnits;observedUnits=$ack.lastObservedInsertedUnits;phase=$ack.phase;textTiming=$ack.textTiming}
    if($ack.state -ne 'running' -or $ack.sentUnits -ne ($offset+$chunk.Length)){throw "text_chunk_interrupted:$($ack|ConvertTo-Json -Compress)"}
    $offset+=$chunk.Length
    $script:testOffset=$offset
@@ -111,6 +111,13 @@ try {
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Compress)
 } catch {
+ # Preserve a detailed mismatch diagnostic; other failures gain their exact
+ # stage/ack/timing instead of leaving a misleading RUNNING artifact behind.
+ $existing=Get-Content -LiteralPath $Output -Raw|ConvertFrom-Json
+ if($existing.result -eq 'RUNNING'){
+  $failure=@{result='FAIL';scope='isolated_actions_synthetic_text_no_raw_content';stage=$script:lastStage;requestedUnits=$script:testUnits;lastAcknowledgedOffset=$script:testOffset;completedSizes=$script:completedSizes;elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;lastNativeReply=$ack;error=$_.Exception.Message}
+  $failure|ConvertTo-Json -Depth 9|Set-Content -LiteralPath $Output -Encoding utf8
+ }
  Write-Host "RM_TEXT_FAILED stage=$script:lastStage units=$script:testUnits offset=$script:testOffset error=$($_.Exception.Message)"
  throw
 } finally {

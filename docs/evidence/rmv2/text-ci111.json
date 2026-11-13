@@ -1,0 +1,48 @@
+{
+  "sourceCommit": "6f7e160cbe2d9faf40c0614e08ad0c7a688c3879",
+  "ciRunId": 43406994789,
+  "artifactId": 14028860273,
+  "artifactSha256": "103909d99bdb6664d0ba15a795b86d031d721dbcfed6ae4f0f6a7931144219ea",
+  "completedSizes": [
+    {
+      "units": 16384,
+      "nativeVerified": true,
+      "elapsedMs": 22489.1909,
+      "exactFixtureReadback": true
+    },
+    {
+      "units": 65536,
+      "nativeVerified": true,
+      "elapsedMs": 86415.4254,
+      "exactFixtureReadback": true
+    }
+  ],
+  "result": "RUNNING",
+  "stage": "typing_chunks",
+  "lastChunkTiming": {
+    "sentUnits": 59301,
+    "observedUnits": 59301,
+    "nativeHandlerMs": 373.0175,
+    "nativeQueueMs": 0.0255
+  },
+  "elapsedMs": 191694.6834,
+  "at": "2026-11-13T10:19:32.3814168Z",
+  "sentOffset": 59301,
+  "sizeElapsedMs": 81873.1666,
+  "scope": "isolated_actions_synthetic_text_no_raw_content",
+  "requestedUnits": 262144,
+  "fullCi": "FAIL_NATIVE_TEXT_AUTHORITY_EXPIRY",
+  "decodedJobLog": {
+    "jobId": 131823873900,
+    "stage": "typing_chunks",
+    "requestedUnits": 262144,
+    "previousAcknowledgedOffset": 65691,
+    "sentUnits": 65946,
+    "lastObservedInsertedUnits": 65691,
+    "reason": "desktop_write_authority_expired_reconcile",
+    "nativeHandlerMs": 1043.069,
+    "nativeQueueMs": 0.0256
+  },
+  "ownerPhysical": "PENDING",
+  "interpretation": "Full16K/64K exact readback passed. All units of the next255-unit window were accepted, but completion was interrupted at the one-second authority boundary; no256K verification or exact interruption substage is inferred from this older receipt."
+}

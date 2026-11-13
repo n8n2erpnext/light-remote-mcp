@@ -140,3 +140,7 @@ Capture capabilities add cleanupPending for a deferred resource cleanup request;
 ## Amortize verified text windows without dropping target checks
 
 Logical-text total inline/reference budgets and required/prefer verification do not change. Native prepared maxChunkUnits becomes256; Agent uses256 only unpaced, paced remains<=128 and max grapheme128. Authority<=1000ms, current focus/Owner identity, cancellation/no replay and full final verification remain required. No larger public transport cap or new capability.
+
+## Fence new text packets while completing read-only verification
+
+Private authorityBudgetMs remains1..1000 and is consumed across helper startup/native queue. It expires permission to SEND a new packet; read-only completion of previously admitted events can return after it expires, with authorityExpiredAtReceipt/phase/textTiming diagnostics. An expired completion receipt does not authorize new input or renew A/B. Public logical progress/final verification remains unchanged; no raw target document or payload is returned in these diagnostics. New windows still require fresh current authorization.
