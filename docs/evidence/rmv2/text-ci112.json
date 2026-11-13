@@ -1,0 +1,55 @@
+{
+  "sourceCommit": "74cc29e21cb45e0123e6c3dd8f617e406113af25",
+  "ciRunId": 43443362284,
+  "artifactId": 14047249217,
+  "artifactSha256": "af163714b9cf1e957cf63c9afbf2bee42aab1eea0f1008d2762bc7626c6a235f",
+  "lastAcknowledgedOffset": 97385,
+  "requestedUnits": 262144,
+  "error": "text_chunk_interrupted:{\"writeId\":\"write_a43293dfa94e482cb267384e7bb63afb\",\"state\":\"interrupted\",\"reason\":\"desktop_text_delivery_not_observed_reconcile\",\"phase\":\"delivery-readback\",\"textTiming\":{\"targetMs\":5.1376,\"sendMs\":55.0475,\"deliveryMs\":1501.9621},\"authorityExpiredAtReceipt\":true,\"sentUnits\":97641,\"requestedUnits\":262144,\"lastObservedInsertedUnits\":97385,\"verifiedInsertedUnits\":null,\"contentVerification\":\"unverified\",\"automaticReplay\":false,\"nativeQueueMs\":0.0481,\"nativeHandlerMs\":1562.679,\"nativeTiming\":{\"requestId\":\"81678d7586af43d0912675dc7007468e\",\"handlerMs\":1562.679,\"handlerAndQueueMs\":1562.9633,\"processId\":1040}}",
+  "lastNativeReply": {
+    "writeId": "write_a43293dfa94e482cb267384e7bb63afb",
+    "state": "interrupted",
+    "reason": "desktop_text_delivery_not_observed_reconcile",
+    "phase": "delivery-readback",
+    "textTiming": {
+      "targetMs": 5.1376,
+      "sendMs": 55.0475,
+      "deliveryMs": 1501.9621
+    },
+    "authorityExpiredAtReceipt": true,
+    "sentUnits": 97641,
+    "requestedUnits": 262144,
+    "lastObservedInsertedUnits": 97385,
+    "verifiedInsertedUnits": null,
+    "contentVerification": "unverified",
+    "automaticReplay": false,
+    "nativeQueueMs": 0.0481,
+    "nativeHandlerMs": 1562.679,
+    "nativeTiming": {
+      "requestId": "81678d7586af43d0912675dc7007468e",
+      "handlerMs": 1562.679,
+      "handlerAndQueueMs": 1562.9633,
+      "processId": 1040
+    }
+  },
+  "elapsedMs": 469735.5657,
+  "scope": "isolated_actions_synthetic_text_no_raw_content",
+  "result": "FAIL",
+  "stage": "typing_chunks",
+  "completedSizes": [
+    {
+      "exactFixtureReadback": true,
+      "elapsedMs": 32120.0608,
+      "units": 16384,
+      "nativeVerified": true
+    },
+    {
+      "exactFixtureReadback": true,
+      "elapsedMs": 125173.5861,
+      "units": 65536,
+      "nativeVerified": true
+    }
+  ],
+  "fullCi": "FAIL_NATIVE_TEXT_READBACK_TIMEOUT",
+  "ownerPhysical": "PENDING"
+}

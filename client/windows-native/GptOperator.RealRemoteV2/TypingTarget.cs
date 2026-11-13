@@ -130,15 +130,33 @@ internal sealed class TypingTarget
         var expected=Normalize(_prefix+sent+_suffix);
         var maximum=Math.Min(20*1024*1024,Math.Max(32,2*(_prefix.Length+sent.Length+_suffix.Length)+16));
         var clock=Stopwatch.StartNew();
-        while(true) {
-            guard();CheckFull();
+        return PollDelivery(()=>{
+            CheckFull();
             var actual=_text is not null?_text.DocumentRange.GetText(maximum):_value!.Current.Value;
-            guard();
-            if(Normalize(actual)==expected)return true;
-            if(clock.ElapsedMilliseconds>=1500)break;
-            Thread.Sleep(15);
+            return Normalize(actual)==expected;
+        },guard,()=>clock.ElapsedMilliseconds,Thread.Sleep);
+    }
+    private static bool PollDelivery(Func<bool> observe,Action guard,Func<long> elapsed,Action<int> delay)
+    {
+        var pause=15;
+        while(true) {
+            guard();var matched=observe();guard();if(matched)return true;
+            var remaining=1500-elapsed();if(remaining<=0)return false;
+            // Full-document provider reads can compete with the target's input
+            // pump. Back off pending read-only observations, never send again.
+            delay((int)Math.Min(pause,remaining));pause=Math.Min(120,pause*2);
         }
-        return false;
+    }
+    internal static bool DeliveryPollingSelfTest()
+    {
+        long elapsed=0;var reads=0;var waits=new List<int>();
+        void Wait(int milliseconds){waits.Add(milliseconds);elapsed+=milliseconds;}
+        if(!PollDelivery(()=>{reads++;return elapsed>=240;},()=>{},()=>elapsed,Wait)||reads>7||waits.Any(x=>x<1||x>120))return false;
+        elapsed=0;reads=0;waits.Clear();
+        if(PollDelivery(()=>{reads++;return false;},()=>{},()=>elapsed,Wait)||elapsed!=1500||reads>20||waits.Any(x=>x<1||x>120))return false;
+        elapsed=0;reads=0;var cancelled=false;
+        try {PollDelivery(()=>{reads++;return false;},()=>{if(cancelled)throw new TypingTargetInterrupted("agent_cancelled");},()=>elapsed,ms=>{elapsed+=ms;cancelled=true;});return false;}
+        catch(TypingTargetInterrupted){return reads==1;}
     }
     private static string Normalize(string value)=>value.Replace("\r\n","\n",StringComparison.Ordinal).Replace('\r','\n');
     private static long ProcessStart(uint pid) {try {using var process=Process.GetProcessById((int)pid);return process.StartTime.ToUniversalTime().Ticks;}catch{return 0;} }

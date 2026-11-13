@@ -22,7 +22,7 @@ function Ui-Command([string]$Command,[string]$Initial=''){
  $read=$fixtureReader.ReadLineAsync();if(-not $read.Wait(15000)){throw "text_fixture_timeout:$Command"}
  $reply=$read.Result|ConvertFrom-Json
  if($reply.id -ne $request.id -or -not $reply.ok){throw 'text_fixture_reply_invalid'}
- if($Command -eq 'read'){$shared.result=$reply.data.text;$shared.other=$reply.data.other;$shared.characters=$reply.data.characters;$shared.keyDowns=$reply.data.keyDowns}
+ if($Command -eq 'read'){$shared.result=$reply.data.text;$shared.other=$reply.data.other;$shared.characters=$reply.data.characters;$shared.keyDowns=$reply.data.keyDowns;$shared.controlMaxLength=$reply.data.controlMaxLength;$shared.wordWrap=$reply.data.wordWrap}
  Start-Sleep -Milliseconds 150
 }
 try {
@@ -69,7 +69,25 @@ try {
    while($elements.MoveNext()){$e=$elements.GetTextElement();if($chunk.Length+$e.Length -gt $take){break};$chunk+=$e}
    $ack=Text-Rpc 'chunk' @{writeId=$id;offset=$offset;text=$chunk;intervalMs=0}
    $script:chunkTiming=@{nativeHandlerMs=$ack.nativeTiming.handlerMs;nativeQueueMs=$ack.nativeQueueMs;sentUnits=$ack.sentUnits;observedUnits=$ack.lastObservedInsertedUnits;phase=$ack.phase;textTiming=$ack.textTiming}
-   if($ack.state -ne 'running' -or $ack.sentUnits -ne ($offset+$chunk.Length)){throw "text_chunk_interrupted:$($ack|ConvertTo-Json -Compress)"}
+   if($ack.state -ne 'running' -or $ack.sentUnits -ne ($offset+$chunk.Length)){
+    # Observe the owned fixture AFTER native stops, without any more input or
+    # retries. Three snapshots distinguish delayed delivery from actual loss.
+    $snapshots=@();$stopped=[diagnostics.stopwatch]::StartNew()
+    for($attempt=0;$attempt -lt 3;$attempt++){
+     if($attempt -gt 0){Start-Sleep -Milliseconds 750}
+     Ui-Command 'read';$actual=[string]$shared.result;$sent=$ack.sentUnits;$firstDifference=$null;$equal=$false;$expectedHash=$null
+     if($null -ne $sent -and $sent -ge 0 -and $sent -le $text.Length){
+      $expectedPrefix=$text.Substring(0,[int]$sent);$equal=$actual -ceq $expectedPrefix;$firstDifference=-1
+      for($k=0;$k -lt [math]::Min($actual.Length,$expectedPrefix.Length);$k++){if($actual[$k] -cne $expectedPrefix[$k]){$firstDifference=$k;break}}
+      if($firstDifference -eq -1 -and $actual.Length -ne $expectedPrefix.Length){$firstDifference=[math]::Min($actual.Length,$expectedPrefix.Length)}
+      $expectedHash=[convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::Unicode.GetBytes($expectedPrefix)))
+     }
+     $snapshots+=,@{afterStopMs=$stopped.Elapsed.TotalMilliseconds;actualUnits=$actual.Length;sentUnits=$sent;exactSentPrefix=$equal;firstDifference=$firstDifference;expectedUtf16Sha256=$expectedHash;actualUtf16Sha256=([convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::Unicode.GetBytes($actual))));fixtureWmCharCount=$shared.characters;fixtureKeyDownCount=$shared.keyDowns;otherUnits=([string]$shared.other).Length;fixtureMaxLength=$shared.controlMaxLength;wordWrap=$shared.wordWrap}
+    }
+    $failure=@{result='FAIL';scope='isolated_actions_synthetic_text_no_raw_content';stage=$script:lastStage;requestedUnits=$script:testUnits;lastAcknowledgedOffset=$offset;lastNativeReply=$ack;completedSizes=$script:completedSizes;deliverySnapshots=$snapshots;automaticReplay=$false;lateFixtureMatchDoesNotChangeNativeFailure=$true}
+    $failure|ConvertTo-Json -Depth 9|Set-Content -LiteralPath $Output -Encoding utf8
+    throw "text_chunk_interrupted:$($ack|ConvertTo-Json -Compress)"
+   }
    $offset+=$chunk.Length
    $script:testOffset=$offset
    if($offset -ge $nextReport){Write-TextStage 'typing_chunks';$nextReport=$offset+8192}

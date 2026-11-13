@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 292,
+    "total": 295,
     "markdown": 230,
-    "json": 62
+    "json": 65
   },
   "files": [
     {
@@ -631,6 +631,27 @@
       ]
     },
     {
+      "path": "docs/evidence/rmv2/dxgi-ci112.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 1138,
+      "sha256": "26d20c113ee2e8480b6dee10c511e27584313578b2c62591c487f303c0991f7b",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "coldCaptureP95Ms",
+        "frameSeqMonotonic",
+        "gpuPhysical",
+        "roiJpegValid",
+        "actualPayloadOmissionCount",
+        "gpuFrameCount",
+        "freshPixelsEveryRead",
+        "fallbackFrameCount"
+      ]
+    },
+    {
       "path": "docs/evidence/rmv2/nuget-ci108.json",
       "shelf": "evidence",
       "extension": "json",
@@ -645,6 +666,27 @@
         "normalizedLockSha256",
         "sourceCompile",
         "lockIntake"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/phase1-ci112.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2135,
+      "sha256": "5e1022b1361c2d0ff039e9dbd51633197c2761d7a8ac0a65e25dc3c7bd3b6de6",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "scope",
+        "idleTimerStopped",
+        "reopenNewId",
+        "systemCursorRoles",
+        "result",
+        "performanceComparison",
+        "tinyMoves",
+        "restoreWhileAlive"
       ]
     },
     {
@@ -876,6 +918,27 @@
         "at",
         "sentOffset",
         "sizeElapsedMs"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/text-ci112.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2272,
+      "sha256": "b73e8f50ade665fbed3b0bb1f1d62a617f73733397ae6ee44045ce2f6b0060be",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "lastAcknowledgedOffset",
+        "requestedUnits",
+        "error",
+        "lastNativeReply",
+        "elapsedMs",
+        "scope",
+        "result",
+        "stage"
       ]
     },
     {
@@ -2769,8 +2832,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 71928,
-      "sha256": "db2c806cc024ab021b7353550cda494a5ac264be1d7697cf914efe4966f804b7",
+      "bytes": 74506,
+      "sha256": "5fe30cf252304ef5bcdc2a460dbdb0d3aaa41a2a2e274f1fb77443da6f759048",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {

@@ -362,3 +362,7 @@ rmv2-text-write.textChunks and LogicalTextWriter.Prepared/Chunk agree on unpaced
 ## Fence new text packets while completing read-only verification
 
 NativeInput.WriteLogicalChunkCore centralizes actual packet construction/guard/send/delay and is exercised by LogicalPacketSelfTest with a recording sender. Production wrapper retains activity/modifier validation; no test sender is exposed through RPC. LogicalTextWriter uses AdmitPacket before new input and ObserveGuard for post-send/readback, records phase and textTiming plus deadline-at-receipt. Program selftest reports logicalPacketGuardsOk. test-rmv2-text persists actual failure ACK/phase rather than leaving RUNNING unless the external runner forcibly times out.
+
+## Back off delivery observations and diagnose exact fixture content
+
+TypingTarget.PollDelivery isolates the real polling loop for virtual-clock tests; backoff caps120ms and retains guards/exact compare/1500ms. Program selftest reports deliveryPollingOk. test-rmv2-text writes three direct fixture snapshot diagnostics after a failed ACK without sending/replaying input or weakening failure. Rmv2TextFixture declares1M capacity and reports capacity/word-wrap metadata. CI112 text/cursor/DXGI evidence is pinned under docs/evidence/rmv2.

@@ -23,8 +23,8 @@ internal static class Program
         {Environment.ExitCode=2;return;}
         ApplicationConfiguration.Initialize();
         using var form=new Form{Text="RM isolated native text acceptance",Width=600,Height=440,TopMost=true};
-        using var a=new MeasuredTextBox{Multiline=true,MaxLength=0};a.SetBounds(20,20,540,160);
-        using var b=new MeasuredTextBox{Multiline=true,MaxLength=0};b.SetBounds(20,200,540,160);
+        using var a=new MeasuredTextBox{Multiline=true,MaxLength=1048576};a.SetBounds(20,20,540,160);
+        using var b=new MeasuredTextBox{Multiline=true,MaxLength=1048576};b.SetBounds(20,200,540,160);
         form.Controls.AddRange(new Control[]{a,b});
         form.Shown+=(_,_)=>Task.Run(async()=>{
             try {
@@ -41,7 +41,7 @@ internal static class Program
                             switch(op) {
                                 case "reset":form.Show();form.WindowState=FormWindowState.Normal;a.Text=initial;b.Clear();a.Characters=a.KeyDowns=b.Characters=b.KeyDowns=0;form.Activate();a.Focus();a.Select(a.TextLength,0);data=new {reset=true};break;
                                 case "other":b.Focus();data=new {other=true};break;
-                                case "read":data=new {text=a.Text,other=b.Text,characters=a.Characters,keyDowns=a.KeyDowns,otherCharacters=b.Characters,selectionStart=a.SelectionStart,selectionLength=a.SelectionLength};break;
+                                case "read":data=new {text=a.Text,other=b.Text,characters=a.Characters,keyDowns=a.KeyDowns,otherCharacters=b.Characters,selectionStart=a.SelectionStart,selectionLength=a.SelectionLength,controlMaxLength=a.MaxLength,wordWrap=a.WordWrap};break;
                                 case "close":data=new {closed=true};break;
                                 default:throw new InvalidOperationException("fixture_operation_invalid");
                             }

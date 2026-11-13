@@ -65,8 +65,9 @@ internal static class Program
             var interactionProfileOk=InteractionProfile.SelfTest();
             var rpcSchedulerOk=RpcWorkScheduler.SelfTest() && RobotRpcServer.AuthoritySelfTest();
             var logicalPacketGuardsOk=NativeInput.LogicalPacketSelfTest();
+            var deliveryPollingOk=TypingTarget.DeliveryPollingSelfTest();
             var controlActivityOk=ControlActivity.SelfTest() && CursorGlowOverlay.SelfTest();
-            var allOk=logicalPacketGuardsOk && frameCacheOk && interactionProfileOk && rpcSchedulerOk && controlActivityOk && semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk && semanticScopeOk && smoothMoveMathOk && agentCursorVisualOk && systemCursorOverrideOk;
+            var allOk=deliveryPollingOk && logicalPacketGuardsOk && frameCacheOk && interactionProfileOk && rpcSchedulerOk && controlActivityOk && semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk && semanticScopeOk && smoothMoveMathOk && agentCursorVisualOk && systemCursorOverrideOk;
             var result = new
             {
                 ok = allOk,
@@ -86,6 +87,7 @@ internal static class Program
                 controlActivityOk,
                 rpcSchedulerOk,
                 logicalPacketGuardsOk,
+                deliveryPollingOk,
                 interactionProfileOk,frameCacheOk
             };
             File.WriteAllText(output, JsonSerializer.Serialize(result));

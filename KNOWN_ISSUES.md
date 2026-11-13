@@ -163,3 +163,7 @@ CI110 real16K/64K writes passed native/full fixture readback, but256K did not co
 ## Fence new text packets while completing read-only verification
 
 CI111 expedited16K/64K exact readback to22.49s/86.42s on that runner but stopped at65946accepted units because the mutation freshness timer also covered completion. New completion separation is pending native CI and does not claim256K success. If expiry occurs before another packet or during actual packet delivery, it must still stop unsent content and require reconciliation. UIA providers may block beyond the polling interval; native helper timeout/reset remains the recovery boundary. Read-only completion cannot retract already queued OS input or guarantee independent Windows focus.
+
+## Back off delivery observations and diagnose exact fixture content
+
+CI112 input admission/readback separation passed its packet-loop selftest, but actual256K readback still failed at97641accepted units after1500ms. Target binding5.14ms/send55.05ms show this failure is completion observation, not deadline admission. Actual loss versus slow target/provider remains unresolved; no256K or complete installer acceptance. New polling changes are pending proof and no blanket speedup is claimed. FixtureMaxLength0 behavior is removed as an ambiguity only, not asserted as the cause.
