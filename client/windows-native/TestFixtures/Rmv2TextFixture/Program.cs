@@ -43,6 +43,8 @@ internal sealed class NativeEdit:NativeWindow,IDisposable
 internal sealed class MeasuredTextBox:TextBox
 {
     public int Characters,KeyDowns,DelayMs;
+    public bool AccessibilityCreated;
+    protected override AccessibleObject CreateAccessibilityInstance(){AccessibilityCreated=true;return base.CreateAccessibilityInstance();}
     protected override CreateParams CreateParams {get {var value=base.CreateParams;value.Style|=0x1000;return value;}}
     protected override void WndProc(ref Message message)
     {
@@ -54,6 +56,8 @@ internal sealed class MeasuredTextBox:TextBox
 internal sealed class MeasuredRichEdit:RichTextBox
 {
     public int Characters,KeyDowns;
+    public bool AccessibilityCreated;
+    protected override AccessibleObject CreateAccessibilityInstance(){AccessibilityCreated=true;return base.CreateAccessibilityInstance();}
     protected override CreateParams CreateParams {get {var value=base.CreateParams;value.Style|=0x1000;return value;}}
     protected override void WndProc(ref Message message)
     {
@@ -103,7 +107,7 @@ internal static class Program
                                     if(kind=="native")native.Reset(initial);else{active.Focus();active.Select(active.Text.Length,0);}
                                     data=new {reset=true,controlKind=activeKind};break;
                                 case "other":b.Focus();data=new {other=true};break;
-                                case "read":data=new {text=activeKind=="win32-edit"?native.ReadText():active.Text,other=b.Text,characters=activeKind=="win32-edit"?native.Characters:active==a?a.Characters:rich.Characters,keyDowns=activeKind=="win32-edit"?native.KeyDowns:active==a?a.KeyDowns:rich.KeyDowns,otherCharacters=b.Characters,selectionStart=activeKind=="win32-edit"?0:active.SelectionStart,selectionLength=activeKind=="win32-edit"?0:active.SelectionLength,controlMaxLength=activeKind=="win32-edit"?1048576:active.MaxLength,wordWrap=activeKind=="win32-edit"||active.WordWrap,controlKind=activeKind,delayMs=activeKind=="classic-edit"?a.DelayMs:0,accessibilityObjectCreated=activeKind!="win32-edit"&&active.IsAccessibilityObjectCreated};break;
+                                case "read":data=new {text=activeKind=="win32-edit"?native.ReadText():active.Text,other=b.Text,characters=activeKind=="win32-edit"?native.Characters:active==a?a.Characters:rich.Characters,keyDowns=activeKind=="win32-edit"?native.KeyDowns:active==a?a.KeyDowns:rich.KeyDowns,otherCharacters=b.Characters,selectionStart=activeKind=="win32-edit"?0:active.SelectionStart,selectionLength=activeKind=="win32-edit"?0:active.SelectionLength,controlMaxLength=activeKind=="win32-edit"?1048576:active.MaxLength,wordWrap=activeKind=="win32-edit"||active.WordWrap,controlKind=activeKind,delayMs=activeKind=="classic-edit"?a.DelayMs:0,accessibilityObjectCreated=activeKind!="win32-edit"&&(active==a?a.AccessibilityCreated:rich.AccessibilityCreated)};break;
                                 case "close":data=new {closed=true};break;
                                 default:throw new InvalidOperationException("fixture_operation_invalid");
                             }

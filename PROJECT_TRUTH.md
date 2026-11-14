@@ -1,6 +1,6 @@
 # Light Remote MCP — Project Truth
 
-Current development source: CI120 stopped at native compile: readback length is long while StringBuilder capacity and consistency budget require int. Existing bounded before<maximum<=20M permits a checked int conversion before adding spare capacity. Fix both CS1503 failures without changing message/readback/input budgets. Text stress has NOT_RUN, not failed or passed execution. GPU source3a240c4 remains native-CI pending; encoded video work continues.
+Current development source: CI122 compiled native RM and passed actual compute shader/WARP correctness, original cursor/lifecycle, GDI capture and DXGI reduced-readback probes. Its text fixture then failed CS1061 because IsAccessibilityObjectCreated is not a public TextBoxBase member. Track actual accessibility creation by overriding the protected factory in the isolated measured controls instead. Keep the same required four managed262K cases and no-provider-activation assertion; no product typing/input budget change and no text PASS inferred.
 
 **Đang hoàn thiện plan RM v2; chưa có bản nghiệm thu chung.** Owner yêu cầu hoàn tất WinForms262K, GPU resize và video trước khi báo tải/cài nghiệm thu. #118/sourcef109260 chỉ là baseline đã kiểm tra để so sánh/rollback; các giới hạn của nó vẫn được giữ trong receipt lịch sử, không được coi là hoàn tất plan.
 
@@ -374,3 +374,7 @@ Implement optional DXGI GPU crop/bilinear resize before CPU readback. D3D11 comp
 ## Check native readback capacity conversion before allocation
 
 CI120 stopped at native compile: readback length is long while StringBuilder capacity and consistency budget require int. Existing bounded before<maximum<=20M permits a checked int conversion before adding spare capacity. Fix both CS1503 failures without changing message/readback/input budgets. Text stress has NOT_RUN, not failed or passed execution. GPU source3a240c4 remains native-CI pending; encoded video work continues. No deployment or Owner installation change.
+
+## Measure real accessibility creation in isolated native text fixtures
+
+CI122 compiled native RM and passed actual compute shader/WARP correctness, original cursor/lifecycle, GDI capture and DXGI reduced-readback probes. Its text fixture then failed CS1061 because IsAccessibilityObjectCreated is not a public TextBoxBase member. Track actual accessibility creation by overriding the protected factory in the isolated measured controls instead. Keep the same required four managed262K cases and no-provider-activation assertion; no product typing/input budget change and no text PASS inferred. CI122 exactda99762 Windowsjob132284207643 logs: native selftest all true; DXGI probe13DXGI frames18explicit freshGDI fallbacks and downscale43200output/readback pixels; no physical GPU speedup claim. Managed text NOT_RUN due fixture CS1061, now corrected protected factory measurement. Before checkpoint checkpoint/20261114-before-rmv2-media-da99762 bundleSHA d35252665a10bd2a73d8724c7b0666ab42a8534ac51007d3eb2f5e7802595fdb restore/fsckPASS. No runtime or Owner install change; finish text/video before acceptance.

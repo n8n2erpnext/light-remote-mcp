@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-14T01:33:01.234Z",
+  "updatedAt": "2026-11-14T01:49:19.361Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_MANAGED_TEXT_GPU_RESIZE_VIDEO_COMPLETION",
   "status": "RM_PLAN_COMPLETION_IN_PROGRESS",
@@ -542,12 +542,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261114-rmv2-readback-capacity-compile",
-    "status": "RM_TEXT_GPU_NATIVE_CI_PENDING_VIDEO_IN_PROGRESS",
-    "summary": "CI120 stopped at native compile: readback length is long while StringBuilder capacity and consistency budget require int. Existing bounded before<maximum<=20M permits a checked int conversion before adding spare capacity. Fix both CS1503 failures without changing message/readback/input budgets. Text stress has NOT_RUN, not failed or passed execution. GPU source3a240c4 remains native-CI pending; encoded video work continues.",
-    "verification": "Exact CI120 sourcea686ef2 Windows job132277248315 compiler logs verified two CS1503 diagnostics at NativeEditReadback lines34/38. Full checkpoint checkpoint/20261114-before-rmv2-video-3a240c4 bundleSHA bebc4968b75d5d4ca7c5b0c1fea934732ced5a9a1b39aeaff4aa74cd7b727ae7 restore/fsckPASS. Product native execution remains Actions-only.",
+    "taskId": "20261114-rmv2-measured-accessibility-factory",
+    "status": "RM_GPU_RESIZE_CI_PROBE_PASS_MANAGED_STRESS_PENDING_MEDIA_IN_PROGRESS",
+    "summary": "CI122 compiled native RM and passed actual compute shader/WARP correctness, original cursor/lifecycle, GDI capture and DXGI reduced-readback probes. Its text fixture then failed CS1061 because IsAccessibilityObjectCreated is not a public TextBoxBase member. Track actual accessibility creation by overriding the protected factory in the isolated measured controls instead. Keep the same required four managed262K cases and no-provider-activation assertion; no product typing/input budget change and no text PASS inferred.",
+    "verification": "CI122 exactda99762 Windowsjob132284207643 logs: native selftest all true; DXGI probe13DXGI frames18explicit freshGDI fallbacks and downscale43200output/readback pixels; no physical GPU speedup claim. Managed text NOT_RUN due fixture CS1061, now corrected protected factory measurement. Before checkpoint checkpoint/20261114-before-rmv2-media-da99762 bundleSHA d35252665a10bd2a73d8724c7b0666ab42a8534ac51007d3eb2f5e7802595fdb restore/fsckPASS.",
     "nextAction": "Follow native text and GPU Actions results, fix failures. Implement encoded video pipeline and authorized bounded transport/viewer; then verify the combined candidate before Owner download/UAT. CI118 remains comparison/rollback, not completed RM plan.",
-    "sourceDigest": "92f010473b28a1809f64c2e2b5dce201d1e14346b7f7669a17f8f1e1a3e52687",
+    "sourceDigest": "c782c6fa4a7a65c73d05ac94c400c11dd50ddd994f4da987fa7155a993fb2698",
     "sourceFileCount": 1707
   },
   "legacyFilesystemCleanup": {
@@ -2517,7 +2517,7 @@
         "restore": "PASS"
       },
       "requiredManaged262KCases": 4,
-      "gpuResize": "IMPLEMENTED_NATIVE_CI_PENDING",
+      "gpuResize": "CI122_WARP_SHADER_AND_DXGI_REDUCED_READBACK_PROBE_PASS",
       "encodedVideoAndAuthorizedViewer": "IN_PROGRESS",
       "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.",
       "gpuResizeBackend": "D3D11_COMPUTE_CROP_BILINEAR_REDUCED_STAGING",
@@ -2528,7 +2528,9 @@
         "restore": "PASS",
         "source": "a686ef29fc9a24d21b3f7711ffaa9b6137b880f9"
       },
-      "nativeTextCi120": "NOT_RUN_COMPILE_CS1503_FIXED_SOURCE"
+      "nativeTextCi120": "NOT_RUN_COMPILE_CS1503_FIXED_SOURCE",
+      "nativeTextCi122": "NOT_RUN_FIXTURE_CS1061_CORRECTED",
+      "gpuProbeSource": "da99762e5dd53c99c4443c9cb85905f19bf58bf1"
     }
   }
 }
