@@ -1,6 +1,6 @@
 # RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn
 
-Status: DEV11_SCOPED_CI_PASS_OWNER_UAT_PENDING_GPU_MEDIA_INCOMPLETE
+Status: IN_PROGRESS_MANAGED262K_GPU_RESIZE_AND_VIDEO_REQUIRED_BEFORE_ACCEPTANCE
 Edition: 2026-11-11, Asia/Saigon
 Scope: Windows RM v2, đối chiếu typing macOS; giữ các tool, semantic UI, A/B và local policy hiện tại
 Authoritative source: GitHub `work` `764e1d7ce7670c9e95690fca26b58dd2e3c86f02`, tree `41a48add6e01f3e4f6d28271a59b77f92a8acaca`
@@ -344,3 +344,7 @@ Dùng duy nhất artifact cuối cùng có source commit, CI và SHA-256 đượ
 7. Sau phiên: không tiếp tục capture nền, không còn overlay; app/tray và các chức năng nền vẫn dùng được. Thử đóng/mở app, nâng cấp và quay về bản trước theo bộ cài nội bộ.
 
 Chưa gắn PASS vào bất kỳ ca vật lý nào. Video H.264/WebRTC, GPU resize và hardware encoder chưa thuộc khả năng của pipeline JPEG hiện tại.
+
+## Verify native editor delivery without creating UIA providers
+
+Resume full RM plan before acceptance. Empty supported Unicode Edit/RICHEDIT50W targets bind/read with bounded read-only User32 messages before any UIA activation; nonempty selection-aware documents retain UIA. Require stable before/after lengths, complete copied count and full content equality; reject truncated/unstable reads without replay. Bind native class/thread/process/focus and tracked destroy generation. Keep 1000ms mutation admission,5s read-only completion and existing cancellation/Owner guards. Reinstate all four previously unaccepted managed262K cases as required positives alongside16K/64K/pureWin32 and newline tests; assert native readback does not create managed accessibility providers and retain nonempty UIA regression. No managed262K PASS or speedup claimed before Actions proof. Full checkpoint checkpoint/20261114-before-rmv2-complete-plan-1c27f62 bundleSHA 882a35850f0d06c1841690f51451a61fbe1c19019105881467df2ec82ad6c781 archiveSHA 6fdf502a6d077f0e4de8d7a0f4c0932333077998661677edb49e5782bb7d0ea7 independent bundle/restore/fsckPASS. PowerShell text matrix AST PASS; native code/build and OS tests remain Actions-only. User32 source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendmessagetimeoutw and /windows/win32/winmsg/wm-gettext (older RichEdit64K limitation is fail-closed, not assumed supported). Lab remains exactf109260/dev11; no deployment, DB/Agent/session/grant/Owner installation/production/domain/callback/public-feed changes. Protected main unchanged. Next: Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.

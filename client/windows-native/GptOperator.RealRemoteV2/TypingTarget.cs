@@ -31,6 +31,10 @@ internal sealed class TypingTarget
     private ValuePattern? _value;
     private string _prefix="",_suffix="";
     private bool _password;
+    private bool _nativeReadback;
+    private string _nativeClass="";
+    private long _nativeGeneration;
+    private uint _nativeThread;
     public bool VerificationAvailable {get;private set;}
     public string VerificationMethod {get;private set;}="unavailable";
     public string Fingerprint {get;private set;}="";
@@ -52,12 +56,16 @@ internal sealed class TypingTarget
             throw new InvalidOperationException("desktop_text_invalid_options");
         var target=new TypingTarget(sensor,activity);
         try {
+            // Bind empty native editors without creating a managed UIA provider.
+            // Existing/non-native documents still require UIA selection proof.
+            if(!target.CaptureNativeEmpty(mode,verification)) {
             target._element=AutomationElement.FocusedElement;
             if(target._element is not null) {
                 target._runtime=target._element.GetRuntimeId();
                 target._password=target._element.Current.IsPassword;
                 if(!target._element.Current.IsEnabled)throw new InvalidOperationException("desktop_text_target_disabled");
                 if(!target._password&&(verification!="none"||mode=="append")&&target._runtime is {Length:>0})target.CaptureReadback(mode);
+            }
             }
         } catch(InvalidOperationException error) when(error.Message is "desktop_text_append_requires_caret_at_end" or "desktop_text_target_disabled" or "desktop_text_target_read_only") {throw;}
           catch {target.VerificationAvailable=false;target.VerificationMethod="provider_unavailable";}
@@ -67,6 +75,19 @@ internal sealed class TypingTarget
         var identity=$"{target._root}|{target._focus}|{target._pid}|{target._processStart}|{String.Join(".",target._runtime??Array.Empty<int>())}";
         target.Fingerprint=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity))).ToLowerInvariant();
         target.CheckFull();return target;
+    }
+    private bool CaptureNativeEmpty(string mode,string verification)
+    {
+        _nativeClass=NativeEditReadback.ClassName(_focus);
+        if(!NativeEditReadback.Eligible(_focus,_nativeClass))return false;
+        _nativeThread=GetWindowThreadProcessId(_focus,out var pid);
+        if(pid!=_pid||_nativeThread==0||_processStart==0)return false;
+        _nativeGeneration=_sensor.TrackNativeWindow(_focus);
+        CheckFast();
+        if(verification=="none"&&mode=="insert")return true;
+        if(!NativeEditReadback.TryRead(_focus,BeforeLimit+1,out var before)||before.Length!=0)return false;
+        _nativeReadback=true;VerificationAvailable=true;VerificationMethod="win32-empty-edit-full-line-endings";
+        return true;
     }
     private void CaptureReadback(string mode)
     {
@@ -99,7 +120,7 @@ internal sealed class TypingTarget
         }
     }
     public object Metadata()=>new {fingerprint=Fingerprint,password=_password,nativeMultilineLineBreaks=NativeMultilineLineBreaks,
-        binding=_runtime is {Length:>0}?"win32-foreground-focus+uia-runtime":"win32-foreground-focus",
+        binding=_nativeReadback?"win32-foreground-focus+process+destroy-generation+editor-class":_runtime is {Length:>0}?"win32-foreground-focus+uia-runtime":"win32-foreground-focus",
         verificationAvailable=VerificationAvailable,verificationMethod=VerificationMethod};
     public void CheckFast()
     {
@@ -108,6 +129,10 @@ internal sealed class TypingTarget
         if(!ControlActivity.InputDesktopAvailable())throw new TypingTargetInterrupted("input_desktop_unavailable");
         var root=GetForegroundWindow();var thread=GetWindowThreadProcessId(root,out var pid);
         if(root!=_root||pid!=_pid||ReadFocus(thread)!=_focus)throw new TypingTargetInterrupted("target_changed");
+        if(_nativeGeneration!=0&&(!_sensor.NativeWindowMatches(_focus,_nativeGeneration)
+            ||GetWindowThreadProcessId(_focus,out var focusPid)!=_nativeThread||focusPid!=_pid
+            ||NativeEditReadback.ClassName(_focus)!=_nativeClass||!NativeEditReadback.Eligible(_focus,_nativeClass)))
+            throw new TypingTargetInterrupted("native_editor_recreated_or_changed");
         if(NativeMultilineLineBreaks&&!ReadNativeLineBreakPolicy(_focus))throw new TypingTargetInterrupted("native_multiline_target_changed");
     }
     public void CheckFull()
@@ -136,7 +161,10 @@ internal sealed class TypingTarget
         var clock=Stopwatch.StartNew();
         return PollDelivery(()=>{
             CheckFull();
-            var actual=_text is not null?_text.DocumentRange.GetText(maximum):_value!.Current.Value;
+            string actual;
+            if(_nativeReadback) {if(!NativeEditReadback.TryRead(_focus,maximum,out actual))return false;}
+            else actual=_text is not null?_text.DocumentRange.GetText(maximum):_value!.Current.Value;
+            CheckFast();
             return Normalize(actual)==expected;
         },guard,()=>clock.ElapsedMilliseconds,Thread.Sleep);
     }

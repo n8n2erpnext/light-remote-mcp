@@ -66,7 +66,7 @@ internal static class Program
             var rpcSchedulerOk=RpcWorkScheduler.SelfTest() && RobotRpcServer.AuthoritySelfTest();
             var logicalPacketGuardsOk=NativeInput.LogicalPacketSelfTest();
             var deliveryPollingOk=TypingTarget.DeliveryPollingSelfTest();
-            var nativeLineBreakPolicyOk=TypingTarget.NativeLineBreakPolicySelfTest();
+            var nativeLineBreakPolicyOk=TypingTarget.NativeLineBreakPolicySelfTest() && NativeEditReadback.SelfTest();
             var controlActivityOk=ControlActivity.SelfTest() && CursorGlowOverlay.SelfTest();
             var allOk=nativeLineBreakPolicyOk && deliveryPollingOk && logicalPacketGuardsOk && frameCacheOk && interactionProfileOk && rpcSchedulerOk && controlActivityOk && semanticJournalOk && visualLeasePolicyOk && browserLoopbackPolicyOk && rectSanitizationOk && semanticScopeOk && smoothMoveMathOk && agentCursorVisualOk && systemCursorOverrideOk;
             var result = new

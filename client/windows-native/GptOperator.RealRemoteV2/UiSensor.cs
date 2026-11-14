@@ -52,6 +52,7 @@ internal sealed class UiSensor : IDisposable
     private const uint WINEVENT_OUTOFCONTEXT=0x0000;
     private const uint WINEVENT_SKIPOWNPROCESS=0x0002;
     private const uint EVENT_SYSTEM_FOREGROUND=0x0003;
+    private const uint EVENT_OBJECT_DESTROY=0x8001;
     private const uint EVENT_OBJECT_SHOW=0x8002;
     private const uint EVENT_OBJECT_HIDE=0x8003;
     private const uint EVENT_OBJECT_FOCUS=0x8005;
@@ -59,7 +60,15 @@ internal sealed class UiSensor : IDisposable
     private const uint GA_ROOT=2;
 
     private long _focusGeneration;
+    private long _nativeWindow,_nativeWindowGeneration;
     internal long FocusGeneration=>Volatile.Read(ref _focusGeneration);
+    internal long TrackNativeWindow(nint hwnd)
+    {
+        Interlocked.Exchange(ref _nativeWindow,hwnd.ToInt64());
+        return Interlocked.Increment(ref _nativeWindowGeneration);
+    }
+    internal bool NativeWindowMatches(nint hwnd,long generation)=>Volatile.Read(ref _nativeWindow)==hwnd.ToInt64()
+        &&Volatile.Read(ref _nativeWindowGeneration)==generation;
     private readonly WinEventDelegate _callback;
     private readonly List<nint> _hooks=new();
 
@@ -69,7 +78,7 @@ internal sealed class UiSensor : IDisposable
     {
         _callback=OnWinEvent;
         Hook(EVENT_SYSTEM_FOREGROUND,EVENT_SYSTEM_FOREGROUND);
-        Hook(EVENT_OBJECT_SHOW,EVENT_OBJECT_NAMECHANGE);
+        Hook(EVENT_OBJECT_DESTROY,EVENT_OBJECT_NAMECHANGE);
     }
 
     [DllImport("user32.dll")] private static extern nint SetWinEventHook(uint eventMin,uint eventMax,nint module,WinEventDelegate callback,uint process,uint thread,uint flags);
@@ -87,6 +96,10 @@ internal sealed class UiSensor : IDisposable
     private void OnWinEvent(nint hook,uint evt,nint hwnd,int objectId,int childId,uint thread,uint time)
     {
         if(hwnd==0) return;
+        if(evt==EVENT_OBJECT_DESTROY) {
+            if(objectId==0&&hwnd.ToInt64()==Volatile.Read(ref _nativeWindow))Interlocked.Increment(ref _nativeWindowGeneration);
+            return; // Never read a destroyed HWND's title or publish its text.
+        }
         if(evt is EVENT_SYSTEM_FOREGROUND or EVENT_OBJECT_FOCUS)Interlocked.Increment(ref _focusGeneration);
         Changed?.Invoke(new UiChangeEvent(
             evt switch {

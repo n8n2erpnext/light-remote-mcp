@@ -156,3 +156,7 @@ Native desktop.status.logicalText reports unpaced chunkUnits256, pacedChunkUnits
 ## Deliver line breaks only to bound native multiline editors
 
 desktop.text.start.target.nativeMultilineLineBreaks reports bound native editor capability. A CRLF logical newline retains2source UTF16units but emits one Return pair only on proven known native multiline WANTRETURN HWNDs. Other fields receive no new Return behavior. Final verifiedInsertedUnits still counts source input units under line-ending-only equivalence, never OS event count. No public payload/permission/TTL/transport cap changed.
+
+## Verify native editor delivery without creating UIA providers
+
+No new public route or input capability. Existing desktop.text.start/chunk/finish retain lease/authority guards. Native target metadata may report win32-empty-edit-full-line-endings and process/destroy-generation/editor-class binding; UIA selection fallback remains for nonempty documents. Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.

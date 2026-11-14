@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-14T00:46:34.554Z",
+  "updatedAt": "2026-11-14T01:17:15.065Z",
   "version": "0.10.1-dev.11",
-  "phase": "RMV2_PHASE2_AND_OPTIONAL_DXGI_CAPTURE_CI_VERIFIED_PHYSICAL_PENDING",
-  "status": "DEV11_FULL_CI_ARTIFACT_VERIFIED_OWNER_UAT_PENDING",
+  "phase": "RMV2_MANAGED_TEXT_GPU_RESIZE_VIDEO_COMPLETION",
+  "status": "RM_PLAN_COMPLETION_IN_PROGRESS_NATIVE_TEXT_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -451,7 +451,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Owner manually installs only the pinned internal artifact and performs the consolidated Windows RM checklist; record physical outcomes against this exact source/installer hash. Optional GPU preprocessing/hardware video/viewer remain unimplemented and require their own implementation/measurements; do not call the complete four-stage research plan PASS.",
+  "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -542,13 +542,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261114-rmv2-dev11-integrated-closeout",
-    "status": "DEV11_FULL_CI_ARTIFACT_VERIFIED_OWNER_UAT_PENDING",
-    "summary": "Verified internal dev11 sourcef1092607fb96ed181e9b4c71a55e13429b183a60, full CI118 all9PASS and independently SHA-verified one-primary installer. Native text result is scoped to exact editor/layout receipts; managed262K stress cases remain NOT_ACCEPTED, not relabeled by the separate genuine Win32 EDIT positive case. Cursor/lifecycle/capture evidence is pinned. Consolidate stale current-looking dev5/dev9 fields into history and publish one truthful current checkpoint. Owner physical test pending; no public release/feed or production/domain/callback changes.",
-    "verification": "Exact-source CI1189/9PASS; complete ZIP SHA4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3, installer SHA9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6, source/tree/run/profile/one-primary/migration/lifecycle independently verified on ARM. checkpoint/20261114-before-rmv2-dev11-ready-f109260 restore/fsckPASS. Owner physical acceptance not inferred.",
-    "nextAction": "Owner manually installs only the pinned internal artifact and performs the consolidated Windows RM checklist; record physical outcomes against this exact source/installer hash. Optional GPU preprocessing/hardware video/viewer remain unimplemented and require their own implementation/measurements; do not call the complete four-stage research plan PASS.",
-    "sourceDigest": "9d679a76c3b8488543b02fee9737af50c4d58fd2912b05d27c768658523a0c4d",
-    "sourceFileCount": 1705
+    "taskId": "20261114-rmv2-native-editor-full-plan-resume",
+    "status": "RM_PLAN_COMPLETION_IN_PROGRESS_NATIVE_TEXT_CI_PENDING",
+    "summary": "Resume full RM plan before acceptance. Empty supported Unicode Edit/RICHEDIT50W targets bind/read with bounded read-only User32 messages before any UIA activation; nonempty selection-aware documents retain UIA. Require stable before/after lengths, complete copied count and full content equality; reject truncated/unstable reads without replay. Bind native class/thread/process/focus and tracked destroy generation. Keep 1000ms mutation admission,5s read-only completion and existing cancellation/Owner guards. Reinstate all four previously unaccepted managed262K cases as required positives alongside16K/64K/pureWin32 and newline tests; assert native readback does not create managed accessibility providers and retain nonempty UIA regression. No managed262K PASS or speedup claimed before Actions proof.",
+    "verification": "Full checkpoint checkpoint/20261114-before-rmv2-complete-plan-1c27f62 bundleSHA 882a35850f0d06c1841690f51451a61fbe1c19019105881467df2ec82ad6c781 archiveSHA 6fdf502a6d077f0e4de8d7a0f4c0932333077998661677edb49e5782bb7d0ea7 independent bundle/restore/fsckPASS. PowerShell text matrix AST PASS; native code/build and OS tests remain Actions-only. User32 source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendmessagetimeoutw and /windows/win32/winmsg/wm-gettext (older RichEdit64K limitation is fail-closed, not assumed supported).",
+    "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.",
+    "sourceDigest": "5e5b93aacdaa4592a04a00ee5c2a32b394084ebabb2f2e338bcd2675b3140fba",
+    "sourceFileCount": 1706
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -1809,7 +1809,7 @@
     "ownerReportedAcceptance": "2026-11-11 PASS; no inferred DPI/Google-domain acceptance"
   },
   "rmv2Implementation": {
-    "status": "INTERNAL_DEV11_FULL_CI_AND_ARTIFACT_VERIFIED_PHYSICAL_PENDING",
+    "status": "IN_PROGRESS_NOT_READY_FOR_OWNER_ACCEPTANCE",
     "compiledSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
     "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
     "version": "0.10.1-dev.11",
@@ -2505,6 +2505,21 @@
         "arm64Acceptance": "NOT_RUN_HOSTED_RUNNER_CAPACITY_FAILURE",
         "evidence": "docs/evidence/rmv2/macos-ci117.json"
       }
+    },
+    "acceptanceReadiness": false,
+    "phase3": {
+      "status": "NATIVE_EMPTY_EDITOR_READBACK_SOURCE_CI_PENDING",
+      "before": {
+        "source": "1c27f62da647be79b7a7c1a410e6bc45f5e44daf",
+        "tag": "checkpoint/20261114-before-rmv2-complete-plan-1c27f62",
+        "bundleSha256": "882a35850f0d06c1841690f51451a61fbe1c19019105881467df2ec82ad6c781",
+        "archiveSha256": "6fdf502a6d077f0e4de8d7a0f4c0932333077998661677edb49e5782bb7d0ea7",
+        "restore": "PASS"
+      },
+      "requiredManaged262KCases": 4,
+      "gpuResize": "PENDING_IMPLEMENTATION",
+      "encodedVideoAndAuthorizedViewer": "PENDING_IMPLEMENTATION",
+      "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate."
     }
   }
 }

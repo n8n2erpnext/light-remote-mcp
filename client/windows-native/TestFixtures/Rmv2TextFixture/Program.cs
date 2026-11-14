@@ -6,7 +6,7 @@ using System.Text;
 namespace Rmv2TextFixture;
 
 // A genuine Win32 EDIT HWND, without a managed TextBox accessibility provider.
-// Keep managed editor coverage separately; their large-target failures remain.
+// Managed editor stress is required separately, with its real accessibility state recorded.
 internal sealed class NativeEdit:NativeWindow,IDisposable
 {
     public int Characters,KeyDowns;
@@ -103,7 +103,7 @@ internal static class Program
                                     if(kind=="native")native.Reset(initial);else{active.Focus();active.Select(active.Text.Length,0);}
                                     data=new {reset=true,controlKind=activeKind};break;
                                 case "other":b.Focus();data=new {other=true};break;
-                                case "read":data=new {text=activeKind=="win32-edit"?native.ReadText():active.Text,other=b.Text,characters=activeKind=="win32-edit"?native.Characters:active==a?a.Characters:rich.Characters,keyDowns=activeKind=="win32-edit"?native.KeyDowns:active==a?a.KeyDowns:rich.KeyDowns,otherCharacters=b.Characters,selectionStart=activeKind=="win32-edit"?0:active.SelectionStart,selectionLength=activeKind=="win32-edit"?0:active.SelectionLength,controlMaxLength=activeKind=="win32-edit"?1048576:active.MaxLength,wordWrap=activeKind=="win32-edit"||active.WordWrap,controlKind=activeKind,delayMs=activeKind=="classic-edit"?a.DelayMs:0};break;
+                                case "read":data=new {text=activeKind=="win32-edit"?native.ReadText():active.Text,other=b.Text,characters=activeKind=="win32-edit"?native.Characters:active==a?a.Characters:rich.Characters,keyDowns=activeKind=="win32-edit"?native.KeyDowns:active==a?a.KeyDowns:rich.KeyDowns,otherCharacters=b.Characters,selectionStart=activeKind=="win32-edit"?0:active.SelectionStart,selectionLength=activeKind=="win32-edit"?0:active.SelectionLength,controlMaxLength=activeKind=="win32-edit"?1048576:active.MaxLength,wordWrap=activeKind=="win32-edit"||active.WordWrap,controlKind=activeKind,delayMs=activeKind=="classic-edit"?a.DelayMs:0,accessibilityObjectCreated=activeKind!="win32-edit"&&active.IsAccessibilityObjectCreated};break;
                                 case "close":data=new {closed=true};break;
                                 default:throw new InvalidOperationException("fixture_operation_invalid");
                             }

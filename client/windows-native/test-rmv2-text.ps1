@@ -23,7 +23,7 @@ function Ui-Command([string]$Command,[string]$Initial='',[string]$Kind='classic'
  $read=$fixtureReader.ReadLineAsync();if(-not $read.Wait(15000)){throw "text_fixture_timeout:$Command"}
  $reply=$read.Result|ConvertFrom-Json
  if($reply.id -ne $request.id -or -not $reply.ok){throw 'text_fixture_reply_invalid'}
- if($Command -eq 'read'){$shared.result=$reply.data.text;$shared.other=$reply.data.other;$shared.characters=$reply.data.characters;$shared.keyDowns=$reply.data.keyDowns;$shared.controlMaxLength=$reply.data.controlMaxLength;$shared.wordWrap=$reply.data.wordWrap;$shared.controlKind=$reply.data.controlKind;$shared.delayMs=$reply.data.delayMs}
+ if($Command -eq 'read'){$shared.result=$reply.data.text;$shared.other=$reply.data.other;$shared.characters=$reply.data.characters;$shared.keyDowns=$reply.data.keyDowns;$shared.controlMaxLength=$reply.data.controlMaxLength;$shared.wordWrap=$reply.data.wordWrap;$shared.controlKind=$reply.data.controlKind;$shared.delayMs=$reply.data.delayMs;$shared.accessibilityObjectCreated=$reply.data.accessibilityObjectCreated}
  Start-Sleep -Milliseconds 150
 }
 try {
@@ -80,21 +80,28 @@ try {
  if($slowFinal.contentVerification -ne 'verified' -or $slowFinal.verifiedInsertedUnits -ne $slowText.Length -or $shared.result -cne $slowText){throw 'text_delayed_delivery_full_readback_failed'}
  $slowReport=@{units=$slowText.Length;elapsedMs=$slowClock.Elapsed.TotalMilliseconds;nativeVerified=$true;exactFixtureReadback=$true;authorityExpiredAfterSend=$true;delayPerWmCharMs=$shared.delayMs}
  $sizes=@()
- foreach($size in @(16384,65536,262144)){
+ $matrix=@(
+  @{units=16384;kind='classic';layout='single-paragraph'},
+  @{units=65536;kind='classic';layout='single-paragraph'},
+  @{units=262144;kind='rich';layout='paragraphs-cr'},
+  @{units=262144;kind='rich';layout='single-paragraph'},
+  @{units=262144;kind='classic';layout='single-paragraph'},
+  @{units=262144;kind='classic';layout='paragraphs-cr'},
+  @{units=262144;kind='native';layout='paragraphs-cr'}
+ )
+ foreach($case in $matrix){
+  $size=$case.units
   $script:testUnits=$size;$script:testOffset=0;$script:sizeClock=[diagnostics.stopwatch]::StartNew();Write-TextStage 'resetting_control'
-  # Managed Edit remains covered at16K/64K. The262K case is a genuine Win32
-  # EDIT HWND, not a managed TextBox/RichTextBox accessibility wrapper. CI116's
-  # managed rich paragraph case remains NOT_ACCEPTED by this separate target.
-  $kind=$(if($size -gt 65536){'native'}else{'classic'});Ui-Command 'reset' '' $kind
-  # A surrogate pair and a combining sequence remain together in every chunk.
+  $kind=$case.kind;$layout=$case.layout;Ui-Command 'reset' '' $kind
+  # Required real managed controls include the previously failing cases.
+  # Keep Unicode/grapheme coverage and actual keyboard messages, no paste.
   $seed='Unicode '+[char]0x0110+[char]0x00e2+'y '+[char]::ConvertFromUtf32(0x1f600)+' e'+[char]0x0301+' '
-  $layout='single-paragraph'
-  if($size -gt 65536){$seed=($seed*8)+"`r";$layout='paragraphs-cr'}
+  if($layout -eq 'paragraphs-cr'){$seed=($seed*8)+"`r"}
   $text=($seed*([int][math]::Floor($size/$seed.Length)))+('x'*($size%$seed.Length))
   $id='write_'+[guid]::NewGuid().ToString('N')
   Write-TextStage 'binding_target'
   $prepared=Text-Rpc 'start' @{writeId=$id;requestedUnits=$text.Length;verification='required';mode='insert'}
-  if(-not $prepared.verificationAvailable){throw 'text_fixture_readback_unavailable'}
+  if(-not $prepared.verificationAvailable -or $prepared.verificationMethod -ne 'win32-empty-edit-full-line-endings'){throw 'text_fixture_native_readback_unavailable'}
   $chunkLimit=[int]$prepared.maxChunkUnits
   if($chunkLimit -lt 1 -or $chunkLimit -gt 256){throw 'text_fixture_native_window_invalid'}
   if($nativeCapabilities.chunkUnits -ne $chunkLimit){throw 'text_native_status_prepared_budget_mismatch'}
@@ -147,9 +154,17 @@ try {
    Write-Host ($diagnostic|ConvertTo-Json -Depth 8 -Compress)
    throw "text_full_readback_failed:$size"
   }
+  if($shared.accessibilityObjectCreated){throw 'text_fast_readback_activated_managed_accessibility_provider'}
   $sizes+=$size
-  $script:completedSizes+=,@{units=$size;elapsedMs=$script:sizeClock.Elapsed.TotalMilliseconds;fullFixtureReadback=$true;comparison='full-content-line-ending-equivalence-only';nativeVerified=$true;controlKind=$shared.controlKind;wordWrap=$shared.wordWrap;layout=$layout}
+  $script:completedSizes+=,@{units=$size;elapsedMs=$script:sizeClock.Elapsed.TotalMilliseconds;fullFixtureReadback=$true;comparison='full-content-line-ending-equivalence-only';nativeVerified=$true;controlKind=$shared.controlKind;wordWrap=$shared.wordWrap;layout=$layout;accessibilityObjectCreated=$shared.accessibilityObjectCreated;verificationMethod=$prepared.verificationMethod}
  }
+ Ui-Command 'reset' 'before:' 'classic'
+ $id='write_'+[guid]::NewGuid().ToString('N')
+ $prepared=Text-Rpc 'start' @{writeId=$id;requestedUnits=5;verification='required';mode='append'}
+ if($prepared.verificationMethod -notlike 'uia-*'){throw 'text_nonempty_selection_fallback_missing'}
+ $null=Text-Rpc 'chunk' @{writeId=$id;offset=0;text='after';intervalMs=0}
+ $final=Text-Rpc 'finish' @{writeId=$id;complete=$true};Ui-Command 'read'
+ if($final.contentVerification -ne 'verified' -or $shared.result -cne 'before:after'){throw 'text_nonempty_append_failed'}
  $script:testUnits=12;$script:testOffset=0;Write-TextStage 'focus_switch_test'
  # Changing focus between acknowledged chunks must not type the suffix into B.
  Ui-Command 'reset';$id='write_'+[guid]::NewGuid().ToString('N')
@@ -163,7 +178,7 @@ try {
  if($shared.result -cne 'prefix' -or $shared.other -cne ''){throw 'text_suffix_leaked_to_other_control'}
  $closed=Invoke-Rm @{op='desktop.visual.detach';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken}
  if(-not $closed.scopeClosed){throw 'text_scope_not_closed'}
- $receipt=@{result='PASS';scope='isolated_actions_native_and_managed_editors_not_owner_physical';nativeMultilineLineEndings=$newlineReports;unicodeReadbackSizes=$sizes;sizeMeasurements=$script:completedSizes;delayedDelivery=$slowReport;classicWrapped262K='NOT_ACCEPTED_SEPARATE_SLOW_TARGET_CASE';richSingleParagraph262K='NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT';managedRichParagraphs262K='NOT_ACCEPTED_CI116_DELIVERY_TIMEOUT';elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
+ $receipt=@{result='PASS';scope='isolated_actions_native_and_managed_editors_not_owner_physical';nativeMultilineLineEndings=$newlineReports;unicodeReadbackSizes=$sizes;sizeMeasurements=$script:completedSizes;delayedDelivery=$slowReport;requiredManaged262KCases=4;managedAccessibilityProviderNotActivated=$true;elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Compress)
 } catch {
