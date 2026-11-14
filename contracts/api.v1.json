@@ -174,6 +174,44 @@
       ],
       "response": "Retained local events, nextCursor, hasMore, explicit storage-preset coverage; moving UI window never limits total retained jobs",
       "authority": "Authenticated local Owner; mutation also requires current CSRF; no A/B grant inferred"
+    },
+    "wallVideoPage": {
+      "component": "device-agent/local-wall.mjs",
+      "authority": "authenticated same-device Owner; observer only",
+      "request": [],
+      "response": "HTML / decoder module / bounded recent video packets; no-store"
+    },
+    "wallVideoScript": {
+      "component": "device-agent/local-wall.mjs",
+      "authority": "authenticated same-device Owner; observer only",
+      "request": [],
+      "response": "HTML / decoder module / bounded recent video packets; no-store"
+    },
+    "wallVideoLatest": {
+      "component": "device-agent/local-wall.mjs",
+      "authority": "authenticated same-device Owner; observer only",
+      "request": [],
+      "response": "HTML / decoder module / bounded recent video packets; no-store"
+    },
+    "desktopVideoPushInternal": {
+      "component": "operator-host/executor-routes-device-channel.mjs",
+      "authority": "live exact A/B actor grant/device connection and desktop policy; signed enrolled channel for push",
+      "request": [
+        "sessionId",
+        "agentId",
+        "desktopSessionId"
+      ],
+      "response": "bounded RAM-only media or metadata, no-store"
+    },
+    "desktopVideoReadInternal": {
+      "component": "operator-host/executor-routes-runtime.mjs",
+      "authority": "live exact A/B actor grant/device connection and desktop policy; signed enrolled channel for push",
+      "request": [
+        "sessionId",
+        "agentId",
+        "desktopSessionId"
+      ],
+      "response": "bounded RAM-only media or metadata, no-store"
     }
   },
   "nonClaims": [
@@ -394,5 +432,27 @@
     },
     "benchmarks": "isolated same-source capture-only cold allocations vs warm reuse; not prior-release or network/physical comparison",
     "optionalGpu": "NOT_IMPLEMENTED_IN_THIS_PHASE"
+  },
+  "rmVideo": {
+    "operation": "video-frame",
+    "publicTool": "light_remote_desktop_video_frame",
+    "scope": "exact existing Windows A/B Agent and RM visual task, local desktop capability",
+    "transport": "signed device media push and exact actor read, separate RAM-only relay, metadata-only durable capture job",
+    "codec": "H264 AnnexB independent IDR with SPS/PPS",
+    "maxFrameBytes": 665600,
+    "maxFps": 30,
+    "queue": "one in flight per scope, capture lane2 bounded, no autonomous capture",
+    "hardware": "Media Foundation hardware preference and explicit software fallback; physical acceptance separate",
+    "pixels": "GPU crop/resize before reduced readback when DXGI succeeds; CPU NV12 and system-memory encoder input explicit, no zero-copy claim",
+    "viewer": "authenticated same-device Owner reads recent RAM-only already-authorized packets, never captures or renews",
+    "close": "existing task detach/expiry/revoke disposes video resources; no input replay",
+    "relay": {
+      "ttlMs": 2000,
+      "maxTotalBytes": 16777216,
+      "maxEntries": 32,
+      "history": false,
+      "database": false,
+      "redis": false
+    }
   }
 }

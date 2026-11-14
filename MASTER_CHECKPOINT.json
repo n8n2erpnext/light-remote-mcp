@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-14T01:49:19.361Z",
+  "updatedAt": "2026-11-14T02:15:53.997Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_MANAGED_TEXT_GPU_RESIZE_VIDEO_COMPLETION",
   "status": "RM_PLAN_COMPLETION_IN_PROGRESS",
@@ -451,7 +451,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow native text and GPU Actions results, fix failures. Implement encoded video pipeline and authorized bounded transport/viewer; then verify the combined candidate before Owner download/UAT. CI118 remains comparison/rollback, not completed RM plan.",
+  "nextAction": "Run exact-source native H264 encode, live scoped capture/bad-lease/closed-lease/resource cleanup, production WebCodecs full color decode and required managed262K matrix. Fix all actual failures, verify complete installer and independent source/hash receipts, integrate isolated Lab with rollback only after full CI. Do not give Owner a combined acceptance download until managed262K, GPU resize and video are implemented and checked together.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -542,13 +542,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261114-rmv2-measured-accessibility-factory",
-    "status": "RM_GPU_RESIZE_CI_PROBE_PASS_MANAGED_STRESS_PENDING_MEDIA_IN_PROGRESS",
-    "summary": "CI122 compiled native RM and passed actual compute shader/WARP correctness, original cursor/lifecycle, GDI capture and DXGI reduced-readback probes. Its text fixture then failed CS1061 because IsAccessibilityObjectCreated is not a public TextBoxBase member. Track actual accessibility creation by overriding the protected factory in the isolated measured controls instead. Keep the same required four managed262K cases and no-provider-activation assertion; no product typing/input budget change and no text PASS inferred.",
-    "verification": "CI122 exactda99762 Windowsjob132284207643 logs: native selftest all true; DXGI probe13DXGI frames18explicit freshGDI fallbacks and downscale43200output/readback pixels; no physical GPU speedup claim. Managed text NOT_RUN due fixture CS1061, now corrected protected factory measurement. Before checkpoint checkpoint/20261114-before-rmv2-media-da99762 bundleSHA d35252665a10bd2a73d8724c7b0666ab42a8534ac51007d3eb2f5e7802595fdb restore/fsckPASS.",
-    "nextAction": "Follow native text and GPU Actions results, fix failures. Implement encoded video pipeline and authorized bounded transport/viewer; then verify the combined candidate before Owner download/UAT. CI118 remains comparison/rollback, not completed RM plan.",
-    "sourceDigest": "c782c6fa4a7a65c73d05ac94c400c11dd50ddd994f4da987fa7155a993fb2698",
-    "sourceFileCount": 1707
+    "taskId": "20261114-rmv2-h264-authorized-ephemeral-video",
+    "status": "RM_VIDEO_IMPLEMENTED_SOURCE_NATIVE_CI_PENDING_FULL_PLAN_IN_PROGRESS",
+    "summary": "Implement optional Windows H264 video end to end: explicit video-frame uses the existing owned A/B RM task and desktop read policy, D3D11 crop/resize preference with current GDI fallback, Media Foundation hardware encoder preference with software fallback, bounded CPU NV12 conversion and independent AnnexB IDRs/SPS/PPS. Native capture lane stays bounded and input/status lanes independent; close/topology/lease checks fence late output and release codec/GPU resources. Encoded pixels go through a separate signed actor-bound2s16MiB RAM relay and authenticated same-device WebCodecs viewer; capture jobs store metadata only, never media. Private video_read rechecks account/Agent/device connection/A/B grant without renewing RM control. Owner viewer only observes recent already-captured packets, suppresses duplicate payloads and clears stale/hidden/closed views. Central endpoint catalog, contracts and packaged Client Core include the feature. No zero-copy, physical hardware, native video or completed-plan PASS is claimed before exact Actions proof.",
+    "verification": "Portable video/auth/relay/Owner HTTP tests13/13PASS; native input contract, Client Core closure93files, canonical endpoint Node/.NET/Rust/updater contractsPASS; video PowerShell ASTPASS. Native video has not yet run. Full checkpoint checkpoint/20261114-before-rmv2-encoded-bf97488 bundleSHA 516b929e67de6b6e96e1a33c94915bad819dfbdb8ad4024aecce24161633b5ab archiveSHA faa87321bae49fb9f74f577ccced6fc12c190246d2903904a6883284712fbbf0 restore/fsckPASS. CI122 exactda99762 passed native shader/WARP and actual DXGI reduced-readback probe; CI123 bf97488 managed text is running, no result inferred.",
+    "nextAction": "Run exact-source native H264 encode, live scoped capture/bad-lease/closed-lease/resource cleanup, production WebCodecs full color decode and required managed262K matrix. Fix all actual failures, verify complete installer and independent source/hash receipts, integrate isolated Lab with rollback only after full CI. Do not give Owner a combined acceptance download until managed262K, GPU resize and video are implemented and checked together.",
+    "sourceDigest": "9fb880fa849427746ac8210161ed0d5363f9a286a307d85beaf8c3bd716f6517",
+    "sourceFileCount": 1719
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -2518,7 +2518,7 @@
       },
       "requiredManaged262KCases": 4,
       "gpuResize": "CI122_WARP_SHADER_AND_DXGI_REDUCED_READBACK_PROBE_PASS",
-      "encodedVideoAndAuthorizedViewer": "IN_PROGRESS",
+      "encodedVideoAndAuthorizedViewer": "IMPLEMENTED_SOURCE_NATIVE_AND_BROWSER_CI_PENDING",
       "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.",
       "gpuResizeBackend": "D3D11_COMPUTE_CROP_BILINEAR_REDUCED_STAGING",
       "gpuResizeCheckpoint": {
@@ -2530,7 +2530,20 @@
       },
       "nativeTextCi120": "NOT_RUN_COMPILE_CS1503_FIXED_SOURCE",
       "nativeTextCi122": "NOT_RUN_FIXTURE_CS1061_CORRECTED",
-      "gpuProbeSource": "da99762e5dd53c99c4443c9cb85905f19bf58bf1"
+      "gpuProbeSource": "da99762e5dd53c99c4443c9cb85905f19bf58bf1",
+      "videoCheckpoint": {
+        "tag": "checkpoint/20261114-before-rmv2-encoded-bf97488",
+        "bundleSha256": "516b929e67de6b6e96e1a33c94915bad819dfbdb8ad4024aecce24161633b5ab",
+        "archiveSha256": "faa87321bae49fb9f74f577ccced6fc12c190246d2903904a6883284712fbbf0",
+        "restore": "PASS",
+        "source": "bf974886fdad20ea996f9551913f95f3233e65c2"
+      },
+      "videoCodec": "MEDIA_FOUNDATION_H264_ANNEXB_INDEPENDENT_IDR",
+      "videoGpuPreference": "D3D11_COMPUTE_WITH_FRESH_GDI_FALLBACK",
+      "videoEncoderPreference": "HARDWARE_WITH_EXPLICIT_SOFTWARE_FALLBACK",
+      "mediaPersistence": "NONE_RAM_ONLY_TTL2000MS_MAX16MIB",
+      "nativeMediaDiagnostics": "ACTIONS_ONLY_NOT_RELEASE_ACCEPTANCE",
+      "zeroCopy": false
     }
   }
 }

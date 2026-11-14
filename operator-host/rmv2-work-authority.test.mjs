@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {authorizeRmWork} from './rmv2-work-authority.mjs';
+import {authorizeRmWork,authorizeRmVideo} from './rmv2-work-authority.mjs';
 const ctx={device:{deviceId:'device'},binding:{accountId:'account'},payload:{sessionId:'session',agentId:'agent'}};
 function fixture(){
  const session={state:'active',deviceId:'device',accountId:'account',nodeId:'node'};
@@ -21,4 +21,11 @@ test('revoked grants, guest grants, closed sessions, removed input capability an
 test('absolute A/B expiry and connection expiry cannot be extended by work authorization',()=>{
  const x=fixture();x.grant.absoluteExpiresAt=999;assert.throws(()=>authorizeRmWork(ctx,x.deps,1000),/expired/);
  x.grant.absoluteExpiresAt=9000;x.connection.hardExpiresAt=0;assert.throws(()=>authorizeRmWork(ctx,x.deps,1000),/expired/);
+});
+test('video needs the same live A/B identity but observation alone does not grant or require input',()=>{
+ const x=fixture();x.deps.targetRoute=()=>({deviceId:'device',capabilities:['desktop']});
+ assert.equal(authorizeRmVideo(ctx,x.deps,1000).authorized,true);
+ assert.throws(()=>authorizeRmWork(ctx,x.deps,1000),/capability/);
+ assert.equal(x.assertion.touch,false);
+ x.deps.accessGrants.assert=()=>{throw Error('revoked');};assert.throws(()=>authorizeRmVideo(ctx,x.deps,1000),/revoked/);
 });

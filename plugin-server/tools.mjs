@@ -639,6 +639,14 @@ export function registerPluginTools(server,identity){
     inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().max(160).optional(),screen:z.number().int().min(-1).max(31).optional(),region:captureRegion.optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'frame',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
 
+  add(server,'light_remote_desktop_video_frame',{
+    title:'Read an advanced H.264 desktop video frame',
+    description:'Windows optional H.264 video in the exact open A/B-authorized RM task. One bounded independent IDR per call; preferHardware uses Media Foundation with explicit software fallback. Does not send input. Call repeatedly up to fps while observing; frames appear in the authenticated Local Wall video viewer. The capture job returns metadata only; encoded pixels relay through the separate short-lived RAM video_read path. Close the RM task with desktop_detach before final report.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().min(1).max(160),fps:z.number().int().min(1).max(30).optional(),preferHardware:z.boolean().optional(),preferGpuCapture:z.boolean().optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'video-frame',['desktopSessionId','fps','preferHardware','preferGpuCapture'])));
+
+  add(server,'light_remote_desktop_video_read',{title:'Read the latest ephemeral H.264 video packet',description:'Read only the latest recently relayed packet for this exact A/B Agent and RM task. Live grant and device connection are rechecked. RAM TTL2 seconds; no history or screen capture, no session renewal. Binary payload is omitted unless includeData=true for a video client.',inputSchema:{sessionId:id,desktopSessionId:z.string().min(1).max(160),includeData:z.boolean().optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)},guarded(identity,['remote:read'],(a,x)=>a.desktopVideoRead(x.sessionId,{desktopSessionId:x.desktopSessionId,includeData:x.includeData===true})));
+
   add(server,'light_remote_desktop_observe',{
     title:'Observe remote desktop state',
     description:'Read one bounded Real Remote V2 observation from an authorized desktop without sending input.',

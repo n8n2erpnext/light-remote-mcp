@@ -103,11 +103,12 @@ internal static class DesktopVisual
 
     private static readonly GdiFrameCache FrameCache=new();
     private static readonly DxgiCapture Dxgi=new();
+    private static readonly DesktopVideo Video=new();
     private static readonly object CaptureGate=new();
     private static int _clearRequested;
     public static string RequestedCaptureBackend=>String.Equals(Environment.GetEnvironmentVariable("LIGHT_REMOTE_RM_CAPTURE_BACKEND"),"dxgi",StringComparison.OrdinalIgnoreCase)?"dxgi":"gdi";
     public static object CaptureCapabilities()=>new {requestedBackend=RequestedCaptureBackend,defaultBackend="gdi",cleanupPending=Volatile.Read(ref _clearRequested)!=0,dxgi=Dxgi.Metadata(),
-        transport="existing-authorized-image-jpeg",videoStreaming=false,gpuResizeSupported=true,gpuResizeBackend="dxgi-d3d11-compute",hardwareEncoding=false};
+        transport="existing-authorized-image-jpeg-or-pull-h264",videoStreamingSupported=true,videoActive=Video.Active,videoCodec="h264-annexb-independent-idr",hardwareEncoder="media-foundation-prefer-with-software-fallback",gpuResizeSupported=true,gpuResizeBackend="dxgi-d3d11-compute"};
     public static void ClearCaptureCache()
     {
         Interlocked.Exchange(ref _clearRequested,1);
@@ -119,7 +120,16 @@ internal static class DesktopVisual
     private static void DrainCaptureCleanup()
     {
         if(Interlocked.Exchange(ref _clearRequested,0)==0)return;
-        try{FrameCache.Clear();Dxgi.Clear();}catch{Interlocked.Exchange(ref _clearRequested,1);throw;}
+        try{FrameCache.Clear();Video.Dispose();Dxgi.Clear();}catch{Interlocked.Exchange(ref _clearRequested,1);throw;}
+    }
+    public static object CaptureVideo(string scope,int screen,int width,int height,Rectangle? region,int fps,bool hardware,bool gpu,Action guard)
+    {
+        lock(CaptureGate) {
+            DrainCaptureCleanup();
+            try{return Video.Capture(scope,screen,width,height,region,fps,hardware,gpu,Dxgi,guard);}
+            catch{Video.Dispose();throw;}
+            finally{DrainCaptureCleanup();}
+        }
     }
     internal static Rectangle Crop(Rectangle bounds,Rectangle? region)
     {

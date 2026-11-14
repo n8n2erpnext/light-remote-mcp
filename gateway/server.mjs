@@ -1,3 +1,4 @@
+import {apiPath} from '../lib/api-contract.mjs';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -319,6 +320,7 @@ app.post('/device-channel/access-approve', deviceChannelEdgeRateLimit, (req, res
 app.post('/device-channel/access-deny', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/access-deny', req.body || {}));
 app.post('/device-channel/status', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/status', req.body || {}));
 app.post('/device-channel/session-close', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/session-close', req.body || {}));
+app.post(apiPath('desktopVideoPush'),deviceChannelEdgeRateLimit,(req,res)=>proxyOperatorJson(res,'POST',apiPath('desktopVideoPushInternal'),req.body||{}));
 app.post('/device-channel/desktop-live-push', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/desktop-live-push', req.body || {}));
 app.post('/device-channel/activity', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/activity', req.body || {}));
 app.post('/device-channel/update-report', deviceChannelEdgeRateLimit, (req, res) => proxyOperatorJson(res, 'POST', '/v1/device-channel/update-report', req.body || {}));

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "configRevision": 3,
+  "configRevision": 4,
   "selectedProfile": "goldabv2-lab",
   "profiles": {
     "goldabv2-lab": {
@@ -139,6 +139,26 @@
       "originRole": "local.wall",
       "method": "GET",
       "path": "/api/activity/logs/history"
+    },
+    "wallVideoPage": {
+      "originRole": "local.wall",
+      "method": "GET",
+      "path": "/rm-video"
+    },
+    "wallVideoScript": {
+      "originRole": "local.wall",
+      "method": "GET",
+      "path": "/assets/rmv2-video-viewer"
+    },
+    "wallVideoLatest": {
+      "originRole": "local.wall",
+      "method": "GET",
+      "path": "/api/rm-video/latest"
+    },
+    "desktopVideoPush": {
+      "originRole": "deviceChannel",
+      "method": "POST",
+      "path": "/device-channel/desktop-video-push"
     }
   },
   "releaseIntegrity": {
@@ -156,6 +176,16 @@
       "method": "POST",
       "path": "/v1/accounts/desktop-v4/snapshot",
       "transport": "private-unix"
+    },
+    "desktopVideoPushInternal": {
+      "method": "POST",
+      "path": "/v1/device-channel/desktop-video-push",
+      "transport": "operator-private-unix"
+    },
+    "desktopVideoReadInternal": {
+      "method": "POST",
+      "path": "/v1/plugin/desktop-video/read",
+      "transport": "operator-private-unix"
     }
   }
 }

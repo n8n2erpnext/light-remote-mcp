@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 // MUST validate the signed device proof before consuming the budget.
 const ACTION_LANES=Object.freeze({
   poll:'runtime',pulse:'runtime',result:'runtime','update-report':'runtime',stream:'runtime',
-  'desktop-live-push':'rm-live',
+  'desktop-live-push':'rm-live','desktop-video-push':'rm-live',
   'fleet-intent':'fleet','fleet-authority':'fleet','fleet-status':'fleet',
   'fleet-devices':'fleet','fleet-sessions':'fleet','fleet-activity':'fleet','fleet-jobs':'fleet','fleet-job-cancel':'control','job-cancel':'control','fleet-process-stop':'control',
   status:'observer',activity:'observer','access-lookup':'control'

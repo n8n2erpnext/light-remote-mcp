@@ -131,6 +131,7 @@ internal sealed class RobotContext : ApplicationContext
                 Text(request,"visualSessionId"),Text(request,"leaseToken"),
                 Text(request,"previousFrameSha256"),Bool(request,"omitUnchanged")
             ),
+            "desktop.visual.video" => _visual.VideoFrame(Text(request,"visualSessionId"),Text(request,"leaseToken"),Int(request,"fps",15),Bool(request,"preferHardware",true),Bool(request,"preferGpuCapture",true)),
             "desktop.visual.detach" or "desktop-visual-detach" => DetachVisualWithCursor(request),
             "batch.run" => RunBatch(request,32),
             "desktop.run" => await RunPlanAsync(request),

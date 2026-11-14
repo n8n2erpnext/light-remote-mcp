@@ -51,10 +51,10 @@ internal static class NativeEditReadback
         &&!Consistent(262144,262144,65535,65535,262146)
         &&!Consistent(255,256,255,255,257)&&!Consistent(255,255,254,254,257)
         &&!Consistent(256,256,256,256,257);
-    [DllImport("user32.dll",CharSet=CharSet.Unicode,EntryPoint="GetClassNameW")] private static extern int GetClassName(nint hwnd,StringBuilder value,int maximum);
-    [DllImport("user32.dll",EntryPoint="GetWindowLongW")] private static extern uint GetWindowLong(nint hwnd,int index);
-    [DllImport("user32.dll")] private static extern bool IsWindowUnicode(nint hwnd);
-    [DllImport("user32.dll")] private static extern bool IsWindowEnabled(nint hwnd);
-    [DllImport("user32.dll",CharSet=CharSet.Unicode,EntryPoint="SendMessageTimeoutW",SetLastError=true)] private static extern nint SendText(nint hwnd,uint message,nuint wparam,StringBuilder text,uint flags,uint timeout,out nuint result);
-    [DllImport("user32.dll",EntryPoint="SendMessageTimeoutW",SetLastError=true)] private static extern nint SendValue(nint hwnd,uint message,nuint wparam,nint parameter,uint flags,uint timeout,out nuint result);
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("user32.dll",CharSet=CharSet.Unicode,EntryPoint="GetClassNameW")] private static extern int GetClassName(nint hwnd,StringBuilder value,int maximum);
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("user32.dll",EntryPoint="GetWindowLongW")] private static extern uint GetWindowLong(nint hwnd,int index);
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("user32.dll")] private static extern bool IsWindowUnicode(nint hwnd);
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("user32.dll")] private static extern bool IsWindowEnabled(nint hwnd);
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("user32.dll",CharSet=CharSet.Unicode,EntryPoint="SendMessageTimeoutW",SetLastError=true)] private static extern nint SendText(nint hwnd,uint message,nuint wparam,StringBuilder text,uint flags,uint timeout,out nuint result);
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("user32.dll",EntryPoint="SendMessageTimeoutW",SetLastError=true)] private static extern nint SendValue(nint hwnd,uint message,nuint wparam,nint parameter,uint flags,uint timeout,out nuint result);
 }

@@ -118,5 +118,5 @@ internal sealed class GpuFrameScaler(ID3D11Device device,ID3D11DeviceContext con
             return changed.GetPixel(0,0).B>=250&&changed.GetPixel(8,6).B>=250;
         }
     }
-    [DllImport("d3dcompiler_47.dll",CharSet=CharSet.Ansi,ExactSpelling=true)] private static extern int D3DCompile(byte[] source,nuint size,nint name,nint defines,nint include,string entry,string target,uint flags,uint effectFlags,out nint code,out nint errors);
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("d3dcompiler_47.dll",CharSet=CharSet.Ansi,ExactSpelling=true)] private static extern int D3DCompile(byte[] source,nuint size,nint name,nint defines,nint include,string entry,string target,uint flags,uint effectFlags,out nint code,out nint errors);
 }

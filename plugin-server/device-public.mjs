@@ -8,7 +8,7 @@ const BOOTSTRAP = new Set(['enrollment-begin','enrollment-poll','device-heartbea
 const CHANNEL = new Set([
   'connect','renew','disconnect','grace','account-auth',
   'fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity','fleet-device-policy','fleet-device-update',
-  'pairing-code','account-owner-proof','access-lookup','access-approve','access-deny','status','session-close','desktop-live-push','desktop-work-authorize','activity','update-report','poll','pulse','result',
+  'pairing-code','account-owner-proof','access-lookup','access-approve','access-deny','status','session-close','desktop-live-push','desktop-video-push','desktop-work-authorize','activity','update-report','poll','pulse','result',
   // Local Wall signed device-scoped Stop/Cancel control; Operator remains the authorization authority.
   'job-cancel',
   // G3: the Operator separately verifies enrollment-signed device proofs.
@@ -89,7 +89,7 @@ export function registerPublicDeviceRoutes(app){
   app.post('/device-channel/:action',json,async(req,res)=>{
     const action=String(req.params.action||'');
     if(!CHANNEL.has(action)) return res.status(404).json({ok:false,error:'device_channel_action_denied'});
-    if(!await allow(`channel:${action}:${hash(ip(req)).slice(0,20)}`,action==='poll'||action==='pulse'||action==='result'||action==='desktop-live-push'?600:240)) return res.status(429).json({ok:false,error:'rate_limited'});
+    if(!await allow(`channel:${action}:${hash(ip(req)).slice(0,20)}`,action==='desktop-video-push'?1800:action==='poll'||action==='pulse'||action==='result'||action==='desktop-live-push'?600:240)) return res.status(429).json({ok:false,error:'rate_limited'});
     try{return res.json(await callOperatorJson('POST',`/v1/device-channel/${encodeURIComponent(action)}`,req.body||{}));}
     catch(error){return res.status(Number(error.status)||400).json({ok:false,error:error.message||'device_channel_failed'});}
   });

@@ -1,3 +1,4 @@
+import {apiPath} from '../lib/api-contract.mjs';
 import crypto from 'node:crypto';
 import { callOperatorJson } from '../gateway/operator-proxy.mjs';
 import { sealOperatorPayload } from '../gateway/operator-crypto.mjs';
@@ -320,6 +321,7 @@ export class AccountOperatorAdapter{
   async terminal(sessionId,terminal,operationId=opId('terminal'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'terminal',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,terminal,waitMs};return callOperatorJson('POST','/v1/terminal',sealOperatorPayload(payload));}
   async scp(sessionId,scp,operationId=opId('scp'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'scp',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,scp,waitMs};return callOperatorJson('POST','/v1/scp',sealOperatorPayload(payload));}
   async desktop(sessionId,desktop,operationId=opId('desktop'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'desktop',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,desktop,waitMs};return callOperatorJson('POST','/v1/desktop',sealOperatorPayload(payload));}
+  async desktopVideoRead(sessionId,{desktopSessionId,includeData=false}={}){await this.sessionRaw(sessionId);return callOperatorJson('POST',apiPath('desktopVideoReadInternal'),{accountId:this.identity.accountId,sessionId,agentId:this.agentId,desktopSessionId,includeData});}
   async desktopLiveRead(sessionId,{semanticSessionId,afterSeq=0,limit=200,includeSnapshot=true}={}){await this.sessionRaw(sessionId);return callOperatorJson('POST','/v1/plugin/desktop-live/read',{accountId:this.identity.accountId,sessionId,agentId:this.agentId,semanticSessionId:String(semanticSessionId||''),afterSeq,limit,includeSnapshot});}
   async exec(sessionId,script,{shell=null,cwd='',operationId=opId('exec'),timeoutMs=600000,waitMs=7000,requiredCapabilities=null,executionMode='auto'}={}){
     const s=await this.sessionRaw(sessionId),payload={action:'exec_batch',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,script:String(script),cwd:String(cwd||''),shell:shell||undefined,timeoutMs,waitMs,executionMode,requiredCapabilities:Array.isArray(requiredCapabilities)&&requiredCapabilities.length?requiredCapabilities:['filesystem'],note:'OpenAI Light Remote plugin'};

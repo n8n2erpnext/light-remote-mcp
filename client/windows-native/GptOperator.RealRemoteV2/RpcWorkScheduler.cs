@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using System.Runtime.InteropServices;
 
 namespace GptOperator.RealRemoteV2;
 
@@ -18,7 +19,10 @@ internal sealed class RpcWorkScheduler : IDisposable
     public RpcWorkScheduler()
     {
         foreach(var (queue,name) in new[]{(_ordered,"RM ordered input"),(_capture,"RM frame capture"),(_observation,"RM UIA observation")}) {
-            var worker=new Thread(()=>Drain(queue)){IsBackground=true,Name=name};
+            var worker=new Thread(()=>{
+                var hr=CoInitializeEx(0,0);
+                try{Drain(queue,hr);}finally{if(hr>=0)CoUninitialize();}
+            }){IsBackground=true,Name=name};
             worker.SetApartmentState(ApartmentState.MTA);worker.Start();
         }
     }
@@ -29,7 +33,7 @@ internal sealed class RpcWorkScheduler : IDisposable
     {
         if(_disposed)return Task.FromException<object?>(new ObjectDisposedException(nameof(RpcWorkScheduler)));
         if(op is "ping" or "status" or "desktop.status" or "desktop.cancel")return Fast(run);
-        var frame=op is "desktop.frame" or "desktop.visual.frame" or "desktop-visual-frame";
+        var frame=op is "desktop.frame" or "desktop.visual.frame" or "desktop-visual-frame" or "desktop.visual.video";
         var observe=op is "uia.snapshot" or "desktop.semantic.snapshot" or "desktop-semantic-snapshot"
             or "desktop.semantic.events" or "desktop-semantic-events";
         var reply=new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -42,11 +46,12 @@ internal sealed class RpcWorkScheduler : IDisposable
         if(!_fast.Wait(0))throw new InvalidOperationException("native_control_lane_busy");
         try { return await Task.Run(run).ConfigureAwait(false); } finally { _fast.Release(); }
     }
-    private void Drain(Channel<Work> queue)
+    private void Drain(Channel<Work> queue,int comStatus)
     {
         while(queue.Reader.WaitToReadAsync().AsTask().GetAwaiter().GetResult())
         while(queue.Reader.TryRead(out var row)) {
             try {
+                if(comStatus<0)Marshal.ThrowExceptionForHR(comStatus);
                 if(_disposed)throw new ObjectDisposedException(nameof(RpcWorkScheduler));
                 if(row.Scope.Length>0&&Epoch(row.Scope)!=row.Epoch)throw new InvalidOperationException("operation_cancelled_before_start");
                 var queueMs=System.Diagnostics.Stopwatch.GetElapsedTime(row.EnqueuedAt).TotalMilliseconds;
@@ -61,6 +66,8 @@ internal sealed class RpcWorkScheduler : IDisposable
         }
     }
     public void Dispose() { _disposed=true;_ordered.Writer.TryComplete();_capture.Writer.TryComplete();_observation.Writer.TryComplete(); }
+    [DllImport("ole32.dll",ExactSpelling=true)] private static extern int CoInitializeEx(nint reserved,uint flags);
+    [DllImport("ole32.dll",ExactSpelling=true)] private static extern void CoUninitialize();
     internal static bool SelfTest()=>SelfTestAsync().GetAwaiter().GetResult();
     private static async Task<bool> SelfTestAsync()
     {

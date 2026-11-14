@@ -166,6 +166,16 @@ internal sealed class VisualSessionManager : IDisposable
         };
     }
 
+    public object VideoFrame(string visualSessionId,string leaseToken,int fps=15,bool hardware=true,bool gpu=true)
+    {
+        if(fps<1||fps>30)throw new InvalidOperationException("video_rate_invalid");
+        var session=GetAuthorized(visualSessionId,leaseToken);
+        void Guard(){var current=GetAuthorized(visualSessionId,leaseToken);if(!ReferenceEquals(current,session))throw new InvalidOperationException("visual_session_replaced");EnsureTopology(session);}
+        Guard();var packet=DesktopVisual.CaptureVideo(session.Id,session.Screen,session.MaxWidth,session.MaxHeight,session.Region,fps,hardware,gpu,Guard);
+        Guard();long seq;
+        lock(_gate){EnsurePresentLocked(session);var now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();if(now>session.ExpiresAt)throw new InvalidOperationException("visual_lease_expired");session.LastSeenAt=now;session.ExpiresAt=now+session.LeaseMs;seq=++session.FrameSeq;}
+        return new {visualSessionId=session.Id,epoch=session.Epoch,displayTopologyId=session.TopologyId,frameSeq=seq,expiresAt=session.ExpiresAt,video=packet};
+    }
     public object ValidateInput(string visualSessionId,string leaseToken)
     {
         var session=GetAuthorized(visualSessionId,leaseToken);

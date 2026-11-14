@@ -604,6 +604,14 @@
     {
       "source": "project.manifest.json",
       "destination": "project.manifest.json"
+    },
+    {
+      "source": "lib/rmv2-video.mjs",
+      "destination": "lib/rmv2-video.mjs"
+    },
+    {
+      "source": "device-agent/wall-video-viewer.mjs",
+      "destination": "device-agent/wall-video-viewer.mjs"
     }
   ]
 }

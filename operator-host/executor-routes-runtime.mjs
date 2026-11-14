@@ -1,5 +1,7 @@
+import {authorizeRmVideo} from './rmv2-work-authority.mjs';
+import {apiPath} from '../lib/api-contract.mjs';
 export async function handleRuntimeRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,assertToolCallQuota,cancelControlJob,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,goldJobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,realRemoteLive,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob,planEntitlements,operationalAccount}=deps;
+  const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,assertToolCallQuota,cancelControlJob,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,goldJobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,realRemoteLive,realRemoteVideo,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob,planEntitlements,operationalAccount}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/devices') {
       return sendJson(res, 200, { ok:true, currentDeviceId:DEVICE_ID, devices:allDeviceViews() });
     }
@@ -101,6 +103,15 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       if (req.method === 'POST' && action === 'hold') return sendJson(res, 200, { ok:true, session:sessions.hold(sid, aid, body?.reason || 'transport_lost') });
       if (req.method === 'POST' && action === 'close') return sendJson(res, 200, { ok:true, session:sessions.close(sid, aid) });
       if (req.method === 'POST' && action === 'touch') return sendJson(res, 200, { ok:true, session:sessions.touch(sid, aid, body?.action || 'tool') });
+    }
+    if(req.method==='POST'&&url.pathname===apiPath('desktopVideoReadInternal')){
+      const body=await readJson(req),session=sessions.ensure(String(body.sessionId||''),{agentId:String(body.agentId||'')});
+      if(!body.accountId||session.accountId!==body.accountId)throw new DeviceAccessGrantError('plugin_desktop_session_account_mismatch',403);
+      const authority={payload:{sessionId:session.id,agentId:session.agentId},device:{deviceId:session.deviceId},binding:{accountId:session.accountId}};
+      authorizeRmVideo(authority,{...deps,accounts:deps.accounts,requireDeviceConnection:deps.requireDeviceConnection});
+      res.setHeader?.('Cache-Control','no-store');
+      const video=realRemoteVideo.read({accountId:session.accountId,deviceId:session.deviceId,sessionId:session.id,agentId:session.agentId,desktopSessionId:String(body.desktopSessionId||'')},{includeData:body.includeData===true});
+      return sendJson(res,200,{ok:true,video});
     }
     if (req.method === 'POST' && url.pathname === '/v1/plugin/desktop-live/read') {
       const body=await readJson(req),accountId=String(body.accountId||''),session=sessions.ensure(String(body.sessionId||''),{agentId:String(body.agentId||'')});

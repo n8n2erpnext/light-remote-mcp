@@ -280,3 +280,7 @@ Internal installer/tray/Google follow-up accepted from GitHub source `3064f21adb
 ## Reuse fresh RM capture buffers and add crop-aware frame coordinates
 
 Development follow-up on permanent work: dev11 long-text and capture/cache/ROI implementation is pending exact native/full CI. Internal installer links remain pinned to their own compiled sources; no new public release, Lab cutover or Owner installation is implied. Read the current-source lead in PROJECT_TRUTH.md, single MASTER_CHECKPOINT.json and rolling PROJECT_HANDOFF.md before continuing.
+
+## Add scoped H264 video with ephemeral relay and authenticated viewer
+
+RM plan completion remains in progress. Advanced video source adds a bounded H264 pull path and authenticated Local Wall Video page, preserving JPEG. Prior CI118 is comparison/rollback only. No combined Owner acceptance artifact is ready yet; native encode/decode, managed262K and combined full CI must complete first.

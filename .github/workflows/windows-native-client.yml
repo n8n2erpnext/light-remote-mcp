@@ -710,6 +710,22 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Real Remote V2 native H264 encode and visual-scope acceptance
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          ./client/windows-native/test-rmv2-video.ps1 -Exe $env:RMV2_EXE -Output (Join-Path $PWD 'dist/windows/rmv2-video-acceptance.json') -FixtureOutput (Join-Path $PWD 'dist/windows/rmv2-video-synthetic.json')
+      - name: Upload RMv2 native video receipt and synthetic-only decode fixture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rmv2-video-native-${{ github.sha }}
+          path: |
+            dist/windows/rmv2-video-acceptance.json
+            dist/windows/rmv2-video-synthetic.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Checkout exact prior RM capture baseline for controlled comparison
         uses: actions/checkout@v4
         with:
@@ -926,6 +942,10 @@ jobs:
           try {
             npm ci --no-audit --no-fund
             if ($LASTEXITCODE -ne 0) { throw 'V4 frontend npm ci failed' }
+            npm exec -- playwright install chromium
+            if ($LASTEXITCODE -ne 0) { throw 'Video decoder browser installation failed' }
+            node e2e/rmv2-video-decode.mjs ../../dist/windows/rmv2-video-synthetic.json ../../dist/windows/rmv2-video-acceptance.json
+            if ($LASTEXITCODE -ne 0) { throw 'Native H264 production viewer decode/color verification failed' }
             npm run build
             if ($LASTEXITCODE -ne 0) { throw 'V4 production frontend failed' }
             npm test
@@ -952,6 +972,15 @@ jobs:
           foreach($required in @($agent,$rm)) { if (-not(Test-Path $required)) { throw "Same-installer A/B or RM missing: $required" } }
           Write-Host "windows-unified-stage=PASS v4=$bytes Agent_ABV2=PASS Local_Wall=in_agent RM=PASS"
           "WINDOWS_V4_DESKTOP=$target" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Upload final native and browser H264 acceptance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rmv2-video-acceptance-${{ github.sha }}
+          path: dist/windows/rmv2-video-acceptance.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Verify legacy and primary updater layout compatibility
         if: env.LIGHT_REMOTE_BUILD_PROFILE == 'goldabv2-desktop-v4'
         shell: pwsh

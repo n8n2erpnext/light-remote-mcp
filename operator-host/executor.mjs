@@ -1,3 +1,5 @@
+import {RmVideoRelay} from './rmv2-video-relay.mjs';
+import {videoOptions} from '../lib/rmv2-video.mjs';
 import {API_CONTRACT_VERSION,API_VERSION_HEADER} from '../lib/api-contract.mjs';
 import http from 'node:http';
 import os from 'node:os';
@@ -425,6 +427,7 @@ const teamSessions=null;
 const licenses = goldRegistries.mount('licenses',new LicenseKeyRegistry({ stateFile:null, emit:event => pushEvent(event) }));
 const fleetAuthority = new FleetAuthorityRegistry({ ttlMs:FLEET_AUTHORITY_TTL_MS, emit:event => pushEvent(event) });
 const realRemoteLive = new RealRemoteLiveRegistry();
+const realRemoteVideo=new RmVideoRelay();
 const hostIdentity = INTEGRATED_HOST_ENABLED ? loadOrCreateHostDeviceIdentity(HOST_DEVICE_IDENTITY_FILE) : null;
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
@@ -1086,7 +1089,7 @@ async function startDesktopOperation(payload,requestId){
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
   if(payload.nodeId!=null&&String(payload.nodeId)!==session.nodeId)throw new SessionError('session_target_mismatch',409);
   let request=payload.desktop&&typeof payload.desktop==='object'&&!Array.isArray(payload.desktop)?payload.desktop:null;if(!request)throw new Error('desktop_request_required');
-  const op=String(request.op||'');if(!['status','attach','resume','detach','windows','frame','input','run','observe','act','cancel','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close','text-write-start','text-write-status','text-write-cancel'].includes(op))throw new Error('desktop_operation_unsupported');
+  const op=String(request.op||'');if(!['status','attach','resume','detach','windows','frame','video-frame','input','run','observe','act','cancel','semantic-attach','semantic-snapshot','semantic-events','semantic-detach','live-open','live-close','text-write-start','text-write-status','text-write-cancel'].includes(op))throw new Error('desktop_operation_unsupported');
   // Resolve the enrolled target platform before validating physical typing.
   // Never accept a caller-supplied platform: a Windows device must continue
   // rejecting the macOS-only HID+AX verified `type` event.
@@ -1099,6 +1102,7 @@ async function startDesktopOperation(payload,requestId){
     if(!['attach','frame','observe'].includes(op)||targetPlatform!=='win32')throw Error('desktop_frame_region_not_supported');
     request={...request,region:normalizeCaptureRegion(request.region)};
   }
+  if(op==='video-frame'){if(targetPlatform!=='win32')throw Error('video_windows_only');request={op,...videoOptions(request),includeData:false};}
   if(op==='text-write-start'){
     request={op,...normalizeLogicalTextRequest(request)};
     if(targetPlatform==='darwin'){
@@ -1748,7 +1752,7 @@ const routeDeps=()=>({
   abandonOwnerAttestedOrphan:options=>deviceResourceLocks.abandonOwnerAttestedOrphan(goldStorage.pool,options),
   cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,licenses,normalizeUpdateReport,
   pairingCodes,goldAbV2SignedPreview,goldAbV2SignedApproval,planEntitlements,pruneRing,pushEvent,queueHelperUpdate,
-  queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
+  queueSignedUpdate,readJson,reapAccessGrants,accountNotifications,realRemoteLive,realRemoteVideo,recentEvents,redact,proTeams,teamSessions,requestTeamMemberApproval,operationalAccount,
   removeRuntimeForDevice,requireAccount,requireDeviceConnection,revokeRuntimeForDevice,ring,
   ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,
   startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,

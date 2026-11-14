@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {captureAuthorizedVideo,recentLocalVideo} from '../lib/rmv2-video.mjs';
 import {RM_TASK_IDLE_MS,requireOwnedRmTask,rmTaskMayExpire,withRmTask,closeRmTask,rememberRmTaskClose,confirmedRmTaskClose} from '../lib/rmv2-task-lifecycle.mjs';
 import {normalizeCaptureRegion,frameCoordinateInput} from '../lib/rmv2-capture.mjs';
 import {RmTextWrites,normalizeLogicalTextRequest,strictSemanticValue} from '../lib/rmv2-text-write.mjs';
@@ -302,7 +303,7 @@ async function ownerApproveServerPermissions({email,password,approvedCapabilitie
 async function heartbeat(state,base,{persist=true}={}){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const capabilities=effectiveCapabilitiesForState(state);const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const message=deviceHeartbeatMessage({deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities});const signature=crypto.sign(null,Buffer.from(message),privateKey(state)).toString('base64url');const upstream=await operator(base,'device-heartbeat',{deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities,signature,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0)});applyPolicyEnvelope(state,upstream.policy);state.lastHeartbeatAt=Date.now();state.effectiveCapabilities=effectiveCapabilitiesForState(state);if(persist)writeState(state);return upstream.device;}
 let observerChannelTail=Promise.resolve(),observerChannelNextAt=0,rmLiveChannelTail=Promise.resolve(),rmLiveChannelNextAt=0;
 function clientChannelLane(action){
-  if(action==='desktop-live-push')return 'rm-live';
+  if(action==='desktop-live-push'||action==='desktop-video-push')return 'rm-live';
   return ['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity','fleet-jobs'].includes(action)?'observer':'direct';
 }
 function signedChannelEnvelope(state,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');return {deviceId,timestamp,nonce,signature,payload};}
@@ -473,7 +474,7 @@ async function stopRealRemoteVisual(row,{detach=true}={}){
     },
     release:r=>{try{r.release?.();}finally{r.release=null;}},
     closeIdle:()=>NATIVE_DESKTOP.closeIfIdle()
-  }).then(receipt=>{rememberRmTaskClose(REAL_REMOTE_VISUAL_CLOSED,row,receipt);return receipt;}).catch(error=>{
+  }).then(async receipt=>{row.latestVideo=null;if(row.closeVideoRelay){const close=row.closeVideoRelay;row.closeVideoRelay=null;try{await close();}catch{ /* Relay TTL2s remains fail-closed; never keep native control alive for networking. */ }}rememberRmTaskClose(REAL_REMOTE_VISUAL_CLOSED,row,receipt);return receipt;}).catch(error=>{
     // Explicit close failure must get the same eventual cleanup as orphan expiry.
     if(REAL_REMOTE_VISUAL.get(row.desktopSessionId)===row&&!row.timer){
       row.timer=setTimeout(()=>{row.timer=null;void stopRealRemoteVisual(row,{detach}).catch(()=>{});},5000);row.timer.unref?.();
@@ -955,7 +956,7 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
     },{timeoutMs:3000})}),armRealRemoteVisual);
   }
   const mutation=['run','input','act'].includes(op);
-  const realObservation=['resume','windows','frame','observe','semantic-attach','semantic-snapshot','semantic-events','live-open'].includes(op);
+  const realObservation=['resume','windows','frame','video-frame','observe','semantic-attach','semantic-snapshot','semantic-events','live-open'].includes(op);
   if(!rmScope&&(mutation||realObservation)){
     if(mutation&&!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
     let scope;
@@ -1019,6 +1020,12 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
   if(op==='resume')return {ok:true,operation:op,desktop:await resumeRealRemoteVisual(p,request)};
   if(op==='detach')return {ok:true,operation:op,desktop:await detachRealRemoteVisual(p,request)};
   if(op==='windows')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('windows',{limit:Math.max(1,Math.min(Number(request.limit)||100,200))})};
+  if(op==='video-frame'){
+    if(process.platform!=='win32')throw Error('video_windows_only');
+    const row=requireOwnedRmTask(REAL_REMOTE_VISUAL,visualOwner(p),request.desktopSessionId);
+    const native=await captureAuthorizedVideo(row,visualOwner(p),request,{requestNative:(...args)=>NATIVE_DESKTOP.request(...args),isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r,sendVideo:async native=>{row.closeVideoRelay=()=>channelRequest(readState()||state,hub,'desktop-video-push',{sessionId:row.sessionId,agentId:row.agentId,desktopSessionId:row.desktopSessionId,closed:true});return channelRequest(readState()||state,hub,'desktop-video-push',{sessionId:row.sessionId,agentId:row.agentId,desktopSessionId:row.desktopSessionId,epoch:native.epoch,frameSeq:native.frameSeq,video:native.video});}});
+    return {ok:true,operation:op,desktop:visualPublicView(row,native)};
+  }
   if(op==='frame')return {ok:true,operation:op,desktop:await frameRealRemoteVisual(p,request,{observe:false})};
   if(op==='observe'){
     const semanticSessionId=String(request.semanticSessionId||'').trim();
@@ -1707,6 +1714,7 @@ async function daemon(args){
     return (SUPERVISED_PROCESSES||NATIVE_PROCESSES).stop(processId,{accountId:p.accountId,deviceId:p.deviceId,
       sessionId:p.sessionId,agentId:p.agentId},{force:Boolean(force)});
   },
+  getLocalVideo:async options=>recentLocalVideo(REAL_REMOTE_VISUAL.values(),{...options,desktopAllowed:effectiveCapabilitiesForState(readState()).includes('desktop')}),
   getLocalTerminals:async()=>NATIVE_TERMINALS.list().map(t=>({terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,shell:t.shell,startedAt:t.startedAt,finishedAt:t.finishedAt,outputBytes:t.outputBytes,cols:t.cols,rows:t.rows})),readLocalTerminal:async(terminalId,{offset=0,limit=32768}={})=>{const t=NATIVE_TERMINALS.output(terminalId,null,{offset,limit});return {terminalId:t.terminalId,sessionId:t.sessionId,state:t.state,cols:t.cols,rows:t.rows,output:t.output};},connect:async data=>connectCloud({hub,graceMinutes:data.graceMinutes,leaseHours:data.leaseHours,silent:true}),disconnect:async data=>disconnectCloud({hub,reason:data.reason||'local_wall_disconnect',silent:true}),setGrace:async data=>setConnectionGrace({hub,minutes:data.minutes,silent:true}),setPermissions:async data=>setLocalPermissions(data?.allowedCapabilities,data?.profile),setFilesystemRoots:async data=>setLocalFilesystemRoots(data),getFilesystemVolumes:async()=>filesystemVolumeInventory(),ownerApprovePermissions:async data=>ownerApproveServerPermissions(data,hub),rescanCapabilities:async()=>rescanHostCapabilities(hub),beginEnrollment:async()=>beginWallEnrollment(base),pollEnrollment:async()=>pollWallEnrollment(base),accountAuthenticate:async data=>authenticateWallAccount(data?.username,data?.password,base),pairingCode:async data=>rotatePairingCode(hub,data),ownerProofCode:async()=>accountOwnerProofCode(hub),accessApprove:async requestId=>approveDeviceAccess(requestId,hub),accessDeny:async(requestId,data)=>denyDeviceAccess(requestId,hub,data?.reason||'owner_denied'),closeSession:async data=>closeWallSession(hub,data),requestUpdate:async data=>requestLocalUpdate('local-wall',data?.mode||'apply')});
 
   await wallSso.start(localWall);

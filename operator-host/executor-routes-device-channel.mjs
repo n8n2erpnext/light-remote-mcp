@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
-import {authorizeRmWork} from './rmv2-work-authority.mjs';
+import {apiPath} from '../lib/api-contract.mjs';
+import {authorizeRmWork,authorizeRmVideo} from './rmv2-work-authority.mjs';
 import {verifyGoldGuestLaunchEvidence} from '../lib/gold-pro-share-guest-launch-evidence.mjs';
 import {memoryDirectory,memoryInvites,memoryRelay} from './gold-memory-rendezvous.mjs';
 import { DEVICE_DUPLEX_PROTOCOL } from './device-duplex-transport.mjs';
@@ -14,11 +15,18 @@ import { handleDesktopWallSsoInternalIssueV4 } from './desktop-wall-sso-internal
 
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
-  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,deviceResourceSampleCache,deviceBootObservations,goldShortIdAfterEnrollment,goldShortIdByDevice,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,requiresExecutionEpoch,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams,goldAbV2SignedPreview,goldAbV2SignedApproval}=deps;
+  const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,deviceResourceSampleCache,deviceBootObservations,goldShortIdAfterEnrollment,goldShortIdByDevice,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,requiresExecutionEpoch,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,realRemoteVideo,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams,goldAbV2SignedPreview,goldAbV2SignedApproval}=deps;
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/desktop-work-authorize'){
     const body=await readJson(req),ctx=await verifiedChannelContext(body,'desktop-work-authorize');
     res.setHeader?.('Cache-Control','no-store');
     return sendJson(res,200,authorizeRmWork(ctx,deps));
+  }
+  if(req.method==='POST'&&url.pathname===apiPath('desktopVideoPushInternal')){
+    const body=await readJson(req),ctx=await verifiedChannelContext(body,'desktop-video-push');
+    authorizeRmVideo(ctx,deps);res.setHeader?.('Cache-Control','no-store');
+    const payload=ctx.payload,owner={accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,sessionId:payload.sessionId,agentId:payload.agentId,desktopSessionId:payload.desktopSessionId};
+    if(payload.closed===true){realRemoteVideo.close(owner);return sendJson(res,200,{ok:true,closed:true});}
+    return sendJson(res,200,{ok:true,video:realRemoteVideo.push(owner,payload)});
   }
   // Boot telemetry uses the authenticated device channel, never the M4
   // scheduler. Errors are isolated from command ACK and cannot free claims.

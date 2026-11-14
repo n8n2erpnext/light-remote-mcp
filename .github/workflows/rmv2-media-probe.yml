@@ -1,0 +1,61 @@
+name: RM native media diagnostics
+on:
+  push:
+    branches: [work]
+    paths:
+      - 'client/windows-native/GptOperator.RealRemoteV2/**'
+      - 'client/windows-native/test-rmv2-video.ps1'
+      - 'client/desktop-v4/e2e/rmv2-video-decode.mjs'
+      - 'device-agent/wall-video-viewer.mjs'
+      - '.github/workflows/rmv2-media-probe.yml'
+permissions:
+  contents: read
+jobs:
+  media:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build exact clean native source with committed dependency graph
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $target = Join-Path $env:RUNNER_TEMP 'rm-media-probe'
+          dotnet publish client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj -c Release -r win-x64 -o $target -p:RestoreLockedMode=true
+          if ($LASTEXITCODE -ne 0) { throw 'Media probe native build failed' }
+          $helper = Join-Path $target 'LightRemote.RM.exe'
+          if (-not (Test-Path $helper)) { throw 'Exact-source media helper missing' }
+          "RM_MEDIA_EXE=$helper" >> $env:GITHUB_ENV
+          @{ sourceCommit=$env:GITHUB_SHA; sourceTree=(git rev-parse 'HEAD^{tree}'); ciRunId=$env:GITHUB_RUN_ID; version=(Get-Content VERSION -Raw).Trim(); scope='isolated-media-diagnostics-not-installer-acceptance'; helperSha256=(Get-FileHash -LiteralPath $helper -Algorithm SHA256).Hash.ToLowerInvariant(); physicalOwnerAcceptance=$false } | ConvertTo-Json | Set-Content dist/windows/rmv2-media-source.json -Encoding utf8
+      - name: Exercise native encode, current desktop video and close/revocation fence
+        shell: pwsh
+        run: |
+          ./client/windows-native/test-rmv2-video.ps1 -Exe $env:RM_MEDIA_EXE -Output (Join-Path $PWD 'dist/windows/rmv2-video-acceptance.json') -FixtureOutput (Join-Path $PWD 'dist/windows/rmv2-video-synthetic.json')
+      - name: Decode synthetic native frames with the real Owner viewer
+        working-directory: client/desktop-v4
+        shell: pwsh
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Media viewer dependencies failed' }
+          npm exec -- playwright install chromium
+          if ($LASTEXITCODE -ne 0) { throw 'Media decoder browser install failed' }
+          node e2e/rmv2-video-decode.mjs ../../dist/windows/rmv2-video-synthetic.json ../../dist/windows/rmv2-video-acceptance.json
+          if ($LASTEXITCODE -ne 0) { throw 'Real H264 viewer decode/color verification failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rmv2-media-diagnostics-${{ github.sha }}
+          path: |
+            dist/windows/rmv2-media-source.json
+            dist/windows/rmv2-video-acceptance.json
+            dist/windows/rmv2-video-synthetic.json
+          if-no-files-found: warn
+          retention-days: 14

@@ -9,6 +9,8 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        var videoFixture=Array.IndexOf(args,"--video-fixture-output");
+        if(videoFixture>=0&&videoFixture+1<args.Length){Environment.ExitCode=H264Fixture.Write(args[videoFixture+1])?0:1;return;}
         if (args.Any(arg => String.Equals(arg, "--restore-cursors", StringComparison.OrdinalIgnoreCase)))
         {
             Environment.ExitCode = SystemCursorOverride.ForceRestore()?0:1;
