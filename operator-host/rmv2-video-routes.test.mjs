@@ -26,6 +26,8 @@ test('signed media push and private plugin read enforce current grant and actor;
   await assert.rejects(read({agentId:'foreign'}),/actor/);await assert.rejects(read({accountId:'foreign'}),/account/);
   revoked=true;await assert.rejects(read(),/revoked/);revoked=false;
   body={payload:{...push,closed:true}};await handleDeviceChannelRoutes({method:'POST'},res,new URL(apiPath('desktopVideoPushInternal'),'http://localhost'),deps);assert.equal(relay.bytes,0);
+  body={payload:{...push,frameSeq:2}};await assert.rejects(handleDeviceChannelRoutes({method:'POST'},res,new URL(apiPath('desktopVideoPushInternal'),'http://localhost'),deps),/scope_closed/);
+  await assert.rejects(read(),/no_recent/);
   assert.equal(saved,0);
  }finally{relay.dispose();}
 });

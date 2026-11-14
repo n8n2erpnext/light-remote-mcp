@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-14T06:00:20.375Z",
+  "updatedAt": "2026-11-14T06:08:13.180Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_MANAGED_TEXT_GPU_RESIZE_VIDEO_COMPLETION",
   "status": "RM_PLAN_COMPLETION_IN_PROGRESS",
@@ -542,12 +542,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261114-rmv2-current-catalog-native-proof-fixture",
-    "status": "RM_MEDIA_DIAGNOSTIC_PASS_NATIVE_INSTALLER_PROOF_FIX_CI_PENDING",
-    "summary": "CI125 reached the native Windows wrong-listener proof fixture and exposed its stale revision3 HMAC attached to revision4 metadata. Preserve the independently known revision3 and legacy revision2 vectors, add separate current-catalog HMAC/payload verification, retain nonce/PID/product/revision tamper assertions, and require currentRevisionProofOk in Actions. Production proof code and authority remain unchanged. Exact-source4373035 media diagnostics already PASS native software H264, hardware-preference fallback, scoped DXGI/GDI capture, lease/close/resource fences and16 real production WebCodecs color decodes.",
-    "verification": "Native media run43563637077 artifact14101586328 SHA f2342a9176cae41d02ee5edfb30add0725b8db393ea3bf7c85c2a1f89161c274 independently verified PASS; physical hardware NOT_RUN. CI125 full run43563637175 failed Windows wrong-listener fixture before RM acceptance; five isolated text stress cases continue independently. Native source proof contract PASS after correction; no full installer or complete-plan PASS inferred. Full checkpoint checkpoint/20261114-before-rmv2-combinedproof-4373035 bundleSHA 34abb347986f4eeb0abca101e91f944ee4a2fbc185a43a3111f645eb825b9ced archiveSHA 3577f65e787db7650c5943daab450e2e49546769896c8672abd29c8c7090bce1 independent restore/fsckPASS.",
+    "taskId": "20261114-rmv2-closed-video-scope-late-packet-fence",
+    "status": "RM_NATIVE_MEDIA_DIAGNOSTIC_PASS_CLOSE_RACE_FIXED_FULL_CI_PENDING",
+    "summary": "Close the encoded-video relay race: native close already releases control, but a previously signed in-flight frame could arrive on another connection after the relay delete and repopulate the Owner video. Retain exact actor/task closed keys for120s in bounded RAM (max1024, no pixel data); late frames including changed epochs are rejected. If close-key capacity is exhausted, bounded temporary video-push refusal preserves close rather than evicting protection. New unique task scopes work normally outside that rare overload condition; pixel TTL2s/16MiB/32latest and all A/B authorization remain unchanged.",
+    "verification": "Real relay unit tests7/7 and signed push/private read route testPASS, including close followed by late newer frame, different epoch, no pixels/read after close, tombstone memory bound, expiry and fresh unique task recovery. Exact-source4373035 Windows media diagnostics PASS with real native H264 and16 WebCodecs decoded color frames; no full new installer acceptance is inferred. Native Windows proof revision fixture fix is in sourcef5c62fa; fullCI126 is running and will be superseded by complete exact-source CI for this race correction. Full checkpoint checkpoint/20261114-before-rmv2-finalproof-f5c62fa bundleSHA 758c429dd43b3c824bb52a84c1a06ba0dfc970ec6f652f070bb5a496e0cc12b3 archiveSHA 56ece0db0cf1ce92a26cc1650435142e2c17cca79116b216c84dd879188b6010 independent restore/fsckPASS.",
     "nextAction": "Require all15 full CI jobs including five262K stress cases on the identical installer helper bytes. Follow fast exact-source H264 encode, scoped live capture/close/resource checks and actual production WebCodecs synthetic-color decode; correct failures without relaxing product deadlines. Verify all text/media/source/hash receipts and combined installer, then isolated Lab integration with rollback. Owner acceptance download only after all requested features pass together.",
-    "sourceDigest": "10750570c44f08fff11261fe74428ca6f116d59a758e3e1c73be9cf27c170064",
+    "sourceDigest": "b9ba5ed43128f28f616d30f1d87a171a18ee518e6fe1d82d56166ddf48676293",
     "sourceFileCount": 1722
   },
   "legacyFilesystemCleanup": {
@@ -2557,11 +2557,11 @@
       "requiredTextGraph": "FIVE_ISOLATED_WINDOWS_SHARDS_SAME_INSTALLER_BINARY_ALL_REQUIRED",
       "requiredFullCiJobs": 15,
       "checkpoint": {
-        "tag": "checkpoint/20261114-before-rmv2-combinedproof-4373035",
-        "bundleSha256": "34abb347986f4eeb0abca101e91f944ee4a2fbc185a43a3111f645eb825b9ced",
-        "archiveSha256": "3577f65e787db7650c5943daab450e2e49546769896c8672abd29c8c7090bce1",
+        "tag": "checkpoint/20261114-before-rmv2-finalproof-f5c62fa",
+        "bundleSha256": "758c429dd43b3c824bb52a84c1a06ba0dfc970ec6f652f070bb5a496e0cc12b3",
+        "archiveSha256": "56ece0db0cf1ce92a26cc1650435142e2c17cca79116b216c84dd879188b6010",
         "restore": "PASS",
-        "source": "4373035618f9d359e09eff35512025cdf6f3a2fa"
+        "source": "f5c62faafaf567612e61c60282c4d959c20ad5ef"
       },
       "mediaDiagnostic": {
         "sourceCommit": "4373035618f9d359e09eff35512025cdf6f3a2fa",
@@ -2571,7 +2571,14 @@
         "result": "PASS_NATIVE_H264_REAL_WEBCODECS_16_FRAMES_SCOPED_CAPTURE_CLOSE",
         "physicalHardware": "NOT_RUN"
       },
-      "installerCi125": "FAIL_STALE_NATIVE_HMAC_FIXTURE_CORRECTED"
+      "installerCi125": "FAIL_STALE_NATIVE_HMAC_FIXTURE_CORRECTED",
+      "closedVideoScopeFence": {
+        "status": "IMPLEMENTED_PORTABLE_TEST_PASS_NATIVE_FULL_CI_PENDING",
+        "retainedKeys": 1024,
+        "keyTtlMs": 120000,
+        "retainedPixels": false,
+        "onKeyCapacity": "TEMPORARILY_REFUSE_VIDEO_PUSH_NO_CONTROL_OR_INPUT_CHANGE"
+      }
     }
   }
 }
