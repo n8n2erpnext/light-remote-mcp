@@ -144,16 +144,27 @@ internal static class Program
             }
             finally {unrelated.Stop();}
             // Vector is generated independently by the Node.js HMAC module:
-            // key=0x11*32, nonce=0xaa*32, pid=4242, current revision=3.
+            // Fixed revision3 vector stays stable across catalog revisions.
+            // Separately verify the package's current catalog revision.
             const string vectorMac="b4627b638a8321caafeeff101fc1acbd07e8d0b5c37bc7841d42041a9652ace0";
             var vectorKey=Enumerable.Repeat((byte)0x11,32).ToArray();
             var vectorNonce=new string('a',64);
-            var fixtureJson=JsonSerializer.Serialize(new {
+            var fixedVectorJson=JsonSerializer.Serialize(new {
                 ok=true,pid=4242,productId=config.ProductId,
-                profile=config.SelectedProfile,configRevision=config.ConfigRevision,mac=vectorMac
+                profile=config.SelectedProfile,configRevision=3,mac=vectorMac
             });
             var cryptoVectorOk=LocalWallChallengeProof.VerifyPayload(
-                fixtureJson,vectorNonce,4242,vectorKey,config.ConfigRevision);
+                fixedVectorJson,vectorNonce,4242,vectorKey,3);
+            var currentMac=Convert.ToHexString(System.Security.Cryptography.HMACSHA256.HashData(
+                vectorKey,System.Text.Encoding.UTF8.GetBytes(LocalWallChallengeProof.Message(
+                    vectorNonce,4242,config.ProductId,config.SelectedProfile,checked((int)config.ConfigRevision)))))
+                .ToLowerInvariant();
+            var fixtureJson=JsonSerializer.Serialize(new {
+                ok=true,pid=4242,productId=config.ProductId,
+                profile=config.SelectedProfile,configRevision=config.ConfigRevision,mac=currentMac
+            });
+            var currentRevisionProofOk=LocalWallChallengeProof.VerifyPayload(
+                fixtureJson,vectorNonce,4242,vectorKey,checked((int)config.ConfigRevision));
             var legacyJson=JsonSerializer.Serialize(new {
                 ok=true,pid=4242,productId=config.ProductId,profile=config.SelectedProfile,
                 configRevision=2,mac="f747cc842827747022d75f5a889c7a34e55db1deefd08e5a98b0757abe510329"
@@ -172,12 +183,12 @@ internal static class Program
             var ok=wrongProductRejected&&correctProductAccepted&&exactNodePath&&
                 currentRevisionSelected&&restoredRevisionSelected&&wrongProfileRevisionRejected&&oversizedMarkerRejected&&
                 wrongNodePathRejected&&sawUnrelatedPort&&wrongListenerRejected&&
-                cryptoVectorOk&&legacyVectorOk&&revisionTamperRejected&&nonceTamperRejected&&pidTamperRejected&&productTamperRejected;
+                cryptoVectorOk&&currentRevisionProofOk&&legacyVectorOk&&revisionTamperRejected&&nonceTamperRejected&&pidTamperRejected&&productTamperRejected;
             File.WriteAllText(output,JsonSerializer.Serialize(new {
                 ok,wrongProductRejected,correctProductAccepted,exactNodePath,
                 currentRevisionSelected,restoredRevisionSelected,wrongProfileRevisionRejected,oversizedMarkerRejected,
                 wrongNodePathRejected,sawUnrelatedPort,wrongListenerRejected,
-                cryptoVectorOk,legacyVectorOk,revisionTamperRejected,nonceTamperRejected,pidTamperRejected,productTamperRejected
+                cryptoVectorOk,currentRevisionProofOk,legacyVectorOk,revisionTamperRejected,nonceTamperRejected,pidTamperRejected,productTamperRejected
             }));
             return ok;
         }

@@ -327,7 +327,7 @@ jobs:
           if (-not $r.ok -or -not $r.wrongProductRejected -or -not $r.correctProductAccepted -or
               -not $r.exactNodePath -or -not $r.wrongNodePathRejected -or
               -not $r.sawUnrelatedPort -or -not $r.wrongListenerRejected -or
-              -not $r.cryptoVectorOk -or -not $r.nonceTamperRejected -or
+              -not $r.cryptoVectorOk -or -not $r.currentRevisionProofOk -or -not $r.nonceTamperRejected -or
               -not $r.pidTamperRejected -or -not $r.productTamperRejected) {
             throw 'GoldABV2 accepted unowned port or wrong product/profile'
           }
