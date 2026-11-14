@@ -75,3 +75,7 @@ Fresh Moryqa Windows V3, canonical STOCK logo, Google Sans Flex design/Google Sa
 | Google account login setup | Original production client/callback saved in Gold PG, fail-closed on temporary origin | Owner domain/profile/TLS rotation and real login |
 | Wall SSO | Gated source/unit coverage PASS; independent flag OFF | Backend trusted-edge/native physical activation |
 | RMv2 responsiveness/typing/GPU; Memory/API Worker | Research plans preserved | Separate implementation authorization |
+
+## Record verified dev11 candidate and scoped remaining RM work
+
+RM đã triển khai đóng phiên có xác nhận trước báo cáo, fallback45giây yên lặng, cursor Windows nguyên bản, badge/viền xanh nhẹ, worker input có thứ tự và status/cancel riêng, nhập dài bind đúng target và readback theo capability, GDI cache/ROI/frame mapping, cùng DXGI capture opt-in có fresh GDI fallback. CI chỉ chứng minh các ca trong receipt. Hai ca262K một đoạn khổng lồ classic/rich chưa đạt; ca chia đoạn được ghi riêng. Text đã vào Windows queue vẫn có thể gặp đổi focus trước khi ứng dụng xử lý; không cam kết atomic targeted typing hoặc tự replay. GPU resize/encoder/video/viewer chưa triển khai và hardware/mixed-DPI acceptance còn chờ. Ca WinForms Rich Edit262K chia đoạn cũng chưa đạt (CI116). Ca262K dương chỉ áp dụng cho Win32 EDIT thuần và bố cục được ghi trong receipt. Readback hiện đọc toàn bộ nội dung mỗi khối, chưa có tối ưu incremental range; hiệu năng tài liệu/app lớn vẫn là giới hạn phải đo riêng.

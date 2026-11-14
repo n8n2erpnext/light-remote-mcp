@@ -1,0 +1,273 @@
+{
+  "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+  "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+  "version": "0.10.1-dev.11",
+  "ci": {
+    "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+    "ciRunId": 43530897985,
+    "runNumber": 118,
+    "attempt": 1,
+    "scope": "full",
+    "result": "PASS",
+    "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
+    "allJobs": 9,
+    "successfulJobs": 9,
+    "requiredCheck": "baseline-required",
+    "mainProtectionUnchanged": true,
+    "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+    "physicalOwnerAcceptance": false,
+    "jobs": [
+      {
+        "id": 132248017316,
+        "name": "changes",
+        "conclusion": "success"
+      },
+      {
+        "id": 132248017617,
+        "name": "truth",
+        "conclusion": "success"
+      },
+      {
+        "id": 132248092918,
+        "name": "Core, contracts, PostgreSQL/Redis integration",
+        "conclusion": "success"
+      },
+      {
+        "id": 132248092978,
+        "name": "Committed native dependency resolution",
+        "conclusion": "success"
+      },
+      {
+        "id": 132248216515,
+        "name": "windows / build-install-smoke",
+        "conclusion": "success"
+      },
+      {
+        "id": 132248216611,
+        "name": "desktop / Web build, tests, isolated browser screenshots",
+        "conclusion": "success"
+      },
+      {
+        "id": 132249480789,
+        "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
+        "conclusion": "success"
+      },
+      {
+        "id": 132249480901,
+        "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+        "conclusion": "success"
+      },
+      {
+        "id": 132262738786,
+        "name": "baseline-required",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "artifact": {
+    "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+    "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+    "version": "0.10.1-dev.11",
+    "ciRunId": 43530897985,
+    "artifactId": 14088683951,
+    "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
+    "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+    "installerBytes": 172700781,
+    "result": "VERIFIED_INTERNAL_ARTIFACT",
+    "primaryCount": 1,
+    "oldPrimariesAbsent": true,
+    "migration": "PASS",
+    "installedLifecycle": "PASS",
+    "physicalOwnerAcceptance": false,
+    "publicFeedPromoted": false
+  },
+  "nativeText": {
+    "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+    "ciRunId": 43530897985,
+    "artifactId": 14088602071,
+    "artifactSha256": "0423b94e9716f7e6756b35b9b9c75e50ddf234c3e67b1c5a8b8fe6057fb1f69f",
+    "otherControlUnmodified": true,
+    "sizeMeasurements": [
+      {
+        "layout": "single-paragraph",
+        "comparison": "full-content-line-ending-equivalence-only",
+        "nativeVerified": true,
+        "wordWrap": true,
+        "controlKind": "classic-edit",
+        "elapsedMs": 17154.3417,
+        "fullFixtureReadback": true,
+        "units": 16384
+      },
+      {
+        "layout": "single-paragraph",
+        "comparison": "full-content-line-ending-equivalence-only",
+        "nativeVerified": true,
+        "wordWrap": true,
+        "controlKind": "classic-edit",
+        "elapsedMs": 82375.2,
+        "fullFixtureReadback": true,
+        "units": 65536
+      },
+      {
+        "layout": "paragraphs-cr",
+        "comparison": "full-content-line-ending-equivalence-only",
+        "nativeVerified": true,
+        "wordWrap": true,
+        "controlKind": "win32-edit",
+        "elapsedMs": 1019621.9664,
+        "fullFixtureReadback": true,
+        "units": 262144
+      }
+    ],
+    "unicodeReadbackSizes": [
+      16384,
+      65536,
+      262144
+    ],
+    "delayedDelivery": {
+      "nativeVerified": true,
+      "authorityExpiredAfterSend": true,
+      "exactFixtureReadback": true,
+      "elapsedMs": 2917.1667,
+      "delayPerWmCharMs": 80,
+      "units": 31
+    },
+    "explicitClose": true,
+    "classicWrapped262K": "NOT_ACCEPTED_SEPARATE_SLOW_TARGET_CASE",
+    "nativeMultilineLineEndings": [
+      {
+        "fullFixtureReadback": true,
+        "sourceUnits": 18,
+        "lineEndingCodeUnits": [
+          10
+        ],
+        "controlKind": "classic",
+        "nativeVerified": true
+      },
+      {
+        "fullFixtureReadback": true,
+        "sourceUnits": 20,
+        "lineEndingCodeUnits": [
+          13,
+          10
+        ],
+        "controlKind": "classic",
+        "nativeVerified": true
+      },
+      {
+        "fullFixtureReadback": true,
+        "sourceUnits": 18,
+        "lineEndingCodeUnits": [
+          13
+        ],
+        "controlKind": "classic",
+        "nativeVerified": true
+      },
+      {
+        "fullFixtureReadback": true,
+        "sourceUnits": 18,
+        "lineEndingCodeUnits": [
+          10
+        ],
+        "controlKind": "rich",
+        "nativeVerified": true
+      },
+      {
+        "fullFixtureReadback": true,
+        "sourceUnits": 20,
+        "lineEndingCodeUnits": [
+          13,
+          10
+        ],
+        "controlKind": "rich",
+        "nativeVerified": true
+      },
+      {
+        "fullFixtureReadback": true,
+        "sourceUnits": 18,
+        "lineEndingCodeUnits": [
+          13
+        ],
+        "controlKind": "rich",
+        "nativeVerified": true
+      },
+      {
+        "fullFixtureReadback": true,
+        "sourceUnits": 18,
+        "lineEndingCodeUnits": [
+          10
+        ],
+        "controlKind": "native",
+        "nativeVerified": true
+      },
+      {
+        "fullFixtureReadback": true,
+        "sourceUnits": 20,
+        "lineEndingCodeUnits": [
+          13,
+          10
+        ],
+        "controlKind": "native",
+        "nativeVerified": true
+      },
+      {
+        "fullFixtureReadback": true,
+        "sourceUnits": 18,
+        "lineEndingCodeUnits": [
+          13
+        ],
+        "controlKind": "native",
+        "nativeVerified": true
+      }
+    ],
+    "result": "PASS",
+    "richSingleParagraph262K": "NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT",
+    "scope": "isolated_actions_native_and_managed_editors_not_owner_physical",
+    "elapsedMs": 1127182.2409,
+    "automaticReplay": false,
+    "managedRichParagraphs262K": "NOT_ACCEPTED_CI116_DELIVERY_TIMEOUT",
+    "focusSwitchStopsSuffix": true
+  },
+  "physicalOwnerAcceptance": "PENDING_CONSOLIDATED_OWNER_SELF_TEST",
+  "largeSingleParagraph262K": "NOT_ACCEPTED_CLASSIC_AND_RICH",
+  "managedRichParagraphs262K": "NOT_ACCEPTED_CI116",
+  "gpu": {
+    "default": "gdi",
+    "optional": "dxgi",
+    "hardwareMatrix": "PENDING_OWNER",
+    "gpuResize": false,
+    "hardwareEncoding": false,
+    "videoStreaming": false
+  },
+  "lab": {
+    "result": "PASS",
+    "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+    "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+    "version": "0.10.1-dev.11",
+    "databaseMigrated": false,
+    "dbArchiveIndexVerified": true,
+    "dbArchiveSha256": "c8d0f485436a93abb86cbfc963fc42464faf584b85c96beef20d1e0e76a7a3cb",
+    "independentPidsPreserved": true,
+    "dependencyGraphUnchanged": true,
+    "homeAncestorAclChanged": false,
+    "persistentCountsUnchanged": true,
+    "snapshotUnauthenticatedStatus": 401,
+    "workAuthorizationUnauthenticatedStatus": 400,
+    "apiContractVersion": "light-remote.api.v1",
+    "publicHealth": "PASS",
+    "oldSourcesPreserved": true,
+    "ownerWindowsInstallationChanged": false,
+    "physicalOwnerAcceptance": false,
+    "publicReleaseOrFeed": false
+  },
+  "publicReleaseOrFeed": false,
+  "productionDomainCallbackChanged": false,
+  "ownerWindowsInstallationChanged": false,
+  "labDeploymentRecovery": {
+    "initialProbe": "WRONG_PLUGIN_HTTP_TRANSPORT_FOR_PRIVATE_OPERATOR_ROUTE",
+    "automaticRollbackVerified": true,
+    "databaseMigrationPerformed": false,
+    "correctedProbe": "OPERATOR_UNIX_SOCKET",
+    "finalCutover": "PASS"
+  }
+}

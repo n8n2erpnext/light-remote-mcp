@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 307,
+    "total": 312,
     "markdown": 230,
-    "json": 77
+    "json": 82
   },
   "files": [
     {
@@ -589,6 +589,27 @@
       ]
     },
     {
+      "path": "docs/evidence/rmv2/acceptance-ci118.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 7983,
+      "sha256": "6be24239d4db21c16d1039d7dbb3a6f370332eaca6a50af1fd678a84e79a030b",
+      "topLevelKeys": [
+        "sourceCommit",
+        "sourceTree",
+        "version",
+        "ci",
+        "artifact",
+        "nativeText",
+        "physicalOwnerAcceptance",
+        "largeSingleParagraph262K",
+        "managedRichParagraphs262K",
+        "gpu",
+        "lab",
+        "publicReleaseOrFeed"
+      ]
+    },
+    {
       "path": "docs/evidence/rmv2/comparison-ci110.json",
       "shelf": "evidence",
       "extension": "json",
@@ -649,6 +670,27 @@
         "sampleOrder",
         "current",
         "currentSource"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/comparison-ci118.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3192,
+      "sha256": "c093ce975720f252d5a633a4f37788fe30ab71713f88322f0b21e74d02b27fe3",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "currentSource",
+        "baseline",
+        "samplesPerSource",
+        "sampleOrder",
+        "scope",
+        "baselineSource",
+        "currentExeSha256",
+        "result"
       ]
     },
     {
@@ -733,6 +775,27 @@
         "roiJpegValid",
         "mixedDpiPhysical",
         "coldCaptureP50Ms"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/dxgi-ci118.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 1059,
+      "sha256": "346ca0d2d98728624bad826d36bfcd0e9ab2929fda07e31adc367f1e944576c2",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "frameSeqMonotonic",
+        "scope",
+        "coldCaptureP95Ms",
+        "coldSamples",
+        "mixedDpiPhysical",
+        "roiJpegValid",
+        "gpuAcceptance",
+        "gpuPhysical"
       ]
     },
     {
@@ -829,6 +892,27 @@
         "closedScopeInputRejected",
         "reopenNewId",
         "controlBadge"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/phase1-ci118.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2056,
+      "sha256": "2a2687988e9ad09af2474e6c4781826510beb0821eca5db32cc49552feeada01",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "orphanExpiry45sDespiteStatusPolling",
+        "workingGapIndicator",
+        "performanceComparison",
+        "reopenNewId",
+        "observationNoOverride",
+        "idleTimerStopped",
+        "controlBadge",
+        "scope"
       ]
     },
     {
@@ -1186,6 +1270,27 @@
         "stage",
         "result",
         "nativeMultilineLineEndings"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/text-ci118.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3552,
+      "sha256": "9574e592237712a198f980223f86d547dfc9c6e87ddfd39781ef4cffcc226c64",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "otherControlUnmodified",
+        "sizeMeasurements",
+        "unicodeReadbackSizes",
+        "delayedDelivery",
+        "explicitClose",
+        "classicWrapped262K",
+        "nativeMultilineLineEndings",
+        "result"
       ]
     },
     {
@@ -3079,8 +3184,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 85254,
-      "sha256": "7e702002581d4a096815a3f66b7d835f2809e5e726c093bbc7374754e35ddefb",
+      "bytes": 90205,
+      "sha256": "751faee06cee8450b5dac013b3903723901120ab4421c76f1921bccb8c4a863d",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {

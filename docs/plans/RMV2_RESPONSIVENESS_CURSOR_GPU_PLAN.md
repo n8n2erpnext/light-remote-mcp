@@ -1,10 +1,20 @@
 # RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn
 
-Status: FULL_TEXT_NATIVE_CI_WITH_BOUNDED_40_MINUTE_BUDGET_PENDING
+Status: DEV11_SCOPED_CI_PASS_OWNER_UAT_PENDING_GPU_MEDIA_INCOMPLETE
 Edition: 2026-11-11, Asia/Saigon
 Scope: Windows RM v2, đối chiếu typing macOS; giữ các tool, semantic UI, A/B và local policy hiện tại
 Authoritative source: GitHub `work` `764e1d7ce7670c9e95690fca26b58dd2e3c86f02`, tree `41a48add6e01f3e4f6d28271a59b77f92a8acaca`
 Supersedes: none; bổ sung kế hoạch, không phải handoff/checkpoint thứ hai
+
+## Current implementation and acceptance
+
+Nội bộ **0.10.1-dev.11**, một **LightRemote.exe** chính. Source build `f1092607fb96ed181e9b4c71a55e13429b183a60`, tree `4fd8db8dd7398ada5d88f80907954f5540cc1cf3`. [CI118:9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985) · [bộ cài nội bộ](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985/artifacts/14088683951) · [bằng chứng](docs/evidence/rmv2/acceptance-ci118.json). SHA-256 installer `9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6`. Đây là receipt tài liệu cho source đã build, không phải commit tài liệu được build lại. **Owner physical UAT: PENDING.**
+
+RM đã triển khai đóng phiên có xác nhận trước báo cáo, fallback45giây yên lặng, cursor Windows nguyên bản, badge/viền xanh nhẹ, worker input có thứ tự và status/cancel riêng, nhập dài bind đúng target và readback theo capability, GDI cache/ROI/frame mapping, cùng DXGI capture opt-in có fresh GDI fallback. CI chỉ chứng minh các ca trong receipt. Hai ca262K một đoạn khổng lồ classic/rich chưa đạt; ca chia đoạn được ghi riêng. Text đã vào Windows queue vẫn có thể gặp đổi focus trước khi ứng dụng xử lý; không cam kết atomic targeted typing hoặc tự replay. GPU resize/encoder/video/viewer chưa triển khai và hardware/mixed-DPI acceptance còn chờ. Ca WinForms Rich Edit262K chia đoạn cũng chưa đạt (CI116). Ca262K dương chỉ áp dụng cho Win32 EDIT thuần và bố cục được ghi trong receipt. Readback hiện đọc toàn bộ nội dung mỗi khối, chưa có tối ưu incremental range; hiệu năng tài liệu/app lớn vẫn là giới hạn phải đo riêng.
+
+Lab Operator/Plugin đã cập nhật source `f1092607fb96ed181e9b4c71a55e13429b183a60` /dev11; health/API PASS, không migration DB, giữ Agent/Wall/supervisor/mTLS và dữ liệu hiện có.
+
+Research sections below retain their original time-scoped proposals; subsequent receipts supersede their historical research-only/build holds. Phase1/phase2 source is implemented with scoped CI evidence. Phase3 is **partial**: opt-in DXGI capture exists, CPU resize/JPEG remains, physical adapter/recovery matrix pending. Phase4 hardware video/authorized viewer/media transport is **not implemented**. No whole-plan PASS claim.
 
 ## Kết luận và giới hạn của nghiên cứu
 
@@ -320,3 +330,17 @@ Separate genuine Win32 EDIT large-input acceptance from managed editor stress li
 ## Allow full native text completion and retain macOS checks
 
 CI117 native Win32 paragraph stress progressed with exact acknowledged/observed content to126916source units, but external15minute step timeout cut it off. Nine real native/managedLF-CRLF-CR cases, delayed completion control flow and managed16K/64K passed; final262K was not accepted. Increase only bounded hosted Windows test budget15->40minutes and whole job80->110 to allow full completion plus installer/rollback; product input authority<=1000ms, read-only delivery5s and chunk RPC10s are unchanged. Add always-run receipt classifier: unfinished RUNNING becomes INCOMPLETE, and a successful text step without complete PASS/missing receipt fails. GitHub check annotations prove macOS arm64 job never acquired a runner due capacity. Pin standard macos-15-intel for the same Darwin source/vault tests instead of floating macos-latest; AppleSilicon/arm64 acceptance remains pending. No required test or branch protection disabled. CI117 sourcef2aec12 run43462107355 text artifact14057972170 SHA97fa4631ea7bc0e7abfa4c640a6ffda4084545a255383861aca40896f72c99de verified. Last receipt RUNNING/external timeout is preserved as incomplete. macOS job132013762021/check-run annotations associated to exact source verified runnerName empty/no steps/hosted capacity error. PowerShell classifier AST PASS. Pre-change full checkpoint checkpoint/20261113-before-rmv2-dev11-acceptance-f2aec12 bundleSHA 66f3728faec85d2450cc9460d17d1c2fb8fca632f6390a582087b7e7e81fd59c restore/fsckPASS. All native builds/tests remain hosted Actions only. Next: Follow exact new full CI: all9native newline cases, real delayed completion, managed16K/64K and complete nativeEDIT262K paragraph+focus-switch; then full installer/upgrade/rollback and macOSIntel/Linux native source tests. Verify exact source/artifact/SHA only after all9jobs and baseline-required PASS. Then isolate Lab integration with rollback and record one coherent truth/checkpoint for Owner self-download/UAT. Giant/managed262K stress limits, AppleSilicon acceptance and GPU media/preprocessing remain explicit.
+
+## Consolidated Windows acceptance
+
+Dùng duy nhất artifact cuối cùng có source commit, CI và SHA-256 được xác minh. Không dùng installer của một run FAIL. Owner tự tải/cài; kết quả CI không thay thế quan sát thực tế.
+
+1. Trước phiên: chuột Windows giữ nguyên normal/resize/I-beam/hand; không có nhãn AI hoặc viền. Mở app không tự thay cursor.
+2. Mở phiên RM, di 1–5px, click và drag trong ứng dụng thử nghiệm. Badge AI gần đuôi chuột, viền xanh da dương nhẹ đúng màn hình; overlay không nhận click/focus. Thử cửa sổ chia đôi và màn hình DPI khác nhau nếu có.
+3. Trong lúc đang làm: chụp màn hình/di/drag liên tục giữ phiên. Local input nhường thao tác foreground hiện tại, không đóng A/B hay dừng công việc nền. Không tự replay hoặc kéo chuột giành lại.
+4. Hoàn thành: Agent phải gọi đóng phạm vi RM và nhận xác nhận trước khi báo cáo. Badge/viền tắt ngay; lệnh dùng ID cũ phải từ chối. Muốn thao tác tiếp phải mở phiên mới. Một phiên bị bỏ quên không có công việc RM đang chạy tự đóng sau 45 giây; status không kéo dài nó.
+5. Nhập Unicode vào tài liệu thử: dùng đoạn có dấu, emoji, combining mark; kiểm tra receipt verified khi ứng dụng hỗ trợ UIA. Thử đoạn dài; nếu ứng dụng không hỗ trợ đọc lại thì phải ghi unverified. Đổi focus giữa chừng phải dừng phần còn lại và không tự tiếp tục ở ô khác. Xuống dòng LF/CRLF là ca riêng cần ghi kết quả thực tế; không suy ra từ bài Unicode một dòng trên CI. Chỉ dùng tài liệu thử riêng.
+6. Capture mặc định GDI; kiểm tra ảnh/ROI, tọa độ ảnh resize, cuộn và màn hình origin âm. Frame stale/topology đổi phải yêu cầu quan sát lại. Nếu Owner chủ động bật optional DXGI, kiểm tra backend thực tế/fallback và lock/unlock/hotplug; đây là nghiệm thu phần cứng riêng, không mặc định nhanh hơn GDI.
+7. Sau phiên: không tiếp tục capture nền, không còn overlay; app/tray và các chức năng nền vẫn dùng được. Thử đóng/mở app, nâng cấp và quay về bản trước theo bộ cài nội bộ.
+
+Chưa gắn PASS vào bất kỳ ca vật lý nào. Video H.264/WebRTC, GPU resize và hardware encoder chưa thuộc khả năng của pipeline JPEG hiện tại.

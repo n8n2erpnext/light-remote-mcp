@@ -1,0 +1,33 @@
+{
+  "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+  "ciRunId": 43530897985,
+  "artifactId": 14087841160,
+  "artifactSha256": "cab241174b464015ee7ca8d4c23ce86f28bccd6c77ba4ef946c88d3bee81f304",
+  "frameSeqMonotonic": true,
+  "scope": "isolated_actions_capture_geometry_freshness_fallback_not_owner_gpu_acceptance",
+  "coldCaptureP95Ms": 6.0653,
+  "coldSamples": 6,
+  "mixedDpiPhysical": "PENDING_OWNER",
+  "roiJpegValid": true,
+  "gpuAcceptance": "RUNNER_CAPTURE_ONLY_NOT_OWNER_HARDWARE",
+  "gpuPhysical": "NOT_RUN",
+  "scopeCloseClearsCache": true,
+  "actualEncodeReuseCount": 18,
+  "fallbackFrameCount": 17,
+  "comparison": "SAME_SOURCE_CAPTURE_ONLY_COLD_ALLOCATION_VS_WARM_CACHE_NOT_PRIOR_RELEASE_OR_NETWORK",
+  "warmSamples": 24,
+  "gpuFrameCount": 14,
+  "actualPayloadOmissionCount": 18,
+  "coldCaptureP50Ms": 4.0815,
+  "roi": {
+    "height": 129,
+    "width": 257,
+    "y": 30,
+    "x": 30
+  },
+  "warmCaptureP95Ms": 59.9848,
+  "result": "PASS",
+  "warmCaptureP50Ms": 43.8612,
+  "requestedBackend": "dxgi",
+  "freshPixelsEveryRead": true
+}

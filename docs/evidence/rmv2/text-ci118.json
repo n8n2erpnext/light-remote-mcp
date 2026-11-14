@@ -1,0 +1,147 @@
+{
+  "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+  "ciRunId": 43530897985,
+  "artifactId": 14088602071,
+  "artifactSha256": "0423b94e9716f7e6756b35b9b9c75e50ddf234c3e67b1c5a8b8fe6057fb1f69f",
+  "otherControlUnmodified": true,
+  "sizeMeasurements": [
+    {
+      "layout": "single-paragraph",
+      "comparison": "full-content-line-ending-equivalence-only",
+      "nativeVerified": true,
+      "wordWrap": true,
+      "controlKind": "classic-edit",
+      "elapsedMs": 17154.3417,
+      "fullFixtureReadback": true,
+      "units": 16384
+    },
+    {
+      "layout": "single-paragraph",
+      "comparison": "full-content-line-ending-equivalence-only",
+      "nativeVerified": true,
+      "wordWrap": true,
+      "controlKind": "classic-edit",
+      "elapsedMs": 82375.2,
+      "fullFixtureReadback": true,
+      "units": 65536
+    },
+    {
+      "layout": "paragraphs-cr",
+      "comparison": "full-content-line-ending-equivalence-only",
+      "nativeVerified": true,
+      "wordWrap": true,
+      "controlKind": "win32-edit",
+      "elapsedMs": 1019621.9664,
+      "fullFixtureReadback": true,
+      "units": 262144
+    }
+  ],
+  "unicodeReadbackSizes": [
+    16384,
+    65536,
+    262144
+  ],
+  "delayedDelivery": {
+    "nativeVerified": true,
+    "authorityExpiredAfterSend": true,
+    "exactFixtureReadback": true,
+    "elapsedMs": 2917.1667,
+    "delayPerWmCharMs": 80,
+    "units": 31
+  },
+  "explicitClose": true,
+  "classicWrapped262K": "NOT_ACCEPTED_SEPARATE_SLOW_TARGET_CASE",
+  "nativeMultilineLineEndings": [
+    {
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "controlKind": "classic",
+      "nativeVerified": true
+    },
+    {
+      "fullFixtureReadback": true,
+      "sourceUnits": 20,
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "controlKind": "classic",
+      "nativeVerified": true
+    },
+    {
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "controlKind": "classic",
+      "nativeVerified": true
+    },
+    {
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "controlKind": "rich",
+      "nativeVerified": true
+    },
+    {
+      "fullFixtureReadback": true,
+      "sourceUnits": 20,
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "controlKind": "rich",
+      "nativeVerified": true
+    },
+    {
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "controlKind": "rich",
+      "nativeVerified": true
+    },
+    {
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "controlKind": "native",
+      "nativeVerified": true
+    },
+    {
+      "fullFixtureReadback": true,
+      "sourceUnits": 20,
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "controlKind": "native",
+      "nativeVerified": true
+    },
+    {
+      "fullFixtureReadback": true,
+      "sourceUnits": 18,
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "controlKind": "native",
+      "nativeVerified": true
+    }
+  ],
+  "result": "PASS",
+  "richSingleParagraph262K": "NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT",
+  "scope": "isolated_actions_native_and_managed_editors_not_owner_physical",
+  "elapsedMs": 1127182.2409,
+  "automaticReplay": false,
+  "managedRichParagraphs262K": "NOT_ACCEPTED_CI116_DELIVERY_TIMEOUT",
+  "focusSwitchStopsSuffix": true
+}

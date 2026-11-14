@@ -386,3 +386,7 @@ TestFixtures/Rmv2TextFixture.NativeEdit creates a genuine Windows EDIT HWND with
 ## Allow full native text completion and retain macOS checks
 
 windows-native-client workflow IDs text acceptance, gives real-keyboard stress40minute CI budget, classifies unfinished receipts as INCOMPLETE, and rejects successful-step/missing/nonPASS receipt inconsistencies. Whole Windows job bounded110minutes for text plus installer/rollback. desktop-v4-native-ci pins macos-15-intel for same Darwin tests due verified hostedARM64 capacity failure; no source/runtime or branch-gate change.
+
+## Record verified dev11 candidate and scoped remaining RM work
+
+Current native logical typing/scheduler/capture and lifecycle boundaries are summarized in the single Master Checkpoint and docs/evidence/rmv2/acceptance-ci118.json; historical flat source/CI fields were moved to history.

@@ -1,14 +1,14 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-13T23:57:45.088Z",
+  "updatedAt": "2026-11-14T00:46:34.554Z",
   "version": "0.10.1-dev.11",
-  "phase": "RMV2_PHASE1_IMPLEMENTATION",
-  "status": "DEV11_FULL_TEXT_CI_BUDGET_AND_MACOS_INTEL_PENDING",
+  "phase": "RMV2_PHASE2_AND_OPTIONAL_DXGI_CAPTURE_CI_VERIFIED_PHYSICAL_PENDING",
+  "status": "DEV11_FULL_CI_ARTIFACT_VERIFIED_OWNER_UAT_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
-  "baselineSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
-  "baselineSourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+  "baselineSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+  "baselineSourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
   "validationBranch": "work",
   "apiContractVersion": "light-remote.api.v1",
   "featureProfile": "goldabv2-desktop-v4",
@@ -24,21 +24,28 @@
   },
   "evidence": {
     "windows": {
-      "artifactId": 13758302838,
-      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
-      "ciRunId": 42803494868,
-      "repositoryId": 1450214328,
-      "zipSha256": "63ac2a034ef67ef4abe85931f31baad7ac9576d255cf9c3b16c66305b626c1ac",
-      "installerSha256": "f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af",
-      "installerBytes": 168947869,
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+      "version": "0.10.1-dev.11",
+      "ciRunId": 43530897985,
+      "artifactId": 14088683951,
+      "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
+      "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+      "installerBytes": 172700781,
+      "result": "VERIFIED_INTERNAL_ARTIFACT",
+      "primaryCount": 1,
+      "oldPrimariesAbsent": true,
+      "migration": "PASS",
+      "installedLifecycle": "PASS",
+      "physicalOwnerAcceptance": false,
+      "publicFeedPromoted": false,
+      "zipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
+      "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985/artifacts/14088683951",
       "verified": true,
       "verifiedOnArm": true,
       "physicalAcceptance": false,
       "codeSigningVerified": false,
-      "manifest": "docs/evidence/desktop-followup/BUILD_MANIFEST.json",
-      "primaryManifest": "docs/evidence/desktop-followup/PRIMARY_EXE_MANIFEST.json",
-      "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868/artifacts/13758302838",
-      "publicBinaryPublication": "NOT_REQUESTED_INTERNAL_TEST_ONLY"
+      "publicBinaryPublication": "INTERNAL_TEST_ONLY"
     },
     "dev": {
       "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
@@ -47,7 +54,7 @@
       "report": "docs/evidence/dev-integration.json",
       "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868"
     },
-    "physicalOwnerAcceptance": "PENDING_DEV5_OWNER_SELF_INSTALL_TEST",
+    "physicalOwnerAcceptance": "PENDING_DEV11_OWNER_SELF_INSTALL_CONSOLIDATED_TEST",
     "historicalPhysicalSource": "4dddf5114248a014c0695e853109358039afa7ad",
     "historicalPreconversionCi": {
       "runId": 42468832737,
@@ -70,22 +77,28 @@
       "nativeMacLinux": "locked source build/tests PASS; full installers NOT_BUILT"
     },
     "currentRepositoryCi": {
-      "repository": "n8n2erpnext/light-remote-mcp",
-      "repositoryId": 1450214328,
-      "runId": 42803494868,
-      "runNumber": 64,
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868",
-      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
-      "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
-      "conclusion": "success",
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "ciRunId": 43530897985,
+      "runNumber": 118,
+      "attempt": 1,
+      "scope": "full",
+      "result": "PASS",
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
+      "allJobs": 9,
+      "successfulJobs": 9,
+      "requiredCheck": "baseline-required",
+      "mainProtectionUnchanged": true,
+      "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+      "physicalOwnerAcceptance": false,
       "jobs": 9,
+      "runId": 43530897985,
+      "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
       "passedJobs": 9,
-      "nodeTests": 284,
-      "portableSuiteEntries": 70,
-      "reactTests": 125,
-      "backendChecks": 25,
-      "physicalOwnerAcceptance": "PENDING",
-      "evidence": "docs/evidence/desktop-followup/ACCEPTANCE.json"
+      "conclusion": "success",
+      "repositoryId": 1450214328,
+      "repository": "n8n2erpnext/light-remote-mcp",
+      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+      "evidence": "docs/evidence/rmv2/acceptance-ci118.json"
     },
     "reconstructionBaseline": {
       "windows": {
@@ -201,64 +214,24 @@
     },
     "internalLab": {
       "result": "PASS",
-      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
-      "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
-      "version": "0.10.1-dev.5",
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+      "version": "0.10.1-dev.11",
       "databaseMigrated": false,
       "dbArchiveIndexVerified": true,
-      "dbArchiveSha256": "651f2911c28ef6c033219fe380ff6aeeac73d30df25b4b8e68ed24d36c822596",
+      "dbArchiveSha256": "c8d0f485436a93abb86cbfc963fc42464faf584b85c96beef20d1e0e76a7a3cb",
       "independentPidsPreserved": true,
       "dependencyGraphUnchanged": true,
       "homeAncestorAclChanged": false,
       "persistentCountsUnchanged": true,
       "snapshotUnauthenticatedStatus": 401,
+      "workAuthorizationUnauthenticatedStatus": 400,
       "apiContractVersion": "light-remote.api.v1",
       "publicHealth": "PASS",
       "oldSourcesPreserved": true,
       "ownerWindowsInstallationChanged": false,
       "physicalOwnerAcceptance": false,
-      "publicReleaseOrFeed": false,
-      "dev5Followup": {
-        "result": "PASS",
-        "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
-        "version": "0.10.1-dev.5",
-        "newCandidateDeployment": "DEPLOYED",
-        "runtimeChanged": true,
-        "evidence": "docs/evidence/distribution-redesign/DEV5_LAB_DEPLOYMENT.json"
-      },
-      "historicalBeforeDev5": {
-        "result": "PASS",
-        "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
-        "sourceTree": "0ef2892ae2b8ecf253e35510548a1493673d21ee",
-        "version": "0.10.1-dev.4",
-        "databaseMigrated": false,
-        "dbArchiveIndexVerified": true,
-        "dbArchiveSha256": "aa6e76061279d8b9e08cfb0790cbc178ca3e3fcb04c72170510fec57ec6d8f4b",
-        "independentPidsPreserved": true,
-        "dependencyGraphUnchanged": true,
-        "homeAncestorAclChanged": false,
-        "persistentCountsUnchanged": true,
-        "snapshotUnauthenticatedStatus": 401,
-        "apiContractVersion": "light-remote.api.v1",
-        "publicHealth": "PASS",
-        "oldSourcesPreserved": true,
-        "ownerWindowsInstallationChanged": false,
-        "physicalOwnerAcceptance": false,
-        "publicReleaseOrFeed": false,
-        "dev5Followup": {
-          "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
-          "version": "0.10.1-dev.4",
-          "servicesActive": true,
-          "runtimeChanged": false,
-          "newCandidateDeployment": "PENDING",
-          "ownerWindowsInstallationChanged": false,
-          "result": "PRESERVED_NOT_DEPLOYED",
-          "mainSourceCommit": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
-          "checkedAt": "2026-11-10T11:29:08.328782+00:00",
-          "candidateSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de"
-        }
-      },
-      "previousSource": "947a11763161aca6856ffc1e8e18dc8fc446ede7"
+      "publicReleaseOrFeed": false
     },
     "historicalBeforeDev5Followup": {
       "windows": {
@@ -312,18 +285,135 @@
       }
     },
     "installerTrayGoogleCi84": "docs/evidence/windows-distribution/20261111-acceptance.json",
-    "rmv2Ci98": "docs/evidence/rmv2/phase1-ci98.json"
+    "rmv2Ci98": "docs/evidence/rmv2/phase1-ci98.json",
+    "historicalBeforeDev11CurrentFields": {
+      "windows": {
+        "artifactId": 13758302838,
+        "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+        "ciRunId": 42803494868,
+        "repositoryId": 1450214328,
+        "zipSha256": "63ac2a034ef67ef4abe85931f31baad7ac9576d255cf9c3b16c66305b626c1ac",
+        "installerSha256": "f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af",
+        "installerBytes": 168947869,
+        "verified": true,
+        "verifiedOnArm": true,
+        "physicalAcceptance": false,
+        "codeSigningVerified": false,
+        "manifest": "docs/evidence/desktop-followup/BUILD_MANIFEST.json",
+        "primaryManifest": "docs/evidence/desktop-followup/PRIMARY_EXE_MANIFEST.json",
+        "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868/artifacts/13758302838",
+        "publicBinaryPublication": "NOT_REQUESTED_INTERNAL_TEST_ONLY"
+      },
+      "currentRepositoryCi": {
+        "repository": "n8n2erpnext/light-remote-mcp",
+        "repositoryId": 1450214328,
+        "runId": 42803494868,
+        "runNumber": 64,
+        "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868",
+        "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+        "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+        "conclusion": "success",
+        "jobs": 9,
+        "passedJobs": 9,
+        "nodeTests": 284,
+        "portableSuiteEntries": 70,
+        "reactTests": 125,
+        "backendChecks": 25,
+        "physicalOwnerAcceptance": "PENDING",
+        "evidence": "docs/evidence/desktop-followup/ACCEPTANCE.json"
+      },
+      "internalLab": {
+        "result": "PASS",
+        "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+        "sourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+        "version": "0.10.1-dev.5",
+        "databaseMigrated": false,
+        "dbArchiveIndexVerified": true,
+        "dbArchiveSha256": "651f2911c28ef6c033219fe380ff6aeeac73d30df25b4b8e68ed24d36c822596",
+        "independentPidsPreserved": true,
+        "dependencyGraphUnchanged": true,
+        "homeAncestorAclChanged": false,
+        "persistentCountsUnchanged": true,
+        "snapshotUnauthenticatedStatus": 401,
+        "apiContractVersion": "light-remote.api.v1",
+        "publicHealth": "PASS",
+        "oldSourcesPreserved": true,
+        "ownerWindowsInstallationChanged": false,
+        "physicalOwnerAcceptance": false,
+        "publicReleaseOrFeed": false,
+        "dev5Followup": {
+          "result": "PASS",
+          "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+          "version": "0.10.1-dev.5",
+          "newCandidateDeployment": "DEPLOYED",
+          "runtimeChanged": true,
+          "evidence": "docs/evidence/distribution-redesign/DEV5_LAB_DEPLOYMENT.json"
+        },
+        "historicalBeforeDev5": {
+          "result": "PASS",
+          "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+          "sourceTree": "0ef2892ae2b8ecf253e35510548a1493673d21ee",
+          "version": "0.10.1-dev.4",
+          "databaseMigrated": false,
+          "dbArchiveIndexVerified": true,
+          "dbArchiveSha256": "aa6e76061279d8b9e08cfb0790cbc178ca3e3fcb04c72170510fec57ec6d8f4b",
+          "independentPidsPreserved": true,
+          "dependencyGraphUnchanged": true,
+          "homeAncestorAclChanged": false,
+          "persistentCountsUnchanged": true,
+          "snapshotUnauthenticatedStatus": 401,
+          "apiContractVersion": "light-remote.api.v1",
+          "publicHealth": "PASS",
+          "oldSourcesPreserved": true,
+          "ownerWindowsInstallationChanged": false,
+          "physicalOwnerAcceptance": false,
+          "publicReleaseOrFeed": false,
+          "dev5Followup": {
+            "sourceCommit": "947a11763161aca6856ffc1e8e18dc8fc446ede7",
+            "version": "0.10.1-dev.4",
+            "servicesActive": true,
+            "runtimeChanged": false,
+            "newCandidateDeployment": "PENDING",
+            "ownerWindowsInstallationChanged": false,
+            "result": "PRESERVED_NOT_DEPLOYED",
+            "mainSourceCommit": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+            "checkedAt": "2026-11-10T11:29:08.328782+00:00",
+            "candidateSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de"
+          }
+        },
+        "previousSource": "947a11763161aca6856ffc1e8e18dc8fc446ede7"
+      },
+      "physicalOwnerAcceptance": "PENDING_DEV5_OWNER_SELF_INSTALL_TEST",
+      "baseline": {
+        "baselineSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+        "baselineSourceTree": "fec7d9f8a8242358daf44a13faf2735e18520e2b",
+        "phase": "RMV2_PHASE1_IMPLEMENTATION",
+        "remaining": [
+          "Fresh tray/installer redesign and safe empty directory cleanup pending; full exact-source dev6 CI/artifact/Owner acceptance required.",
+          "No live OpenAI inference or Owner account consumption in synthetic tests",
+          "Unsupported/stale Codex telemetry remains explicit; locally observed tokens are not total account usage",
+          "History pages expose retained records under configured disk retention, with bounded RAM/DOM",
+          "Owner physical dev5 acceptance and full Mac/Linux installers remain pending",
+          "Existing reconstruction backlog retained: Continuity modern Wall/core hook and history-dependent packaging regression",
+          "Existing reconstruction backlog retained: legacy Long Memory extension/RC50/Guest prototypes and full Mac/Linux installers",
+          "Complete endpoint/schema catalog coverage and remaining legacy server route constants; new three routes use canonical catalog",
+          "Memory/Codex100-row native read window remains explicit; Desktop task/session history is bounded/pageable"
+        ]
+      }
+    }
   },
   "remaining": [
-    "Fresh tray/installer redesign and safe empty directory cleanup pending; full exact-source dev6 CI/artifact/Owner acceptance required.",
     "No live OpenAI inference or Owner account consumption in synthetic tests",
     "Unsupported/stale Codex telemetry remains explicit; locally observed tokens are not total account usage",
     "History pages expose retained records under configured disk retention, with bounded RAM/DOM",
-    "Owner physical dev5 acceptance and full Mac/Linux installers remain pending",
+    "Owner physical dev11 acceptance and full Mac/Linux installers remain pending",
     "Existing reconstruction backlog retained: Continuity modern Wall/core hook and history-dependent packaging regression",
     "Existing reconstruction backlog retained: legacy Long Memory extension/RC50/Guest prototypes and full Mac/Linux installers",
     "Complete endpoint/schema catalog coverage and remaining legacy server route constants; new three routes use canonical catalog",
-    "Memory/Codex100-row native read window remains explicit; Desktop task/session history is bounded/pageable"
+    "Memory/Codex100-row native read window remains explicit; Desktop task/session history is bounded/pageable",
+    "RM v2 consolidated physical acceptance against pinned dev11 installer is pending Owner self-install/test.",
+    "RM v2 giant single-paragraph262K classic/rich remains NOT_ACCEPTED; arbitrary application/newline/focus-race matrix pending.",
+    "RM v2 optional DXGI physical adapter/recovery matrix and GPU preprocessing remain pending; hardware encoding/video/viewer/media transport not implemented."
   ],
   "repositoryReplacement": {
     "ownerConfirmed": true,
@@ -361,7 +451,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow exact new full CI: all9native newline cases, real delayed completion, managed16K/64K and complete nativeEDIT262K paragraph+focus-switch; then full installer/upgrade/rollback and macOSIntel/Linux native source tests. Verify exact source/artifact/SHA only after all9jobs and baseline-required PASS. Then isolate Lab integration with rollback and record one coherent truth/checkpoint for Owner self-download/UAT. Giant/managed262K stress limits, AppleSilicon acceptance and GPU media/preprocessing remain explicit.",
+  "nextAction": "Owner manually installs only the pinned internal artifact and performs the consolidated Windows RM checklist; record physical outcomes against this exact source/installer hash. Optional GPU preprocessing/hardware video/viewer remain unimplemented and require their own implementation/measurements; do not call the complete four-stage research plan PASS.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -452,11 +542,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261114-rmv2-ci-full-text-budget-macos-capacity",
-    "status": "DEV11_FULL_TEXT_CI_BUDGET_AND_MACOS_INTEL_PENDING",
-    "summary": "CI117 native Win32 paragraph stress progressed with exact acknowledged/observed content to126916source units, but external15minute step timeout cut it off. Nine real native/managedLF-CRLF-CR cases, delayed completion control flow and managed16K/64K passed; final262K was not accepted. Increase only bounded hosted Windows test budget15->40minutes and whole job80->110 to allow full completion plus installer/rollback; product input authority<=1000ms, read-only delivery5s and chunk RPC10s are unchanged. Add always-run receipt classifier: unfinished RUNNING becomes INCOMPLETE, and a successful text step without complete PASS/missing receipt fails. GitHub check annotations prove macOS arm64 job never acquired a runner due capacity. Pin standard macos-15-intel for the same Darwin source/vault tests instead of floating macos-latest; AppleSilicon/arm64 acceptance remains pending. No required test or branch protection disabled.",
-    "verification": "CI117 sourcef2aec12 run43462107355 text artifact14057972170 SHA97fa4631ea7bc0e7abfa4c640a6ffda4084545a255383861aca40896f72c99de verified. Last receipt RUNNING/external timeout is preserved as incomplete. macOS job132013762021/check-run annotations associated to exact source verified runnerName empty/no steps/hosted capacity error. PowerShell classifier AST PASS. Pre-change full checkpoint checkpoint/20261113-before-rmv2-dev11-acceptance-f2aec12 bundleSHA 66f3728faec85d2450cc9460d17d1c2fb8fca632f6390a582087b7e7e81fd59c restore/fsckPASS. All native builds/tests remain hosted Actions only.",
-    "nextAction": "Follow exact new full CI: all9native newline cases, real delayed completion, managed16K/64K and complete nativeEDIT262K paragraph+focus-switch; then full installer/upgrade/rollback and macOSIntel/Linux native source tests. Verify exact source/artifact/SHA only after all9jobs and baseline-required PASS. Then isolate Lab integration with rollback and record one coherent truth/checkpoint for Owner self-download/UAT. Giant/managed262K stress limits, AppleSilicon acceptance and GPU media/preprocessing remain explicit.",
+    "taskId": "20261114-rmv2-dev11-integrated-closeout",
+    "status": "DEV11_FULL_CI_ARTIFACT_VERIFIED_OWNER_UAT_PENDING",
+    "summary": "Verified internal dev11 sourcef1092607fb96ed181e9b4c71a55e13429b183a60, full CI118 all9PASS and independently SHA-verified one-primary installer. Native text result is scoped to exact editor/layout receipts; managed262K stress cases remain NOT_ACCEPTED, not relabeled by the separate genuine Win32 EDIT positive case. Cursor/lifecycle/capture evidence is pinned. Consolidate stale current-looking dev5/dev9 fields into history and publish one truthful current checkpoint. Owner physical test pending; no public release/feed or production/domain/callback changes.",
+    "verification": "Exact-source CI1189/9PASS; complete ZIP SHA4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3, installer SHA9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6, source/tree/run/profile/one-primary/migration/lifecycle independently verified on ARM. checkpoint/20261114-before-rmv2-dev11-ready-f109260 restore/fsckPASS. Owner physical acceptance not inferred.",
+    "nextAction": "Owner manually installs only the pinned internal artifact and performs the consolidated Windows RM checklist; record physical outcomes against this exact source/installer hash. Optional GPU preprocessing/hardware video/viewer remain unimplemented and require their own implementation/measurements; do not call the complete four-stage research plan PASS.",
     "sourceDigest": "9d679a76c3b8488543b02fee9737af50c4d58fd2912b05d27c768658523a0c4d",
     "sourceFileCount": 1705
   },
@@ -575,7 +665,7 @@
       "manifestSha256": "ea1c2f8d49cf408e1bc7fbfc1d4877d3b15aba8dacfb565ef3daf9f13d945bd9",
       "scope": "CI migration/recovery input; public product update feed remains HOLD."
     },
-    "candidateVersion": "0.10.1-dev.5",
+    "candidateVersion": "0.10.1-dev.11",
     "physicalOwnerAcceptance": "PENDING_OWNER_SELF_INSTALL_TEST",
     "publicFeedPromotion": "HOLD_NOT_CHANGED",
     "ownerPause": {
@@ -592,53 +682,164 @@
       "restoreVerified": true
     },
     "verifiedArtifact": {
-      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
-      "ciRunId": 42803494868,
-      "artifactId": 13758302838,
-      "artifactZipSha256": "63ac2a034ef67ef4abe85931f31baad7ac9576d255cf9c3b16c66305b626c1ac",
-      "installerSha256": "f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af",
-      "installerBytes": 168947869,
-      "projectVersion": "0.10.1-dev.5",
-      "result": "VERIFIED_NOT_PHYSICAL_ACCEPTANCE"
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+      "version": "0.10.1-dev.11",
+      "ciRunId": 43530897985,
+      "artifactId": 14088683951,
+      "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
+      "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+      "installerBytes": 172700781,
+      "result": "VERIFIED_INTERNAL_ARTIFACT",
+      "primaryCount": 1,
+      "oldPrimariesAbsent": true,
+      "migration": "PASS",
+      "installedLifecycle": "PASS",
+      "physicalOwnerAcceptance": false,
+      "publicFeedPromoted": false
     },
     "lastFullCi": {
-      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
-      "ciRunId": 42803494868,
-      "runNumber": 64,
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "ciRunId": 43530897985,
+      "runNumber": 118,
       "attempt": 1,
       "scope": "full",
       "result": "PASS",
-      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868",
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
       "allJobs": 9,
       "successfulJobs": 9,
       "requiredCheck": "baseline-required",
       "mainProtectionUnchanged": true,
-      "physicalOwnerAcceptance": false
+      "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+      "physicalOwnerAcceptance": false,
+      "jobs": [
+        {
+          "id": 132248017316,
+          "name": "changes",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248017617,
+          "name": "truth",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248092918,
+          "name": "Core, contracts, PostgreSQL/Redis integration",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248092978,
+          "name": "Committed native dependency resolution",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248216515,
+          "name": "windows / build-install-smoke",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248216611,
+          "name": "desktop / Web build, tests, isolated browser screenshots",
+          "conclusion": "success"
+        },
+        {
+          "id": 132249480789,
+          "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
+          "conclusion": "success"
+        },
+        {
+          "id": 132249480901,
+          "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+          "conclusion": "success"
+        },
+        {
+          "id": 132262738786,
+          "name": "baseline-required",
+          "conclusion": "success"
+        }
+      ]
     },
-    "compiledSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+    "compiledSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
     "latestVerifiedCi": {
-      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
-      "ciRunId": 42803494868,
-      "runNumber": 64,
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "ciRunId": 43530897985,
+      "runNumber": 118,
       "attempt": 1,
       "scope": "full",
       "result": "PASS",
-      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868",
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
       "allJobs": 9,
       "successfulJobs": 9,
       "requiredCheck": "baseline-required",
       "mainProtectionUnchanged": true,
-      "physicalOwnerAcceptance": false
+      "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+      "physicalOwnerAcceptance": false,
+      "jobs": [
+        {
+          "id": 132248017316,
+          "name": "changes",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248017617,
+          "name": "truth",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248092918,
+          "name": "Core, contracts, PostgreSQL/Redis integration",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248092978,
+          "name": "Committed native dependency resolution",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248216515,
+          "name": "windows / build-install-smoke",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248216611,
+          "name": "desktop / Web build, tests, isolated browser screenshots",
+          "conclusion": "success"
+        },
+        {
+          "id": 132249480789,
+          "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
+          "conclusion": "success"
+        },
+        {
+          "id": 132249480901,
+          "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+          "conclusion": "success"
+        },
+        {
+          "id": 132262738786,
+          "name": "baseline-required",
+          "conclusion": "success"
+        }
+      ]
     },
     "latestInternalArtifact": {
-      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
-      "ciRunId": 42803494868,
-      "artifactId": 13758302838,
-      "artifactZipSha256": "63ac2a034ef67ef4abe85931f31baad7ac9576d255cf9c3b16c66305b626c1ac",
-      "installerSha256": "f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af",
-      "installerBytes": 168947869,
-      "projectVersion": "0.10.1-dev.5",
-      "result": "VERIFIED_NOT_PHYSICAL_ACCEPTANCE"
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+      "version": "0.10.1-dev.11",
+      "ciRunId": 43530897985,
+      "artifactId": 14088683951,
+      "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
+      "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+      "installerBytes": 172700781,
+      "result": "VERIFIED_INTERNAL_ARTIFACT",
+      "primaryCount": 1,
+      "oldPrimariesAbsent": true,
+      "migration": "PASS",
+      "installedLifecycle": "PASS",
+      "physicalOwnerAcceptance": false,
+      "publicFeedPromoted": false,
+      "projectVersion": "0.10.1-dev.11"
     },
     "historicalMilestones": {
       "lastNativeTrial": {
@@ -721,11 +922,87 @@
           "installerSha256": "a59e94e98c2581def5a9f622a3551e57a9ecc2071f7994f5a30db3850729ad5e",
           "feedPromotion": false
         }
+      },
+      "beforeDev11CurrentFields": {
+        "candidateVersion": "0.10.1-dev.5",
+        "verifiedArtifact": {
+          "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+          "ciRunId": 42803494868,
+          "artifactId": 13758302838,
+          "artifactZipSha256": "63ac2a034ef67ef4abe85931f31baad7ac9576d255cf9c3b16c66305b626c1ac",
+          "installerSha256": "f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af",
+          "installerBytes": 168947869,
+          "projectVersion": "0.10.1-dev.5",
+          "result": "VERIFIED_NOT_PHYSICAL_ACCEPTANCE"
+        },
+        "lastFullCi": {
+          "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+          "ciRunId": 42803494868,
+          "runNumber": 64,
+          "attempt": 1,
+          "scope": "full",
+          "result": "PASS",
+          "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868",
+          "allJobs": 9,
+          "successfulJobs": 9,
+          "requiredCheck": "baseline-required",
+          "mainProtectionUnchanged": true,
+          "physicalOwnerAcceptance": false
+        },
+        "compiledSourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+        "latestVerifiedCi": {
+          "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+          "ciRunId": 42803494868,
+          "runNumber": 64,
+          "attempt": 1,
+          "scope": "full",
+          "result": "PASS",
+          "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868",
+          "allJobs": 9,
+          "successfulJobs": 9,
+          "requiredCheck": "baseline-required",
+          "mainProtectionUnchanged": true,
+          "physicalOwnerAcceptance": false
+        },
+        "latestInternalArtifact": {
+          "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+          "ciRunId": 42803494868,
+          "artifactId": 13758302838,
+          "artifactZipSha256": "63ac2a034ef67ef4abe85931f31baad7ac9576d255cf9c3b16c66305b626c1ac",
+          "installerSha256": "f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af",
+          "installerBytes": 168947869,
+          "projectVersion": "0.10.1-dev.5",
+          "result": "VERIFIED_NOT_PHYSICAL_ACCEPTANCE"
+        },
+        "lastNativeTrial": {
+          "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+          "ciRunId": 42803494868,
+          "overallResult": "PASS9_OF9",
+          "nativeClose3cycles": "PASS",
+          "realPackagedConptyWall": "PASS"
+        },
+        "publication": {
+          "status": "INTERNAL_TEST_ONLY",
+          "published": false,
+          "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
+          "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868/artifacts/13758302838",
+          "installerSha256": "f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af",
+          "feedPromotion": false
+        },
+        "latestInternalVerification": {
+          "sourceCommit": "3064f21adb402b1d3eb866405d5a81796789f1a2",
+          "ciRunId": 42989298732,
+          "result": "PASS",
+          "primaryExecutable": "LightRemote.exe",
+          "oldPrimariesAbsent": true,
+          "installedLifecycle": "PASS",
+          "physicalOwnerAcceptance": false
+        }
       }
     },
     "lastNativeTrial": {
-      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
-      "ciRunId": 42803494868,
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "ciRunId": 43530897985,
       "overallResult": "PASS9_OF9",
       "nativeClose3cycles": "PASS",
       "realPackagedConptyWall": "PASS"
@@ -733,14 +1010,14 @@
     "publication": {
       "status": "INTERNAL_TEST_ONLY",
       "published": false,
-      "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
-      "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868/artifacts/13758302838",
-      "installerSha256": "f48d002dfe94b408c968740e7db4cd7758146b707559159086999e2afee880af",
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985/artifacts/14088683951",
+      "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
       "feedPromotion": false
     },
     "latestInternalVerification": {
-      "sourceCommit": "3064f21adb402b1d3eb866405d5a81796789f1a2",
-      "ciRunId": 42989298732,
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "ciRunId": 43530897985,
       "result": "PASS",
       "primaryExecutable": "LightRemote.exe",
       "oldPrimariesAbsent": true,
@@ -1532,376 +1809,702 @@
     "ownerReportedAcceptance": "2026-11-11 PASS; no inferred DPI/Google-domain acceptance"
   },
   "rmv2Implementation": {
-    "phase": 2,
-    "status": "DEV11_FULL_TEXT_CI_BUDGET_AND_MACOS_INTEL_PENDING",
+    "status": "INTERNAL_DEV11_FULL_CI_AND_ARTIFACT_VERIFIED_PHYSICAL_PENDING",
+    "compiledSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+    "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
     "version": "0.10.1-dev.11",
-    "beforeCommit": "a2173d525e67945843ecfa307304ce1228c7c096",
-    "beforeTag": "checkpoint/20261111-before-rmv2-phase1-a2173d5",
-    "bundleSha256": "52c4ed562287cce186f666697fb4c96d20e847129e0398bc913ea6503dffe474",
-    "restoreFsck": "PASS",
-    "physicalAccepted": false,
-    "gpuOrVideoImplemented": false,
-    "verifiedLongTypingImplemented": true,
-    "deployed": false,
-    "publicRelease": false,
-    "portableSourceGroups": 71,
-    "portableUnitCases": 299,
-    "portableUnitExecution": "two path-compatible batches; no limits weakened",
-    "nativeCi": "PENDING_FULL_TEXT_40_MINUTE_CI_BUDGET",
-    "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
-    "firstCiRunId": 43032628902,
-    "nativeProductCompile": "PASS_CI86",
-    "nativeSelfTest": "PASS_CI86",
-    "nativeFirstFailure": "POWERSHELL_NET10_GDIPLUS_REFERENCE_IN_PROBE_BEFORE_ASSERTIONS",
-    "nativeProbeFix": "WIN32_CURSOR_BITMAP_AND_HOTSPOT_HASHES_SAME11_ROLES",
-    "nativeVerifiedSource": "398c4c8b316d59458f636bcdf1bd4ea44056634f",
-    "nativeVerifiedCiRunId": 43165467078,
-    "nativeArtifactId": 13920222075,
-    "nativeEvidence": "docs/evidence/rmv2/phase1-ci112.json",
-    "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
-    "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-    "fullCi": "PENDING_NATIVE_TEXT_INSTALLER_AND_REQUIRED_PLATFORM_CHECKS",
-    "beforeAfterBenchmark": false,
-    "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
-    "supersededCiRunId": 43036093867,
-    "fullWindowsCi": "PASS_CI98",
-    "browserFailure": "APT_MIRROR_LIST_OBSERVED_ETC_APT_APT_MIRRORS_TXT_OMITTED",
-    "productSourceChangedAfterCi89": true,
-    "ciRecoveryScope": "DISPOSABLE_GITHUB_HOSTED_RUNNERS_ONLY",
-    "smoothMotionSleepSliceMaxMs": 8,
-    "physicalBuild92": "INSTALL_PASS_INDICATOR_FAIL",
-    "ownerInputBehavior": "YIELD_CURRENT_INPUT_KEEP_AGENT_SESSION_NO_BLOCKINPUT_NO_REPLAY",
-    "independentForegroundConcurrency": false,
-    "beforeIndicatorTag": "checkpoint/20261112-before-rmv2-indicator-668ce3a",
-    "beforeIndicatorBundleSha256": "e880177c09d7a4b9666e650eab380351f972de3354c77428bd10f243ef26729b",
-    "pausedIndicator": "LIGHT_SKY_BLUE_SAME_SCOPE_LIFETIME_NO_STANDALONE_TAIL",
-    "codexParity": "PUBLIC_BEHAVIOR_REFERENCE_NOT_INTERNAL_CODE_COPY",
-    "compiledSource": "398c4c8b316d59458f636bcdf1bd4ea44056634f",
-    "artifactId": 13921290856,
-    "installerSha256": "6cb6ca1e02653dd647c05cbab677545c5af74b1e5129c1b04491b375cb54785a",
-    "physicalBuild94": "INSTALLED_OWNER_FAIL_OVERLAY_REMAINS_AFTER_TASK",
-    "lifecycleDecision": "EXPLICIT_CLOSE_BEFORE_REPORT_REOPEN_FOR_NEXT_TASK_PLUS45S_QUIET_FALLBACK",
-    "fallbackDoesNotInterruptInFlightRm": true,
-    "newPalette": "LIGHT_OUTLOOK_SKY_BLUE",
-    "taskScopeOwner": [
-      "A/B session",
-      "Agent"
-    ],
-    "closeBeforeReport": "REQUIRED_TOOL_CONTRACT_WITH_CONFIRMED_NATIVE_CLOSE",
-    "afterClose": "NEW_ATTACH_REQUIRED",
-    "orphanIdleMs": 45000,
-    "inFlightProtected": true,
-    "palette": {
-      "badge": "#DCEEFF",
-      "text": "#0F456B",
-      "edge": "#4AA7DF"
+    "latestVerifiedCi": {
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "ciRunId": 43530897985,
+      "runNumber": 118,
+      "attempt": 1,
+      "scope": "full",
+      "result": "PASS",
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
+      "allJobs": 9,
+      "successfulJobs": 9,
+      "requiredCheck": "baseline-required",
+      "mainProtectionUnchanged": true,
+      "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+      "physicalOwnerAcceptance": false,
+      "jobs": [
+        {
+          "id": 132248017316,
+          "name": "changes",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248017617,
+          "name": "truth",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248092918,
+          "name": "Core, contracts, PostgreSQL/Redis integration",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248092978,
+          "name": "Committed native dependency resolution",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248216515,
+          "name": "windows / build-install-smoke",
+          "conclusion": "success"
+        },
+        {
+          "id": 132248216611,
+          "name": "desktop / Web build, tests, isolated browser screenshots",
+          "conclusion": "success"
+        },
+        {
+          "id": 132249480789,
+          "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
+          "conclusion": "success"
+        },
+        {
+          "id": 132249480901,
+          "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+          "conclusion": "success"
+        },
+        {
+          "id": 132262738786,
+          "name": "baseline-required",
+          "conclusion": "success"
+        }
+      ]
     },
-    "portableLifecycleCases": 9,
-    "clientCoreRuntimeModuleIncluded": true,
-    "scopedInputReceipt": "ADDITIVE_VISUAL_METADATA_PRESERVES_FLAT_EXISTING_FIELDS",
-    "closeRetryReceipt": "OWNER_BOUND_15MIN_MAX256_NO_NATIVE_TOKENS",
-    "resumeIncludedInFlight": true,
-    "nativeCurrentSourceUnchangedAfterCi97": true,
-    "sourceTree": "5f432f68d60ff2426bd2742848b519bdd85dbd74",
-    "nativeArtifactSha256": "f5b5cde8f33172939eac99871ae25a879fb4812ea6cf4d93304162372dc38a49",
-    "installerBytes": 172575451,
-    "physicalBuild98": "PENDING_OWNER_SELF_INSTALL",
-    "beforePhase2Source": "3f85c36e66989d541b1259f6ab7d4665d82d290e",
-    "beforePhase2Tag": "checkpoint/20261112-before-rmv2-phase2-3f85c36",
-    "beforePhase2BundleSha256": "e679555effebb038bdb71ac4ea0a364fa8822d5cd7e19aed1ace4b87ba0f6c14",
-    "phase2RestoreFsck": "PASS",
-    "phase2a": {
-      "orderedInput": "DEDICATED_MTA_BOUNDED16",
-      "capture": "DEDICATED_MTA_BOUNDED2",
-      "statusCancel": "INDEPENDENT_BOUNDED4",
-      "cancel": "OWNER_AND_NATIVE_LEASE_CHECKED_QUEUED_FENCE_NO_REPLAY",
-      "profiles": [
-        "compatibility",
-        "precision",
-        "responsive",
-        "smooth"
-      ],
-      "defaultProfile": "compatibility",
-      "nativeAcceptance": "PASS_ISOLATED_CI_NOT_OWNER_PHYSICAL",
-      "ci100": "FAILED_BEFORE_NATIVE_COMPILE_DEFAULT_PATH_FINGERPRINTS",
-      "defaultCompatibility": "EXPLICIT_90MS_8STEPS_35MS_HOVER_40MS_HOLD",
-      "nativeProfileSelfTest": "REGISTERED_PENDING_ACTIONS",
-      "source": "241359b57ebda76306f23b81d51ce8fbd928207f",
-      "ciRun": 43189016725,
-      "ciRunNumber": 101,
-      "fullCi": "PASS_9_OF_9",
-      "evidence": "docs/evidence/rmv2/phase2a-ci101.json"
+    "verifiedArtifact": {
+      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+      "version": "0.10.1-dev.11",
+      "ciRunId": 43530897985,
+      "artifactId": 14088683951,
+      "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
+      "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+      "installerBytes": 172700781,
+      "result": "VERIFIED_INTERNAL_ARTIFACT",
+      "primaryCount": 1,
+      "oldPrimariesAbsent": true,
+      "migration": "PASS",
+      "installedLifecycle": "PASS",
+      "physicalOwnerAcceptance": false,
+      "publicFeedPromoted": false
     },
-    "phase2b": {
-      "status": "SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
-      "beforeTag": "checkpoint/20261112-before-rmv2-phase2b-241359b",
-      "beforeBundleSha256": "3c9477f70a4a00aca1823dcebd81f05c742e6f6c6421ae570e3a46b761ad8c52",
-      "restoreFsck": "PASS",
+    "beforeCloseout": {
+      "tag": "checkpoint/20261114-before-rmv2-dev11-ready-f109260",
+      "bundleSha256": "34f7b498e30cd989a7f3c9a4e56f925d33b2fa6905c0ad279504dd53b5ea1abe",
+      "archiveSha256": "b9fb84cafe1d3844407057a71db0f8d31b499d62742a28f9fe9cd45c67f42f1f",
+      "restore": "PASS",
+      "source": "f1092607fb96ed181e9b4c71a55e13429b183a60"
+    },
+    "nativeCiBudgets": {
+      "textStepMinutes": 40,
+      "windowsJobMinutes": 110
+    },
+    "platformCi": {
+      "macOS": "STANDARD_MACOS15_INTEL_NATIVE_SOURCE_TESTS",
+      "appleSilicon": "PENDING_NOT_ACCEPTED_HOSTED_CAPACITY_FAILURE_CI117",
+      "Linux": "UBUNTU24_NATIVE_SOURCE_TESTS"
+    },
+    "lifecycle": {
+      "closeBeforeFinalReport": "REQUIRED_WITH_NATIVE_CONFIRMATION",
+      "orphanQuietMs": 45000,
+      "statusOrHeartbeatRenews": false,
+      "inFlightProtected": true,
+      "newAttachAfterClose": true,
+      "aBAndAgentSessionsSeparate": true,
+      "externalModelFinalMessageIntercepted": false
+    },
+    "cursor": {
+      "systemCursorOverride": false,
+      "originalAll11Roles": "NATIVE_CI_PASS",
+      "badgeBackground": "#DCEEFF",
+      "badgeText": "#0F456B",
+      "edgeColor": "#4AA7DF",
+      "logicalKeyboardScreen": "FOREGROUND_TARGET_BOUND_BEFORE_ACTIVITY",
+      "ownerInput": "YIELD_CURRENT_OPERATION_KEEP_AGENT_NO_REPLAY",
+      "independentWindowsPointers": false
+    },
+    "workers": {
+      "orderedInputMtaCapacity": 16,
+      "captureCapacity": 2,
+      "semanticObservationMtaCapacity": 2,
+      "statusCancelIndependent": true,
+      "semanticElementsCrossThread": false,
+      "observationPublication": "ROOT_SESSION_INPUT_FOCUS_OWNER_GENERATION_CHECKED"
+    },
+    "typing": {
       "inlineUtf16Units": 262144,
       "referenceUtf8Bytes": 16777216,
-      "asynchronous": true,
-      "targetVerified": "CAPABILITY_DEPENDENT_REQUIRED_FAILS_BEFORE_INPUT",
-      "authority": "LOCAL_EACH_CHUNK_SERVER_SIGNED_SNAPSHOT_MAX1000MS",
-      "automaticReplay": false,
-      "deadlineDefaultMs": 600000,
-      "deadlineMaximumMs": 3600000,
-      "nativeFixture": "ACTIONS_PENDING_16K_64K_256K_UNICODE_AND_FOCUS_SWITCH",
-      "compileCorrection": "CS0819_SPLIT_VAR_DECLARATIONS",
-      "priorCi": {
-        "runId": 43356611319,
-        "runNumber": 102,
-        "source": "ef549116ecc00dc4174c8a02926857867a5c85a7",
-        "native": "COMPILE_FAIL_CS0819",
-        "backendIntegration": "PASS",
-        "desktopWeb": "PASS",
-        "nativeTextFixture": "NOT_REACHED"
-      },
-      "nativeCompile": "PASS_CI103_SOURCE9638594",
-      "nativeTextAcceptance": "CI117_9_NEWLINES_16K_64K_PASS_262K_INCOMPLETE_EXTERNAL_TIMEOUT",
-      "largeReferencePreparation": "COOPERATIVE_PREPARATION_AND_INITIAL_TARGET_BINDING_REVIEW_PENDING",
-      "preparation": "COOPERATIVE_8192_UNITS_OR8MS",
-      "targetBinding": "BEFORE_COOPERATIVE_GRAPHEME_VALIDATION",
-      "acceptedUnits": "ZERO_UNTIL_WHOLE_GRAPHEME_AND_PACING_PREFLIGHT_PASSES",
-      "pacing": "IMPOSSIBLE_TOTAL_DELAY_REJECTED_BEFORE_INPUT",
-      "preparationCancel": "ZERO_INPUT_PROVEN_PORTABLE",
-      "nativeTextDiagnostic": "UNITS_SHA256_FIRST_DIFF_FINAL_METADATA_ONLY_NO_RAW_TEXT",
-      "diagnostics": "STAGE_LENGTH_OFFSET_HASH_ONLY",
-      "nativeFixtureStepBudgetMinutes": 15,
-      "nativeTextEvidence": "docs/evidence/rmv2/text-ci117.json",
-      "fixture": "SEPARATE_STA_WINFORMS_PROCESS_WITH_CURRENT_USER_ONLY_PIPE",
-      "newFixtureNativeCi": "PENDING",
-      "noAcceptanceRelaxation": true,
-      "source": "WIN32_EDITOR_SCOPED_ACCEPTANCE_CI_PENDING",
-      "internalChunkUnits": 256,
+      "referenceUtf16Units": 8388608,
+      "unpacedWindowUnits": 256,
+      "pacedWindowUnits": 128,
       "maxGraphemeUnits": 128,
-      "totalInlineUnits": 262144,
-      "referenceUnits": 8388608,
-      "delivery": "EXPECTED_PREFIX_SUFFIX_READBACK_BEFORE_NEXT_CHUNK_WHEN_AVAILABLE",
-      "initialEmptyReadback": "VALUE_PATTERN_GETTER_ONLY_NO_SETVALUE",
-      "finalAcceptance": "UNCHANGED_FULL_NATIVE_READBACK_AND_FIXTURE_TEXT",
-      "inputMethod": "REAL_UNICODE_SENDINPUT",
-      "unknownEffects": "RECONCILE_NO_RESUME",
-      "nativeAuthority": "DEADLINE_BEFORE_EVERY_NEW_PACKET_AFTER_TARGET_CHECK_NATIVE_QUEUE_FENCED",
-      "historicalObservedUnits": "SEPARATE_FROM_FINAL_VERIFIED_CONTENT",
-      "nativeCi": "PENDING_SIX_NEWLINE_CASES_AND_LARGE_LAYOUT_MATRIX",
-      "before": {
-        "tag": "checkpoint/20261113-before-rmv2-dev11-acceptance-f2aec12",
-        "bundleSha256": "66f3728faec85d2450cc9460d17d1c2fb8fca632f6390a582087b7e7e81fd59c",
-        "archiveSha256": "11fd239b329df4ae7973a6b7bc7bfcaa8837e525661bd6cb3e76b6c5165dae80",
-        "restore": "PASS",
-        "source": "f2aec120cc902154c16336f3293e290846ccb4b6"
-      },
-      "acceptance": "EXACT_CONTENT_AND_NATIVE_VERIFICATION_UNCHANGED",
-      "pacedChunkUnits": 128,
-      "nativePacketUnits": 32,
-      "nativePacketException": "ONE_VALIDATED_GRAPHEME_UP_TO128",
-      "ci110ExactNativeSizes": [
-        16384,
-        65536
-      ],
-      "ci110LargeCase": {
-        "requested": 262144,
-        "lastKnownAck": 174576,
-        "outcome": "15_MINUTE_TIMEOUT_NOT_FULL_VERIFICATION"
-      },
-      "completionReadback": "ALREADY_SENT_EFFECTS_ONLY_NO_NEW_INPUT_LOCAL_CANCEL_FOCUS_OWNER_DESKTOP_GUARDED",
-      "nativePacketGuardTest": "RECORDING_SENDER_SAME_CORE_NO_OS_INPUT",
-      "deliveryPollingMs": [
-        15,
-        30,
-        60,
-        120
-      ],
-      "deliveryWaitMs": 5000,
-      "postStopDiagnostics": "THREE_METADATA_ONLY_FIXTURE_SNAPSHOTS_NO_INPUT_NO_SUCCESS_OVERRIDE",
-      "fixtureCapacityUnits": 1048576,
-      "inputAuthorityBudgetMaxMs": 1000,
-      "chunkRpcTimeoutMs": 10000,
-      "nativeFixtureMatrix": [
+      "preferredPacketUnits": 32,
+      "mutationAuthorityMaxMs": 1000,
+      "readOnlyDeliveryWaitMs": 5000,
+      "rpcTimeoutMs": 10000,
+      "verification": "CAPABILITY_DEPENDENT_FULL_CONTENT_LINE_ENDING_EQUIVALENCE_ONLY",
+      "readbackChangesInput": false,
+      "nativeMultilineLineBreaks": "KNOWN_EDIT_CLASS_MULTILINE_WANTRETURN_ONLY",
+      "nativeLineBreakCases": [
         {
-          "control": "managed-classic-edit",
-          "units": [
-            16384,
-            65536
+          "fullFixtureReadback": true,
+          "sourceUnits": 18,
+          "lineEndingCodeUnits": [
+            10
           ],
-          "layout": "single-paragraph"
+          "controlKind": "classic",
+          "nativeVerified": true
         },
         {
-          "control": "win32-edit",
-          "units": [
-            262144
+          "fullFixtureReadback": true,
+          "sourceUnits": 20,
+          "lineEndingCodeUnits": [
+            13,
+            10
           ],
-          "layout": "paragraphs-cr",
-          "provider": "BUILT_IN_NO_MANAGED_TEXTBOX_ACCESSIBILITY"
+          "controlKind": "classic",
+          "nativeVerified": true
         },
         {
-          "control": [
-            "managed-classic",
-            "managed-rich",
-            "win32-edit"
+          "fullFixtureReadback": true,
+          "sourceUnits": 18,
+          "lineEndingCodeUnits": [
+            13
           ],
-          "lineEndings": [
-            "LF",
-            "CRLF",
-            "CR"
-          ],
-          "expectedCases": 9
+          "controlKind": "classic",
+          "nativeVerified": true
         },
         {
-          "control": "managed-classic",
-          "delayPerWmCharMs": 80,
-          "beforeLargeSizes": true
+          "fullFixtureReadback": true,
+          "sourceUnits": 18,
+          "lineEndingCodeUnits": [
+            10
+          ],
+          "controlKind": "rich",
+          "nativeVerified": true
+        },
+        {
+          "fullFixtureReadback": true,
+          "sourceUnits": 20,
+          "lineEndingCodeUnits": [
+            13,
+            10
+          ],
+          "controlKind": "rich",
+          "nativeVerified": true
+        },
+        {
+          "fullFixtureReadback": true,
+          "sourceUnits": 18,
+          "lineEndingCodeUnits": [
+            13
+          ],
+          "controlKind": "rich",
+          "nativeVerified": true
+        },
+        {
+          "fullFixtureReadback": true,
+          "sourceUnits": 18,
+          "lineEndingCodeUnits": [
+            10
+          ],
+          "controlKind": "native",
+          "nativeVerified": true
+        },
+        {
+          "fullFixtureReadback": true,
+          "sourceUnits": 20,
+          "lineEndingCodeUnits": [
+            13,
+            10
+          ],
+          "controlKind": "native",
+          "nativeVerified": true
+        },
+        {
+          "fullFixtureReadback": true,
+          "sourceUnits": 18,
+          "lineEndingCodeUnits": [
+            13
+          ],
+          "controlKind": "native",
+          "nativeVerified": true
         }
       ],
+      "inputEventsAreInsertedContent": false,
+      "automaticReplay": false,
+      "nativeResult": "PASS_SCOPED_EDITOR_LAYOUT_MATRIX",
+      "editorMeasurements": [
+        {
+          "layout": "single-paragraph",
+          "comparison": "full-content-line-ending-equivalence-only",
+          "nativeVerified": true,
+          "wordWrap": true,
+          "controlKind": "classic-edit",
+          "elapsedMs": 17154.3417,
+          "fullFixtureReadback": true,
+          "units": 16384
+        },
+        {
+          "layout": "single-paragraph",
+          "comparison": "full-content-line-ending-equivalence-only",
+          "nativeVerified": true,
+          "wordWrap": true,
+          "controlKind": "classic-edit",
+          "elapsedMs": 82375.2,
+          "fullFixtureReadback": true,
+          "units": 65536
+        },
+        {
+          "layout": "paragraphs-cr",
+          "comparison": "full-content-line-ending-equivalence-only",
+          "nativeVerified": true,
+          "wordWrap": true,
+          "controlKind": "win32-edit",
+          "elapsedMs": 1019621.9664,
+          "fullFixtureReadback": true,
+          "units": 262144
+        }
+      ],
+      "delayedDelivery": {
+        "nativeVerified": true,
+        "authorityExpiredAfterSend": true,
+        "exactFixtureReadback": true,
+        "elapsedMs": 2917.1667,
+        "delayPerWmCharMs": 80,
+        "units": 31
+      },
       "classicWrapped262K": "NOT_ACCEPTED",
-      "nativeStatusChunkUnits": 256,
-      "nativePreparedChunkUnits": 256,
-      "preferredPacketUnits": 32,
-      "richSingleParagraph262K": "NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT",
-      "nativeLineBreaks": "BOUND_KNOWN_NATIVE_EDIT_MULTILINE_WANTRETURN_ONLY",
-      "unknownFieldReturnBehavior": "UNCHANGED_UNICODE_NO_NEW_RETURN",
-      "newlineSourceAccounting": "CRLF_TWO_SOURCE_UNITS_ONE_RETURN",
-      "managedRichParagraphs262K": "NOT_ACCEPTED_CI116_DELIVERY_TIMEOUT",
-      "nativeEditLastRecordedFullyObservedSourceUnits": 126916,
-      "nativeCiStepBudgetMinutes": 40,
-      "nativeCiJobBudgetMinutes": 110,
-      "productInputAuthorityMaxMs": 1000,
-      "productReadOnlyDeliveryMs": 5000,
-      "productChunkRpcTimeoutMs": 10000
+      "richSingleParagraph262K": "NOT_ACCEPTED_CI114",
+      "managedRichParagraphs262K": "NOT_ACCEPTED_CI116",
+      "inputAlreadyQueuedCanRaceWithFocusChange": true,
+      "arbitraryLfCrlfApplicationMatrix": "PENDING_PHYSICAL",
+      "readbackCost": "FULL_DOCUMENT_PER_WINDOW_INCREMENTAL_RANGE_NOT_IMPLEMENTED"
     },
-    "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN",
-    "nextPhase": "FIX_NATIVE_TEXT_THEN_OPTIONAL_GPU_MEDIA_BENCHMARKS",
-    "phase2c": {
-      "status": "SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
-      "beforeTag": "checkpoint/20261113-before-rmv2-capture-ef54911",
-      "beforeBundleSha256": "b6ab07c2f49c8454bb679b181c4196913fd2a0daeebdf38df0eea25b67f06ae4",
-      "restoreFsck": "PASS",
-      "cache": "ONE_PRIVATE_ENTRY_CURRENT_PIXELS_HASHED_EACH_READ",
-      "clear": "LAST_VISUAL_SCOPE_CLOSE_AND_HELPER_EXIT",
-      "roi": "SCREEN_LOCAL_PINNED_TO_ATTACH",
-      "effectiveLimits": {
-        "width": 1280,
-        "height": 720,
-        "quality": 70,
-        "sourcePixels": 16777216
-      },
-      "coordinateSpace": "OPT_IN_FRAME_EXACT_LATEST_SEQ_AGE_TOPOLOGY_CHECKED",
-      "genericUiSignals": "LATEST_SLOT1_COALESCED40MS",
-      "nativeProbe": "ACTIONS_PENDING_REAL_ROI_JPEG_AND_SCOPE_CACHE_CLEAR",
-      "performanceProof": "PENDING_CAPTURE_ONLY_COLD_WARM_NOT_PRIOR_RELEASE_OR_NETWORK",
-      "nativeCapture": "PASS_CI104_SOURCE27c4637",
-      "evidence": "docs/evidence/rmv2/phase2c-ci104-capture.json",
-      "artifactSha256": "85115c84865271b3ef31333e8bac5b0b1f58b65760fa4425b81fda814785d541",
-      "priorSourceSpeedupBenchmark": false
-    },
-    "ci103": {
-      "run": 43357408230,
-      "source": "9638594a9d6d59ba56d3b5f6ef65945d95bedf03",
-      "full": "FAIL",
-      "backendIntegration": "PASS",
-      "nativeCompile": "PASS",
-      "nativeSelfTest": "PASS",
-      "nativeCursorLifecycle": "PASS",
-      "textFixture": "FAIL_READER100_EVENTS",
-      "web": "FAIL_ASYNC_SAVE_ASSERTION_RACE"
-    },
-    "preparationCheckpoint": {
-      "tag": "checkpoint/20261113-before-rmv2-preparation-27c4637",
-      "bundleSha256": "f1753a4b08b361e79c16b6802d2ee2476876e4df88d602ef868a706907892abe",
-      "archiveSha256": "dbaa05aad69cdaca287996362afe01bb0907423c4f5df6ce5f5bb6d92462e86e",
-      "restore": "PASS",
-      "source": "27c46376011edd94cd59781ab4d1f2ccca3a7cad"
-    },
-    "uiaObservation": {
-      "source": "PUBLISHED_F968ED0",
-      "queueCapacity": 2,
-      "apartment": "DEDICATED_WINDOWLESS_MTA",
-      "inputMutationOrdering": "UNCHANGED",
-      "crossLaneObjects": "METADATA_ONLY",
-      "publishGuard": "SAME_LIVE_SESSION_ROOT_HWND_AND_ROOT_EPOCH",
-      "concurrentUiOrInput": "RESYNC_RECOMMENDED",
-      "blockedProviderRecovery": "NO_UNSAFE_THREAD_ABORT_EXISTING_HELPER_RESTART",
-      "before": {
-        "tag": "checkpoint/20261113-before-rmv2-uia-e34d85c",
-        "bundleSha256": "a2c698726666ebc720949c920e496b199605e0067374a36ca396dee082206c6c",
-        "archiveSha256": "f340da6b67fdde9f8f3c83992857218f6d9ee723763b351d9eea64ae48469a8b",
-        "restore": "PASS",
-        "source": "e34d85c23625b59e2a6460f24f0e1a56e5d53f89"
-      },
-      "nativeSchedulerSelfTest": "PASS_CI106",
-      "physicalAccepted": false,
-      "concurrentInput": "SEMANTIC_DIRECT_NATIVE_AND_PHYSICAL_OWNER_GENERATIONS"
+    "capture": {
+      "defaultBackend": "gdi",
+      "bufferReuse": true,
+      "unchangedBeforeJpeg": true,
+      "cropRoi": true,
+      "frameMapping": "PINNED_SEQ_TOPOLOGY_MONOTONIC_AGE",
+      "maxWidth": 1280,
+      "maxHeight": 720,
+      "maxSourcePixels": 16777216,
+      "maxJpegBytes": 665600,
+      "cleanup": "NONBLOCKING_PENDING_DRAINED_BEFORE_AFTER_CAPTURE",
+      "correctedSameRunnerComparison": "docs/evidence/rmv2/comparison-ci110.json",
+      "comparisonScope": "LOCAL_CAPTURE_PLUS_PIPE_NOT_INPUT_NETWORK_OR_OWNER",
+      "sameSourceComparison": {
+        "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+        "baselineSource": "241359b57ebda76306f23b81d51ce8fbd928207f",
+        "samplesPerSource": 30,
+        "baselineLocalPipeP95Ms": 57.8622,
+        "currentLocalPipeP95Ms": 62.1832,
+        "scope": "ISOLATED_SAME_RUNNER_CAPTURE_AND_LOCAL_PIPE_ONLY_NOT_NETWORK_INPUT_OR_OWNER_HARDWARE",
+        "speedupThreshold": "NONE_MEASUREMENT_ONLY"
+      }
     },
     "gpu": {
-      "source": "CS0121_OVERLOAD_FIXED_NATIVE_CI_PENDING",
-      "nativeBuild": false,
-      "enabledByDefault": false,
-      "defaultBackend": "GDI",
-      "ownerOptIn": "LIGHT_REMOTE_RM_CAPTURE_BACKEND=dxgi",
-      "capture": "DXGI_D3D11_EXACT_OUTPUT_ADAPTER",
-      "freshFallback": "GDI_WITH_EXPLICIT_REASON_NO_STALE_FRAME",
-      "rotation": "NON_IDENTITY_FALLBACK_GDI",
-      "acquireTimeoutMs": 16,
-      "retryBackoffMs": 2000,
-      "maxStagingPixels": 16777216,
-      "maxGpuEntries": 1,
+      "default": "gdi",
+      "optional": "dxgi",
+      "hardwareMatrix": "PENDING_OWNER",
       "gpuResize": false,
       "hardwareEncoding": false,
       "videoStreaming": false,
+      "implemented": "OPT_IN_DXGI_CAPTURE_CPU_RESIZE_JPEG_FRESH_GDI_FALLBACK",
+      "enabledByDefault": false,
+      "environment": "LIGHT_REMOTE_RM_CAPTURE_BACKEND=dxgi",
+      "acquireTimeoutMs": 16,
+      "recoveryBackoffMs": 2000,
+      "dependencyLock": "client/windows-native/GptOperator.RealRemoteV2/packages.lock.json"
+    },
+    "evidence": {
+      "acceptance": "docs/evidence/rmv2/acceptance-ci118.json",
+      "text": "docs/evidence/rmv2/text-ci118.json",
+      "phase1": "docs/evidence/rmv2/phase1-ci118.json",
+      "dxgi": "docs/evidence/rmv2/dxgi-ci118.json",
+      "comparison": "docs/evidence/rmv2/comparison-ci118.json"
+    },
+    "deployedToLab": true,
+    "physicalAccepted": false,
+    "publicRelease": false,
+    "ownerTestPlan": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md#consolidated-windows-acceptance",
+    "historicalResumeStateBeforeCloseout": {
+      "phase": 2,
+      "status": "DEV11_FULL_TEXT_CI_BUDGET_AND_MACOS_INTEL_PENDING",
+      "version": "0.10.1-dev.11",
+      "beforeCommit": "a2173d525e67945843ecfa307304ce1228c7c096",
+      "beforeTag": "checkpoint/20261111-before-rmv2-phase1-a2173d5",
+      "bundleSha256": "52c4ed562287cce186f666697fb4c96d20e847129e0398bc913ea6503dffe474",
+      "restoreFsck": "PASS",
       "physicalAccepted": false,
-      "nugetLock": "COMMITTED_ACTIONS_GRAPH_LOCKED_RESTORE",
-      "before": {
-        "tag": "checkpoint/20261113-before-rmv2-dxgi-1287508",
-        "bundleSha256": "8f0e10ae0c89c9b9f13e5087fd9d510b64ce309fe10bceaa999edf1a116608ee",
-        "archiveSha256": "11302d2314b07aa310d1a2f21cb42fe8afdba31ee88754aef4309329356a2eb8",
-        "restore": "PASS",
-        "source": "128750891afb9326dd721c0d3039e6af6027a835"
+      "gpuOrVideoImplemented": false,
+      "verifiedLongTypingImplemented": true,
+      "deployed": false,
+      "publicRelease": false,
+      "portableSourceGroups": 71,
+      "portableUnitCases": 299,
+      "portableUnitExecution": "two path-compatible batches; no limits weakened",
+      "nativeCi": "PENDING_FULL_TEXT_40_MINUTE_CI_BUDGET",
+      "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
+      "firstCiRunId": 43032628902,
+      "nativeProductCompile": "PASS_CI86",
+      "nativeSelfTest": "PASS_CI86",
+      "nativeFirstFailure": "POWERSHELL_NET10_GDIPLUS_REFERENCE_IN_PROBE_BEFORE_ASSERTIONS",
+      "nativeProbeFix": "WIN32_CURSOR_BITMAP_AND_HOTSPOT_HASHES_SAME11_ROLES",
+      "nativeVerifiedSource": "398c4c8b316d59458f636bcdf1bd4ea44056634f",
+      "nativeVerifiedCiRunId": 43165467078,
+      "nativeArtifactId": 13920222075,
+      "nativeEvidence": "docs/evidence/rmv2/phase1-ci112.json",
+      "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
+      "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
+      "fullCi": "PENDING_NATIVE_TEXT_INSTALLER_AND_REQUIRED_PLATFORM_CHECKS",
+      "beforeAfterBenchmark": false,
+      "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
+      "supersededCiRunId": 43036093867,
+      "fullWindowsCi": "PASS_CI98",
+      "browserFailure": "APT_MIRROR_LIST_OBSERVED_ETC_APT_APT_MIRRORS_TXT_OMITTED",
+      "productSourceChangedAfterCi89": true,
+      "ciRecoveryScope": "DISPOSABLE_GITHUB_HOSTED_RUNNERS_ONLY",
+      "smoothMotionSleepSliceMaxMs": 8,
+      "physicalBuild92": "INSTALL_PASS_INDICATOR_FAIL",
+      "ownerInputBehavior": "YIELD_CURRENT_INPUT_KEEP_AGENT_SESSION_NO_BLOCKINPUT_NO_REPLAY",
+      "independentForegroundConcurrency": false,
+      "beforeIndicatorTag": "checkpoint/20261112-before-rmv2-indicator-668ce3a",
+      "beforeIndicatorBundleSha256": "e880177c09d7a4b9666e650eab380351f972de3354c77428bd10f243ef26729b",
+      "pausedIndicator": "LIGHT_SKY_BLUE_SAME_SCOPE_LIFETIME_NO_STANDALONE_TAIL",
+      "codexParity": "PUBLIC_BEHAVIOR_REFERENCE_NOT_INTERNAL_CODE_COPY",
+      "compiledSource": "398c4c8b316d59458f636bcdf1bd4ea44056634f",
+      "artifactId": 13921290856,
+      "installerSha256": "6cb6ca1e02653dd647c05cbab677545c5af74b1e5129c1b04491b375cb54785a",
+      "physicalBuild94": "INSTALLED_OWNER_FAIL_OVERLAY_REMAINS_AFTER_TASK",
+      "lifecycleDecision": "EXPLICIT_CLOSE_BEFORE_REPORT_REOPEN_FOR_NEXT_TASK_PLUS45S_QUIET_FALLBACK",
+      "fallbackDoesNotInterruptInFlightRm": true,
+      "newPalette": "LIGHT_OUTLOOK_SKY_BLUE",
+      "taskScopeOwner": [
+        "A/B session",
+        "Agent"
+      ],
+      "closeBeforeReport": "REQUIRED_TOOL_CONTRACT_WITH_CONFIRMED_NATIVE_CLOSE",
+      "afterClose": "NEW_ATTACH_REQUIRED",
+      "orphanIdleMs": 45000,
+      "inFlightProtected": true,
+      "palette": {
+        "badge": "#DCEEFF",
+        "text": "#0F456B",
+        "edge": "#4AA7DF"
       },
-      "nugetEvidence": "docs/evidence/rmv2/nuget-ci108.json",
-      "nativeCi": "CI112_RUNNER_CAPTURE_FALLBACK_PASS",
-      "evidence": "docs/evidence/rmv2/dxgi-ci112.json"
-    },
-    "captureComparison": {
-      "status": "ACTIONS_PENDING",
-      "baselineSource": "241359b57ebda76306f23b81d51ce8fbd928207f",
-      "samplesPerSource": 30,
-      "warmupPerSource": 3,
-      "order": "15_ABBA_ROUNDS",
-      "scope": "SAME_RUNNER_CAPTURE_AND_LOCAL_PIPE_ONLY",
-      "noInputNetworkOrOwnerClaim": true
-    },
-    "capture": {
-      "source": "NONBLOCKING_CLEANUP_NATIVE_CI110_PASS",
-      "cleanup": "ATOMIC_REQUEST_TRYENTER_DRAIN_BEFORE_AFTER_CAPTURE",
-      "statusBlocksOnCapture": false,
-      "ci109": "GDI_AND_DXGI_FALLBACK_RUNNER_PASS",
-      "evidence": "docs/evidence/rmv2/dxgi-ci109.json",
-      "ownerPhysical": "PENDING",
-      "before": {
-        "tag": "checkpoint/20261113-before-rmv2-measurement-f7e9507",
-        "bundleSha256": "899c1c063c82df8ed0451339cb8c86fc85d263703391d0f9b635d88fdd86ecb9",
-        "archiveSha256": "6e480badaf139509c843ce07e67e84ed26bc7a2ed9ef1ddc99442da59585c63f",
-        "restore": "PASS",
-        "source": "f7e9507eb258916edfeb09797a87fda9dddece45"
+      "portableLifecycleCases": 9,
+      "clientCoreRuntimeModuleIncluded": true,
+      "scopedInputReceipt": "ADDITIVE_VISUAL_METADATA_PRESERVES_FLAT_EXISTING_FIELDS",
+      "closeRetryReceipt": "OWNER_BOUND_15MIN_MAX256_NO_NATIVE_TOKENS",
+      "resumeIncludedInFlight": true,
+      "nativeCurrentSourceUnchangedAfterCi97": true,
+      "sourceTree": "5f432f68d60ff2426bd2742848b519bdd85dbd74",
+      "nativeArtifactSha256": "f5b5cde8f33172939eac99871ae25a879fb4812ea6cf4d93304162372dc38a49",
+      "installerBytes": 172575451,
+      "physicalBuild98": "PENDING_OWNER_SELF_INSTALL",
+      "beforePhase2Source": "3f85c36e66989d541b1259f6ab7d4665d82d290e",
+      "beforePhase2Tag": "checkpoint/20261112-before-rmv2-phase2-3f85c36",
+      "beforePhase2BundleSha256": "e679555effebb038bdb71ac4ea0a364fa8822d5cd7e19aed1ace4b87ba0f6c14",
+      "phase2RestoreFsck": "PASS",
+      "phase2a": {
+        "orderedInput": "DEDICATED_MTA_BOUNDED16",
+        "capture": "DEDICATED_MTA_BOUNDED2",
+        "statusCancel": "INDEPENDENT_BOUNDED4",
+        "cancel": "OWNER_AND_NATIVE_LEASE_CHECKED_QUEUED_FENCE_NO_REPLAY",
+        "profiles": [
+          "compatibility",
+          "precision",
+          "responsive",
+          "smooth"
+        ],
+        "defaultProfile": "compatibility",
+        "nativeAcceptance": "PASS_ISOLATED_CI_NOT_OWNER_PHYSICAL",
+        "ci100": "FAILED_BEFORE_NATIVE_COMPILE_DEFAULT_PATH_FINGERPRINTS",
+        "defaultCompatibility": "EXPLICIT_90MS_8STEPS_35MS_HOVER_40MS_HOLD",
+        "nativeProfileSelfTest": "REGISTERED_PENDING_ACTIONS",
+        "source": "241359b57ebda76306f23b81d51ce8fbd928207f",
+        "ciRun": 43189016725,
+        "ciRunNumber": 101,
+        "fullCi": "PASS_9_OF_9",
+        "evidence": "docs/evidence/rmv2/phase2a-ci101.json"
       },
-      "nativeCi": "CI112_GDI_DXGI_FALLBACK_PASS"
-    },
-    "benchmark": {
-      "ci109": "INVALID_CAPTURE_TIMINGS_AND_CLEANUP_FAILURE_REQUIRES_REPEAT",
-      "commonBoundary": "nativeTiming.handlerMs",
-      "newCi": "PENDING",
-      "ci110": "CORRECTED_CAPTURE_PIPE_MEASUREMENTS_RECORDED",
-      "evidence": "docs/evidence/rmv2/comparison-ci110.json",
-      "physicalSpeedupClaim": false
-    },
-    "gpuCaptureImplemented": true,
-    "videoImplemented": false,
-    "logicalKeyboardIndicatorScreen": "FOREGROUND_TARGET_BOUND_BEFORE_ACTIVITY_SHOW_NATIVE_CI_PENDING",
-    "macOSSourceCi": {
-      "runner": "macos-15-intel",
-      "sameNativeTestsRequired": true,
-      "arm64Acceptance": "NOT_RUN_HOSTED_RUNNER_CAPACITY_FAILURE",
-      "evidence": "docs/evidence/rmv2/macos-ci117.json"
+      "phase2b": {
+        "status": "SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
+        "beforeTag": "checkpoint/20261112-before-rmv2-phase2b-241359b",
+        "beforeBundleSha256": "3c9477f70a4a00aca1823dcebd81f05c742e6f6c6421ae570e3a46b761ad8c52",
+        "restoreFsck": "PASS",
+        "inlineUtf16Units": 262144,
+        "referenceUtf8Bytes": 16777216,
+        "asynchronous": true,
+        "targetVerified": "CAPABILITY_DEPENDENT_REQUIRED_FAILS_BEFORE_INPUT",
+        "authority": "LOCAL_EACH_CHUNK_SERVER_SIGNED_SNAPSHOT_MAX1000MS",
+        "automaticReplay": false,
+        "deadlineDefaultMs": 600000,
+        "deadlineMaximumMs": 3600000,
+        "nativeFixture": "ACTIONS_PENDING_16K_64K_256K_UNICODE_AND_FOCUS_SWITCH",
+        "compileCorrection": "CS0819_SPLIT_VAR_DECLARATIONS",
+        "priorCi": {
+          "runId": 43356611319,
+          "runNumber": 102,
+          "source": "ef549116ecc00dc4174c8a02926857867a5c85a7",
+          "native": "COMPILE_FAIL_CS0819",
+          "backendIntegration": "PASS",
+          "desktopWeb": "PASS",
+          "nativeTextFixture": "NOT_REACHED"
+        },
+        "nativeCompile": "PASS_CI103_SOURCE9638594",
+        "nativeTextAcceptance": "CI117_9_NEWLINES_16K_64K_PASS_262K_INCOMPLETE_EXTERNAL_TIMEOUT",
+        "largeReferencePreparation": "COOPERATIVE_PREPARATION_AND_INITIAL_TARGET_BINDING_REVIEW_PENDING",
+        "preparation": "COOPERATIVE_8192_UNITS_OR8MS",
+        "targetBinding": "BEFORE_COOPERATIVE_GRAPHEME_VALIDATION",
+        "acceptedUnits": "ZERO_UNTIL_WHOLE_GRAPHEME_AND_PACING_PREFLIGHT_PASSES",
+        "pacing": "IMPOSSIBLE_TOTAL_DELAY_REJECTED_BEFORE_INPUT",
+        "preparationCancel": "ZERO_INPUT_PROVEN_PORTABLE",
+        "nativeTextDiagnostic": "UNITS_SHA256_FIRST_DIFF_FINAL_METADATA_ONLY_NO_RAW_TEXT",
+        "diagnostics": "STAGE_LENGTH_OFFSET_HASH_ONLY",
+        "nativeFixtureStepBudgetMinutes": 15,
+        "nativeTextEvidence": "docs/evidence/rmv2/text-ci117.json",
+        "fixture": "SEPARATE_STA_WINFORMS_PROCESS_WITH_CURRENT_USER_ONLY_PIPE",
+        "newFixtureNativeCi": "PENDING",
+        "noAcceptanceRelaxation": true,
+        "source": "WIN32_EDITOR_SCOPED_ACCEPTANCE_CI_PENDING",
+        "internalChunkUnits": 256,
+        "maxGraphemeUnits": 128,
+        "totalInlineUnits": 262144,
+        "referenceUnits": 8388608,
+        "delivery": "EXPECTED_PREFIX_SUFFIX_READBACK_BEFORE_NEXT_CHUNK_WHEN_AVAILABLE",
+        "initialEmptyReadback": "VALUE_PATTERN_GETTER_ONLY_NO_SETVALUE",
+        "finalAcceptance": "UNCHANGED_FULL_NATIVE_READBACK_AND_FIXTURE_TEXT",
+        "inputMethod": "REAL_UNICODE_SENDINPUT",
+        "unknownEffects": "RECONCILE_NO_RESUME",
+        "nativeAuthority": "DEADLINE_BEFORE_EVERY_NEW_PACKET_AFTER_TARGET_CHECK_NATIVE_QUEUE_FENCED",
+        "historicalObservedUnits": "SEPARATE_FROM_FINAL_VERIFIED_CONTENT",
+        "nativeCi": "PENDING_SIX_NEWLINE_CASES_AND_LARGE_LAYOUT_MATRIX",
+        "before": {
+          "tag": "checkpoint/20261113-before-rmv2-dev11-acceptance-f2aec12",
+          "bundleSha256": "66f3728faec85d2450cc9460d17d1c2fb8fca632f6390a582087b7e7e81fd59c",
+          "archiveSha256": "11fd239b329df4ae7973a6b7bc7bfcaa8837e525661bd6cb3e76b6c5165dae80",
+          "restore": "PASS",
+          "source": "f2aec120cc902154c16336f3293e290846ccb4b6"
+        },
+        "acceptance": "EXACT_CONTENT_AND_NATIVE_VERIFICATION_UNCHANGED",
+        "pacedChunkUnits": 128,
+        "nativePacketUnits": 32,
+        "nativePacketException": "ONE_VALIDATED_GRAPHEME_UP_TO128",
+        "ci110ExactNativeSizes": [
+          16384,
+          65536
+        ],
+        "ci110LargeCase": {
+          "requested": 262144,
+          "lastKnownAck": 174576,
+          "outcome": "15_MINUTE_TIMEOUT_NOT_FULL_VERIFICATION"
+        },
+        "completionReadback": "ALREADY_SENT_EFFECTS_ONLY_NO_NEW_INPUT_LOCAL_CANCEL_FOCUS_OWNER_DESKTOP_GUARDED",
+        "nativePacketGuardTest": "RECORDING_SENDER_SAME_CORE_NO_OS_INPUT",
+        "deliveryPollingMs": [
+          15,
+          30,
+          60,
+          120
+        ],
+        "deliveryWaitMs": 5000,
+        "postStopDiagnostics": "THREE_METADATA_ONLY_FIXTURE_SNAPSHOTS_NO_INPUT_NO_SUCCESS_OVERRIDE",
+        "fixtureCapacityUnits": 1048576,
+        "inputAuthorityBudgetMaxMs": 1000,
+        "chunkRpcTimeoutMs": 10000,
+        "nativeFixtureMatrix": [
+          {
+            "control": "managed-classic-edit",
+            "units": [
+              16384,
+              65536
+            ],
+            "layout": "single-paragraph"
+          },
+          {
+            "control": "win32-edit",
+            "units": [
+              262144
+            ],
+            "layout": "paragraphs-cr",
+            "provider": "BUILT_IN_NO_MANAGED_TEXTBOX_ACCESSIBILITY"
+          },
+          {
+            "control": [
+              "managed-classic",
+              "managed-rich",
+              "win32-edit"
+            ],
+            "lineEndings": [
+              "LF",
+              "CRLF",
+              "CR"
+            ],
+            "expectedCases": 9
+          },
+          {
+            "control": "managed-classic",
+            "delayPerWmCharMs": 80,
+            "beforeLargeSizes": true
+          }
+        ],
+        "classicWrapped262K": "NOT_ACCEPTED",
+        "nativeStatusChunkUnits": 256,
+        "nativePreparedChunkUnits": 256,
+        "preferredPacketUnits": 32,
+        "richSingleParagraph262K": "NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT",
+        "nativeLineBreaks": "BOUND_KNOWN_NATIVE_EDIT_MULTILINE_WANTRETURN_ONLY",
+        "unknownFieldReturnBehavior": "UNCHANGED_UNICODE_NO_NEW_RETURN",
+        "newlineSourceAccounting": "CRLF_TWO_SOURCE_UNITS_ONE_RETURN",
+        "managedRichParagraphs262K": "NOT_ACCEPTED_CI116_DELIVERY_TIMEOUT",
+        "nativeEditLastRecordedFullyObservedSourceUnits": 126916,
+        "nativeCiStepBudgetMinutes": 40,
+        "nativeCiJobBudgetMinutes": 110,
+        "productInputAuthorityMaxMs": 1000,
+        "productReadOnlyDeliveryMs": 5000,
+        "productChunkRpcTimeoutMs": 10000
+      },
+      "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN",
+      "nextPhase": "FIX_NATIVE_TEXT_THEN_OPTIONAL_GPU_MEDIA_BENCHMARKS",
+      "phase2c": {
+        "status": "SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
+        "beforeTag": "checkpoint/20261113-before-rmv2-capture-ef54911",
+        "beforeBundleSha256": "b6ab07c2f49c8454bb679b181c4196913fd2a0daeebdf38df0eea25b67f06ae4",
+        "restoreFsck": "PASS",
+        "cache": "ONE_PRIVATE_ENTRY_CURRENT_PIXELS_HASHED_EACH_READ",
+        "clear": "LAST_VISUAL_SCOPE_CLOSE_AND_HELPER_EXIT",
+        "roi": "SCREEN_LOCAL_PINNED_TO_ATTACH",
+        "effectiveLimits": {
+          "width": 1280,
+          "height": 720,
+          "quality": 70,
+          "sourcePixels": 16777216
+        },
+        "coordinateSpace": "OPT_IN_FRAME_EXACT_LATEST_SEQ_AGE_TOPOLOGY_CHECKED",
+        "genericUiSignals": "LATEST_SLOT1_COALESCED40MS",
+        "nativeProbe": "ACTIONS_PENDING_REAL_ROI_JPEG_AND_SCOPE_CACHE_CLEAR",
+        "performanceProof": "PENDING_CAPTURE_ONLY_COLD_WARM_NOT_PRIOR_RELEASE_OR_NETWORK",
+        "nativeCapture": "PASS_CI104_SOURCE27c4637",
+        "evidence": "docs/evidence/rmv2/phase2c-ci104-capture.json",
+        "artifactSha256": "85115c84865271b3ef31333e8bac5b0b1f58b65760fa4425b81fda814785d541",
+        "priorSourceSpeedupBenchmark": false
+      },
+      "ci103": {
+        "run": 43357408230,
+        "source": "9638594a9d6d59ba56d3b5f6ef65945d95bedf03",
+        "full": "FAIL",
+        "backendIntegration": "PASS",
+        "nativeCompile": "PASS",
+        "nativeSelfTest": "PASS",
+        "nativeCursorLifecycle": "PASS",
+        "textFixture": "FAIL_READER100_EVENTS",
+        "web": "FAIL_ASYNC_SAVE_ASSERTION_RACE"
+      },
+      "preparationCheckpoint": {
+        "tag": "checkpoint/20261113-before-rmv2-preparation-27c4637",
+        "bundleSha256": "f1753a4b08b361e79c16b6802d2ee2476876e4df88d602ef868a706907892abe",
+        "archiveSha256": "dbaa05aad69cdaca287996362afe01bb0907423c4f5df6ce5f5bb6d92462e86e",
+        "restore": "PASS",
+        "source": "27c46376011edd94cd59781ab4d1f2ccca3a7cad"
+      },
+      "uiaObservation": {
+        "source": "PUBLISHED_F968ED0",
+        "queueCapacity": 2,
+        "apartment": "DEDICATED_WINDOWLESS_MTA",
+        "inputMutationOrdering": "UNCHANGED",
+        "crossLaneObjects": "METADATA_ONLY",
+        "publishGuard": "SAME_LIVE_SESSION_ROOT_HWND_AND_ROOT_EPOCH",
+        "concurrentUiOrInput": "RESYNC_RECOMMENDED",
+        "blockedProviderRecovery": "NO_UNSAFE_THREAD_ABORT_EXISTING_HELPER_RESTART",
+        "before": {
+          "tag": "checkpoint/20261113-before-rmv2-uia-e34d85c",
+          "bundleSha256": "a2c698726666ebc720949c920e496b199605e0067374a36ca396dee082206c6c",
+          "archiveSha256": "f340da6b67fdde9f8f3c83992857218f6d9ee723763b351d9eea64ae48469a8b",
+          "restore": "PASS",
+          "source": "e34d85c23625b59e2a6460f24f0e1a56e5d53f89"
+        },
+        "nativeSchedulerSelfTest": "PASS_CI106",
+        "physicalAccepted": false,
+        "concurrentInput": "SEMANTIC_DIRECT_NATIVE_AND_PHYSICAL_OWNER_GENERATIONS"
+      },
+      "gpu": {
+        "source": "CS0121_OVERLOAD_FIXED_NATIVE_CI_PENDING",
+        "nativeBuild": false,
+        "enabledByDefault": false,
+        "defaultBackend": "GDI",
+        "ownerOptIn": "LIGHT_REMOTE_RM_CAPTURE_BACKEND=dxgi",
+        "capture": "DXGI_D3D11_EXACT_OUTPUT_ADAPTER",
+        "freshFallback": "GDI_WITH_EXPLICIT_REASON_NO_STALE_FRAME",
+        "rotation": "NON_IDENTITY_FALLBACK_GDI",
+        "acquireTimeoutMs": 16,
+        "retryBackoffMs": 2000,
+        "maxStagingPixels": 16777216,
+        "maxGpuEntries": 1,
+        "gpuResize": false,
+        "hardwareEncoding": false,
+        "videoStreaming": false,
+        "physicalAccepted": false,
+        "nugetLock": "COMMITTED_ACTIONS_GRAPH_LOCKED_RESTORE",
+        "before": {
+          "tag": "checkpoint/20261113-before-rmv2-dxgi-1287508",
+          "bundleSha256": "8f0e10ae0c89c9b9f13e5087fd9d510b64ce309fe10bceaa999edf1a116608ee",
+          "archiveSha256": "11302d2314b07aa310d1a2f21cb42fe8afdba31ee88754aef4309329356a2eb8",
+          "restore": "PASS",
+          "source": "128750891afb9326dd721c0d3039e6af6027a835"
+        },
+        "nugetEvidence": "docs/evidence/rmv2/nuget-ci108.json",
+        "nativeCi": "CI112_RUNNER_CAPTURE_FALLBACK_PASS",
+        "evidence": "docs/evidence/rmv2/dxgi-ci112.json"
+      },
+      "captureComparison": {
+        "status": "ACTIONS_PENDING",
+        "baselineSource": "241359b57ebda76306f23b81d51ce8fbd928207f",
+        "samplesPerSource": 30,
+        "warmupPerSource": 3,
+        "order": "15_ABBA_ROUNDS",
+        "scope": "SAME_RUNNER_CAPTURE_AND_LOCAL_PIPE_ONLY",
+        "noInputNetworkOrOwnerClaim": true
+      },
+      "capture": {
+        "source": "NONBLOCKING_CLEANUP_NATIVE_CI110_PASS",
+        "cleanup": "ATOMIC_REQUEST_TRYENTER_DRAIN_BEFORE_AFTER_CAPTURE",
+        "statusBlocksOnCapture": false,
+        "ci109": "GDI_AND_DXGI_FALLBACK_RUNNER_PASS",
+        "evidence": "docs/evidence/rmv2/dxgi-ci109.json",
+        "ownerPhysical": "PENDING",
+        "before": {
+          "tag": "checkpoint/20261113-before-rmv2-measurement-f7e9507",
+          "bundleSha256": "899c1c063c82df8ed0451339cb8c86fc85d263703391d0f9b635d88fdd86ecb9",
+          "archiveSha256": "6e480badaf139509c843ce07e67e84ed26bc7a2ed9ef1ddc99442da59585c63f",
+          "restore": "PASS",
+          "source": "f7e9507eb258916edfeb09797a87fda9dddece45"
+        },
+        "nativeCi": "CI112_GDI_DXGI_FALLBACK_PASS"
+      },
+      "benchmark": {
+        "ci109": "INVALID_CAPTURE_TIMINGS_AND_CLEANUP_FAILURE_REQUIRES_REPEAT",
+        "commonBoundary": "nativeTiming.handlerMs",
+        "newCi": "PENDING",
+        "ci110": "CORRECTED_CAPTURE_PIPE_MEASUREMENTS_RECORDED",
+        "evidence": "docs/evidence/rmv2/comparison-ci110.json",
+        "physicalSpeedupClaim": false
+      },
+      "gpuCaptureImplemented": true,
+      "videoImplemented": false,
+      "logicalKeyboardIndicatorScreen": "FOREGROUND_TARGET_BOUND_BEFORE_ACTIVITY_SHOW_NATIVE_CI_PENDING",
+      "macOSSourceCi": {
+        "runner": "macos-15-intel",
+        "sameNativeTestsRequired": true,
+        "arm64Acceptance": "NOT_RUN_HOSTED_RUNNER_CAPACITY_FAILURE",
+        "evidence": "docs/evidence/rmv2/macos-ci117.json"
+      }
     }
   }
 }

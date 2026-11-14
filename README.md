@@ -10,7 +10,7 @@
   <img alt="MCP" src="https://img.shields.io/badge/MCP-Streamable%20HTTP-2563eb">
   <img alt="Access" src="https://img.shields.io/badge/Access-Short%20ID%20%2B%20A%2FB-059669">
   <img alt="Real Remote" src="https://img.shields.io/badge/Real%20Remote-V2-2563eb">
-  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.9-f59e0b">
+  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.11-f59e0b">
   <img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-555555">
 </p>
 
@@ -21,7 +21,7 @@
 - **ChatGPT plugin:** [Cài hoặc mở Light Remote trong ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e)
 - **Source:** [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp)
 
-> **Trạng thái bản build:** Windows `0.10.1-dev.9` là ứng viên **kiểm thử nội bộ**, không phải bản phát hành nhị phân công khai. Tính năng có trong source, đã qua CI, đã deploy nội bộ và đã được Owner nghiệm thu trên máy vật lý là **những trạng thái khác nhau**. Xem [Trạng thái dự án](#trạng-thái-dự-án).
+> **Trạng thái bản build:** Windows `0.10.1-dev.11` là ứng viên **kiểm thử nội bộ**, không phải bản phát hành nhị phân công khai. Tính năng có trong source, đã qua CI, đã deploy nội bộ và đã được Owner nghiệm thu trên máy vật lý là **những trạng thái khác nhau**. Xem [Trạng thái dự án](#trạng-thái-dự-án).
 
 ## Vì sao Light Remote khác công cụ remote thông thường?
 
@@ -255,20 +255,11 @@ npm test
 
 ## Trạng thái dự án
 
-| Thành phần | Trạng thái hiện tại |
-| --- | --- |
-| Windows Desktop | Nội bộ `0.10.1-dev.9`, một `LightRemote.exe` chính; build/install/migration/rollback PASS |
-| CI | [CI #98 —9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43165467078); native RM đóng/mở lại/45giây/màu xanh PASS |
-| RM v2 | Bắt buộc mở → làm việc → đóng có xác nhận trước báo cáo;45giây yên lặng tự đóng; A/B giữ nguyên |
-| Nhãn/viền AI | Xanh da trời nhẹ; thao tác Owner nhường lệnh hiện tại, giữ phiên Agent |
-| Lab Operator/Plugin | `3064f21` /dev6 còn chạy; đang chuẩn bị đồng bộ dev9 cách ly |
-| Owner physical dev9 | **Owner tự tải/cài/test; PENDING** |
-| macOS/Linux | Native source parity/tests PASS; chưa kết luận đầy đủ bộ cài |
-| Public Release / signed feed | **Không phát hành / HOLD** |
+Nội bộ **0.10.1-dev.11**, một **LightRemote.exe** chính. Source build `f1092607fb96ed181e9b4c71a55e13429b183a60`, tree `4fd8db8dd7398ada5d88f80907954f5540cc1cf3`. [CI118:9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985) · [bộ cài nội bộ](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985/artifacts/14088683951) · [bằng chứng](docs/evidence/rmv2/acceptance-ci118.json). SHA-256 installer `9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6`. Đây là receipt tài liệu cho source đã build, không phải commit tài liệu được build lại. **Owner physical UAT: PENDING.**
 
-Source `398c4c8b316d59458f636bcdf1bd4ea44056634f` · [bộ cài nội bộ](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43165467078/artifacts/13921290856) · [evidence/SHA256](docs/evidence/rmv2/phase1-ci98.json) · [handoff](PROJECT_HANDOFF.md).
+RM đã triển khai đóng phiên có xác nhận trước báo cáo, fallback45giây yên lặng, cursor Windows nguyên bản, badge/viền xanh nhẹ, worker input có thứ tự và status/cancel riêng, nhập dài bind đúng target và readback theo capability, GDI cache/ROI/frame mapping, cùng DXGI capture opt-in có fresh GDI fallback. CI chỉ chứng minh các ca trong receipt. Hai ca262K một đoạn khổng lồ classic/rich chưa đạt; ca chia đoạn được ghi riêng. Text đã vào Windows queue vẫn có thể gặp đổi focus trước khi ứng dụng xử lý; không cam kết atomic targeted typing hoặc tự replay. GPU resize/encoder/video/viewer chưa triển khai và hardware/mixed-DPI acceptance còn chờ. Ca WinForms Rich Edit262K chia đoạn cũng chưa đạt (CI116). Ca262K dương chỉ áp dụng cho Win32 EDIT thuần và bố cục được ghi trong receipt. Readback hiện đọc toàn bộ nội dung mỗi khối, chưa có tối ưu incremental range; hiệu năng tài liệu/app lớn vẫn là giới hạn phải đo riêng.
 
-Agent phải chờ xác nhận đóng RM rồi mới báo hoàn tất. Nếu không có thao tác RM đang chạy hoặc dữ liệu RM thật trong45giây, phiên tự đóng; status/heartbeat không giữ phiên. Sau đó phải mở lại RM để thao tác, không cần duyệt lại A/B. Bộ cài không tự cập nhật server; Owner tự cài và nghiệm thu màn hình thật.
+Lab Operator/Plugin đã cập nhật source `f1092607fb96ed181e9b4c71a55e13429b183a60` /dev11; health/API PASS, không migration DB, giữ Agent/Wall/supervisor/mTLS và dữ liệu hiện có.
 
 ## License
 

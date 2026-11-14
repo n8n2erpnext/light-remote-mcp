@@ -7,7 +7,7 @@
   <img alt="Protocol" src="https://img.shields.io/badge/MCP-Streamable%20HTTP-2563eb">
   <img alt="Access" src="https://img.shields.io/badge/Access-Short%20ID%20%2B%20A%2FB-059669">
   <img alt="Real Remote" src="https://img.shields.io/badge/Real%20Remote-V2-2563eb">
-  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.9-f59e0b">
+  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.11-f59e0b">
   <img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-555555">
 </p>
 
@@ -18,7 +18,7 @@
 - **ChatGPT plugin:** [Connect Light Remote in ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e)
 - **Source:** [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp)
 
-> **Build status:** Windows `0.10.1-dev.9` is an **internal testing candidate**, not a publicly published binary Release. Source implementation, CI passing, internal deployment and physical Owner acceptance are separate levels of evidence. See [Project status](#project-status).
+> **Build status:** Windows `0.10.1-dev.11` is an **internal testing candidate**, not a publicly published binary Release. Source implementation, CI passing, internal deployment and physical Owner acceptance are separate levels of evidence. See [Project status](#project-status).
 
 ## What makes Light Remote different?
 
@@ -247,20 +247,9 @@ npm test
 
 ## Project status
 
-| Component | Current status |
-| --- | --- |
-| Windows Desktop | Internal `0.10.1-dev.9`, one primary `LightRemote.exe`; build/install/migration/rollback PASS |
-| CI | [CI #98 —9/9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43165467078); native RM explicit close/reopen/45seconds/blue palette PASS |
-| RM task lifecycle | Open → work → confirmed close before final report;45second quiet fallback; A/B retained |
-| AI badge and edges | Gentle sky blue; local input yields current RM operation and retains Agent |
-| Operator/Plugin Lab | `3064f21` /dev6 still serving; isolated dev9 integration next |
-| Physical dev9 UAT | **Owner self-download/install/test; PENDING** |
-| macOS/Linux | Native source parity/tests PASS; full installer acceptance not inferred |
-| Public Release / signed feed | **Not released / HOLD** |
+Internal **0.10.1-dev.11**, one primary `LightRemote.exe`. Source `f1092607fb96ed181e9b4c71a55e13429b183a60`; [CI118 all9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985), [internal installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985/artifacts/14088683951), [evidence/SHA256](docs/evidence/rmv2/acceptance-ci118.json). Owner self-install/physical UAT is **PENDING**.
 
-Source `398c4c8b316d59458f636bcdf1bd4ea44056634f` · [internal installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43165467078/artifacts/13921290856) · [evidence/SHA256](docs/evidence/rmv2/phase1-ci98.json) · [handoff](PROJECT_HANDOFF.md).
-
-Agent must confirm RM closure before reporting completion. No in-flight RM work and no real RM activity for45seconds triggers cleanup; status/heartbeat does not extend it. Further input requires a fresh RM attach, without new A/B approval. The installer does not update the server; Owner installs and tests the physical display manually.
+RM task close-before-report and45second quiet cleanup, original system cursors/sky-blue indicator, ordered input/independent status-cancel, target-bound logical typing, capture cache/ROI/fresh coordinates and opt-in DXGI capture are implemented. Input-event acceptance is distinct from verified content. Exact editor/layout coverage is pinned; managed262K stress cases (classic giant paragraph; rich giant paragraph and structured paragraphs) remain **NOT_ACCEPTED**. Positive262K coverage is restricted to the genuine Win32 EDIT target/layout named in its receipt. GPU resize/hardware encoding/video/viewer and physical hardware matrix remain unimplemented or unaccepted. No public binary/feed promotion or production/domain/Google callback change.
 
 ## License
 
