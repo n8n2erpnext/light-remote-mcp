@@ -31,7 +31,7 @@ internal static class NativeEditReadback
         if(maximum<1||maximum>20*1024*1024)return false;
         if(!Length(hwnd,out var before)||before<0||before>=maximum)return false;
         // A spare character makes a concurrently growing document detectable.
-        var capacity=Math.Min(maximum+1,before+2);var value=new StringBuilder(capacity);
+        var capacity=Math.Min(maximum+1,checked((int)before+2));var value=new StringBuilder(capacity);
         if(SendText(hwnd,0x000D,(nuint)capacity,value,0x23,150,out var copied)==0)return false;
         if(!Length(hwnd,out var after))return false;
         var result=value.ToString();

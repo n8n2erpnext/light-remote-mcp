@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-14T01:23:04.951Z",
+  "updatedAt": "2026-11-14T01:33:01.234Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_MANAGED_TEXT_GPU_RESIZE_VIDEO_COMPLETION",
   "status": "RM_PLAN_COMPLETION_IN_PROGRESS",
@@ -542,12 +542,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261114-rmv2-gpu-resize-before-readback",
-    "status": "RM_GPU_RESIZE_SOURCE_NATIVE_CI_PENDING_VIDEO_REQUIRED",
-    "summary": "Implement optional DXGI GPU crop/bilinear resize before CPU readback. D3D11 compute samples a bounded source texture, writes output-sized RGBA UAV, maps only reduced staging pixels and copies channels into the JPEG bitmap; CPU JPEG remains explicit. One bounded resource set is released on scope cleanup/topology/device loss. GDI stays default and copies current pixels on any DXGI/compute failure with reason/backoff, never stale pixels. Native selftest requires actual shader dispatch/readback via WARP with cropped colors, changed/odd dimensions and channel checks; WARP is software correctness evidence, not physical GPU performance. Actual capture probe checks downscaled JPEG dimensions and only reports gpuResize on successful DXGI dispatch.",
-    "verification": "Full checkpoint checkpoint/20261114-before-rmv2-gpu-a686ef2 bundleSHA b5b03ab156354d0eebd9704788192212a2c8d80d1f6da2621b5a507f495ae8dc restore/fsckPASS. Pinned Vortice3.8.3 APIs and Microsoft D3DCompile contract reviewed. Native compilation/compute/capture tests run only Actions; no GPU PASS or speedup inferred from source.",
+    "taskId": "20261114-rmv2-readback-capacity-compile",
+    "status": "RM_TEXT_GPU_NATIVE_CI_PENDING_VIDEO_IN_PROGRESS",
+    "summary": "CI120 stopped at native compile: readback length is long while StringBuilder capacity and consistency budget require int. Existing bounded before<maximum<=20M permits a checked int conversion before adding spare capacity. Fix both CS1503 failures without changing message/readback/input budgets. Text stress has NOT_RUN, not failed or passed execution. GPU source3a240c4 remains native-CI pending; encoded video work continues.",
+    "verification": "Exact CI120 sourcea686ef2 Windows job132277248315 compiler logs verified two CS1503 diagnostics at NativeEditReadback lines34/38. Full checkpoint checkpoint/20261114-before-rmv2-video-3a240c4 bundleSHA bebc4968b75d5d4ca7c5b0c1fea934732ced5a9a1b39aeaff4aa74cd7b727ae7 restore/fsckPASS. Product native execution remains Actions-only.",
     "nextAction": "Follow native text and GPU Actions results, fix failures. Implement encoded video pipeline and authorized bounded transport/viewer; then verify the combined candidate before Owner download/UAT. CI118 remains comparison/rollback, not completed RM plan.",
-    "sourceDigest": "792a75f1b900daf15accfc28b8eff8990e6b8e7faf3ed99feead172cdf4c4ea3",
+    "sourceDigest": "92f010473b28a1809f64c2e2b5dce201d1e14346b7f7669a17f8f1e1a3e52687",
     "sourceFileCount": 1707
   },
   "legacyFilesystemCleanup": {
@@ -2518,7 +2518,7 @@
       },
       "requiredManaged262KCases": 4,
       "gpuResize": "IMPLEMENTED_NATIVE_CI_PENDING",
-      "encodedVideoAndAuthorizedViewer": "PENDING_IMPLEMENTATION",
+      "encodedVideoAndAuthorizedViewer": "IN_PROGRESS",
       "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.",
       "gpuResizeBackend": "D3D11_COMPUTE_CROP_BILINEAR_REDUCED_STAGING",
       "gpuResizeCheckpoint": {
@@ -2527,7 +2527,8 @@
         "archiveSha256": "217eaadd8d73a9106851b0766322ec7b3c5fe68650940c435d26b2075c171f60",
         "restore": "PASS",
         "source": "a686ef29fc9a24d21b3f7711ffaa9b6137b880f9"
-      }
+      },
+      "nativeTextCi120": "NOT_RUN_COMPILE_CS1503_FIXED_SOURCE"
     }
   }
 }

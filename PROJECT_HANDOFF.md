@@ -1,6 +1,6 @@
 # Project handoff — RM v2 internal integrated candidate
 
-Current resume point: Follow native text and GPU Actions results, fix failures. Implement encoded video pipeline and authorized bounded transport/viewer; then verify the combined candidate before Owner download/UAT. CI118 remains comparison/rollback, not completed RM plan.
+Current resume point: fix compile and follow required native text/GPU tests; finish encoded video transport/viewer before acceptance.
 
 **Đang hoàn thiện plan RM v2; chưa có bản nghiệm thu chung.** Owner yêu cầu hoàn tất WinForms262K, GPU resize và video trước khi báo tải/cài nghiệm thu. #118/sourcef109260 chỉ là baseline đã kiểm tra để so sánh/rollback; các giới hạn của nó vẫn được giữ trong receipt lịch sử, không được coi là hoàn tất plan.
 
@@ -745,5 +745,12 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Status: RM_GPU_RESIZE_SOURCE_NATIVE_CI_PENDING_VIDEO_REQUIRED. Implement optional DXGI GPU crop/bilinear resize before CPU readback. D3D11 compute samples a bounded source texture, writes output-sized RGBA UAV, maps only reduced staging pixels and copies channels into the JPEG bitmap; CPU JPEG remains explicit. One bounded resource set is released on scope cleanup/topology/device loss. GDI stays default and copies current pixels on any DXGI/compute failure with reason/backoff, never stale pixels. Native selftest requires actual shader dispatch/readback via WARP with cropped colors, changed/odd dimensions and channel checks; WARP is software correctness evidence, not physical GPU performance. Actual capture probe checks downscaled JPEG dimensions and only reports gpuResize on successful DXGI dispatch.
 - Source: permanent work after `a686ef29fc9a24d21b3f7711ffaa9b6137b880f9`; exact staged source digest stamped in this same commit.
 - Verification: Full checkpoint checkpoint/20261114-before-rmv2-gpu-a686ef2 bundleSHA b5b03ab156354d0eebd9704788192212a2c8d80d1f6da2621b5a507f495ae8dc restore/fsckPASS. Pinned Vortice3.8.3 APIs and Microsoft D3DCompile contract reviewed. Native compilation/compute/capture tests run only Actions; no GPU PASS or speedup inferred from source.
+- Next: Follow native text and GPU Actions results, fix failures. Implement encoded video pipeline and authorized bounded transport/viewer; then verify the combined candidate before Owner download/UAT. CI118 remains comparison/rollback, not completed RM plan.
+- Runtime: Lab remains exactf109260/dev11; no Owner install, runtime/DB/Agent/session/grant/production/domain/callback/main/public-feed changes.
+
+## Task Receipt: 20261114-rmv2-readback-capacity-compile
+- Status: RM_TEXT_GPU_NATIVE_CI_PENDING_VIDEO_IN_PROGRESS. CI120 stopped at native compile: readback length is long while StringBuilder capacity and consistency budget require int. Existing bounded before<maximum<=20M permits a checked int conversion before adding spare capacity. Fix both CS1503 failures without changing message/readback/input budgets. Text stress has NOT_RUN, not failed or passed execution. GPU source3a240c4 remains native-CI pending; encoded video work continues.
+- Source: permanent work after `3a240c40307530108f5dae868e299afe7ef796d9`; exact staged source digest stamped in this same commit.
+- Verification: Exact CI120 sourcea686ef2 Windows job132277248315 compiler logs verified two CS1503 diagnostics at NativeEditReadback lines34/38. Full checkpoint checkpoint/20261114-before-rmv2-video-3a240c4 bundleSHA bebc4968b75d5d4ca7c5b0c1fea934732ced5a9a1b39aeaff4aa74cd7b727ae7 restore/fsckPASS. Product native execution remains Actions-only.
 - Next: Follow native text and GPU Actions results, fix failures. Implement encoded video pipeline and authorized bounded transport/viewer; then verify the combined candidate before Owner download/UAT. CI118 remains comparison/rollback, not completed RM plan.
 - Runtime: Lab remains exactf109260/dev11; no Owner install, runtime/DB/Agent/session/grant/production/domain/callback/main/public-feed changes.

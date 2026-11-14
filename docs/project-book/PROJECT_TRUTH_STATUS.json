@@ -14,7 +14,7 @@
   "officialRepositoryId": 1450214328,
   "verifiedBuiltSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
   "verifiedBuiltSourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
-  "checkpointUpdatedAt": "2026-11-14T01:23:04.951Z",
+  "checkpointUpdatedAt": "2026-11-14T01:33:01.234Z",
   "migrationPhase": "RMV2_MANAGED_TEXT_GPU_RESIZE_VIDEO_COMPLETION",
   "ci": {
     "status": "success",
