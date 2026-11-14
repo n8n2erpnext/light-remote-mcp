@@ -1,0 +1,472 @@
+{
+  "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+  "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
+  "version": "0.10.1-dev.11",
+  "ci": {
+    "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+    "ciRunId": 43564848850,
+    "runNumber": 127,
+    "attempt": 1,
+    "scope": "full",
+    "result": "PASS",
+    "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850",
+    "allJobs": 15,
+    "successfulJobs": 15,
+    "requiredCheck": "baseline-required",
+    "mainProtectionUnchanged": true,
+    "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+    "physicalOwnerAcceptance": false,
+    "jobs": [
+      {
+        "id": 132356553035,
+        "name": "changes",
+        "conclusion": "success"
+      },
+      {
+        "id": 132356553205,
+        "name": "truth",
+        "conclusion": "success"
+      },
+      {
+        "id": 132356625247,
+        "name": "Core, contracts, PostgreSQL/Redis integration",
+        "conclusion": "success"
+      },
+      {
+        "id": 132356625255,
+        "name": "Committed native dependency resolution",
+        "conclusion": "success"
+      },
+      {
+        "id": 132356720324,
+        "name": "RM native binary shared by stress and installer",
+        "conclusion": "success"
+      },
+      {
+        "id": 132356720393,
+        "name": "desktop / Web build, tests, isolated browser screenshots",
+        "conclusion": "success"
+      },
+      {
+        "id": 132357244908,
+        "name": "text-stress / classic-paragraph",
+        "conclusion": "success"
+      },
+      {
+        "id": 132357244940,
+        "name": "text-stress / rich-paragraph",
+        "conclusion": "success"
+      },
+      {
+        "id": 132357244959,
+        "name": "text-stress / classic-single",
+        "conclusion": "success"
+      },
+      {
+        "id": 132357244966,
+        "name": "text-stress / native-paragraph",
+        "conclusion": "success"
+      },
+      {
+        "id": 132357245033,
+        "name": "text-stress / rich-single",
+        "conclusion": "success"
+      },
+      {
+        "id": 132357245220,
+        "name": "windows / build-install-smoke",
+        "conclusion": "success"
+      },
+      {
+        "id": 132357651436,
+        "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
+        "conclusion": "success"
+      },
+      {
+        "id": 132357651448,
+        "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+        "conclusion": "success"
+      },
+      {
+        "id": 132364613010,
+        "name": "baseline-required",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "artifact": {
+    "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+    "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
+    "version": "0.10.1-dev.11",
+    "ciRunId": 43564848850,
+    "artifactId": 14103290306,
+    "artifactZipSha256": "599ff43fc8203cbc9b691bf131d2336e40d9d675ebb30010fcb3b1d37ee951c7",
+    "installerSha256": "d9b84b6df878c1abc1c11feb8b378520a26ba34b69133a2e580c10eaddf452a8",
+    "installerBytes": 172703403,
+    "result": "VERIFIED_INTERNAL_ARTIFACT",
+    "primaryCount": 1,
+    "oldPrimariesAbsent": true,
+    "migration": "PASS",
+    "installedLifecycle": "PASS",
+    "physicalOwnerAcceptance": false,
+    "publicFeedPromoted": false
+  },
+  "combinedNativeProof": {
+    "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+    "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
+    "ciRunId": 43564848850,
+    "helperSha256": "45a3054b6619459774d91d680b7645baf8bf73de326d3b3adfbb9bfc1427f600",
+    "fixtureSha256": "87e6cee2dc9ea1f8b7bab7c6c3fddeee8907131c54caba7c2ed104d325f0646f",
+    "cases": {
+      "rich-paragraph": {
+        "result": "PASS",
+        "elapsedMs": 315132.2998,
+        "controlKind": "rich-edit",
+        "layout": "paragraphs-cr"
+      },
+      "rich-single": {
+        "result": "PASS",
+        "elapsedMs": 579610.4484,
+        "controlKind": "rich-edit",
+        "layout": "single-paragraph"
+      },
+      "classic-single": {
+        "result": "PASS",
+        "elapsedMs": 1001100.0594,
+        "controlKind": "classic-edit",
+        "layout": "single-paragraph"
+      },
+      "classic-paragraph": {
+        "result": "PASS",
+        "elapsedMs": 1036942.8343,
+        "controlKind": "classic-edit",
+        "layout": "paragraphs-cr"
+      },
+      "native-paragraph": {
+        "result": "PASS",
+        "elapsedMs": 1696911.5789,
+        "controlKind": "win32-edit",
+        "layout": "paragraphs-cr"
+      }
+    },
+    "ready": true,
+    "physicalOwnerAcceptance": false,
+    "media": "PASS",
+    "artifacts": [
+      {
+        "name": "rmv2-native-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+        "artifactId": 14102087188,
+        "artifactSha256": "80d53616eb7dbd74f6aa1d55818a306ccc8c2331205c0d53ba6ade9ee6f91d05"
+      },
+      {
+        "name": "rmv2-text-rich-paragraph-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+        "artifactId": 14102013628,
+        "artifactSha256": "198e0f0ea456df888a79a61de7b384d859b76532904c864f4191017bcc07f890"
+      },
+      {
+        "name": "rmv2-text-rich-single-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+        "artifactId": 14102073949,
+        "artifactSha256": "d05c7a123dc1ccc38c24508104d3b03e17b103e673bd8070dcaf3991fda2efd2"
+      },
+      {
+        "name": "rmv2-text-classic-single-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+        "artifactId": 14102602267,
+        "artifactSha256": "92b87d3b9406f315bdd30b1a715ba918cb892bf424c218161bcceff0eca05400"
+      },
+      {
+        "name": "rmv2-text-classic-paragraph-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+        "artifactId": 14102357061,
+        "artifactSha256": "74e3ed7a8396f1e7365437062f8ccd98ee1c974a2800e82591402f2df0b0ca40"
+      },
+      {
+        "name": "rmv2-text-native-paragraph-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+        "artifactId": 14102917686,
+        "artifactSha256": "2425505da7b847e626340bfa52b865f88591cad797252204d806fe42ed98f7d8"
+      },
+      {
+        "name": "rmv2-video-acceptance-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+        "artifactId": 14102281498,
+        "artifactSha256": "21fca4101b1819afb4c9835b2863c727e8dd328ba9f087ecc31ea4742086d8e3"
+      }
+    ]
+  },
+  "gpuProbe": {
+    "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+    "ciRunId": 43564848850,
+    "artifactId": 14102485769,
+    "artifactSha256": "715073e4855267750467fc1acfef0647385fed690a5db3fd1d1de373e114bba4",
+    "requestedBackend": "dxgi",
+    "warmSamples": 24,
+    "scopeCloseClearsCache": true,
+    "computeShaderWarpCorrectness": "REQUIRED_NATIVE_SELFTEST",
+    "scaledReadbackPixels": 43200,
+    "gpuPhysical": "NOT_RUN",
+    "actualEncodeReuseCount": 0,
+    "warmCaptureP50Ms": 43.9762,
+    "result": "PASS",
+    "comparison": "SAME_SOURCE_CAPTURE_ONLY_COLD_ALLOCATION_VS_WARM_CACHE_NOT_PRIOR_RELEASE_OR_NETWORK",
+    "frameSeqMonotonic": true,
+    "fallbackFrameCount": 18,
+    "coldSamples": 6,
+    "warmCaptureP95Ms": 46.301,
+    "scaledBackend": "dxgi-d3d11",
+    "scope": "isolated_actions_capture_geometry_freshness_fallback_not_owner_gpu_acceptance",
+    "coldCaptureP95Ms": 12.3927,
+    "mixedDpiPhysical": "PENDING_OWNER",
+    "actualPayloadOmissionCount": 18,
+    "gpuAcceptance": "RUNNER_CAPTURE_ONLY_NOT_OWNER_HARDWARE",
+    "roiJpegValid": true,
+    "coldCaptureP50Ms": 11.0171,
+    "gpuFrameCount": 13,
+    "scaledGpuResize": true,
+    "freshPixelsEveryRead": true,
+    "roi": {
+      "width": 257,
+      "height": 129,
+      "x": 30,
+      "y": 30
+    },
+    "scaledOutputPixels": 43200
+  },
+  "video": {
+    "actualScopedCapture": true,
+    "hardwarePreferenceTested": true,
+    "storedOnDisk": false,
+    "captureBackendSecond": "dxgi-d3d11",
+    "result": "PASS",
+    "closeClearsResources": true,
+    "scope": "isolated_actions_native_video_not_owner_physical",
+    "gpuResizeFirst": true,
+    "maxPacketBytes": 665600,
+    "syntheticIndependentFrames": 16,
+    "badLeaseDenied": true,
+    "captureBackendFirst": "dxgi-d3d11",
+    "closedLeaseDenied": true,
+    "frameSeqMonotonic": true,
+    "softwareEncoder": true,
+    "gpuResizeSecond": true,
+    "hardwarePhysical": "NOT_RUN",
+    "browserDecoder": "same-production-WebCodecs-viewer",
+    "browserDecode": {
+      "decoded": 16,
+      "samples": [
+        {
+          "expectedColor": "red",
+          "color": [
+            255,
+            27,
+            4,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "blue",
+          "color": [
+            0,
+            14,
+            251,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "red",
+          "color": [
+            255,
+            26,
+            1,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "blue",
+          "color": [
+            0,
+            15,
+            254,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "red",
+          "color": [
+            255,
+            26,
+            1,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "blue",
+          "color": [
+            0,
+            14,
+            253,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "red",
+          "color": [
+            255,
+            26,
+            1,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "blue",
+          "color": [
+            0,
+            14,
+            253,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "red",
+          "color": [
+            255,
+            27,
+            4,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "blue",
+          "color": [
+            0,
+            14,
+            251,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "red",
+          "color": [
+            255,
+            26,
+            1,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "blue",
+          "color": [
+            0,
+            15,
+            254,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "red",
+          "color": [
+            255,
+            26,
+            1,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "blue",
+          "color": [
+            0,
+            14,
+            253,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "red",
+          "color": [
+            255,
+            26,
+            1,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        },
+        {
+          "expectedColor": "blue",
+          "color": [
+            0,
+            14,
+            253,
+            255
+          ],
+          "hardwareEncoding": false,
+          "encoderBackend": "media-foundation-software"
+        }
+      ],
+      "clearHidesVideo": true
+    },
+    "syntheticFixtureOnly": true
+  },
+  "lab": {
+    "result": "PASS",
+    "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+    "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
+    "version": "0.10.1-dev.11",
+    "databaseMigrated": false,
+    "dbArchiveIndexVerified": true,
+    "dbArchiveSha256": "8106f5a0ff00ef696ba91f9ace2a1a9e57306d85c256c7f0abdd237e75769066",
+    "independentPidsPreserved": true,
+    "dependencyGraphUnchanged": true,
+    "homeAncestorAclChanged": false,
+    "persistentCountsUnchanged": true,
+    "snapshotUnauthenticatedStatus": 401,
+    "workAuthorizationUnauthenticatedStatus": 400,
+    "videoPushUnauthenticatedStatus": 400,
+    "videoReadUnauthenticatedStatus": 400,
+    "servingSourceEnvironmentVerified": true,
+    "apiContractVersion": "light-remote.api.v1",
+    "publicHealth": "PASS",
+    "oldSourcesPreserved": true,
+    "ownerWindowsInstallationChanged": false,
+    "physicalOwnerAcceptance": false,
+    "publicReleaseOrFeed": false
+  },
+  "physicalOwnerAcceptance": "PENDING_OWNER_SELF_INSTALL_CONSOLIDATED_TEST",
+  "publicReleaseOrFeed": false,
+  "productionDomainCallbackChanged": false,
+  "ownerWindowsInstallationChanged": false,
+  "zeroCopy": false,
+  "hardwareEncoderPhysical": "NOT_RUN",
+  "installerHelperSha256": "45a3054b6619459774d91d680b7645baf8bf73de326d3b3adfbb9bfc1427f600",
+  "labDeploymentRecovery": {
+    "firstAttempt": "OPERATOR_SOCKET_NOT_READY_TRANSIENT",
+    "automaticRollback": "VERIFIED_OLD_SOURCE_DATA_AND_INDEPENDENT_PIDS",
+    "databaseMigrationPerformed": false,
+    "correctedProbe": "BOUNDED30SECOND_READY_WAIT_AND_SO_PEERCRED_EXPECTED_MAIN_PID",
+    "finalCutover": "PASS"
+  }
+}

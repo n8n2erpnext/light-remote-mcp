@@ -1,8 +1,8 @@
 # Light Remote MCP — Unified Code Map
 
 Status: canonical source navigation, not runtime deployment proof
-Edition: 2026-11-09
-Codebase: n8n2erpnext/light-remote-mcp; compiled0.10.1-dev.4/source947a117, CI45 PASS; same-source internal Lab
+Edition: 2026-11-14
+Codebase: n8n2erpnext/light-remote-mcp; compiled0.10.1-dev.11/source1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9, CI12715/15PASS; same-source isolated Gold Lab
 Historical documentation foundation: de7eb2264d88546ecea00991730e596ee42768d3
 API contract: [light-remote.api.v1](../../contracts/api.v1.json)
 Endpoint catalog: [config/endpoints.json](../../config/endpoints.json)
@@ -422,3 +422,7 @@ CI125 reached the native Windows wrong-listener proof fixture and exposed its st
 ## Reject delayed encoded frames after RM video scope close
 
 Close the encoded-video relay race: native close already releases control, but a previously signed in-flight frame could arrive on another connection after the relay delete and repopulate the Owner video. Retain exact actor/task closed keys for120s in bounded RAM (max1024, no pixel data); late frames including changed epochs are rejected. If close-key capacity is exhausted, bounded temporary video-push refusal preserves close rather than evicting protection. New unique task scopes work normally outside that rare overload condition; pixel TTL2s/16MiB/32latest and all A/B authorization remain unchanged. Real relay unit tests7/7 and signed push/private read route testPASS, including close followed by late newer frame, different epoch, no pixels/read after close, tombstone memory bound, expiry and fresh unique task recovery. Exact-source4373035 Windows media diagnostics PASS with real native H264 and16 WebCodecs decoded color frames; no full new installer acceptance is inferred. Native Windows proof revision fixture fix is in sourcef5c62fa; fullCI126 is running and will be superseded by complete exact-source CI for this race correction. Full checkpoint checkpoint/20261114-before-rmv2-finalproof-f5c62fa bundleSHA 758c429dd43b3c824bb52a84c1a06ba0dfc970ec6f652f070bb5a496e0cc12b3 archiveSHA 56ece0db0cf1ce92a26cc1650435142e2c17cca79116b216c84dd879188b6010 independent restore/fsckPASS. Lab remains f109260/dev11; no runtime/DB/session/grant/Owner installation, production/domain/Google callback/main/feed change. Native .NET/Rust/Inno build and execution stay in Actions only. Hardware performance and physical Owner acceptance are not inferred from CI. Next: Require all15 full CI jobs including five262K stress cases on the identical installer helper bytes. Follow fast exact-source H264 encode, scoped live capture/close/resource checks and actual production WebCodecs synthetic-color decode; correct failures without relaxing product deadlines. Verify all text/media/source/hash receipts and combined installer, then isolated Lab integration with rollback. Owner acceptance download only after all requested features pass together.
+
+## Record complete RM text GPU video CI and verified internal installer
+
+Current RM scheduler/typing/GPU/video/relay/Owner viewer/source/installer proof is consolidated in the single Master Checkpoint and docs/evidence/rmv2/acceptance-ci127.json. Historical incomplete262K/GPU/video entries are time-scoped; physical Owner acceptance remains pending.

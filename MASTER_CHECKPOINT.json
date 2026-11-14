@@ -1,14 +1,14 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-14T06:08:13.180Z",
+  "updatedAt": "2026-11-14T06:50:17.218Z",
   "version": "0.10.1-dev.11",
-  "phase": "RMV2_MANAGED_TEXT_GPU_RESIZE_VIDEO_COMPLETION",
-  "status": "RM_PLAN_COMPLETION_IN_PROGRESS",
+  "phase": "RMV2_TEXT_GPU_VIDEO_IMPLEMENTED_CI_AND_LAB_VERIFIED_PHYSICAL_PENDING",
+  "status": "RM_IMPLEMENTATION_COMPLETE_CI15_LAB_PASS_OWNER_UAT_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
-  "baselineSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-  "baselineSourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+  "baselineSourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+  "baselineSourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
   "validationBranch": "work",
   "apiContractVersion": "light-remote.api.v1",
   "featureProfile": "goldabv2-desktop-v4",
@@ -24,14 +24,14 @@
   },
   "evidence": {
     "windows": {
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
       "version": "0.10.1-dev.11",
-      "ciRunId": 43530897985,
-      "artifactId": 14088683951,
-      "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
-      "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
-      "installerBytes": 172700781,
+      "ciRunId": 43564848850,
+      "artifactId": 14103290306,
+      "artifactZipSha256": "599ff43fc8203cbc9b691bf131d2336e40d9d675ebb30010fcb3b1d37ee951c7",
+      "installerSha256": "d9b84b6df878c1abc1c11feb8b378520a26ba34b69133a2e580c10eaddf452a8",
+      "installerBytes": 172703403,
       "result": "VERIFIED_INTERNAL_ARTIFACT",
       "primaryCount": 1,
       "oldPrimariesAbsent": true,
@@ -39,12 +39,9 @@
       "installedLifecycle": "PASS",
       "physicalOwnerAcceptance": false,
       "publicFeedPromoted": false,
-      "zipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
-      "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985/artifacts/14088683951",
-      "verified": true,
+      "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850/artifacts/14103290306",
       "verifiedOnArm": true,
       "physicalAcceptance": false,
-      "codeSigningVerified": false,
       "publicBinaryPublication": "INTERNAL_TEST_ONLY"
     },
     "dev": {
@@ -54,7 +51,7 @@
       "report": "docs/evidence/dev-integration.json",
       "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868"
     },
-    "physicalOwnerAcceptance": "PENDING_DEV11_OWNER_SELF_INSTALL_CONSOLIDATED_TEST",
+    "physicalOwnerAcceptance": "PENDING_COMBINED_RMV2_OWNER_SELF_INSTALL",
     "historicalPhysicalSource": "4dddf5114248a014c0695e853109358039afa7ad",
     "historicalPreconversionCi": {
       "runId": 42468832737,
@@ -77,28 +74,26 @@
       "nativeMacLinux": "locked source build/tests PASS; full installers NOT_BUILT"
     },
     "currentRepositoryCi": {
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "ciRunId": 43530897985,
-      "runNumber": 118,
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "ciRunId": 43564848850,
+      "runNumber": 127,
       "attempt": 1,
       "scope": "full",
       "result": "PASS",
-      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
-      "allJobs": 9,
-      "successfulJobs": 9,
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850",
+      "allJobs": 15,
+      "successfulJobs": 15,
       "requiredCheck": "baseline-required",
       "mainProtectionUnchanged": true,
       "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
       "physicalOwnerAcceptance": false,
-      "jobs": 9,
-      "runId": 43530897985,
-      "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
-      "passedJobs": 9,
+      "jobs": 15,
+      "runId": 43564848850,
+      "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850",
+      "passedJobs": 15,
       "conclusion": "success",
       "repositoryId": 1450214328,
-      "repository": "n8n2erpnext/light-remote-mcp",
-      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
-      "evidence": "docs/evidence/rmv2/acceptance-ci118.json"
+      "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec"
     },
     "reconstructionBaseline": {
       "windows": {
@@ -214,18 +209,21 @@
     },
     "internalLab": {
       "result": "PASS",
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
       "version": "0.10.1-dev.11",
       "databaseMigrated": false,
       "dbArchiveIndexVerified": true,
-      "dbArchiveSha256": "c8d0f485436a93abb86cbfc963fc42464faf584b85c96beef20d1e0e76a7a3cb",
+      "dbArchiveSha256": "8106f5a0ff00ef696ba91f9ace2a1a9e57306d85c256c7f0abdd237e75769066",
       "independentPidsPreserved": true,
       "dependencyGraphUnchanged": true,
       "homeAncestorAclChanged": false,
       "persistentCountsUnchanged": true,
       "snapshotUnauthenticatedStatus": 401,
       "workAuthorizationUnauthenticatedStatus": 400,
+      "videoPushUnauthenticatedStatus": 400,
+      "videoReadUnauthenticatedStatus": 400,
+      "servingSourceEnvironmentVerified": true,
       "apiContractVersion": "light-remote.api.v1",
       "publicHealth": "PASS",
       "oldSourcesPreserved": true,
@@ -400,6 +398,78 @@
           "Memory/Codex100-row native read window remains explicit; Desktop task/session history is bounded/pageable"
         ]
       }
+    },
+    "historicalBeforeCombinedRM": {
+      "windows": {
+        "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+        "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+        "version": "0.10.1-dev.11",
+        "ciRunId": 43530897985,
+        "artifactId": 14088683951,
+        "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
+        "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+        "installerBytes": 172700781,
+        "result": "VERIFIED_INTERNAL_ARTIFACT",
+        "primaryCount": 1,
+        "oldPrimariesAbsent": true,
+        "migration": "PASS",
+        "installedLifecycle": "PASS",
+        "physicalOwnerAcceptance": false,
+        "publicFeedPromoted": false,
+        "zipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
+        "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985/artifacts/14088683951",
+        "verified": true,
+        "verifiedOnArm": true,
+        "physicalAcceptance": false,
+        "codeSigningVerified": false,
+        "publicBinaryPublication": "INTERNAL_TEST_ONLY"
+      },
+      "currentRepositoryCi": {
+        "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+        "ciRunId": 43530897985,
+        "runNumber": 118,
+        "attempt": 1,
+        "scope": "full",
+        "result": "PASS",
+        "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
+        "allJobs": 9,
+        "successfulJobs": 9,
+        "requiredCheck": "baseline-required",
+        "mainProtectionUnchanged": true,
+        "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+        "physicalOwnerAcceptance": false,
+        "jobs": 9,
+        "runId": 43530897985,
+        "url": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
+        "passedJobs": 9,
+        "conclusion": "success",
+        "repositoryId": 1450214328,
+        "repository": "n8n2erpnext/light-remote-mcp",
+        "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+        "evidence": "docs/evidence/rmv2/acceptance-ci118.json"
+      },
+      "internalLab": {
+        "result": "PASS",
+        "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+        "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+        "version": "0.10.1-dev.11",
+        "databaseMigrated": false,
+        "dbArchiveIndexVerified": true,
+        "dbArchiveSha256": "c8d0f485436a93abb86cbfc963fc42464faf584b85c96beef20d1e0e76a7a3cb",
+        "independentPidsPreserved": true,
+        "dependencyGraphUnchanged": true,
+        "homeAncestorAclChanged": false,
+        "persistentCountsUnchanged": true,
+        "snapshotUnauthenticatedStatus": 401,
+        "workAuthorizationUnauthenticatedStatus": 400,
+        "apiContractVersion": "light-remote.api.v1",
+        "publicHealth": "PASS",
+        "oldSourcesPreserved": true,
+        "ownerWindowsInstallationChanged": false,
+        "physicalOwnerAcceptance": false,
+        "publicReleaseOrFeed": false
+      },
+      "physicalOwnerAcceptance": "PENDING_DEV11_OWNER_SELF_INSTALL_CONSOLIDATED_TEST"
     }
   },
   "remaining": [
@@ -411,9 +481,7 @@
     "Existing reconstruction backlog retained: legacy Long Memory extension/RC50/Guest prototypes and full Mac/Linux installers",
     "Complete endpoint/schema catalog coverage and remaining legacy server route constants; new three routes use canonical catalog",
     "Memory/Codex100-row native read window remains explicit; Desktop task/session history is bounded/pageable",
-    "RM v2 consolidated physical acceptance against pinned dev11 installer is pending Owner self-install/test.",
-    "RM v2 giant single-paragraph262K classic/rich remains NOT_ACCEPTED; arbitrary application/newline/focus-race matrix pending.",
-    "RM v2 optional DXGI physical adapter/recovery matrix and GPU preprocessing remain pending; hardware encoding/video/viewer/media transport not implemented."
+    "RM v2 physical Owner GPU/encoder/mixedDPI/application acceptance pending against the pinned combined installer; native/source implementation and scoped CI are complete."
   ],
   "repositoryReplacement": {
     "ownerConfirmed": true,
@@ -451,7 +519,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Require all15 full CI jobs including five262K stress cases on the identical installer helper bytes. Follow fast exact-source H264 encode, scoped live capture/close/resource checks and actual production WebCodecs synthetic-color decode; correct failures without relaxing product deadlines. Verify all text/media/source/hash receipts and combined installer, then isolated Lab integration with rollback. Owner acceptance download only after all requested features pass together.",
+  "nextAction": "Owner self-downloads and installs only the pinned internal installer, performs the consolidated Windows checklist including original cursors/sky-blue badge+glow/confirmed task close45s quiet fallback, local input/focus safety, Unicode/full-content receipts, crop/DPI, DXGI fallback and optional H264 viewer, then reports exact source/run/installerSHA outcomes. Hardware encoder/adapter/mixedDPI claims require physical evidence; no public release or main promotion.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -542,11 +610,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261114-rmv2-closed-video-scope-late-packet-fence",
-    "status": "RM_NATIVE_MEDIA_DIAGNOSTIC_PASS_CLOSE_RACE_FIXED_FULL_CI_PENDING",
-    "summary": "Close the encoded-video relay race: native close already releases control, but a previously signed in-flight frame could arrive on another connection after the relay delete and repopulate the Owner video. Retain exact actor/task closed keys for120s in bounded RAM (max1024, no pixel data); late frames including changed epochs are rejected. If close-key capacity is exhausted, bounded temporary video-push refusal preserves close rather than evicting protection. New unique task scopes work normally outside that rare overload condition; pixel TTL2s/16MiB/32latest and all A/B authorization remain unchanged.",
-    "verification": "Real relay unit tests7/7 and signed push/private read route testPASS, including close followed by late newer frame, different epoch, no pixels/read after close, tombstone memory bound, expiry and fresh unique task recovery. Exact-source4373035 Windows media diagnostics PASS with real native H264 and16 WebCodecs decoded color frames; no full new installer acceptance is inferred. Native Windows proof revision fixture fix is in sourcef5c62fa; fullCI126 is running and will be superseded by complete exact-source CI for this race correction. Full checkpoint checkpoint/20261114-before-rmv2-finalproof-f5c62fa bundleSHA 758c429dd43b3c824bb52a84c1a06ba0dfc970ec6f652f070bb5a496e0cc12b3 archiveSHA 56ece0db0cf1ce92a26cc1650435142e2c17cca79116b216c84dd879188b6010 independent restore/fsckPASS.",
-    "nextAction": "Require all15 full CI jobs including five262K stress cases on the identical installer helper bytes. Follow fast exact-source H264 encode, scoped live capture/close/resource checks and actual production WebCodecs synthetic-color decode; correct failures without relaxing product deadlines. Verify all text/media/source/hash receipts and combined installer, then isolated Lab integration with rollback. Owner acceptance download only after all requested features pass together.",
+    "taskId": "20261114-rmv2-combined-native-gpu-video-internal-acceptance",
+    "status": "RM_IMPLEMENTATION_COMPLETE_CI15_LAB_PASS_OWNER_UAT_PENDING",
+    "summary": "Complete internal RM implementation and exact-source acceptance: source1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9, CI127 all15jobs PASS, all five real keyboard262K editor/layout cases PASS on the identical helper staged in the one-primary installer, actual D3D11/WARP shader and reduced-readback DXGI probe PASS, native H264 plus production WebCodecs16color frames and lease/close/resource checks PASS. Independently verify installer/source/tree/hash and deploy only isolated Gold Lab with recovery, no DB migration or independent Agent/session/grant disruption. Owner physical GPU/mixedDPI/app acceptance remains pending, no public release or production/domain/callback/main/feed change.",
+    "verification": "Exact-source CI12715/15PASS; all five262K receipts, source/tree/shared helper SHA 45a3054b6619459774d91d680b7645baf8bf73de326d3b3adfbb9bfc1427f600, native GPU/H264/browser and one-primary installer verified. ZIP SHA 599ff43fc8203cbc9b691bf131d2336e40d9d675ebb30010fcb3b1d37ee951c7; installer SHA d9b84b6df878c1abc1c11feb8b378520a26ba34b69133a2e580c10eaddf452a8. checkpoint/20261114-before-rmv2-acceptance-1bd6fcc independent restore/fsckPASS.",
+    "nextAction": "Owner self-downloads and installs only the pinned internal installer, performs the consolidated Windows checklist including original cursors/sky-blue badge+glow/confirmed task close45s quiet fallback, local input/focus safety, Unicode/full-content receipts, crop/DPI, DXGI fallback and optional H264 viewer, then reports exact source/run/installerSHA outcomes. Hardware encoder/adapter/mixedDPI claims require physical evidence; no public release or main promotion.",
     "sourceDigest": "b9ba5ed43128f28f616d30f1d87a171a18ee518e6fe1d82d56166ddf48676293",
     "sourceFileCount": 1722
   },
@@ -682,14 +750,14 @@
       "restoreVerified": true
     },
     "verifiedArtifact": {
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
       "version": "0.10.1-dev.11",
-      "ciRunId": 43530897985,
-      "artifactId": 14088683951,
-      "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
-      "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
-      "installerBytes": 172700781,
+      "ciRunId": 43564848850,
+      "artifactId": 14103290306,
+      "artifactZipSha256": "599ff43fc8203cbc9b691bf131d2336e40d9d675ebb30010fcb3b1d37ee951c7",
+      "installerSha256": "d9b84b6df878c1abc1c11feb8b378520a26ba34b69133a2e580c10eaddf452a8",
+      "installerBytes": 172703403,
       "result": "VERIFIED_INTERNAL_ARTIFACT",
       "primaryCount": 1,
       "oldPrimariesAbsent": true,
@@ -699,139 +767,199 @@
       "publicFeedPromoted": false
     },
     "lastFullCi": {
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "ciRunId": 43530897985,
-      "runNumber": 118,
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "ciRunId": 43564848850,
+      "runNumber": 127,
       "attempt": 1,
       "scope": "full",
       "result": "PASS",
-      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
-      "allJobs": 9,
-      "successfulJobs": 9,
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850",
+      "allJobs": 15,
+      "successfulJobs": 15,
       "requiredCheck": "baseline-required",
       "mainProtectionUnchanged": true,
       "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
       "physicalOwnerAcceptance": false,
       "jobs": [
         {
-          "id": 132248017316,
+          "id": 132356553035,
           "name": "changes",
           "conclusion": "success"
         },
         {
-          "id": 132248017617,
+          "id": 132356553205,
           "name": "truth",
           "conclusion": "success"
         },
         {
-          "id": 132248092918,
+          "id": 132356625247,
           "name": "Core, contracts, PostgreSQL/Redis integration",
           "conclusion": "success"
         },
         {
-          "id": 132248092978,
+          "id": 132356625255,
           "name": "Committed native dependency resolution",
           "conclusion": "success"
         },
         {
-          "id": 132248216515,
-          "name": "windows / build-install-smoke",
+          "id": 132356720324,
+          "name": "RM native binary shared by stress and installer",
           "conclusion": "success"
         },
         {
-          "id": 132248216611,
+          "id": 132356720393,
           "name": "desktop / Web build, tests, isolated browser screenshots",
           "conclusion": "success"
         },
         {
-          "id": 132249480789,
+          "id": 132357244908,
+          "name": "text-stress / classic-paragraph",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357244940,
+          "name": "text-stress / rich-paragraph",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357244959,
+          "name": "text-stress / classic-single",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357244966,
+          "name": "text-stress / native-paragraph",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357245033,
+          "name": "text-stress / rich-single",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357245220,
+          "name": "windows / build-install-smoke",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357651436,
           "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
           "conclusion": "success"
         },
         {
-          "id": 132249480901,
+          "id": 132357651448,
           "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
           "conclusion": "success"
         },
         {
-          "id": 132262738786,
+          "id": 132364613010,
           "name": "baseline-required",
           "conclusion": "success"
         }
       ]
     },
-    "compiledSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+    "compiledSourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
     "latestVerifiedCi": {
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "ciRunId": 43530897985,
-      "runNumber": 118,
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "ciRunId": 43564848850,
+      "runNumber": 127,
       "attempt": 1,
       "scope": "full",
       "result": "PASS",
-      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
-      "allJobs": 9,
-      "successfulJobs": 9,
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850",
+      "allJobs": 15,
+      "successfulJobs": 15,
       "requiredCheck": "baseline-required",
       "mainProtectionUnchanged": true,
       "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
       "physicalOwnerAcceptance": false,
       "jobs": [
         {
-          "id": 132248017316,
+          "id": 132356553035,
           "name": "changes",
           "conclusion": "success"
         },
         {
-          "id": 132248017617,
+          "id": 132356553205,
           "name": "truth",
           "conclusion": "success"
         },
         {
-          "id": 132248092918,
+          "id": 132356625247,
           "name": "Core, contracts, PostgreSQL/Redis integration",
           "conclusion": "success"
         },
         {
-          "id": 132248092978,
+          "id": 132356625255,
           "name": "Committed native dependency resolution",
           "conclusion": "success"
         },
         {
-          "id": 132248216515,
-          "name": "windows / build-install-smoke",
+          "id": 132356720324,
+          "name": "RM native binary shared by stress and installer",
           "conclusion": "success"
         },
         {
-          "id": 132248216611,
+          "id": 132356720393,
           "name": "desktop / Web build, tests, isolated browser screenshots",
           "conclusion": "success"
         },
         {
-          "id": 132249480789,
+          "id": 132357244908,
+          "name": "text-stress / classic-paragraph",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357244940,
+          "name": "text-stress / rich-paragraph",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357244959,
+          "name": "text-stress / classic-single",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357244966,
+          "name": "text-stress / native-paragraph",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357245033,
+          "name": "text-stress / rich-single",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357245220,
+          "name": "windows / build-install-smoke",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357651436,
           "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
           "conclusion": "success"
         },
         {
-          "id": 132249480901,
+          "id": 132357651448,
           "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
           "conclusion": "success"
         },
         {
-          "id": 132262738786,
+          "id": 132364613010,
           "name": "baseline-required",
           "conclusion": "success"
         }
       ]
     },
     "latestInternalArtifact": {
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
       "version": "0.10.1-dev.11",
-      "ciRunId": 43530897985,
-      "artifactId": 14088683951,
-      "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
-      "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
-      "installerBytes": 172700781,
+      "ciRunId": 43564848850,
+      "artifactId": 14103290306,
+      "artifactZipSha256": "599ff43fc8203cbc9b691bf131d2336e40d9d675ebb30010fcb3b1d37ee951c7",
+      "installerSha256": "d9b84b6df878c1abc1c11feb8b378520a26ba34b69133a2e580c10eaddf452a8",
+      "installerBytes": 172703403,
       "result": "VERIFIED_INTERNAL_ARTIFACT",
       "primaryCount": 1,
       "oldPrimariesAbsent": true,
@@ -998,27 +1126,142 @@
           "installedLifecycle": "PASS",
           "physicalOwnerAcceptance": false
         }
+      },
+      "beforeCombinedRMCI127": {
+        "compiledSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+        "latestVerifiedCi": {
+          "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+          "ciRunId": 43530897985,
+          "runNumber": 118,
+          "attempt": 1,
+          "scope": "full",
+          "result": "PASS",
+          "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
+          "allJobs": 9,
+          "successfulJobs": 9,
+          "requiredCheck": "baseline-required",
+          "mainProtectionUnchanged": true,
+          "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+          "physicalOwnerAcceptance": false,
+          "jobs": [
+            {
+              "id": 132248017316,
+              "name": "changes",
+              "conclusion": "success"
+            },
+            {
+              "id": 132248017617,
+              "name": "truth",
+              "conclusion": "success"
+            },
+            {
+              "id": 132248092918,
+              "name": "Core, contracts, PostgreSQL/Redis integration",
+              "conclusion": "success"
+            },
+            {
+              "id": 132248092978,
+              "name": "Committed native dependency resolution",
+              "conclusion": "success"
+            },
+            {
+              "id": 132248216515,
+              "name": "windows / build-install-smoke",
+              "conclusion": "success"
+            },
+            {
+              "id": 132248216611,
+              "name": "desktop / Web build, tests, isolated browser screenshots",
+              "conclusion": "success"
+            },
+            {
+              "id": 132249480789,
+              "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
+              "conclusion": "success"
+            },
+            {
+              "id": 132249480901,
+              "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+              "conclusion": "success"
+            },
+            {
+              "id": 132262738786,
+              "name": "baseline-required",
+              "conclusion": "success"
+            }
+          ]
+        },
+        "verifiedArtifact": {
+          "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+          "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+          "version": "0.10.1-dev.11",
+          "ciRunId": 43530897985,
+          "artifactId": 14088683951,
+          "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
+          "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+          "installerBytes": 172700781,
+          "result": "VERIFIED_INTERNAL_ARTIFACT",
+          "primaryCount": 1,
+          "oldPrimariesAbsent": true,
+          "migration": "PASS",
+          "installedLifecycle": "PASS",
+          "physicalOwnerAcceptance": false,
+          "publicFeedPromoted": false
+        },
+        "latestInternalArtifact": {
+          "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+          "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+          "version": "0.10.1-dev.11",
+          "ciRunId": 43530897985,
+          "artifactId": 14088683951,
+          "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
+          "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+          "installerBytes": 172700781,
+          "result": "VERIFIED_INTERNAL_ARTIFACT",
+          "primaryCount": 1,
+          "oldPrimariesAbsent": true,
+          "migration": "PASS",
+          "installedLifecycle": "PASS",
+          "physicalOwnerAcceptance": false,
+          "publicFeedPromoted": false,
+          "projectVersion": "0.10.1-dev.11"
+        },
+        "publication": {
+          "status": "INTERNAL_TEST_ONLY",
+          "published": false,
+          "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+          "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985/artifacts/14088683951",
+          "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+          "feedPromotion": false
+        },
+        "lastNativeTrial": {
+          "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+          "ciRunId": 43530897985,
+          "overallResult": "PASS9_OF9",
+          "nativeClose3cycles": "PASS",
+          "realPackagedConptyWall": "PASS"
+        }
       }
     },
     "lastNativeTrial": {
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "ciRunId": 43530897985,
-      "overallResult": "PASS9_OF9",
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "ciRunId": 43564848850,
+      "overallResult": "PASS15_OF15",
       "nativeClose3cycles": "PASS",
       "realPackagedConptyWall": "PASS"
     },
     "publication": {
       "status": "INTERNAL_TEST_ONLY",
       "published": false,
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985/artifacts/14088683951",
-      "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850/artifacts/14103290306",
+      "installerSha256": "d9b84b6df878c1abc1c11feb8b378520a26ba34b69133a2e580c10eaddf452a8",
       "feedPromotion": false
     },
     "latestInternalVerification": {
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "ciRunId": 43530897985,
-      "result": "PASS",
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "ciRunId": 43564848850,
+      "result": "PASS15_OF15",
       "primaryExecutable": "LightRemote.exe",
       "oldPrimariesAbsent": true,
       "installedLifecycle": "PASS",
@@ -1809,105 +2052,6 @@
     "ownerReportedAcceptance": "2026-11-11 PASS; no inferred DPI/Google-domain acceptance"
   },
   "rmv2Implementation": {
-    "status": "IN_PROGRESS_NOT_READY_FOR_OWNER_ACCEPTANCE",
-    "compiledSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-    "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
-    "version": "0.10.1-dev.11",
-    "latestVerifiedCi": {
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "ciRunId": 43530897985,
-      "runNumber": 118,
-      "attempt": 1,
-      "scope": "full",
-      "result": "PASS",
-      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
-      "allJobs": 9,
-      "successfulJobs": 9,
-      "requiredCheck": "baseline-required",
-      "mainProtectionUnchanged": true,
-      "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
-      "physicalOwnerAcceptance": false,
-      "jobs": [
-        {
-          "id": 132248017316,
-          "name": "changes",
-          "conclusion": "success"
-        },
-        {
-          "id": 132248017617,
-          "name": "truth",
-          "conclusion": "success"
-        },
-        {
-          "id": 132248092918,
-          "name": "Core, contracts, PostgreSQL/Redis integration",
-          "conclusion": "success"
-        },
-        {
-          "id": 132248092978,
-          "name": "Committed native dependency resolution",
-          "conclusion": "success"
-        },
-        {
-          "id": 132248216515,
-          "name": "windows / build-install-smoke",
-          "conclusion": "success"
-        },
-        {
-          "id": 132248216611,
-          "name": "desktop / Web build, tests, isolated browser screenshots",
-          "conclusion": "success"
-        },
-        {
-          "id": 132249480789,
-          "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
-          "conclusion": "success"
-        },
-        {
-          "id": 132249480901,
-          "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
-          "conclusion": "success"
-        },
-        {
-          "id": 132262738786,
-          "name": "baseline-required",
-          "conclusion": "success"
-        }
-      ]
-    },
-    "verifiedArtifact": {
-      "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
-      "version": "0.10.1-dev.11",
-      "ciRunId": 43530897985,
-      "artifactId": 14088683951,
-      "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
-      "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
-      "installerBytes": 172700781,
-      "result": "VERIFIED_INTERNAL_ARTIFACT",
-      "primaryCount": 1,
-      "oldPrimariesAbsent": true,
-      "migration": "PASS",
-      "installedLifecycle": "PASS",
-      "physicalOwnerAcceptance": false,
-      "publicFeedPromoted": false
-    },
-    "beforeCloseout": {
-      "tag": "checkpoint/20261114-before-rmv2-dev11-ready-f109260",
-      "bundleSha256": "34f7b498e30cd989a7f3c9a4e56f925d33b2fa6905c0ad279504dd53b5ea1abe",
-      "archiveSha256": "b9fb84cafe1d3844407057a71db0f8d31b499d62742a28f9fe9cd45c67f42f1f",
-      "restore": "PASS",
-      "source": "f1092607fb96ed181e9b4c71a55e13429b183a60"
-    },
-    "nativeCiBudgets": {
-      "textStepMinutes": 40,
-      "windowsJobMinutes": 110
-    },
-    "platformCi": {
-      "macOS": "STANDARD_MACOS15_INTEL_NATIVE_SOURCE_TESTS",
-      "appleSilicon": "PENDING_NOT_ACCEPTED_HOSTED_CAPACITY_FAILURE_CI117",
-      "Linux": "UBUNTU24_NATIVE_SOURCE_TESTS"
-    },
     "lifecycle": {
       "closeBeforeFinalReport": "REQUIRED_WITH_NATIVE_CONFIRMATION",
       "orphanQuietMs": 45000,
@@ -1951,139 +2095,140 @@
       "nativeMultilineLineBreaks": "KNOWN_EDIT_CLASS_MULTILINE_WANTRETURN_ONLY",
       "nativeLineBreakCases": [
         {
-          "fullFixtureReadback": true,
-          "sourceUnits": 18,
           "lineEndingCodeUnits": [
             10
           ],
+          "sourceUnits": 18,
+          "fullFixtureReadback": true,
           "controlKind": "classic",
           "nativeVerified": true
         },
         {
-          "fullFixtureReadback": true,
-          "sourceUnits": 20,
           "lineEndingCodeUnits": [
             13,
             10
           ],
+          "sourceUnits": 20,
+          "fullFixtureReadback": true,
           "controlKind": "classic",
           "nativeVerified": true
         },
         {
-          "fullFixtureReadback": true,
-          "sourceUnits": 18,
           "lineEndingCodeUnits": [
             13
           ],
+          "sourceUnits": 18,
+          "fullFixtureReadback": true,
           "controlKind": "classic",
           "nativeVerified": true
         },
         {
-          "fullFixtureReadback": true,
-          "sourceUnits": 18,
           "lineEndingCodeUnits": [
             10
           ],
+          "sourceUnits": 18,
+          "fullFixtureReadback": true,
           "controlKind": "rich",
           "nativeVerified": true
         },
         {
-          "fullFixtureReadback": true,
-          "sourceUnits": 20,
           "lineEndingCodeUnits": [
             13,
             10
           ],
+          "sourceUnits": 20,
+          "fullFixtureReadback": true,
           "controlKind": "rich",
           "nativeVerified": true
         },
         {
-          "fullFixtureReadback": true,
-          "sourceUnits": 18,
           "lineEndingCodeUnits": [
             13
           ],
+          "sourceUnits": 18,
+          "fullFixtureReadback": true,
           "controlKind": "rich",
           "nativeVerified": true
         },
         {
-          "fullFixtureReadback": true,
-          "sourceUnits": 18,
           "lineEndingCodeUnits": [
             10
           ],
+          "sourceUnits": 18,
+          "fullFixtureReadback": true,
           "controlKind": "native",
           "nativeVerified": true
         },
         {
-          "fullFixtureReadback": true,
-          "sourceUnits": 20,
           "lineEndingCodeUnits": [
             13,
             10
           ],
+          "sourceUnits": 20,
+          "fullFixtureReadback": true,
           "controlKind": "native",
           "nativeVerified": true
         },
         {
-          "fullFixtureReadback": true,
-          "sourceUnits": 18,
           "lineEndingCodeUnits": [
             13
           ],
+          "sourceUnits": 18,
+          "fullFixtureReadback": true,
           "controlKind": "native",
           "nativeVerified": true
         }
       ],
       "inputEventsAreInsertedContent": false,
       "automaticReplay": false,
-      "nativeResult": "PASS_SCOPED_EDITOR_LAYOUT_MATRIX",
-      "editorMeasurements": [
-        {
-          "layout": "single-paragraph",
-          "comparison": "full-content-line-ending-equivalence-only",
-          "nativeVerified": true,
-          "wordWrap": true,
-          "controlKind": "classic-edit",
-          "elapsedMs": 17154.3417,
-          "fullFixtureReadback": true,
-          "units": 16384
+      "nativeResult": "ALL_FIVE_262K_CASES_AND16K64K_SMOKE_FULL_NATIVE_AND_FIXTURE_READBACK_PASS",
+      "editorMeasurements": {
+        "rich-paragraph": {
+          "result": "PASS",
+          "elapsedMs": 315132.2998,
+          "controlKind": "rich-edit",
+          "layout": "paragraphs-cr"
         },
-        {
-          "layout": "single-paragraph",
-          "comparison": "full-content-line-ending-equivalence-only",
-          "nativeVerified": true,
-          "wordWrap": true,
-          "controlKind": "classic-edit",
-          "elapsedMs": 82375.2,
-          "fullFixtureReadback": true,
-          "units": 65536
+        "rich-single": {
+          "result": "PASS",
+          "elapsedMs": 579610.4484,
+          "controlKind": "rich-edit",
+          "layout": "single-paragraph"
         },
-        {
-          "layout": "paragraphs-cr",
-          "comparison": "full-content-line-ending-equivalence-only",
-          "nativeVerified": true,
-          "wordWrap": true,
+        "classic-single": {
+          "result": "PASS",
+          "elapsedMs": 1001100.0594,
+          "controlKind": "classic-edit",
+          "layout": "single-paragraph"
+        },
+        "classic-paragraph": {
+          "result": "PASS",
+          "elapsedMs": 1036942.8343,
+          "controlKind": "classic-edit",
+          "layout": "paragraphs-cr"
+        },
+        "native-paragraph": {
+          "result": "PASS",
+          "elapsedMs": 1696911.5789,
           "controlKind": "win32-edit",
-          "elapsedMs": 1019621.9664,
-          "fullFixtureReadback": true,
-          "units": 262144
+          "layout": "paragraphs-cr"
         }
-      ],
-      "delayedDelivery": {
-        "nativeVerified": true,
-        "authorityExpiredAfterSend": true,
-        "exactFixtureReadback": true,
-        "elapsedMs": 2917.1667,
-        "delayPerWmCharMs": 80,
-        "units": 31
       },
-      "classicWrapped262K": "NOT_ACCEPTED",
-      "richSingleParagraph262K": "NOT_ACCEPTED_CI114",
-      "managedRichParagraphs262K": "NOT_ACCEPTED_CI116",
+      "delayedDelivery": {
+        "exactFixtureReadback": true,
+        "elapsedMs": 2745.3156,
+        "units": 31,
+        "authorityExpiredAfterSend": true,
+        "delayPerWmCharMs": 80,
+        "nativeVerified": true
+      },
+      "classicWrapped262K": "PASS_CI127",
+      "richSingleParagraph262K": "PASS_CI127",
+      "managedRichParagraphs262K": "PASS_CI127",
       "inputAlreadyQueuedCanRaceWithFocusChange": true,
       "arbitraryLfCrlfApplicationMatrix": "PENDING_PHYSICAL",
-      "readbackCost": "FULL_DOCUMENT_PER_WINDOW_INCREMENTAL_RANGE_NOT_IMPLEMENTED"
+      "readbackCost": "FULL_DOCUMENT_PER256UNIT_WINDOW_INCREMENTAL_RANGE_NOT_IMPLEMENTED",
+      "sameInstallerHelperSha256": "45a3054b6619459774d91d680b7645baf8bf73de326d3b3adfbb9bfc1427f600"
     },
     "capture": {
       "defaultBackend": "gdi",
@@ -2096,489 +2241,1011 @@
       "maxSourcePixels": 16777216,
       "maxJpegBytes": 665600,
       "cleanup": "NONBLOCKING_PENDING_DRAINED_BEFORE_AFTER_CAPTURE",
-      "correctedSameRunnerComparison": "docs/evidence/rmv2/comparison-ci110.json",
+      "correctedSameRunnerComparison": "docs/evidence/rmv2/comparison-ci127.json",
       "comparisonScope": "LOCAL_CAPTURE_PLUS_PIPE_NOT_INPUT_NETWORK_OR_OWNER",
       "sameSourceComparison": {
-        "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+        "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
         "baselineSource": "241359b57ebda76306f23b81d51ce8fbd928207f",
         "samplesPerSource": 30,
-        "baselineLocalPipeP95Ms": 57.8622,
-        "currentLocalPipeP95Ms": 62.1832,
+        "baselineLocalPipeP50Ms": 49.4177,
+        "currentLocalPipeP50Ms": 31.1598,
+        "baselineLocalPipeP95Ms": 64.0064,
+        "currentLocalPipeP95Ms": 56.7809,
         "scope": "ISOLATED_SAME_RUNNER_CAPTURE_AND_LOCAL_PIPE_ONLY_NOT_NETWORK_INPUT_OR_OWNER_HARDWARE",
-        "speedupThreshold": "NONE_MEASUREMENT_ONLY"
-      }
+        "performanceThreshold": "NONE_MEASUREMENT_ONLY_NOT_NETWORK_OR_INPUT"
+      },
+      "previousCorrectedSameRunnerComparison": "docs/evidence/rmv2/comparison-ci110.json"
     },
     "gpu": {
-      "default": "gdi",
-      "optional": "dxgi",
-      "hardwareMatrix": "PENDING_OWNER",
-      "gpuResize": false,
-      "hardwareEncoding": false,
-      "videoStreaming": false,
-      "implemented": "OPT_IN_DXGI_CAPTURE_CPU_RESIZE_JPEG_FRESH_GDI_FALLBACK",
+      "implemented": "D3D11_COMPUTE_CROP_BILINEAR_RESIZE_BEFORE_OUTPUT_SIZED_CPU_READBACK",
+      "defaultJpeg": "GDI",
       "enabledByDefault": false,
       "environment": "LIGHT_REMOTE_RM_CAPTURE_BACKEND=dxgi",
+      "advancedVideoGpuPreference": true,
       "acquireTimeoutMs": 16,
       "recoveryBackoffMs": 2000,
-      "dependencyLock": "client/windows-native/GptOperator.RealRemoteV2/packages.lock.json"
+      "fallback": "FRESH_CURRENT_GDI",
+      "nativeShaderWarpSelftest": "PASS",
+      "dxgiProbe": {
+        "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+        "ciRunId": 43564848850,
+        "artifactId": 14102485769,
+        "artifactSha256": "715073e4855267750467fc1acfef0647385fed690a5db3fd1d1de373e114bba4",
+        "requestedBackend": "dxgi",
+        "warmSamples": 24,
+        "scopeCloseClearsCache": true,
+        "computeShaderWarpCorrectness": "REQUIRED_NATIVE_SELFTEST",
+        "scaledReadbackPixels": 43200,
+        "gpuPhysical": "NOT_RUN",
+        "actualEncodeReuseCount": 0,
+        "warmCaptureP50Ms": 43.9762,
+        "result": "PASS",
+        "comparison": "SAME_SOURCE_CAPTURE_ONLY_COLD_ALLOCATION_VS_WARM_CACHE_NOT_PRIOR_RELEASE_OR_NETWORK",
+        "frameSeqMonotonic": true,
+        "fallbackFrameCount": 18,
+        "coldSamples": 6,
+        "warmCaptureP95Ms": 46.301,
+        "scaledBackend": "dxgi-d3d11",
+        "scope": "isolated_actions_capture_geometry_freshness_fallback_not_owner_gpu_acceptance",
+        "coldCaptureP95Ms": 12.3927,
+        "mixedDpiPhysical": "PENDING_OWNER",
+        "actualPayloadOmissionCount": 18,
+        "gpuAcceptance": "RUNNER_CAPTURE_ONLY_NOT_OWNER_HARDWARE",
+        "roiJpegValid": true,
+        "coldCaptureP50Ms": 11.0171,
+        "gpuFrameCount": 13,
+        "scaledGpuResize": true,
+        "freshPixelsEveryRead": true,
+        "roi": {
+          "width": 257,
+          "height": 129,
+          "x": 30,
+          "y": 30
+        },
+        "scaledOutputPixels": 43200
+      },
+      "physicalHardwareMatrix": "PENDING_OWNER",
+      "hardwareEncoderPhysical": "NOT_RUN",
+      "zeroCopy": false
     },
-    "evidence": {
-      "acceptance": "docs/evidence/rmv2/acceptance-ci118.json",
-      "text": "docs/evidence/rmv2/text-ci118.json",
-      "phase1": "docs/evidence/rmv2/phase1-ci118.json",
-      "dxgi": "docs/evidence/rmv2/dxgi-ci118.json",
-      "comparison": "docs/evidence/rmv2/comparison-ci118.json"
+    "platformCi": {
+      "macOS": "STANDARD_MACOS15_INTEL_NATIVE_SOURCE_TESTS",
+      "appleSilicon": "PENDING_NOT_ACCEPTED_HOSTED_CAPACITY_FAILURE_CI117",
+      "Linux": "UBUNTU24_NATIVE_SOURCE_TESTS"
     },
+    "status": "IMPLEMENTED_FULL_CI15_AND_LAB_PASS_OWNER_PHYSICAL_PENDING",
+    "compiledSourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+    "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
+    "version": "0.10.1-dev.11",
+    "latestVerifiedCi": {
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "ciRunId": 43564848850,
+      "runNumber": 127,
+      "attempt": 1,
+      "scope": "full",
+      "result": "PASS",
+      "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850",
+      "allJobs": 15,
+      "successfulJobs": 15,
+      "requiredCheck": "baseline-required",
+      "mainProtectionUnchanged": true,
+      "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+      "physicalOwnerAcceptance": false,
+      "jobs": [
+        {
+          "id": 132356553035,
+          "name": "changes",
+          "conclusion": "success"
+        },
+        {
+          "id": 132356553205,
+          "name": "truth",
+          "conclusion": "success"
+        },
+        {
+          "id": 132356625247,
+          "name": "Core, contracts, PostgreSQL/Redis integration",
+          "conclusion": "success"
+        },
+        {
+          "id": 132356625255,
+          "name": "Committed native dependency resolution",
+          "conclusion": "success"
+        },
+        {
+          "id": 132356720324,
+          "name": "RM native binary shared by stress and installer",
+          "conclusion": "success"
+        },
+        {
+          "id": 132356720393,
+          "name": "desktop / Web build, tests, isolated browser screenshots",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357244908,
+          "name": "text-stress / classic-paragraph",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357244940,
+          "name": "text-stress / rich-paragraph",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357244959,
+          "name": "text-stress / classic-single",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357244966,
+          "name": "text-stress / native-paragraph",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357245033,
+          "name": "text-stress / rich-single",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357245220,
+          "name": "windows / build-install-smoke",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357651436,
+          "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
+          "conclusion": "success"
+        },
+        {
+          "id": 132357651448,
+          "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+          "conclusion": "success"
+        },
+        {
+          "id": 132364613010,
+          "name": "baseline-required",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "verifiedArtifact": {
+      "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
+      "version": "0.10.1-dev.11",
+      "ciRunId": 43564848850,
+      "artifactId": 14103290306,
+      "artifactZipSha256": "599ff43fc8203cbc9b691bf131d2336e40d9d675ebb30010fcb3b1d37ee951c7",
+      "installerSha256": "d9b84b6df878c1abc1c11feb8b378520a26ba34b69133a2e580c10eaddf452a8",
+      "installerBytes": 172703403,
+      "result": "VERIFIED_INTERNAL_ARTIFACT",
+      "primaryCount": 1,
+      "oldPrimariesAbsent": true,
+      "migration": "PASS",
+      "installedLifecycle": "PASS",
+      "physicalOwnerAcceptance": false,
+      "publicFeedPromoted": false
+    },
+    "beforeCloseout": {
+      "tag": "checkpoint/20261114-before-rmv2-acceptance-1bd6fcc",
+      "bundleSha256": "0daee9e67b4b305a0523c0d482df4f79ba5db1981428a16659ea1662801c702a",
+      "archiveSha256": "9334130dc88fca7bb9dd9edadd8ad86d1b6ea9bcfd30ac136cf2f0fedbc18442",
+      "restore": "PASS",
+      "source": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9"
+    },
+    "acceptanceReadiness": true,
     "deployedToLab": true,
     "physicalAccepted": false,
     "publicRelease": false,
     "ownerTestPlan": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md#consolidated-windows-acceptance",
-    "historicalResumeStateBeforeCloseout": {
-      "phase": 2,
-      "status": "DEV11_FULL_TEXT_CI_BUDGET_AND_MACOS_INTEL_PENDING",
+    "historicalBeforeCombinedAcceptance": {
+      "status": "IN_PROGRESS_NOT_READY_FOR_OWNER_ACCEPTANCE",
+      "compiledSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+      "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
       "version": "0.10.1-dev.11",
-      "beforeCommit": "a2173d525e67945843ecfa307304ce1228c7c096",
-      "beforeTag": "checkpoint/20261111-before-rmv2-phase1-a2173d5",
-      "bundleSha256": "52c4ed562287cce186f666697fb4c96d20e847129e0398bc913ea6503dffe474",
-      "restoreFsck": "PASS",
-      "physicalAccepted": false,
-      "gpuOrVideoImplemented": false,
-      "verifiedLongTypingImplemented": true,
-      "deployed": false,
-      "publicRelease": false,
-      "portableSourceGroups": 71,
-      "portableUnitCases": 299,
-      "portableUnitExecution": "two path-compatible batches; no limits weakened",
-      "nativeCi": "PENDING_FULL_TEXT_40_MINUTE_CI_BUDGET",
-      "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
-      "firstCiRunId": 43032628902,
-      "nativeProductCompile": "PASS_CI86",
-      "nativeSelfTest": "PASS_CI86",
-      "nativeFirstFailure": "POWERSHELL_NET10_GDIPLUS_REFERENCE_IN_PROBE_BEFORE_ASSERTIONS",
-      "nativeProbeFix": "WIN32_CURSOR_BITMAP_AND_HOTSPOT_HASHES_SAME11_ROLES",
-      "nativeVerifiedSource": "398c4c8b316d59458f636bcdf1bd4ea44056634f",
-      "nativeVerifiedCiRunId": 43165467078,
-      "nativeArtifactId": 13920222075,
-      "nativeEvidence": "docs/evidence/rmv2/phase1-ci112.json",
-      "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
-      "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
-      "fullCi": "PENDING_NATIVE_TEXT_INSTALLER_AND_REQUIRED_PLATFORM_CHECKS",
-      "beforeAfterBenchmark": false,
-      "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
-      "supersededCiRunId": 43036093867,
-      "fullWindowsCi": "PASS_CI98",
-      "browserFailure": "APT_MIRROR_LIST_OBSERVED_ETC_APT_APT_MIRRORS_TXT_OMITTED",
-      "productSourceChangedAfterCi89": true,
-      "ciRecoveryScope": "DISPOSABLE_GITHUB_HOSTED_RUNNERS_ONLY",
-      "smoothMotionSleepSliceMaxMs": 8,
-      "physicalBuild92": "INSTALL_PASS_INDICATOR_FAIL",
-      "ownerInputBehavior": "YIELD_CURRENT_INPUT_KEEP_AGENT_SESSION_NO_BLOCKINPUT_NO_REPLAY",
-      "independentForegroundConcurrency": false,
-      "beforeIndicatorTag": "checkpoint/20261112-before-rmv2-indicator-668ce3a",
-      "beforeIndicatorBundleSha256": "e880177c09d7a4b9666e650eab380351f972de3354c77428bd10f243ef26729b",
-      "pausedIndicator": "LIGHT_SKY_BLUE_SAME_SCOPE_LIFETIME_NO_STANDALONE_TAIL",
-      "codexParity": "PUBLIC_BEHAVIOR_REFERENCE_NOT_INTERNAL_CODE_COPY",
-      "compiledSource": "398c4c8b316d59458f636bcdf1bd4ea44056634f",
-      "artifactId": 13921290856,
-      "installerSha256": "6cb6ca1e02653dd647c05cbab677545c5af74b1e5129c1b04491b375cb54785a",
-      "physicalBuild94": "INSTALLED_OWNER_FAIL_OVERLAY_REMAINS_AFTER_TASK",
-      "lifecycleDecision": "EXPLICIT_CLOSE_BEFORE_REPORT_REOPEN_FOR_NEXT_TASK_PLUS45S_QUIET_FALLBACK",
-      "fallbackDoesNotInterruptInFlightRm": true,
-      "newPalette": "LIGHT_OUTLOOK_SKY_BLUE",
-      "taskScopeOwner": [
-        "A/B session",
-        "Agent"
-      ],
-      "closeBeforeReport": "REQUIRED_TOOL_CONTRACT_WITH_CONFIRMED_NATIVE_CLOSE",
-      "afterClose": "NEW_ATTACH_REQUIRED",
-      "orphanIdleMs": 45000,
-      "inFlightProtected": true,
-      "palette": {
-        "badge": "#DCEEFF",
-        "text": "#0F456B",
-        "edge": "#4AA7DF"
+      "latestVerifiedCi": {
+        "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+        "ciRunId": 43530897985,
+        "runNumber": 118,
+        "attempt": 1,
+        "scope": "full",
+        "result": "PASS",
+        "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985",
+        "allJobs": 9,
+        "successfulJobs": 9,
+        "requiredCheck": "baseline-required",
+        "mainProtectionUnchanged": true,
+        "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+        "physicalOwnerAcceptance": false,
+        "jobs": [
+          {
+            "id": 132248017316,
+            "name": "changes",
+            "conclusion": "success"
+          },
+          {
+            "id": 132248017617,
+            "name": "truth",
+            "conclusion": "success"
+          },
+          {
+            "id": 132248092918,
+            "name": "Core, contracts, PostgreSQL/Redis integration",
+            "conclusion": "success"
+          },
+          {
+            "id": 132248092978,
+            "name": "Committed native dependency resolution",
+            "conclusion": "success"
+          },
+          {
+            "id": 132248216515,
+            "name": "windows / build-install-smoke",
+            "conclusion": "success"
+          },
+          {
+            "id": 132248216611,
+            "name": "desktop / Web build, tests, isolated browser screenshots",
+            "conclusion": "success"
+          },
+          {
+            "id": 132249480789,
+            "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
+            "conclusion": "success"
+          },
+          {
+            "id": 132249480901,
+            "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+            "conclusion": "success"
+          },
+          {
+            "id": 132262738786,
+            "name": "baseline-required",
+            "conclusion": "success"
+          }
+        ]
       },
-      "portableLifecycleCases": 9,
-      "clientCoreRuntimeModuleIncluded": true,
-      "scopedInputReceipt": "ADDITIVE_VISUAL_METADATA_PRESERVES_FLAT_EXISTING_FIELDS",
-      "closeRetryReceipt": "OWNER_BOUND_15MIN_MAX256_NO_NATIVE_TOKENS",
-      "resumeIncludedInFlight": true,
-      "nativeCurrentSourceUnchangedAfterCi97": true,
-      "sourceTree": "5f432f68d60ff2426bd2742848b519bdd85dbd74",
-      "nativeArtifactSha256": "f5b5cde8f33172939eac99871ae25a879fb4812ea6cf4d93304162372dc38a49",
-      "installerBytes": 172575451,
-      "physicalBuild98": "PENDING_OWNER_SELF_INSTALL",
-      "beforePhase2Source": "3f85c36e66989d541b1259f6ab7d4665d82d290e",
-      "beforePhase2Tag": "checkpoint/20261112-before-rmv2-phase2-3f85c36",
-      "beforePhase2BundleSha256": "e679555effebb038bdb71ac4ea0a364fa8822d5cd7e19aed1ace4b87ba0f6c14",
-      "phase2RestoreFsck": "PASS",
-      "phase2a": {
-        "orderedInput": "DEDICATED_MTA_BOUNDED16",
-        "capture": "DEDICATED_MTA_BOUNDED2",
-        "statusCancel": "INDEPENDENT_BOUNDED4",
-        "cancel": "OWNER_AND_NATIVE_LEASE_CHECKED_QUEUED_FENCE_NO_REPLAY",
-        "profiles": [
-          "compatibility",
-          "precision",
-          "responsive",
-          "smooth"
-        ],
-        "defaultProfile": "compatibility",
-        "nativeAcceptance": "PASS_ISOLATED_CI_NOT_OWNER_PHYSICAL",
-        "ci100": "FAILED_BEFORE_NATIVE_COMPILE_DEFAULT_PATH_FINGERPRINTS",
-        "defaultCompatibility": "EXPLICIT_90MS_8STEPS_35MS_HOVER_40MS_HOLD",
-        "nativeProfileSelfTest": "REGISTERED_PENDING_ACTIONS",
-        "source": "241359b57ebda76306f23b81d51ce8fbd928207f",
-        "ciRun": 43189016725,
-        "ciRunNumber": 101,
-        "fullCi": "PASS_9_OF_9",
-        "evidence": "docs/evidence/rmv2/phase2a-ci101.json"
+      "verifiedArtifact": {
+        "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+        "sourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
+        "version": "0.10.1-dev.11",
+        "ciRunId": 43530897985,
+        "artifactId": 14088683951,
+        "artifactZipSha256": "4024f0bd19fb0238b557863cc7e05facba12c0be4d2b454cd8394d87aaeb13c3",
+        "installerSha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+        "installerBytes": 172700781,
+        "result": "VERIFIED_INTERNAL_ARTIFACT",
+        "primaryCount": 1,
+        "oldPrimariesAbsent": true,
+        "migration": "PASS",
+        "installedLifecycle": "PASS",
+        "physicalOwnerAcceptance": false,
+        "publicFeedPromoted": false
       },
-      "phase2b": {
-        "status": "SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
-        "beforeTag": "checkpoint/20261112-before-rmv2-phase2b-241359b",
-        "beforeBundleSha256": "3c9477f70a4a00aca1823dcebd81f05c742e6f6c6421ae570e3a46b761ad8c52",
-        "restoreFsck": "PASS",
+      "beforeCloseout": {
+        "tag": "checkpoint/20261114-before-rmv2-dev11-ready-f109260",
+        "bundleSha256": "34f7b498e30cd989a7f3c9a4e56f925d33b2fa6905c0ad279504dd53b5ea1abe",
+        "archiveSha256": "b9fb84cafe1d3844407057a71db0f8d31b499d62742a28f9fe9cd45c67f42f1f",
+        "restore": "PASS",
+        "source": "f1092607fb96ed181e9b4c71a55e13429b183a60"
+      },
+      "nativeCiBudgets": {
+        "textStepMinutes": 40,
+        "windowsJobMinutes": 110
+      },
+      "platformCi": {
+        "macOS": "STANDARD_MACOS15_INTEL_NATIVE_SOURCE_TESTS",
+        "appleSilicon": "PENDING_NOT_ACCEPTED_HOSTED_CAPACITY_FAILURE_CI117",
+        "Linux": "UBUNTU24_NATIVE_SOURCE_TESTS"
+      },
+      "lifecycle": {
+        "closeBeforeFinalReport": "REQUIRED_WITH_NATIVE_CONFIRMATION",
+        "orphanQuietMs": 45000,
+        "statusOrHeartbeatRenews": false,
+        "inFlightProtected": true,
+        "newAttachAfterClose": true,
+        "aBAndAgentSessionsSeparate": true,
+        "externalModelFinalMessageIntercepted": false
+      },
+      "cursor": {
+        "systemCursorOverride": false,
+        "originalAll11Roles": "NATIVE_CI_PASS",
+        "badgeBackground": "#DCEEFF",
+        "badgeText": "#0F456B",
+        "edgeColor": "#4AA7DF",
+        "logicalKeyboardScreen": "FOREGROUND_TARGET_BOUND_BEFORE_ACTIVITY",
+        "ownerInput": "YIELD_CURRENT_OPERATION_KEEP_AGENT_NO_REPLAY",
+        "independentWindowsPointers": false
+      },
+      "workers": {
+        "orderedInputMtaCapacity": 16,
+        "captureCapacity": 2,
+        "semanticObservationMtaCapacity": 2,
+        "statusCancelIndependent": true,
+        "semanticElementsCrossThread": false,
+        "observationPublication": "ROOT_SESSION_INPUT_FOCUS_OWNER_GENERATION_CHECKED"
+      },
+      "typing": {
         "inlineUtf16Units": 262144,
         "referenceUtf8Bytes": 16777216,
-        "asynchronous": true,
-        "targetVerified": "CAPABILITY_DEPENDENT_REQUIRED_FAILS_BEFORE_INPUT",
-        "authority": "LOCAL_EACH_CHUNK_SERVER_SIGNED_SNAPSHOT_MAX1000MS",
-        "automaticReplay": false,
-        "deadlineDefaultMs": 600000,
-        "deadlineMaximumMs": 3600000,
-        "nativeFixture": "ACTIONS_PENDING_16K_64K_256K_UNICODE_AND_FOCUS_SWITCH",
-        "compileCorrection": "CS0819_SPLIT_VAR_DECLARATIONS",
-        "priorCi": {
-          "runId": 43356611319,
-          "runNumber": 102,
-          "source": "ef549116ecc00dc4174c8a02926857867a5c85a7",
-          "native": "COMPILE_FAIL_CS0819",
-          "backendIntegration": "PASS",
-          "desktopWeb": "PASS",
-          "nativeTextFixture": "NOT_REACHED"
-        },
-        "nativeCompile": "PASS_CI103_SOURCE9638594",
-        "nativeTextAcceptance": "CI117_9_NEWLINES_16K_64K_PASS_262K_INCOMPLETE_EXTERNAL_TIMEOUT",
-        "largeReferencePreparation": "COOPERATIVE_PREPARATION_AND_INITIAL_TARGET_BINDING_REVIEW_PENDING",
-        "preparation": "COOPERATIVE_8192_UNITS_OR8MS",
-        "targetBinding": "BEFORE_COOPERATIVE_GRAPHEME_VALIDATION",
-        "acceptedUnits": "ZERO_UNTIL_WHOLE_GRAPHEME_AND_PACING_PREFLIGHT_PASSES",
-        "pacing": "IMPOSSIBLE_TOTAL_DELAY_REJECTED_BEFORE_INPUT",
-        "preparationCancel": "ZERO_INPUT_PROVEN_PORTABLE",
-        "nativeTextDiagnostic": "UNITS_SHA256_FIRST_DIFF_FINAL_METADATA_ONLY_NO_RAW_TEXT",
-        "diagnostics": "STAGE_LENGTH_OFFSET_HASH_ONLY",
-        "nativeFixtureStepBudgetMinutes": 15,
-        "nativeTextEvidence": "docs/evidence/rmv2/text-ci117.json",
-        "fixture": "SEPARATE_STA_WINFORMS_PROCESS_WITH_CURRENT_USER_ONLY_PIPE",
-        "newFixtureNativeCi": "PENDING",
-        "noAcceptanceRelaxation": true,
-        "source": "WIN32_EDITOR_SCOPED_ACCEPTANCE_CI_PENDING",
-        "internalChunkUnits": 256,
+        "referenceUtf16Units": 8388608,
+        "unpacedWindowUnits": 256,
+        "pacedWindowUnits": 128,
         "maxGraphemeUnits": 128,
-        "totalInlineUnits": 262144,
-        "referenceUnits": 8388608,
-        "delivery": "EXPECTED_PREFIX_SUFFIX_READBACK_BEFORE_NEXT_CHUNK_WHEN_AVAILABLE",
-        "initialEmptyReadback": "VALUE_PATTERN_GETTER_ONLY_NO_SETVALUE",
-        "finalAcceptance": "UNCHANGED_FULL_NATIVE_READBACK_AND_FIXTURE_TEXT",
-        "inputMethod": "REAL_UNICODE_SENDINPUT",
-        "unknownEffects": "RECONCILE_NO_RESUME",
-        "nativeAuthority": "DEADLINE_BEFORE_EVERY_NEW_PACKET_AFTER_TARGET_CHECK_NATIVE_QUEUE_FENCED",
-        "historicalObservedUnits": "SEPARATE_FROM_FINAL_VERIFIED_CONTENT",
-        "nativeCi": "PENDING_SIX_NEWLINE_CASES_AND_LARGE_LAYOUT_MATRIX",
-        "before": {
-          "tag": "checkpoint/20261113-before-rmv2-dev11-acceptance-f2aec12",
-          "bundleSha256": "66f3728faec85d2450cc9460d17d1c2fb8fca632f6390a582087b7e7e81fd59c",
-          "archiveSha256": "11fd239b329df4ae7973a6b7bc7bfcaa8837e525661bd6cb3e76b6c5165dae80",
-          "restore": "PASS",
-          "source": "f2aec120cc902154c16336f3293e290846ccb4b6"
-        },
-        "acceptance": "EXACT_CONTENT_AND_NATIVE_VERIFICATION_UNCHANGED",
-        "pacedChunkUnits": 128,
-        "nativePacketUnits": 32,
-        "nativePacketException": "ONE_VALIDATED_GRAPHEME_UP_TO128",
-        "ci110ExactNativeSizes": [
-          16384,
-          65536
-        ],
-        "ci110LargeCase": {
-          "requested": 262144,
-          "lastKnownAck": 174576,
-          "outcome": "15_MINUTE_TIMEOUT_NOT_FULL_VERIFICATION"
-        },
-        "completionReadback": "ALREADY_SENT_EFFECTS_ONLY_NO_NEW_INPUT_LOCAL_CANCEL_FOCUS_OWNER_DESKTOP_GUARDED",
-        "nativePacketGuardTest": "RECORDING_SENDER_SAME_CORE_NO_OS_INPUT",
-        "deliveryPollingMs": [
-          15,
-          30,
-          60,
-          120
-        ],
-        "deliveryWaitMs": 5000,
-        "postStopDiagnostics": "THREE_METADATA_ONLY_FIXTURE_SNAPSHOTS_NO_INPUT_NO_SUCCESS_OVERRIDE",
-        "fixtureCapacityUnits": 1048576,
-        "inputAuthorityBudgetMaxMs": 1000,
-        "chunkRpcTimeoutMs": 10000,
-        "nativeFixtureMatrix": [
+        "preferredPacketUnits": 32,
+        "mutationAuthorityMaxMs": 1000,
+        "readOnlyDeliveryWaitMs": 5000,
+        "rpcTimeoutMs": 10000,
+        "verification": "CAPABILITY_DEPENDENT_FULL_CONTENT_LINE_ENDING_EQUIVALENCE_ONLY",
+        "readbackChangesInput": false,
+        "nativeMultilineLineBreaks": "KNOWN_EDIT_CLASS_MULTILINE_WANTRETURN_ONLY",
+        "nativeLineBreakCases": [
           {
-            "control": "managed-classic-edit",
-            "units": [
-              16384,
-              65536
+            "fullFixtureReadback": true,
+            "sourceUnits": 18,
+            "lineEndingCodeUnits": [
+              10
             ],
-            "layout": "single-paragraph"
+            "controlKind": "classic",
+            "nativeVerified": true
           },
           {
-            "control": "win32-edit",
-            "units": [
-              262144
+            "fullFixtureReadback": true,
+            "sourceUnits": 20,
+            "lineEndingCodeUnits": [
+              13,
+              10
             ],
-            "layout": "paragraphs-cr",
-            "provider": "BUILT_IN_NO_MANAGED_TEXTBOX_ACCESSIBILITY"
+            "controlKind": "classic",
+            "nativeVerified": true
           },
           {
-            "control": [
-              "managed-classic",
-              "managed-rich",
-              "win32-edit"
+            "fullFixtureReadback": true,
+            "sourceUnits": 18,
+            "lineEndingCodeUnits": [
+              13
             ],
-            "lineEndings": [
-              "LF",
-              "CRLF",
-              "CR"
-            ],
-            "expectedCases": 9
+            "controlKind": "classic",
+            "nativeVerified": true
           },
           {
-            "control": "managed-classic",
-            "delayPerWmCharMs": 80,
-            "beforeLargeSizes": true
+            "fullFixtureReadback": true,
+            "sourceUnits": 18,
+            "lineEndingCodeUnits": [
+              10
+            ],
+            "controlKind": "rich",
+            "nativeVerified": true
+          },
+          {
+            "fullFixtureReadback": true,
+            "sourceUnits": 20,
+            "lineEndingCodeUnits": [
+              13,
+              10
+            ],
+            "controlKind": "rich",
+            "nativeVerified": true
+          },
+          {
+            "fullFixtureReadback": true,
+            "sourceUnits": 18,
+            "lineEndingCodeUnits": [
+              13
+            ],
+            "controlKind": "rich",
+            "nativeVerified": true
+          },
+          {
+            "fullFixtureReadback": true,
+            "sourceUnits": 18,
+            "lineEndingCodeUnits": [
+              10
+            ],
+            "controlKind": "native",
+            "nativeVerified": true
+          },
+          {
+            "fullFixtureReadback": true,
+            "sourceUnits": 20,
+            "lineEndingCodeUnits": [
+              13,
+              10
+            ],
+            "controlKind": "native",
+            "nativeVerified": true
+          },
+          {
+            "fullFixtureReadback": true,
+            "sourceUnits": 18,
+            "lineEndingCodeUnits": [
+              13
+            ],
+            "controlKind": "native",
+            "nativeVerified": true
           }
         ],
+        "inputEventsAreInsertedContent": false,
+        "automaticReplay": false,
+        "nativeResult": "PASS_SCOPED_EDITOR_LAYOUT_MATRIX",
+        "editorMeasurements": [
+          {
+            "layout": "single-paragraph",
+            "comparison": "full-content-line-ending-equivalence-only",
+            "nativeVerified": true,
+            "wordWrap": true,
+            "controlKind": "classic-edit",
+            "elapsedMs": 17154.3417,
+            "fullFixtureReadback": true,
+            "units": 16384
+          },
+          {
+            "layout": "single-paragraph",
+            "comparison": "full-content-line-ending-equivalence-only",
+            "nativeVerified": true,
+            "wordWrap": true,
+            "controlKind": "classic-edit",
+            "elapsedMs": 82375.2,
+            "fullFixtureReadback": true,
+            "units": 65536
+          },
+          {
+            "layout": "paragraphs-cr",
+            "comparison": "full-content-line-ending-equivalence-only",
+            "nativeVerified": true,
+            "wordWrap": true,
+            "controlKind": "win32-edit",
+            "elapsedMs": 1019621.9664,
+            "fullFixtureReadback": true,
+            "units": 262144
+          }
+        ],
+        "delayedDelivery": {
+          "nativeVerified": true,
+          "authorityExpiredAfterSend": true,
+          "exactFixtureReadback": true,
+          "elapsedMs": 2917.1667,
+          "delayPerWmCharMs": 80,
+          "units": 31
+        },
         "classicWrapped262K": "NOT_ACCEPTED",
-        "nativeStatusChunkUnits": 256,
-        "nativePreparedChunkUnits": 256,
-        "preferredPacketUnits": 32,
-        "richSingleParagraph262K": "NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT",
-        "nativeLineBreaks": "BOUND_KNOWN_NATIVE_EDIT_MULTILINE_WANTRETURN_ONLY",
-        "unknownFieldReturnBehavior": "UNCHANGED_UNICODE_NO_NEW_RETURN",
-        "newlineSourceAccounting": "CRLF_TWO_SOURCE_UNITS_ONE_RETURN",
-        "managedRichParagraphs262K": "NOT_ACCEPTED_CI116_DELIVERY_TIMEOUT",
-        "nativeEditLastRecordedFullyObservedSourceUnits": 126916,
-        "nativeCiStepBudgetMinutes": 40,
-        "nativeCiJobBudgetMinutes": 110,
-        "productInputAuthorityMaxMs": 1000,
-        "productReadOnlyDeliveryMs": 5000,
-        "productChunkRpcTimeoutMs": 10000
+        "richSingleParagraph262K": "NOT_ACCEPTED_CI114",
+        "managedRichParagraphs262K": "NOT_ACCEPTED_CI116",
+        "inputAlreadyQueuedCanRaceWithFocusChange": true,
+        "arbitraryLfCrlfApplicationMatrix": "PENDING_PHYSICAL",
+        "readbackCost": "FULL_DOCUMENT_PER_WINDOW_INCREMENTAL_RANGE_NOT_IMPLEMENTED"
       },
-      "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN",
-      "nextPhase": "FIX_NATIVE_TEXT_THEN_OPTIONAL_GPU_MEDIA_BENCHMARKS",
-      "phase2c": {
-        "status": "SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
-        "beforeTag": "checkpoint/20261113-before-rmv2-capture-ef54911",
-        "beforeBundleSha256": "b6ab07c2f49c8454bb679b181c4196913fd2a0daeebdf38df0eea25b67f06ae4",
-        "restoreFsck": "PASS",
-        "cache": "ONE_PRIVATE_ENTRY_CURRENT_PIXELS_HASHED_EACH_READ",
-        "clear": "LAST_VISUAL_SCOPE_CLOSE_AND_HELPER_EXIT",
-        "roi": "SCREEN_LOCAL_PINNED_TO_ATTACH",
-        "effectiveLimits": {
-          "width": 1280,
-          "height": 720,
-          "quality": 70,
-          "sourcePixels": 16777216
-        },
-        "coordinateSpace": "OPT_IN_FRAME_EXACT_LATEST_SEQ_AGE_TOPOLOGY_CHECKED",
-        "genericUiSignals": "LATEST_SLOT1_COALESCED40MS",
-        "nativeProbe": "ACTIONS_PENDING_REAL_ROI_JPEG_AND_SCOPE_CACHE_CLEAR",
-        "performanceProof": "PENDING_CAPTURE_ONLY_COLD_WARM_NOT_PRIOR_RELEASE_OR_NETWORK",
-        "nativeCapture": "PASS_CI104_SOURCE27c4637",
-        "evidence": "docs/evidence/rmv2/phase2c-ci104-capture.json",
-        "artifactSha256": "85115c84865271b3ef31333e8bac5b0b1f58b65760fa4425b81fda814785d541",
-        "priorSourceSpeedupBenchmark": false
-      },
-      "ci103": {
-        "run": 43357408230,
-        "source": "9638594a9d6d59ba56d3b5f6ef65945d95bedf03",
-        "full": "FAIL",
-        "backendIntegration": "PASS",
-        "nativeCompile": "PASS",
-        "nativeSelfTest": "PASS",
-        "nativeCursorLifecycle": "PASS",
-        "textFixture": "FAIL_READER100_EVENTS",
-        "web": "FAIL_ASYNC_SAVE_ASSERTION_RACE"
-      },
-      "preparationCheckpoint": {
-        "tag": "checkpoint/20261113-before-rmv2-preparation-27c4637",
-        "bundleSha256": "f1753a4b08b361e79c16b6802d2ee2476876e4df88d602ef868a706907892abe",
-        "archiveSha256": "dbaa05aad69cdaca287996362afe01bb0907423c4f5df6ce5f5bb6d92462e86e",
-        "restore": "PASS",
-        "source": "27c46376011edd94cd59781ab4d1f2ccca3a7cad"
-      },
-      "uiaObservation": {
-        "source": "PUBLISHED_F968ED0",
-        "queueCapacity": 2,
-        "apartment": "DEDICATED_WINDOWLESS_MTA",
-        "inputMutationOrdering": "UNCHANGED",
-        "crossLaneObjects": "METADATA_ONLY",
-        "publishGuard": "SAME_LIVE_SESSION_ROOT_HWND_AND_ROOT_EPOCH",
-        "concurrentUiOrInput": "RESYNC_RECOMMENDED",
-        "blockedProviderRecovery": "NO_UNSAFE_THREAD_ABORT_EXISTING_HELPER_RESTART",
-        "before": {
-          "tag": "checkpoint/20261113-before-rmv2-uia-e34d85c",
-          "bundleSha256": "a2c698726666ebc720949c920e496b199605e0067374a36ca396dee082206c6c",
-          "archiveSha256": "f340da6b67fdde9f8f3c83992857218f6d9ee723763b351d9eea64ae48469a8b",
-          "restore": "PASS",
-          "source": "e34d85c23625b59e2a6460f24f0e1a56e5d53f89"
-        },
-        "nativeSchedulerSelfTest": "PASS_CI106",
-        "physicalAccepted": false,
-        "concurrentInput": "SEMANTIC_DIRECT_NATIVE_AND_PHYSICAL_OWNER_GENERATIONS"
+      "capture": {
+        "defaultBackend": "gdi",
+        "bufferReuse": true,
+        "unchangedBeforeJpeg": true,
+        "cropRoi": true,
+        "frameMapping": "PINNED_SEQ_TOPOLOGY_MONOTONIC_AGE",
+        "maxWidth": 1280,
+        "maxHeight": 720,
+        "maxSourcePixels": 16777216,
+        "maxJpegBytes": 665600,
+        "cleanup": "NONBLOCKING_PENDING_DRAINED_BEFORE_AFTER_CAPTURE",
+        "correctedSameRunnerComparison": "docs/evidence/rmv2/comparison-ci110.json",
+        "comparisonScope": "LOCAL_CAPTURE_PLUS_PIPE_NOT_INPUT_NETWORK_OR_OWNER",
+        "sameSourceComparison": {
+          "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
+          "baselineSource": "241359b57ebda76306f23b81d51ce8fbd928207f",
+          "samplesPerSource": 30,
+          "baselineLocalPipeP95Ms": 57.8622,
+          "currentLocalPipeP95Ms": 62.1832,
+          "scope": "ISOLATED_SAME_RUNNER_CAPTURE_AND_LOCAL_PIPE_ONLY_NOT_NETWORK_INPUT_OR_OWNER_HARDWARE",
+          "speedupThreshold": "NONE_MEASUREMENT_ONLY"
+        }
       },
       "gpu": {
-        "source": "CS0121_OVERLOAD_FIXED_NATIVE_CI_PENDING",
-        "nativeBuild": false,
-        "enabledByDefault": false,
-        "defaultBackend": "GDI",
-        "ownerOptIn": "LIGHT_REMOTE_RM_CAPTURE_BACKEND=dxgi",
-        "capture": "DXGI_D3D11_EXACT_OUTPUT_ADAPTER",
-        "freshFallback": "GDI_WITH_EXPLICIT_REASON_NO_STALE_FRAME",
-        "rotation": "NON_IDENTITY_FALLBACK_GDI",
-        "acquireTimeoutMs": 16,
-        "retryBackoffMs": 2000,
-        "maxStagingPixels": 16777216,
-        "maxGpuEntries": 1,
+        "default": "gdi",
+        "optional": "dxgi",
+        "hardwareMatrix": "PENDING_OWNER",
         "gpuResize": false,
         "hardwareEncoding": false,
         "videoStreaming": false,
+        "implemented": "OPT_IN_DXGI_CAPTURE_CPU_RESIZE_JPEG_FRESH_GDI_FALLBACK",
+        "enabledByDefault": false,
+        "environment": "LIGHT_REMOTE_RM_CAPTURE_BACKEND=dxgi",
+        "acquireTimeoutMs": 16,
+        "recoveryBackoffMs": 2000,
+        "dependencyLock": "client/windows-native/GptOperator.RealRemoteV2/packages.lock.json"
+      },
+      "evidence": {
+        "acceptance": "docs/evidence/rmv2/acceptance-ci118.json",
+        "text": "docs/evidence/rmv2/text-ci118.json",
+        "phase1": "docs/evidence/rmv2/phase1-ci118.json",
+        "dxgi": "docs/evidence/rmv2/dxgi-ci118.json",
+        "comparison": "docs/evidence/rmv2/comparison-ci118.json"
+      },
+      "deployedToLab": true,
+      "physicalAccepted": false,
+      "publicRelease": false,
+      "ownerTestPlan": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md#consolidated-windows-acceptance",
+      "historicalResumeStateBeforeCloseout": {
+        "phase": 2,
+        "status": "DEV11_FULL_TEXT_CI_BUDGET_AND_MACOS_INTEL_PENDING",
+        "version": "0.10.1-dev.11",
+        "beforeCommit": "a2173d525e67945843ecfa307304ce1228c7c096",
+        "beforeTag": "checkpoint/20261111-before-rmv2-phase1-a2173d5",
+        "bundleSha256": "52c4ed562287cce186f666697fb4c96d20e847129e0398bc913ea6503dffe474",
+        "restoreFsck": "PASS",
         "physicalAccepted": false,
-        "nugetLock": "COMMITTED_ACTIONS_GRAPH_LOCKED_RESTORE",
-        "before": {
-          "tag": "checkpoint/20261113-before-rmv2-dxgi-1287508",
-          "bundleSha256": "8f0e10ae0c89c9b9f13e5087fd9d510b64ce309fe10bceaa999edf1a116608ee",
-          "archiveSha256": "11302d2314b07aa310d1a2f21cb42fe8afdba31ee88754aef4309329356a2eb8",
-          "restore": "PASS",
-          "source": "128750891afb9326dd721c0d3039e6af6027a835"
+        "gpuOrVideoImplemented": false,
+        "verifiedLongTypingImplemented": true,
+        "deployed": false,
+        "publicRelease": false,
+        "portableSourceGroups": 71,
+        "portableUnitCases": 299,
+        "portableUnitExecution": "two path-compatible batches; no limits weakened",
+        "nativeCi": "PENDING_FULL_TEXT_40_MINUTE_CI_BUDGET",
+        "firstSource": "e3c0126dda4b40fd607f98bff5c8bd8f3be65c50",
+        "firstCiRunId": 43032628902,
+        "nativeProductCompile": "PASS_CI86",
+        "nativeSelfTest": "PASS_CI86",
+        "nativeFirstFailure": "POWERSHELL_NET10_GDIPLUS_REFERENCE_IN_PROBE_BEFORE_ASSERTIONS",
+        "nativeProbeFix": "WIN32_CURSOR_BITMAP_AND_HOTSPOT_HASHES_SAME11_ROLES",
+        "nativeVerifiedSource": "398c4c8b316d59458f636bcdf1bd4ea44056634f",
+        "nativeVerifiedCiRunId": 43165467078,
+        "nativeArtifactId": 13920222075,
+        "nativeEvidence": "docs/evidence/rmv2/phase1-ci112.json",
+        "ownerStartRace": "GENERATION_CAPTURE_BEFORE_QUIET_CHECK",
+        "observerLocalInput": "NO_FALSE_CONTROL_PAUSE",
+        "fullCi": "PENDING_NATIVE_TEXT_INSTALLER_AND_REQUIRED_PLATFORM_CHECKS",
+        "beforeAfterBenchmark": false,
+        "hookThread": "DEDICATED_METADATA_MESSAGE_PUMP_NOT_WPF_UI",
+        "supersededCiRunId": 43036093867,
+        "fullWindowsCi": "PASS_CI98",
+        "browserFailure": "APT_MIRROR_LIST_OBSERVED_ETC_APT_APT_MIRRORS_TXT_OMITTED",
+        "productSourceChangedAfterCi89": true,
+        "ciRecoveryScope": "DISPOSABLE_GITHUB_HOSTED_RUNNERS_ONLY",
+        "smoothMotionSleepSliceMaxMs": 8,
+        "physicalBuild92": "INSTALL_PASS_INDICATOR_FAIL",
+        "ownerInputBehavior": "YIELD_CURRENT_INPUT_KEEP_AGENT_SESSION_NO_BLOCKINPUT_NO_REPLAY",
+        "independentForegroundConcurrency": false,
+        "beforeIndicatorTag": "checkpoint/20261112-before-rmv2-indicator-668ce3a",
+        "beforeIndicatorBundleSha256": "e880177c09d7a4b9666e650eab380351f972de3354c77428bd10f243ef26729b",
+        "pausedIndicator": "LIGHT_SKY_BLUE_SAME_SCOPE_LIFETIME_NO_STANDALONE_TAIL",
+        "codexParity": "PUBLIC_BEHAVIOR_REFERENCE_NOT_INTERNAL_CODE_COPY",
+        "compiledSource": "398c4c8b316d59458f636bcdf1bd4ea44056634f",
+        "artifactId": 13921290856,
+        "installerSha256": "6cb6ca1e02653dd647c05cbab677545c5af74b1e5129c1b04491b375cb54785a",
+        "physicalBuild94": "INSTALLED_OWNER_FAIL_OVERLAY_REMAINS_AFTER_TASK",
+        "lifecycleDecision": "EXPLICIT_CLOSE_BEFORE_REPORT_REOPEN_FOR_NEXT_TASK_PLUS45S_QUIET_FALLBACK",
+        "fallbackDoesNotInterruptInFlightRm": true,
+        "newPalette": "LIGHT_OUTLOOK_SKY_BLUE",
+        "taskScopeOwner": [
+          "A/B session",
+          "Agent"
+        ],
+        "closeBeforeReport": "REQUIRED_TOOL_CONTRACT_WITH_CONFIRMED_NATIVE_CLOSE",
+        "afterClose": "NEW_ATTACH_REQUIRED",
+        "orphanIdleMs": 45000,
+        "inFlightProtected": true,
+        "palette": {
+          "badge": "#DCEEFF",
+          "text": "#0F456B",
+          "edge": "#4AA7DF"
         },
-        "nugetEvidence": "docs/evidence/rmv2/nuget-ci108.json",
-        "nativeCi": "CI112_RUNNER_CAPTURE_FALLBACK_PASS",
-        "evidence": "docs/evidence/rmv2/dxgi-ci112.json"
-      },
-      "captureComparison": {
-        "status": "ACTIONS_PENDING",
-        "baselineSource": "241359b57ebda76306f23b81d51ce8fbd928207f",
-        "samplesPerSource": 30,
-        "warmupPerSource": 3,
-        "order": "15_ABBA_ROUNDS",
-        "scope": "SAME_RUNNER_CAPTURE_AND_LOCAL_PIPE_ONLY",
-        "noInputNetworkOrOwnerClaim": true
-      },
-      "capture": {
-        "source": "NONBLOCKING_CLEANUP_NATIVE_CI110_PASS",
-        "cleanup": "ATOMIC_REQUEST_TRYENTER_DRAIN_BEFORE_AFTER_CAPTURE",
-        "statusBlocksOnCapture": false,
-        "ci109": "GDI_AND_DXGI_FALLBACK_RUNNER_PASS",
-        "evidence": "docs/evidence/rmv2/dxgi-ci109.json",
-        "ownerPhysical": "PENDING",
-        "before": {
-          "tag": "checkpoint/20261113-before-rmv2-measurement-f7e9507",
-          "bundleSha256": "899c1c063c82df8ed0451339cb8c86fc85d263703391d0f9b635d88fdd86ecb9",
-          "archiveSha256": "6e480badaf139509c843ce07e67e84ed26bc7a2ed9ef1ddc99442da59585c63f",
-          "restore": "PASS",
-          "source": "f7e9507eb258916edfeb09797a87fda9dddece45"
+        "portableLifecycleCases": 9,
+        "clientCoreRuntimeModuleIncluded": true,
+        "scopedInputReceipt": "ADDITIVE_VISUAL_METADATA_PRESERVES_FLAT_EXISTING_FIELDS",
+        "closeRetryReceipt": "OWNER_BOUND_15MIN_MAX256_NO_NATIVE_TOKENS",
+        "resumeIncludedInFlight": true,
+        "nativeCurrentSourceUnchangedAfterCi97": true,
+        "sourceTree": "5f432f68d60ff2426bd2742848b519bdd85dbd74",
+        "nativeArtifactSha256": "f5b5cde8f33172939eac99871ae25a879fb4812ea6cf4d93304162372dc38a49",
+        "installerBytes": 172575451,
+        "physicalBuild98": "PENDING_OWNER_SELF_INSTALL",
+        "beforePhase2Source": "3f85c36e66989d541b1259f6ab7d4665d82d290e",
+        "beforePhase2Tag": "checkpoint/20261112-before-rmv2-phase2-3f85c36",
+        "beforePhase2BundleSha256": "e679555effebb038bdb71ac4ea0a364fa8822d5cd7e19aed1ace4b87ba0f6c14",
+        "phase2RestoreFsck": "PASS",
+        "phase2a": {
+          "orderedInput": "DEDICATED_MTA_BOUNDED16",
+          "capture": "DEDICATED_MTA_BOUNDED2",
+          "statusCancel": "INDEPENDENT_BOUNDED4",
+          "cancel": "OWNER_AND_NATIVE_LEASE_CHECKED_QUEUED_FENCE_NO_REPLAY",
+          "profiles": [
+            "compatibility",
+            "precision",
+            "responsive",
+            "smooth"
+          ],
+          "defaultProfile": "compatibility",
+          "nativeAcceptance": "PASS_ISOLATED_CI_NOT_OWNER_PHYSICAL",
+          "ci100": "FAILED_BEFORE_NATIVE_COMPILE_DEFAULT_PATH_FINGERPRINTS",
+          "defaultCompatibility": "EXPLICIT_90MS_8STEPS_35MS_HOVER_40MS_HOLD",
+          "nativeProfileSelfTest": "REGISTERED_PENDING_ACTIONS",
+          "source": "241359b57ebda76306f23b81d51ce8fbd928207f",
+          "ciRun": 43189016725,
+          "ciRunNumber": 101,
+          "fullCi": "PASS_9_OF_9",
+          "evidence": "docs/evidence/rmv2/phase2a-ci101.json"
         },
-        "nativeCi": "CI112_GDI_DXGI_FALLBACK_PASS"
+        "phase2b": {
+          "status": "SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
+          "beforeTag": "checkpoint/20261112-before-rmv2-phase2b-241359b",
+          "beforeBundleSha256": "3c9477f70a4a00aca1823dcebd81f05c742e6f6c6421ae570e3a46b761ad8c52",
+          "restoreFsck": "PASS",
+          "inlineUtf16Units": 262144,
+          "referenceUtf8Bytes": 16777216,
+          "asynchronous": true,
+          "targetVerified": "CAPABILITY_DEPENDENT_REQUIRED_FAILS_BEFORE_INPUT",
+          "authority": "LOCAL_EACH_CHUNK_SERVER_SIGNED_SNAPSHOT_MAX1000MS",
+          "automaticReplay": false,
+          "deadlineDefaultMs": 600000,
+          "deadlineMaximumMs": 3600000,
+          "nativeFixture": "ACTIONS_PENDING_16K_64K_256K_UNICODE_AND_FOCUS_SWITCH",
+          "compileCorrection": "CS0819_SPLIT_VAR_DECLARATIONS",
+          "priorCi": {
+            "runId": 43356611319,
+            "runNumber": 102,
+            "source": "ef549116ecc00dc4174c8a02926857867a5c85a7",
+            "native": "COMPILE_FAIL_CS0819",
+            "backendIntegration": "PASS",
+            "desktopWeb": "PASS",
+            "nativeTextFixture": "NOT_REACHED"
+          },
+          "nativeCompile": "PASS_CI103_SOURCE9638594",
+          "nativeTextAcceptance": "CI117_9_NEWLINES_16K_64K_PASS_262K_INCOMPLETE_EXTERNAL_TIMEOUT",
+          "largeReferencePreparation": "COOPERATIVE_PREPARATION_AND_INITIAL_TARGET_BINDING_REVIEW_PENDING",
+          "preparation": "COOPERATIVE_8192_UNITS_OR8MS",
+          "targetBinding": "BEFORE_COOPERATIVE_GRAPHEME_VALIDATION",
+          "acceptedUnits": "ZERO_UNTIL_WHOLE_GRAPHEME_AND_PACING_PREFLIGHT_PASSES",
+          "pacing": "IMPOSSIBLE_TOTAL_DELAY_REJECTED_BEFORE_INPUT",
+          "preparationCancel": "ZERO_INPUT_PROVEN_PORTABLE",
+          "nativeTextDiagnostic": "UNITS_SHA256_FIRST_DIFF_FINAL_METADATA_ONLY_NO_RAW_TEXT",
+          "diagnostics": "STAGE_LENGTH_OFFSET_HASH_ONLY",
+          "nativeFixtureStepBudgetMinutes": 15,
+          "nativeTextEvidence": "docs/evidence/rmv2/text-ci117.json",
+          "fixture": "SEPARATE_STA_WINFORMS_PROCESS_WITH_CURRENT_USER_ONLY_PIPE",
+          "newFixtureNativeCi": "PENDING",
+          "noAcceptanceRelaxation": true,
+          "source": "WIN32_EDITOR_SCOPED_ACCEPTANCE_CI_PENDING",
+          "internalChunkUnits": 256,
+          "maxGraphemeUnits": 128,
+          "totalInlineUnits": 262144,
+          "referenceUnits": 8388608,
+          "delivery": "EXPECTED_PREFIX_SUFFIX_READBACK_BEFORE_NEXT_CHUNK_WHEN_AVAILABLE",
+          "initialEmptyReadback": "VALUE_PATTERN_GETTER_ONLY_NO_SETVALUE",
+          "finalAcceptance": "UNCHANGED_FULL_NATIVE_READBACK_AND_FIXTURE_TEXT",
+          "inputMethod": "REAL_UNICODE_SENDINPUT",
+          "unknownEffects": "RECONCILE_NO_RESUME",
+          "nativeAuthority": "DEADLINE_BEFORE_EVERY_NEW_PACKET_AFTER_TARGET_CHECK_NATIVE_QUEUE_FENCED",
+          "historicalObservedUnits": "SEPARATE_FROM_FINAL_VERIFIED_CONTENT",
+          "nativeCi": "PENDING_SIX_NEWLINE_CASES_AND_LARGE_LAYOUT_MATRIX",
+          "before": {
+            "tag": "checkpoint/20261113-before-rmv2-dev11-acceptance-f2aec12",
+            "bundleSha256": "66f3728faec85d2450cc9460d17d1c2fb8fca632f6390a582087b7e7e81fd59c",
+            "archiveSha256": "11fd239b329df4ae7973a6b7bc7bfcaa8837e525661bd6cb3e76b6c5165dae80",
+            "restore": "PASS",
+            "source": "f2aec120cc902154c16336f3293e290846ccb4b6"
+          },
+          "acceptance": "EXACT_CONTENT_AND_NATIVE_VERIFICATION_UNCHANGED",
+          "pacedChunkUnits": 128,
+          "nativePacketUnits": 32,
+          "nativePacketException": "ONE_VALIDATED_GRAPHEME_UP_TO128",
+          "ci110ExactNativeSizes": [
+            16384,
+            65536
+          ],
+          "ci110LargeCase": {
+            "requested": 262144,
+            "lastKnownAck": 174576,
+            "outcome": "15_MINUTE_TIMEOUT_NOT_FULL_VERIFICATION"
+          },
+          "completionReadback": "ALREADY_SENT_EFFECTS_ONLY_NO_NEW_INPUT_LOCAL_CANCEL_FOCUS_OWNER_DESKTOP_GUARDED",
+          "nativePacketGuardTest": "RECORDING_SENDER_SAME_CORE_NO_OS_INPUT",
+          "deliveryPollingMs": [
+            15,
+            30,
+            60,
+            120
+          ],
+          "deliveryWaitMs": 5000,
+          "postStopDiagnostics": "THREE_METADATA_ONLY_FIXTURE_SNAPSHOTS_NO_INPUT_NO_SUCCESS_OVERRIDE",
+          "fixtureCapacityUnits": 1048576,
+          "inputAuthorityBudgetMaxMs": 1000,
+          "chunkRpcTimeoutMs": 10000,
+          "nativeFixtureMatrix": [
+            {
+              "control": "managed-classic-edit",
+              "units": [
+                16384,
+                65536
+              ],
+              "layout": "single-paragraph"
+            },
+            {
+              "control": "win32-edit",
+              "units": [
+                262144
+              ],
+              "layout": "paragraphs-cr",
+              "provider": "BUILT_IN_NO_MANAGED_TEXTBOX_ACCESSIBILITY"
+            },
+            {
+              "control": [
+                "managed-classic",
+                "managed-rich",
+                "win32-edit"
+              ],
+              "lineEndings": [
+                "LF",
+                "CRLF",
+                "CR"
+              ],
+              "expectedCases": 9
+            },
+            {
+              "control": "managed-classic",
+              "delayPerWmCharMs": 80,
+              "beforeLargeSizes": true
+            }
+          ],
+          "classicWrapped262K": "NOT_ACCEPTED",
+          "nativeStatusChunkUnits": 256,
+          "nativePreparedChunkUnits": 256,
+          "preferredPacketUnits": 32,
+          "richSingleParagraph262K": "NOT_ACCEPTED_CI114_DELIVERY_TIMEOUT",
+          "nativeLineBreaks": "BOUND_KNOWN_NATIVE_EDIT_MULTILINE_WANTRETURN_ONLY",
+          "unknownFieldReturnBehavior": "UNCHANGED_UNICODE_NO_NEW_RETURN",
+          "newlineSourceAccounting": "CRLF_TWO_SOURCE_UNITS_ONE_RETURN",
+          "managedRichParagraphs262K": "NOT_ACCEPTED_CI116_DELIVERY_TIMEOUT",
+          "nativeEditLastRecordedFullyObservedSourceUnits": 126916,
+          "nativeCiStepBudgetMinutes": 40,
+          "nativeCiJobBudgetMinutes": 110,
+          "productInputAuthorityMaxMs": 1000,
+          "productReadOnlyDeliveryMs": 5000,
+          "productChunkRpcTimeoutMs": 10000
+        },
+        "physicalTestPlan": "OWNER_CONSOLIDATED_AFTER_REMAINING_PLAN",
+        "nextPhase": "FIX_NATIVE_TEXT_THEN_OPTIONAL_GPU_MEDIA_BENCHMARKS",
+        "phase2c": {
+          "status": "SOURCE_IMPLEMENTED_NATIVE_CI_PENDING",
+          "beforeTag": "checkpoint/20261113-before-rmv2-capture-ef54911",
+          "beforeBundleSha256": "b6ab07c2f49c8454bb679b181c4196913fd2a0daeebdf38df0eea25b67f06ae4",
+          "restoreFsck": "PASS",
+          "cache": "ONE_PRIVATE_ENTRY_CURRENT_PIXELS_HASHED_EACH_READ",
+          "clear": "LAST_VISUAL_SCOPE_CLOSE_AND_HELPER_EXIT",
+          "roi": "SCREEN_LOCAL_PINNED_TO_ATTACH",
+          "effectiveLimits": {
+            "width": 1280,
+            "height": 720,
+            "quality": 70,
+            "sourcePixels": 16777216
+          },
+          "coordinateSpace": "OPT_IN_FRAME_EXACT_LATEST_SEQ_AGE_TOPOLOGY_CHECKED",
+          "genericUiSignals": "LATEST_SLOT1_COALESCED40MS",
+          "nativeProbe": "ACTIONS_PENDING_REAL_ROI_JPEG_AND_SCOPE_CACHE_CLEAR",
+          "performanceProof": "PENDING_CAPTURE_ONLY_COLD_WARM_NOT_PRIOR_RELEASE_OR_NETWORK",
+          "nativeCapture": "PASS_CI104_SOURCE27c4637",
+          "evidence": "docs/evidence/rmv2/phase2c-ci104-capture.json",
+          "artifactSha256": "85115c84865271b3ef31333e8bac5b0b1f58b65760fa4425b81fda814785d541",
+          "priorSourceSpeedupBenchmark": false
+        },
+        "ci103": {
+          "run": 43357408230,
+          "source": "9638594a9d6d59ba56d3b5f6ef65945d95bedf03",
+          "full": "FAIL",
+          "backendIntegration": "PASS",
+          "nativeCompile": "PASS",
+          "nativeSelfTest": "PASS",
+          "nativeCursorLifecycle": "PASS",
+          "textFixture": "FAIL_READER100_EVENTS",
+          "web": "FAIL_ASYNC_SAVE_ASSERTION_RACE"
+        },
+        "preparationCheckpoint": {
+          "tag": "checkpoint/20261113-before-rmv2-preparation-27c4637",
+          "bundleSha256": "f1753a4b08b361e79c16b6802d2ee2476876e4df88d602ef868a706907892abe",
+          "archiveSha256": "dbaa05aad69cdaca287996362afe01bb0907423c4f5df6ce5f5bb6d92462e86e",
+          "restore": "PASS",
+          "source": "27c46376011edd94cd59781ab4d1f2ccca3a7cad"
+        },
+        "uiaObservation": {
+          "source": "PUBLISHED_F968ED0",
+          "queueCapacity": 2,
+          "apartment": "DEDICATED_WINDOWLESS_MTA",
+          "inputMutationOrdering": "UNCHANGED",
+          "crossLaneObjects": "METADATA_ONLY",
+          "publishGuard": "SAME_LIVE_SESSION_ROOT_HWND_AND_ROOT_EPOCH",
+          "concurrentUiOrInput": "RESYNC_RECOMMENDED",
+          "blockedProviderRecovery": "NO_UNSAFE_THREAD_ABORT_EXISTING_HELPER_RESTART",
+          "before": {
+            "tag": "checkpoint/20261113-before-rmv2-uia-e34d85c",
+            "bundleSha256": "a2c698726666ebc720949c920e496b199605e0067374a36ca396dee082206c6c",
+            "archiveSha256": "f340da6b67fdde9f8f3c83992857218f6d9ee723763b351d9eea64ae48469a8b",
+            "restore": "PASS",
+            "source": "e34d85c23625b59e2a6460f24f0e1a56e5d53f89"
+          },
+          "nativeSchedulerSelfTest": "PASS_CI106",
+          "physicalAccepted": false,
+          "concurrentInput": "SEMANTIC_DIRECT_NATIVE_AND_PHYSICAL_OWNER_GENERATIONS"
+        },
+        "gpu": {
+          "source": "CS0121_OVERLOAD_FIXED_NATIVE_CI_PENDING",
+          "nativeBuild": false,
+          "enabledByDefault": false,
+          "defaultBackend": "GDI",
+          "ownerOptIn": "LIGHT_REMOTE_RM_CAPTURE_BACKEND=dxgi",
+          "capture": "DXGI_D3D11_EXACT_OUTPUT_ADAPTER",
+          "freshFallback": "GDI_WITH_EXPLICIT_REASON_NO_STALE_FRAME",
+          "rotation": "NON_IDENTITY_FALLBACK_GDI",
+          "acquireTimeoutMs": 16,
+          "retryBackoffMs": 2000,
+          "maxStagingPixels": 16777216,
+          "maxGpuEntries": 1,
+          "gpuResize": false,
+          "hardwareEncoding": false,
+          "videoStreaming": false,
+          "physicalAccepted": false,
+          "nugetLock": "COMMITTED_ACTIONS_GRAPH_LOCKED_RESTORE",
+          "before": {
+            "tag": "checkpoint/20261113-before-rmv2-dxgi-1287508",
+            "bundleSha256": "8f0e10ae0c89c9b9f13e5087fd9d510b64ce309fe10bceaa999edf1a116608ee",
+            "archiveSha256": "11302d2314b07aa310d1a2f21cb42fe8afdba31ee88754aef4309329356a2eb8",
+            "restore": "PASS",
+            "source": "128750891afb9326dd721c0d3039e6af6027a835"
+          },
+          "nugetEvidence": "docs/evidence/rmv2/nuget-ci108.json",
+          "nativeCi": "CI112_RUNNER_CAPTURE_FALLBACK_PASS",
+          "evidence": "docs/evidence/rmv2/dxgi-ci112.json"
+        },
+        "captureComparison": {
+          "status": "ACTIONS_PENDING",
+          "baselineSource": "241359b57ebda76306f23b81d51ce8fbd928207f",
+          "samplesPerSource": 30,
+          "warmupPerSource": 3,
+          "order": "15_ABBA_ROUNDS",
+          "scope": "SAME_RUNNER_CAPTURE_AND_LOCAL_PIPE_ONLY",
+          "noInputNetworkOrOwnerClaim": true
+        },
+        "capture": {
+          "source": "NONBLOCKING_CLEANUP_NATIVE_CI110_PASS",
+          "cleanup": "ATOMIC_REQUEST_TRYENTER_DRAIN_BEFORE_AFTER_CAPTURE",
+          "statusBlocksOnCapture": false,
+          "ci109": "GDI_AND_DXGI_FALLBACK_RUNNER_PASS",
+          "evidence": "docs/evidence/rmv2/dxgi-ci109.json",
+          "ownerPhysical": "PENDING",
+          "before": {
+            "tag": "checkpoint/20261113-before-rmv2-measurement-f7e9507",
+            "bundleSha256": "899c1c063c82df8ed0451339cb8c86fc85d263703391d0f9b635d88fdd86ecb9",
+            "archiveSha256": "6e480badaf139509c843ce07e67e84ed26bc7a2ed9ef1ddc99442da59585c63f",
+            "restore": "PASS",
+            "source": "f7e9507eb258916edfeb09797a87fda9dddece45"
+          },
+          "nativeCi": "CI112_GDI_DXGI_FALLBACK_PASS"
+        },
+        "benchmark": {
+          "ci109": "INVALID_CAPTURE_TIMINGS_AND_CLEANUP_FAILURE_REQUIRES_REPEAT",
+          "commonBoundary": "nativeTiming.handlerMs",
+          "newCi": "PENDING",
+          "ci110": "CORRECTED_CAPTURE_PIPE_MEASUREMENTS_RECORDED",
+          "evidence": "docs/evidence/rmv2/comparison-ci110.json",
+          "physicalSpeedupClaim": false
+        },
+        "gpuCaptureImplemented": true,
+        "videoImplemented": false,
+        "logicalKeyboardIndicatorScreen": "FOREGROUND_TARGET_BOUND_BEFORE_ACTIVITY_SHOW_NATIVE_CI_PENDING",
+        "macOSSourceCi": {
+          "runner": "macos-15-intel",
+          "sameNativeTestsRequired": true,
+          "arm64Acceptance": "NOT_RUN_HOSTED_RUNNER_CAPACITY_FAILURE",
+          "evidence": "docs/evidence/rmv2/macos-ci117.json"
+        }
       },
-      "benchmark": {
-        "ci109": "INVALID_CAPTURE_TIMINGS_AND_CLEANUP_FAILURE_REQUIRES_REPEAT",
-        "commonBoundary": "nativeTiming.handlerMs",
-        "newCi": "PENDING",
-        "ci110": "CORRECTED_CAPTURE_PIPE_MEASUREMENTS_RECORDED",
-        "evidence": "docs/evidence/rmv2/comparison-ci110.json",
-        "physicalSpeedupClaim": false
-      },
-      "gpuCaptureImplemented": true,
-      "videoImplemented": false,
-      "logicalKeyboardIndicatorScreen": "FOREGROUND_TARGET_BOUND_BEFORE_ACTIVITY_SHOW_NATIVE_CI_PENDING",
-      "macOSSourceCi": {
-        "runner": "macos-15-intel",
-        "sameNativeTestsRequired": true,
-        "arm64Acceptance": "NOT_RUN_HOSTED_RUNNER_CAPACITY_FAILURE",
-        "evidence": "docs/evidence/rmv2/macos-ci117.json"
+      "acceptanceReadiness": false,
+      "phase3": {
+        "status": "NATIVE_EMPTY_EDITOR_READBACK_SOURCE_CI_PENDING",
+        "before": {
+          "source": "1c27f62da647be79b7a7c1a410e6bc45f5e44daf",
+          "tag": "checkpoint/20261114-before-rmv2-complete-plan-1c27f62",
+          "bundleSha256": "882a35850f0d06c1841690f51451a61fbe1c19019105881467df2ec82ad6c781",
+          "archiveSha256": "6fdf502a6d077f0e4de8d7a0f4c0932333077998661677edb49e5782bb7d0ea7",
+          "restore": "PASS"
+        },
+        "requiredManaged262KCases": 4,
+        "gpuResize": "CI122_WARP_SHADER_AND_DXGI_REDUCED_READBACK_PASS",
+        "encodedVideoAndAuthorizedViewer": "SOURCE_IMPLEMENTED_NATIVE_COMPILE_FIX_AND_BROWSER_CI_PENDING",
+        "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.",
+        "gpuResizeBackend": "D3D11_COMPUTE_CROP_BILINEAR_REDUCED_STAGING",
+        "gpuResizeCheckpoint": {
+          "tag": "checkpoint/20261114-before-rmv2-gpu-a686ef2",
+          "bundleSha256": "b5b03ab156354d0eebd9704788192212a2c8d80d1f6da2621b5a507f495ae8dc",
+          "archiveSha256": "217eaadd8d73a9106851b0766322ec7b3c5fe68650940c435d26b2075c171f60",
+          "restore": "PASS",
+          "source": "a686ef29fc9a24d21b3f7711ffaa9b6137b880f9"
+        },
+        "nativeTextCi120": "NOT_RUN_COMPILE_CS1503_FIXED_SOURCE",
+        "nativeTextCi122": "NOT_RUN_FIXTURE_CS1061_CORRECTED",
+        "gpuProbeSource": "da99762e5dd53c99c4443c9cb85905f19bf58bf1",
+        "videoCheckpoint": {
+          "tag": "checkpoint/20261114-before-rmv2-encoded-bf97488",
+          "bundleSha256": "516b929e67de6b6e96e1a33c94915bad819dfbdb8ad4024aecce24161633b5ab",
+          "archiveSha256": "faa87321bae49fb9f74f577ccced6fc12c190246d2903904a6883284712fbbf0",
+          "restore": "PASS",
+          "source": "bf974886fdad20ea996f9551913f95f3233e65c2"
+        },
+        "videoCodec": "MEDIA_FOUNDATION_H264_ANNEXB_INDEPENDENT_IDR",
+        "videoGpuPreference": "D3D11_COMPUTE_WITH_FRESH_GDI_FALLBACK",
+        "videoEncoderPreference": "HARDWARE_WITH_EXPLICIT_SOFTWARE_FALLBACK",
+        "mediaPersistence": "NONE_RAM_ONLY_TTL2000MS_MAX16MIB",
+        "nativeMediaDiagnostics": "ACTIONS_ONLY_NOT_RELEASE_ACCEPTANCE",
+        "zeroCopy": false,
+        "textCi123": {
+          "sourceCommit": "bf974886fdad20ea996f9551913f95f3233e65c2",
+          "artifactId": 14094184006,
+          "artifactSha256": "46332ca7524cdb71dc5711b126f7720361eb47beebeefedee9aab8ada9810e99",
+          "richParagraph262K": "PASS",
+          "richSingle262K": "PASS",
+          "classicSingle262K": "PASS",
+          "classicParagraph262K": "INCOMPLETE_EXTERNAL_TIMEOUT",
+          "nativeParagraph262K": "NOT_RUN_SERIAL_TIMEOUT"
+        },
+        "requiredTextGraph": "FIVE_ISOLATED_WINDOWS_SHARDS_SAME_INSTALLER_BINARY_ALL_REQUIRED",
+        "requiredFullCiJobs": 15,
+        "checkpoint": {
+          "tag": "checkpoint/20261114-before-rmv2-finalproof-f5c62fa",
+          "bundleSha256": "758c429dd43b3c824bb52a84c1a06ba0dfc970ec6f652f070bb5a496e0cc12b3",
+          "archiveSha256": "56ece0db0cf1ce92a26cc1650435142e2c17cca79116b216c84dd879188b6010",
+          "restore": "PASS",
+          "source": "f5c62faafaf567612e61c60282c4d959c20ad5ef"
+        },
+        "mediaDiagnostic": {
+          "sourceCommit": "4373035618f9d359e09eff35512025cdf6f3a2fa",
+          "ciRunId": 43563637077,
+          "artifactId": 14101586328,
+          "artifactSha256": "f2342a9176cae41d02ee5edfb30add0725b8db393ea3bf7c85c2a1f89161c274",
+          "result": "PASS_NATIVE_H264_REAL_WEBCODECS_16_FRAMES_SCOPED_CAPTURE_CLOSE",
+          "physicalHardware": "NOT_RUN"
+        },
+        "installerCi125": "FAIL_STALE_NATIVE_HMAC_FIXTURE_CORRECTED",
+        "closedVideoScopeFence": {
+          "status": "IMPLEMENTED_PORTABLE_TEST_PASS_NATIVE_FULL_CI_PENDING",
+          "retainedKeys": 1024,
+          "keyTtlMs": 120000,
+          "retainedPixels": false,
+          "onKeyCapacity": "TEMPORARILY_REFUSE_VIDEO_PUSH_NO_CONTROL_OR_INPUT_CHANGE"
+        }
       }
     },
-    "acceptanceReadiness": false,
-    "phase3": {
-      "status": "NATIVE_EMPTY_EDITOR_READBACK_SOURCE_CI_PENDING",
-      "before": {
-        "source": "1c27f62da647be79b7a7c1a410e6bc45f5e44daf",
-        "tag": "checkpoint/20261114-before-rmv2-complete-plan-1c27f62",
-        "bundleSha256": "882a35850f0d06c1841690f51451a61fbe1c19019105881467df2ec82ad6c781",
-        "archiveSha256": "6fdf502a6d077f0e4de8d7a0f4c0932333077998661677edb49e5782bb7d0ea7",
-        "restore": "PASS"
-      },
-      "requiredManaged262KCases": 4,
-      "gpuResize": "CI122_WARP_SHADER_AND_DXGI_REDUCED_READBACK_PASS",
-      "encodedVideoAndAuthorizedViewer": "SOURCE_IMPLEMENTED_NATIVE_COMPILE_FIX_AND_BROWSER_CI_PENDING",
-      "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.",
-      "gpuResizeBackend": "D3D11_COMPUTE_CROP_BILINEAR_REDUCED_STAGING",
-      "gpuResizeCheckpoint": {
-        "tag": "checkpoint/20261114-before-rmv2-gpu-a686ef2",
-        "bundleSha256": "b5b03ab156354d0eebd9704788192212a2c8d80d1f6da2621b5a507f495ae8dc",
-        "archiveSha256": "217eaadd8d73a9106851b0766322ec7b3c5fe68650940c435d26b2075c171f60",
-        "restore": "PASS",
-        "source": "a686ef29fc9a24d21b3f7711ffaa9b6137b880f9"
-      },
-      "nativeTextCi120": "NOT_RUN_COMPILE_CS1503_FIXED_SOURCE",
-      "nativeTextCi122": "NOT_RUN_FIXTURE_CS1061_CORRECTED",
-      "gpuProbeSource": "da99762e5dd53c99c4443c9cb85905f19bf58bf1",
-      "videoCheckpoint": {
-        "tag": "checkpoint/20261114-before-rmv2-encoded-bf97488",
-        "bundleSha256": "516b929e67de6b6e96e1a33c94915bad819dfbdb8ad4024aecce24161633b5ab",
-        "archiveSha256": "faa87321bae49fb9f74f577ccced6fc12c190246d2903904a6883284712fbbf0",
-        "restore": "PASS",
-        "source": "bf974886fdad20ea996f9551913f95f3233e65c2"
-      },
-      "videoCodec": "MEDIA_FOUNDATION_H264_ANNEXB_INDEPENDENT_IDR",
-      "videoGpuPreference": "D3D11_COMPUTE_WITH_FRESH_GDI_FALLBACK",
-      "videoEncoderPreference": "HARDWARE_WITH_EXPLICIT_SOFTWARE_FALLBACK",
-      "mediaPersistence": "NONE_RAM_ONLY_TTL2000MS_MAX16MIB",
-      "nativeMediaDiagnostics": "ACTIONS_ONLY_NOT_RELEASE_ACCEPTANCE",
+    "nativeCiBudgets": {
+      "textCases": "FIVE_ISOLATED_WINDOWS_DESKTOPS_ALL_REQUIRED_SAME_HELPER",
+      "perStressStepMinutes": 45,
+      "perStressJobMinutes": 50,
+      "smokeStepMinutes": 10,
+      "windowsJobMinutes": 110,
+      "fullRequiredJobs": 15,
+      "productMutationAuthorityMaxMs": 1000,
+      "productReadOnlyDeliveryWaitMs": 5000
+    },
+    "video": {
+      "implemented": true,
+      "nativeEncodeAndProductionBrowserDecode": "PASS",
+      "framesDecoded": 16,
+      "codec": "H264_ANNEXB_INDEPENDENT_IDR",
+      "encoding": "MEDIA_FOUNDATION_HARDWARE_PREFERENCE_SOFTWARE_FALLBACK",
+      "nv12Conversion": "CPU_BT601_LIMITED",
+      "maxWidth": 1280,
+      "maxHeight": 720,
+      "fps": "1..30_BOUNDED_PULL_NOT_GUARANTEED_RATE",
+      "maxPacketBytes": 665600,
+      "relay": "SIGNED_EXACT_ACTOR_SCOPE_RAM_ONLY_2S16MIB32LATEST",
+      "closedScopeKeys": "120S1024RAM_NO_PIXELS_OVERLOAD_REFUSES_PUSH",
+      "viewer": "AUTHENTICATED_OWNER_LOCAL_WALL_RM_VIDEO_NO_CAPTURE_NO_RENEW",
       "zeroCopy": false,
-      "textCi123": {
-        "sourceCommit": "bf974886fdad20ea996f9551913f95f3233e65c2",
-        "artifactId": 14094184006,
-        "artifactSha256": "46332ca7524cdb71dc5711b126f7720361eb47beebeefedee9aab8ada9810e99",
-        "richParagraph262K": "PASS",
-        "richSingle262K": "PASS",
-        "classicSingle262K": "PASS",
-        "classicParagraph262K": "INCOMPLETE_EXTERNAL_TIMEOUT",
-        "nativeParagraph262K": "NOT_RUN_SERIAL_TIMEOUT"
-      },
-      "requiredTextGraph": "FIVE_ISOLATED_WINDOWS_SHARDS_SAME_INSTALLER_BINARY_ALL_REQUIRED",
-      "requiredFullCiJobs": 15,
-      "checkpoint": {
-        "tag": "checkpoint/20261114-before-rmv2-finalproof-f5c62fa",
-        "bundleSha256": "758c429dd43b3c824bb52a84c1a06ba0dfc970ec6f652f070bb5a496e0cc12b3",
-        "archiveSha256": "56ece0db0cf1ce92a26cc1650435142e2c17cca79116b216c84dd879188b6010",
-        "restore": "PASS",
-        "source": "f5c62faafaf567612e61c60282c4d959c20ad5ef"
-      },
-      "mediaDiagnostic": {
-        "sourceCommit": "4373035618f9d359e09eff35512025cdf6f3a2fa",
-        "ciRunId": 43563637077,
-        "artifactId": 14101586328,
-        "artifactSha256": "f2342a9176cae41d02ee5edfb30add0725b8db393ea3bf7c85c2a1f89161c274",
-        "result": "PASS_NATIVE_H264_REAL_WEBCODECS_16_FRAMES_SCOPED_CAPTURE_CLOSE",
-        "physicalHardware": "NOT_RUN"
-      },
-      "installerCi125": "FAIL_STALE_NATIVE_HMAC_FIXTURE_CORRECTED",
-      "closedVideoScopeFence": {
-        "status": "IMPLEMENTED_PORTABLE_TEST_PASS_NATIVE_FULL_CI_PENDING",
-        "retainedKeys": 1024,
-        "keyTtlMs": 120000,
-        "retainedPixels": false,
-        "onKeyCapacity": "TEMPORARILY_REFUSE_VIDEO_PUSH_NO_CONTROL_OR_INPUT_CHANGE"
-      }
+      "hardwareEncoderPhysical": "NOT_RUN"
+    },
+    "evidence": {
+      "acceptance": "docs/evidence/rmv2/acceptance-ci127.json",
+      "combined": "docs/evidence/rmv2/combined-ci127.json",
+      "phase1": "docs/evidence/rmv2/phase1-ci127.json",
+      "dxgi": "docs/evidence/rmv2/dxgi-ci127.json",
+      "comparison": "docs/evidence/rmv2/comparison-ci127.json",
+      "text": "docs/evidence/rmv2/text-ci127.json",
+      "video": "docs/evidence/rmv2/video-ci127.json"
     }
   }
 }

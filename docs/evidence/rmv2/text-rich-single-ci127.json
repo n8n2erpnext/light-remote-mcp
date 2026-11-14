@@ -1,0 +1,131 @@
+{
+  "requiredManaged262KCases": 1,
+  "automaticReplay": false,
+  "result": "PASS",
+  "managedAccessibilityProviderNotActivated": true,
+  "otherControlUnmodified": true,
+  "delayedDelivery": {
+    "elapsedMs": 2909.4002,
+    "delayPerWmCharMs": 80,
+    "exactFixtureReadback": true,
+    "authorityExpiredAfterSend": true,
+    "nativeVerified": true,
+    "units": 31
+  },
+  "sizeMeasurements": [
+    {
+      "nativeVerified": true,
+      "accessibilityObjectCreated": false,
+      "elapsedMs": 579610.4484,
+      "wordWrap": true,
+      "fullFixtureReadback": true,
+      "verificationMethod": "win32-empty-edit-full-line-endings",
+      "comparison": "full-content-line-ending-equivalence-only",
+      "controlKind": "rich-edit",
+      "layout": "single-paragraph",
+      "units": 262144
+    }
+  ],
+  "selectedCaseCount": 1,
+  "explicitClose": true,
+  "elapsedMs": 588552.2214,
+  "allSelectedCasesVerified": true,
+  "nativeMultilineLineEndings": [
+    {
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "nativeVerified": true,
+      "sourceUnits": 18,
+      "fullFixtureReadback": true,
+      "controlKind": "classic"
+    },
+    {
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "nativeVerified": true,
+      "sourceUnits": 20,
+      "fullFixtureReadback": true,
+      "controlKind": "classic"
+    },
+    {
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "nativeVerified": true,
+      "sourceUnits": 18,
+      "fullFixtureReadback": true,
+      "controlKind": "classic"
+    },
+    {
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "nativeVerified": true,
+      "sourceUnits": 18,
+      "fullFixtureReadback": true,
+      "controlKind": "rich"
+    },
+    {
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "nativeVerified": true,
+      "sourceUnits": 20,
+      "fullFixtureReadback": true,
+      "controlKind": "rich"
+    },
+    {
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "nativeVerified": true,
+      "sourceUnits": 18,
+      "fullFixtureReadback": true,
+      "controlKind": "rich"
+    },
+    {
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "nativeVerified": true,
+      "sourceUnits": 18,
+      "fullFixtureReadback": true,
+      "controlKind": "native"
+    },
+    {
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "nativeVerified": true,
+      "sourceUnits": 20,
+      "fullFixtureReadback": true,
+      "controlKind": "native"
+    },
+    {
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "nativeVerified": true,
+      "sourceUnits": 18,
+      "fullFixtureReadback": true,
+      "controlKind": "native"
+    }
+  ],
+  "focusSwitchStopsSuffix": true,
+  "unicodeReadbackSizes": [
+    262144
+  ],
+  "scope": "isolated_actions_native_and_managed_editors_not_owner_physical",
+  "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
+  "ciStepOutcome": "success",
+  "fixtureSha256": "87e6cee2dc9ea1f8b7bab7c6c3fddeee8907131c54caba7c2ed104d325f0646f",
+  "caseName": "rich-single",
+  "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+  "helperSha256": "45a3054b6619459774d91d680b7645baf8bf73de326d3b3adfbb9bfc1427f600",
+  "ciRunId": "43564848850"
+}

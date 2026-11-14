@@ -1,6 +1,12 @@
 # Known issues and remaining verification
 
-Current dev5/source8e0d932: full CI64 PASS9/9 and internal installer verified on ARM and locally. Seven source groups have automated acceptance. Owner physical acceptance, newly requested tray/setup redesign and protected-main promotion remain PENDING. Dev5 Lab Operator/Plugin/consent are now deployed with preserved state/processes. [Current evidence](docs/evidence/desktop-followup/ACCEPTANCE.json).
+Nội bộ **0.10.1-dev.11**, một **LightRemote.exe** chính. Source `1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9`, tree `e030a88a578228ee08b7998d1fabfa68c93989ec`. [CI127:15/15 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850) · [bộ cài nội bộ](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850/artifacts/14103290306) · [bằng chứng](docs/evidence/rmv2/acceptance-ci127.json). Installer SHA-256 `d9b84b6df878c1abc1c11feb8b378520a26ba34b69133a2e580c10eaddf452a8`. Commit docs này ghi nhận source đã build, không phải một bản native được build lại. **Owner physical UAT: PENDING.**
+
+Đã triển khai và có bằng chứng CI: cursor Windows nguyên bản; nhãn AI/viền xanh nhẹ; đóng task RM có xác nhận trước báo cáo và fallback45giây yên lặng; input có thứ tự, status/cancel riêng; nhập Unicode bind target với readback toàn nội dung khi capability hỗ trợ; năm ca262K Rich Edit/Classic/Win32 và smoke16K/64K; crop/ROI/mapping; DXGI/D3D11 crop+resize trước readback nhỏ, fresh GDI fallback; H264 Media Foundation ưu tiên hardware và software fallback; relay video RAM giới hạn không lưu pixels vào DB/jobs; Owner WebCodecs viewer không capture/renew quyền. Frame đến muộn sau close bị chặn. H264 là pull/independent-IDR có backpressure và CPU NV12, không zero-copy hoặc cam kết FPS. CI đã dùng software encoder/fallback; GPU adapter/encoder vật lý, mixedDPI và ứng dụng thật chờ Owner. Windows vẫn có một focus/con trỏ hệ thống; input đã vào OS queue có thể race với đổi focus, không tự replay hoặc giả verified.
+
+Gold Lab Operator/Plugin đã chạy exact source `1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9` /dev11; health/API PASS, không migration DB; giữ nguyên Agent/Wall/supervisor/mTLS và dữ liệu. Production/domain/Google callback, protected main, public feed và Owner installation không đổi.
+
+Earlier dated candidate status below is historical. Other reconstruction backlog remains scoped in the Master Checkpoint.
 
 ## Historical candidates and prior evidence
 
@@ -203,3 +209,7 @@ Current exact-source native H264, real browser decode, combined installer and fo
 ## Gate five isolated RM text stress cases on the exact installer binary
 
 Current plan remains incomplete pending exact-source native H264/WebCodecs and five-shard combined full CI. Three262K cases passed on CI123; remaining two were cut off by the external serial test budget. Required stress now uses independent Windows desktops with the same native binary staged into the installer; no test requirement or product input deadline is relaxed.
+
+## Record complete RM text GPU video CI and verified internal installer
+
+Đã triển khai và có bằng chứng CI: cursor Windows nguyên bản; nhãn AI/viền xanh nhẹ; đóng task RM có xác nhận trước báo cáo và fallback45giây yên lặng; input có thứ tự, status/cancel riêng; nhập Unicode bind target với readback toàn nội dung khi capability hỗ trợ; năm ca262K Rich Edit/Classic/Win32 và smoke16K/64K; crop/ROI/mapping; DXGI/D3D11 crop+resize trước readback nhỏ, fresh GDI fallback; H264 Media Foundation ưu tiên hardware và software fallback; relay video RAM giới hạn không lưu pixels vào DB/jobs; Owner WebCodecs viewer không capture/renew quyền. Frame đến muộn sau close bị chặn. H264 là pull/independent-IDR có backpressure và CPU NV12, không zero-copy hoặc cam kết FPS. CI đã dùng software encoder/fallback; GPU adapter/encoder vật lý, mixedDPI và ứng dụng thật chờ Owner. Windows vẫn có một focus/con trỏ hệ thống; input đã vào OS queue có thể race với đổi focus, không tự replay hoặc giả verified.

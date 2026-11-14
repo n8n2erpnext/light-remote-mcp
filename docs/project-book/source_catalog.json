@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 314,
+    "total": 326,
     "markdown": 230,
-    "json": 84
+    "json": 96
   },
   "files": [
     {
@@ -610,6 +610,46 @@
       ]
     },
     {
+      "path": "docs/evidence/rmv2/acceptance-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 13948,
+      "sha256": "fc1f02ad47305640b38f8a5c22e3f87d5d6cbe27bff7acf81c0383d3ac124abf",
+      "topLevelKeys": [
+        "sourceCommit",
+        "sourceTree",
+        "version",
+        "ci",
+        "artifact",
+        "combinedNativeProof",
+        "gpuProbe",
+        "video",
+        "lab",
+        "physicalOwnerAcceptance",
+        "publicReleaseOrFeed",
+        "productionDomainCallbackChanged"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/combined-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2743,
+      "sha256": "f2580c8ed17d055db5889782d857a5f2ad8afb9ad65f3f2ed9ffc59862abd356",
+      "topLevelKeys": [
+        "sourceCommit",
+        "sourceTree",
+        "ciRunId",
+        "helperSha256",
+        "fixtureSha256",
+        "cases",
+        "ready",
+        "physicalOwnerAcceptance",
+        "media",
+        "artifacts"
+      ]
+    },
+    {
       "path": "docs/evidence/rmv2/comparison-ci110.json",
       "shelf": "evidence",
       "extension": "json",
@@ -691,6 +731,27 @@
         "baselineSource",
         "currentExeSha256",
         "result"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/comparison-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3202,
+      "sha256": "555803c6df3f9899a30860102137a999f7abe4b573ee3e0ec7373d090b9777d5",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "requestedBackend",
+        "currentSource",
+        "baselineExeSha256",
+        "currentExeSha256",
+        "roundtripP95ChangePercent",
+        "samplesPerSource",
+        "scope",
+        "warmupPerSource"
       ]
     },
     {
@@ -796,6 +857,27 @@
         "roiJpegValid",
         "gpuAcceptance",
         "gpuPhysical"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/dxgi-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 1245,
+      "sha256": "81534874589cd68a0bb6beb75cd0a97424c21835c9e16aec874a324a1b8ecef7",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "requestedBackend",
+        "warmSamples",
+        "scopeCloseClearsCache",
+        "computeShaderWarpCorrectness",
+        "scaledReadbackPixels",
+        "gpuPhysical",
+        "actualEncodeReuseCount",
+        "warmCaptureP50Ms"
       ]
     },
     {
@@ -934,6 +1016,27 @@
         "idleTimerStopped",
         "controlBadge",
         "scope"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/phase1-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 2055,
+      "sha256": "fc73651936773ae5748ce92d242033f8f765fea4a462b5f3039aaf805023125e",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "handlerP50Ms",
+        "palette",
+        "explicitCloseAcknowledged",
+        "readOnlyViewDoesNotKeepControlAlive",
+        "orphanExpiry45sDespiteStatusPolling",
+        "closedScopeInputRejected",
+        "ownerInputBehavior",
+        "reopenNewId"
       ]
     },
     {
@@ -1333,6 +1436,153 @@
         "at",
         "lastChunkTiming",
         "scope"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/text-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3436,
+      "sha256": "4bfab65a5364a248e1aff2ed1e41330e3883e6ff6bd74babe1ace103d4f19c9a",
+      "topLevelKeys": [
+        "sourceCommit",
+        "ciRunId",
+        "artifactId",
+        "artifactSha256",
+        "requiredManaged262KCases",
+        "result",
+        "elapsedMs",
+        "automaticReplay",
+        "focusSwitchStopsSuffix",
+        "selectedCaseCount",
+        "caseName",
+        "explicitClose"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/text-classic-paragraph-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3186,
+      "sha256": "1e949cc1750d4229ae9a5fb6174f00d880671fc13a439a31ea56fa1476be8e13",
+      "topLevelKeys": [
+        "sizeMeasurements",
+        "delayedDelivery",
+        "selectedCaseCount",
+        "otherControlUnmodified",
+        "result",
+        "elapsedMs",
+        "focusSwitchStopsSuffix",
+        "requiredManaged262KCases",
+        "unicodeReadbackSizes",
+        "explicitClose",
+        "scope",
+        "allSelectedCasesVerified"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/text-classic-single-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3186,
+      "sha256": "8d2e7c2af4057330a252c45368bcf173c1f22cd581e265aa20657983607a3f3c",
+      "topLevelKeys": [
+        "sizeMeasurements",
+        "selectedCaseCount",
+        "delayedDelivery",
+        "otherControlUnmodified",
+        "requiredManaged262KCases",
+        "allSelectedCasesVerified",
+        "scope",
+        "focusSwitchStopsSuffix",
+        "elapsedMs",
+        "automaticReplay",
+        "result",
+        "managedAccessibilityProviderNotActivated"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/text-native-paragraph-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3183,
+      "sha256": "81331d66a4283b6e7aafb9683063f3c15aaa7998ac6e2ae0aec3b8713fb4e649",
+      "topLevelKeys": [
+        "managedAccessibilityProviderNotActivated",
+        "allSelectedCasesVerified",
+        "delayedDelivery",
+        "result",
+        "otherControlUnmodified",
+        "automaticReplay",
+        "unicodeReadbackSizes",
+        "selectedCaseCount",
+        "elapsedMs",
+        "requiredManaged262KCases",
+        "explicitClose",
+        "sizeMeasurements"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/text-rich-paragraph-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3178,
+      "sha256": "8366ef1228d46758268e4cc612772c705a2d9f85089bd6b38e124d38e0e872c4",
+      "topLevelKeys": [
+        "automaticReplay",
+        "allSelectedCasesVerified",
+        "focusSwitchStopsSuffix",
+        "nativeMultilineLineEndings",
+        "unicodeReadbackSizes",
+        "scope",
+        "requiredManaged262KCases",
+        "explicitClose",
+        "delayedDelivery",
+        "managedAccessibilityProviderNotActivated",
+        "selectedCaseCount",
+        "result"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/text-rich-single-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 3178,
+      "sha256": "8cf19b7e96358b130fec3f19c35878336903a4d89ed907b7d5f92e6c1f3a89aa",
+      "topLevelKeys": [
+        "requiredManaged262KCases",
+        "automaticReplay",
+        "result",
+        "managedAccessibilityProviderNotActivated",
+        "otherControlUnmodified",
+        "delayedDelivery",
+        "sizeMeasurements",
+        "selectedCaseCount",
+        "explicitClose",
+        "elapsedMs",
+        "allSelectedCasesVerified",
+        "nativeMultilineLineEndings"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/video-ci127.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 4326,
+      "sha256": "6592b806b7fd5387c90027ee09ada32992883e6bcccb4eee2e1eff60d6ad32e4",
+      "topLevelKeys": [
+        "actualScopedCapture",
+        "hardwarePreferenceTested",
+        "storedOnDisk",
+        "captureBackendSecond",
+        "result",
+        "closeClearsResources",
+        "scope",
+        "gpuResizeFirst",
+        "maxPacketBytes",
+        "syntheticIndependentFrames",
+        "badLeaseDenied",
+        "captureBackendFirst"
       ]
     },
     {
@@ -3226,8 +3476,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 104601,
-      "sha256": "ab88b44a2d8861fd90e20a79249df1f2fd9297df31c420839f34fb10be92ae22",
+      "bytes": 106075,
+      "sha256": "2cd6841433b0639647e3a5408ab282dc9464188bdbc101acb6808c29049f7483",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {

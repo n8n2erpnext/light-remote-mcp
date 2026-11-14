@@ -1,0 +1,79 @@
+{
+  "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+  "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
+  "ciRunId": 43564848850,
+  "helperSha256": "45a3054b6619459774d91d680b7645baf8bf73de326d3b3adfbb9bfc1427f600",
+  "fixtureSha256": "87e6cee2dc9ea1f8b7bab7c6c3fddeee8907131c54caba7c2ed104d325f0646f",
+  "cases": {
+    "rich-paragraph": {
+      "result": "PASS",
+      "elapsedMs": 315132.2998,
+      "controlKind": "rich-edit",
+      "layout": "paragraphs-cr"
+    },
+    "rich-single": {
+      "result": "PASS",
+      "elapsedMs": 579610.4484,
+      "controlKind": "rich-edit",
+      "layout": "single-paragraph"
+    },
+    "classic-single": {
+      "result": "PASS",
+      "elapsedMs": 1001100.0594,
+      "controlKind": "classic-edit",
+      "layout": "single-paragraph"
+    },
+    "classic-paragraph": {
+      "result": "PASS",
+      "elapsedMs": 1036942.8343,
+      "controlKind": "classic-edit",
+      "layout": "paragraphs-cr"
+    },
+    "native-paragraph": {
+      "result": "PASS",
+      "elapsedMs": 1696911.5789,
+      "controlKind": "win32-edit",
+      "layout": "paragraphs-cr"
+    }
+  },
+  "ready": true,
+  "physicalOwnerAcceptance": false,
+  "media": "PASS",
+  "artifacts": [
+    {
+      "name": "rmv2-native-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "artifactId": 14102087188,
+      "artifactSha256": "80d53616eb7dbd74f6aa1d55818a306ccc8c2331205c0d53ba6ade9ee6f91d05"
+    },
+    {
+      "name": "rmv2-text-rich-paragraph-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "artifactId": 14102013628,
+      "artifactSha256": "198e0f0ea456df888a79a61de7b384d859b76532904c864f4191017bcc07f890"
+    },
+    {
+      "name": "rmv2-text-rich-single-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "artifactId": 14102073949,
+      "artifactSha256": "d05c7a123dc1ccc38c24508104d3b03e17b103e673bd8070dcaf3991fda2efd2"
+    },
+    {
+      "name": "rmv2-text-classic-single-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "artifactId": 14102602267,
+      "artifactSha256": "92b87d3b9406f315bdd30b1a715ba918cb892bf424c218161bcceff0eca05400"
+    },
+    {
+      "name": "rmv2-text-classic-paragraph-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "artifactId": 14102357061,
+      "artifactSha256": "74e3ed7a8396f1e7365437062f8ccd98ee1c974a2800e82591402f2df0b0ca40"
+    },
+    {
+      "name": "rmv2-text-native-paragraph-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "artifactId": 14102917686,
+      "artifactSha256": "2425505da7b847e626340bfa52b865f88591cad797252204d806fe42ed98f7d8"
+    },
+    {
+      "name": "rmv2-video-acceptance-1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+      "artifactId": 14102281498,
+      "artifactSha256": "21fca4101b1819afb4c9835b2863c727e8dd328ba9f087ecc31ea4742086d8e3"
+    }
+  ]
+}

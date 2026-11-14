@@ -1,0 +1,131 @@
+{
+  "automaticReplay": false,
+  "allSelectedCasesVerified": true,
+  "focusSwitchStopsSuffix": true,
+  "nativeMultilineLineEndings": [
+    {
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "sourceUnits": 18,
+      "nativeVerified": true,
+      "controlKind": "classic",
+      "fullFixtureReadback": true
+    },
+    {
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "sourceUnits": 20,
+      "nativeVerified": true,
+      "controlKind": "classic",
+      "fullFixtureReadback": true
+    },
+    {
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "sourceUnits": 18,
+      "nativeVerified": true,
+      "controlKind": "classic",
+      "fullFixtureReadback": true
+    },
+    {
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "sourceUnits": 18,
+      "nativeVerified": true,
+      "controlKind": "rich",
+      "fullFixtureReadback": true
+    },
+    {
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "sourceUnits": 20,
+      "nativeVerified": true,
+      "controlKind": "rich",
+      "fullFixtureReadback": true
+    },
+    {
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "sourceUnits": 18,
+      "nativeVerified": true,
+      "controlKind": "rich",
+      "fullFixtureReadback": true
+    },
+    {
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "sourceUnits": 18,
+      "nativeVerified": true,
+      "controlKind": "native",
+      "fullFixtureReadback": true
+    },
+    {
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "sourceUnits": 20,
+      "nativeVerified": true,
+      "controlKind": "native",
+      "fullFixtureReadback": true
+    },
+    {
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "sourceUnits": 18,
+      "nativeVerified": true,
+      "controlKind": "native",
+      "fullFixtureReadback": true
+    }
+  ],
+  "unicodeReadbackSizes": [
+    262144
+  ],
+  "scope": "isolated_actions_native_and_managed_editors_not_owner_physical",
+  "requiredManaged262KCases": 1,
+  "explicitClose": true,
+  "delayedDelivery": {
+    "delayPerWmCharMs": 80,
+    "exactFixtureReadback": true,
+    "authorityExpiredAfterSend": true,
+    "units": 31,
+    "elapsedMs": 2967.3857,
+    "nativeVerified": true
+  },
+  "managedAccessibilityProviderNotActivated": true,
+  "selectedCaseCount": 1,
+  "result": "PASS",
+  "elapsedMs": 324054.7123,
+  "otherControlUnmodified": true,
+  "sizeMeasurements": [
+    {
+      "comparison": "full-content-line-ending-equivalence-only",
+      "nativeVerified": true,
+      "controlKind": "rich-edit",
+      "fullFixtureReadback": true,
+      "accessibilityObjectCreated": false,
+      "verificationMethod": "win32-empty-edit-full-line-endings",
+      "elapsedMs": 315132.2998,
+      "wordWrap": true,
+      "units": 262144,
+      "layout": "paragraphs-cr"
+    }
+  ],
+  "helperSha256": "45a3054b6619459774d91d680b7645baf8bf73de326d3b3adfbb9bfc1427f600",
+  "ciStepOutcome": "success",
+  "caseName": "rich-paragraph",
+  "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+  "ciRunId": "43564848850",
+  "fixtureSha256": "87e6cee2dc9ea1f8b7bab7c6c3fddeee8907131c54caba7c2ed104d325f0646f",
+  "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec"
+}

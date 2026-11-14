@@ -1,0 +1,203 @@
+{
+  "actualScopedCapture": true,
+  "hardwarePreferenceTested": true,
+  "storedOnDisk": false,
+  "captureBackendSecond": "dxgi-d3d11",
+  "result": "PASS",
+  "closeClearsResources": true,
+  "scope": "isolated_actions_native_video_not_owner_physical",
+  "gpuResizeFirst": true,
+  "maxPacketBytes": 665600,
+  "syntheticIndependentFrames": 16,
+  "badLeaseDenied": true,
+  "captureBackendFirst": "dxgi-d3d11",
+  "closedLeaseDenied": true,
+  "frameSeqMonotonic": true,
+  "softwareEncoder": true,
+  "gpuResizeSecond": true,
+  "hardwarePhysical": "NOT_RUN",
+  "browserDecoder": "same-production-WebCodecs-viewer",
+  "browserDecode": {
+    "decoded": 16,
+    "samples": [
+      {
+        "expectedColor": "red",
+        "color": [
+          255,
+          27,
+          4,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "blue",
+        "color": [
+          0,
+          14,
+          251,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "red",
+        "color": [
+          255,
+          26,
+          1,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "blue",
+        "color": [
+          0,
+          15,
+          254,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "red",
+        "color": [
+          255,
+          26,
+          1,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "blue",
+        "color": [
+          0,
+          14,
+          253,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "red",
+        "color": [
+          255,
+          26,
+          1,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "blue",
+        "color": [
+          0,
+          14,
+          253,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "red",
+        "color": [
+          255,
+          27,
+          4,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "blue",
+        "color": [
+          0,
+          14,
+          251,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "red",
+        "color": [
+          255,
+          26,
+          1,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "blue",
+        "color": [
+          0,
+          15,
+          254,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "red",
+        "color": [
+          255,
+          26,
+          1,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "blue",
+        "color": [
+          0,
+          14,
+          253,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "red",
+        "color": [
+          255,
+          26,
+          1,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      },
+      {
+        "expectedColor": "blue",
+        "color": [
+          0,
+          14,
+          253,
+          255
+        ],
+        "hardwareEncoding": false,
+        "encoderBackend": "media-foundation-software"
+      }
+    ],
+    "clearHidesVideo": true
+  },
+  "syntheticFixtureOnly": true
+}

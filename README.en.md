@@ -247,9 +247,7 @@ npm test
 
 ## Project status
 
-Internal **0.10.1-dev.11**, one primary `LightRemote.exe`. Source `f1092607fb96ed181e9b4c71a55e13429b183a60`; [CI118 all9 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985), [internal installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43530897985/artifacts/14088683951), [evidence/SHA256](docs/evidence/rmv2/acceptance-ci118.json). Owner self-install/physical UAT is **PENDING**.
-
-RM task close-before-report and45second quiet cleanup, original system cursors/sky-blue indicator, ordered input/independent status-cancel, target-bound logical typing, capture cache/ROI/fresh coordinates and opt-in DXGI capture are implemented. Input-event acceptance is distinct from verified content. Exact editor/layout coverage is pinned; managed262K stress cases (classic giant paragraph; rich giant paragraph and structured paragraphs) remain **NOT_ACCEPTED**. Positive262K coverage is restricted to the genuine Win32 EDIT target/layout named in its receipt. GPU resize/hardware encoding/video/viewer and physical hardware matrix remain unimplemented or unaccepted. No public binary/feed promotion or production/domain/Google callback change.
+Internal0.10.1-dev.11, one primary LightRemote.exe. Exact source `1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9`; [CI127 all15PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850), [internal installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850/artifacts/14103290306), [source/hash/evidence](docs/evidence/rmv2/acceptance-ci127.json). All five262K real editor cases, actual GPU resize/reduced readback, native H264 and production WebCodecs decoding pass scoped CI. Isolated Gold Lab uses this source. Owner physical GPU/encoder/mixedDPI/application UAT remains pending. JPEG/GDI fallback is preserved; video is bounded H264 pull with CPU NV12, not zero-copy. No public release, feed/main promotion, production/domain/callback or Owner installation change.
 
 ## License
 

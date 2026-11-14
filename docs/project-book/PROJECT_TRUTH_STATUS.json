@@ -12,16 +12,16 @@
   "apiContractVersion": "light-remote.api.v1",
   "profile": "goldabv2-desktop-v4",
   "officialRepositoryId": 1450214328,
-  "verifiedBuiltSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-  "verifiedBuiltSourceTree": "4fd8db8dd7398ada5d88f80907954f5540cc1cf3",
-  "checkpointUpdatedAt": "2026-11-14T06:08:13.180Z",
-  "migrationPhase": "RMV2_MANAGED_TEXT_GPU_RESIZE_VIDEO_COMPLETION",
+  "verifiedBuiltSourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+  "verifiedBuiltSourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
+  "checkpointUpdatedAt": "2026-11-14T06:50:17.218Z",
+  "migrationPhase": "RMV2_TEXT_GPU_VIDEO_IMPLEMENTED_CI_AND_LAB_VERIFIED_PHYSICAL_PENDING",
   "ci": {
     "status": "success",
-    "runId": 43530897985,
-    "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-    "passedJobs": 9,
-    "totalJobs": 9
+    "runId": 43564848850,
+    "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+    "passedJobs": 15,
+    "totalJobs": 15
   },
   "isolatedDev": {
     "sourceCommit": "8e0d932920d218c54f83989978f3866c321e20de",
@@ -30,9 +30,9 @@
     "evidence": "docs/evidence/dev-integration.json"
   },
   "windows": {
-    "sourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
-    "artifactId": 14088683951,
-    "sha256": "9c913526ec4d615dc36c387c00a9c7e25c9931c54851ab6f7d3aabf5a20a6df6",
+    "sourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+    "artifactId": 14103290306,
+    "sha256": "d9b84b6df878c1abc1c11feb8b378520a26ba34b69133a2e580c10eaddf452a8",
     "physicalOwnerAcceptance": "NOT_RUN"
   },
   "sourcePresenceDoesNotProveDeployment": true,
@@ -46,9 +46,7 @@
     "Existing reconstruction backlog retained: legacy Long Memory extension/RC50/Guest prototypes and full Mac/Linux installers",
     "Complete endpoint/schema catalog coverage and remaining legacy server route constants; new three routes use canonical catalog",
     "Memory/Codex100-row native read window remains explicit; Desktop task/session history is bounded/pageable",
-    "RM v2 consolidated physical acceptance against pinned dev11 installer is pending Owner self-install/test.",
-    "RM v2 giant single-paragraph262K classic/rich remains NOT_ACCEPTED; arbitrary application/newline/focus-race matrix pending.",
-    "RM v2 optional DXGI physical adapter/recovery matrix and GPU preprocessing remain pending; hardware encoding/video/viewer/media transport not implemented."
+    "RM v2 physical Owner GPU/encoder/mixedDPI/application acceptance pending against the pinned combined installer; native/source implementation and scoped CI are complete."
   ],
   "historicalRefsOnly": {
     "oldRepository": "n8n2erpnext/light-remote-mcp-archive-20261108",
