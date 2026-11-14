@@ -199,3 +199,7 @@ Resume full RM plan before acceptance. Empty supported Unicode Edit/RICHEDIT50W 
 ## Add scoped H264 video with ephemeral relay and authenticated viewer
 
 Current exact-source native H264, real browser decode, combined installer and four managed262K stress cases remain CI-pending. Encoding is system-memory Media Foundation after CPU NV12, optional GPU preprocessing before reduced readback; zero-copy encoding is not claimed. H264 is optional pull-based independent-IDR video with backpressure, not a Sunshine-compatible realtime protocol or a guaranteed FPS improvement. Existing JPEG/GDI path remains available. Hardware capability/fallback is reported by actual encoder and still needs physical Owner GPU matrix after a fully checked candidate exists.
+
+## Gate five isolated RM text stress cases on the exact installer binary
+
+Current plan remains incomplete pending exact-source native H264/WebCodecs and five-shard combined full CI. Three262K cases passed on CI123; remaining two were cut off by the external serial test budget. Required stress now uses independent Windows desktops with the same native binary staged into the installer; no test requirement or product input deadline is relaxed.

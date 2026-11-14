@@ -474,7 +474,7 @@ async function stopRealRemoteVisual(row,{detach=true}={}){
     },
     release:r=>{try{r.release?.();}finally{r.release=null;}},
     closeIdle:()=>NATIVE_DESKTOP.closeIfIdle()
-  }).then(async receipt=>{row.latestVideo=null;if(row.closeVideoRelay){const close=row.closeVideoRelay;row.closeVideoRelay=null;try{await close();}catch{ /* Relay TTL2s remains fail-closed; never keep native control alive for networking. */ }}rememberRmTaskClose(REAL_REMOTE_VISUAL_CLOSED,row,receipt);return receipt;}).catch(error=>{
+  }).then(async receipt=>{row.latestVideo=null;rememberRmTaskClose(REAL_REMOTE_VISUAL_CLOSED,row,receipt);if(row.closeVideoRelay){const close=row.closeVideoRelay;row.closeVideoRelay=null;try{await close();}catch{ /* Relay TTL2s remains fail-closed; never keep native control alive for networking. */ }}return receipt;}).catch(error=>{
     // Explicit close failure must get the same eventual cleanup as orphan expiry.
     if(REAL_REMOTE_VISUAL.get(row.desktopSessionId)===row&&!row.timer){
       row.timer=setTimeout(()=>{row.timer=null;void stopRealRemoteVisual(row,{detach}).catch(()=>{});},5000);row.timer.unref?.();
@@ -1023,7 +1023,7 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
   if(op==='video-frame'){
     if(process.platform!=='win32')throw Error('video_windows_only');
     const row=requireOwnedRmTask(REAL_REMOTE_VISUAL,visualOwner(p),request.desktopSessionId);
-    const native=await captureAuthorizedVideo(row,visualOwner(p),request,{requestNative:(...args)=>NATIVE_DESKTOP.request(...args),isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r,sendVideo:async native=>{row.closeVideoRelay=()=>channelRequest(readState()||state,hub,'desktop-video-push',{sessionId:row.sessionId,agentId:row.agentId,desktopSessionId:row.desktopSessionId,closed:true});return channelRequest(readState()||state,hub,'desktop-video-push',{sessionId:row.sessionId,agentId:row.agentId,desktopSessionId:row.desktopSessionId,epoch:native.epoch,frameSeq:native.frameSeq,video:native.video});}});
+    const native=await captureAuthorizedVideo(row,visualOwner(p),request,{requestNative:(...args)=>NATIVE_DESKTOP.request(...args),isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r&&effectiveCapabilitiesForState(readState()||state).includes('desktop'),sendVideo:async native=>{row.closeVideoRelay=()=>channelRequest(readState()||state,hub,'desktop-video-push',{sessionId:row.sessionId,agentId:row.agentId,desktopSessionId:row.desktopSessionId,closed:true});return channelRequest(readState()||state,hub,'desktop-video-push',{sessionId:row.sessionId,agentId:row.agentId,desktopSessionId:row.desktopSessionId,epoch:native.epoch,frameSeq:native.frameSeq,video:native.video});}});
     return {ok:true,operation:op,desktop:visualPublicView(row,native)};
   }
   if(op==='frame')return {ok:true,operation:op,desktop:await frameRealRemoteVisual(p,request,{observe:false})};

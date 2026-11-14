@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-14T02:15:53.997Z",
+  "updatedAt": "2026-11-14T05:52:50.403Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_MANAGED_TEXT_GPU_RESIZE_VIDEO_COMPLETION",
   "status": "RM_PLAN_COMPLETION_IN_PROGRESS",
@@ -451,7 +451,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Run exact-source native H264 encode, live scoped capture/bad-lease/closed-lease/resource cleanup, production WebCodecs full color decode and required managed262K matrix. Fix all actual failures, verify complete installer and independent source/hash receipts, integrate isolated Lab with rollback only after full CI. Do not give Owner a combined acceptance download until managed262K, GPU resize and video are implemented and checked together.",
+  "nextAction": "Require all15 full CI jobs including five262K stress cases on the identical installer helper bytes. Follow fast exact-source H264 encode, scoped live capture/close/resource checks and actual production WebCodecs synthetic-color decode; correct failures without relaxing product deadlines. Verify all text/media/source/hash receipts and combined installer, then isolated Lab integration with rollback. Owner acceptance download only after all requested features pass together.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -542,13 +542,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261114-rmv2-h264-authorized-ephemeral-video",
-    "status": "RM_VIDEO_IMPLEMENTED_SOURCE_NATIVE_CI_PENDING_FULL_PLAN_IN_PROGRESS",
-    "summary": "Implement optional Windows H264 video end to end: explicit video-frame uses the existing owned A/B RM task and desktop read policy, D3D11 crop/resize preference with current GDI fallback, Media Foundation hardware encoder preference with software fallback, bounded CPU NV12 conversion and independent AnnexB IDRs/SPS/PPS. Native capture lane stays bounded and input/status lanes independent; close/topology/lease checks fence late output and release codec/GPU resources. Encoded pixels go through a separate signed actor-bound2s16MiB RAM relay and authenticated same-device WebCodecs viewer; capture jobs store metadata only, never media. Private video_read rechecks account/Agent/device connection/A/B grant without renewing RM control. Owner viewer only observes recent already-captured packets, suppresses duplicate payloads and clears stale/hidden/closed views. Central endpoint catalog, contracts and packaged Client Core include the feature. No zero-copy, physical hardware, native video or completed-plan PASS is claimed before exact Actions proof.",
-    "verification": "Portable video/auth/relay/Owner HTTP tests13/13PASS; native input contract, Client Core closure93files, canonical endpoint Node/.NET/Rust/updater contractsPASS; video PowerShell ASTPASS. Native video has not yet run. Full checkpoint checkpoint/20261114-before-rmv2-encoded-bf97488 bundleSHA 516b929e67de6b6e96e1a33c94915bad819dfbdb8ad4024aecce24161633b5ab archiveSHA faa87321bae49fb9f74f577ccced6fc12c190246d2903904a6883284712fbbf0 restore/fsckPASS. CI122 exactda99762 passed native shader/WARP and actual DXGI reduced-readback probe; CI123 bf97488 managed text is running, no result inferred.",
-    "nextAction": "Run exact-source native H264 encode, live scoped capture/bad-lease/closed-lease/resource cleanup, production WebCodecs full color decode and required managed262K matrix. Fix all actual failures, verify complete installer and independent source/hash receipts, integrate isolated Lab with rollback only after full CI. Do not give Owner a combined acceptance download until managed262K, GPU resize and video are implemented and checked together.",
-    "sourceDigest": "9fb880fa849427746ac8210161ed0d5363f9a286a307d85beaf8c3bd716f6517",
-    "sourceFileCount": 1719
+    "taskId": "20261114-rmv2-required-shared-binary-stress-media-ci",
+    "status": "RM_PLAN_IN_PROGRESS_REQUIRED_TEXT_AND_NATIVE_MEDIA_CI_PENDING",
+    "summary": "Complete the required CI graph without dropping real keyboard stress: publish one source/tree/hash-bound native RM helper and isolated editor fixture, reuse exactly those bytes for five isolated Windows262K stress jobs and the installer. Preserve all native/managed full readback, accessibility, newline, delayed-delivery, focus-switch and close assertions; only move the five long cases out of the serial installer job. Add strict native artifact source/file/hash intake and tamper regression. Fix H264 fixture missing System.IO and catalog revision3-only regression assertions while preserving fixed revision3 HMAC vector plus live current-revision checks. Recheck local desktop capability after video capture and remember confirmed native task close before awaiting bounded RAM relay cleanup.",
+    "verification": "CI123 sourcebf974886fdad20ea996f9551913f95f3233e65c2 receipt artifact14094184006 SHA46332ca7524cdb71dc5711b126f7720361eb47beebeefedee9aab8ada9810e99 independently verified: RichEdit262K paragraphs444401ms, RichEdit262K single624994ms and Classic262K single1155132ms all full native/fixture readback with accessibility not activated. Serial40minute external timeout interrupted Classic paragraphs and prevented Win32 paragraphs; those two remain INCOMPLETE, not PASS. CI124 and fast media probe did not reach native video due compile/catalog test failures corrected here. Local native artifact tamper, proof contract/actual loopback HMAC and PowerShell AST checks PASS. Pre-change full checkpoint checkpoint/20261114-before-rmv2-resume-18a9b16 bundleSHA fe9db1ad53fe8d9feeefcf6deb90353f55526cf91a2ec2dfffbc4631691c854a archiveSHA bbc56daea350cb351e7773820b4791fc4b70b5a1af5023733be3763f95d67a55 independent restore/fsckPASS.",
+    "nextAction": "Require all15 full CI jobs including five262K stress cases on the identical installer helper bytes. Follow fast exact-source H264 encode, scoped live capture/close/resource checks and actual production WebCodecs synthetic-color decode; correct failures without relaxing product deadlines. Verify all text/media/source/hash receipts and combined installer, then isolated Lab integration with rollback. Owner acceptance download only after all requested features pass together.",
+    "sourceDigest": "0756e868fea6b76026bb136c0e2bdc5b7f6d02fd207be2fc1912aca5c3cae8d8",
+    "sourceFileCount": 1722
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -2517,8 +2517,8 @@
         "restore": "PASS"
       },
       "requiredManaged262KCases": 4,
-      "gpuResize": "CI122_WARP_SHADER_AND_DXGI_REDUCED_READBACK_PROBE_PASS",
-      "encodedVideoAndAuthorizedViewer": "IMPLEMENTED_SOURCE_NATIVE_AND_BROWSER_CI_PENDING",
+      "gpuResize": "CI122_WARP_SHADER_AND_DXGI_REDUCED_READBACK_PASS",
+      "encodedVideoAndAuthorizedViewer": "SOURCE_IMPLEMENTED_NATIVE_COMPILE_FIX_AND_BROWSER_CI_PENDING",
       "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.",
       "gpuResizeBackend": "D3D11_COMPUTE_CROP_BILINEAR_REDUCED_STAGING",
       "gpuResizeCheckpoint": {
@@ -2543,7 +2543,26 @@
       "videoEncoderPreference": "HARDWARE_WITH_EXPLICIT_SOFTWARE_FALLBACK",
       "mediaPersistence": "NONE_RAM_ONLY_TTL2000MS_MAX16MIB",
       "nativeMediaDiagnostics": "ACTIONS_ONLY_NOT_RELEASE_ACCEPTANCE",
-      "zeroCopy": false
+      "zeroCopy": false,
+      "textCi123": {
+        "sourceCommit": "bf974886fdad20ea996f9551913f95f3233e65c2",
+        "artifactId": 14094184006,
+        "artifactSha256": "46332ca7524cdb71dc5711b126f7720361eb47beebeefedee9aab8ada9810e99",
+        "richParagraph262K": "PASS",
+        "richSingle262K": "PASS",
+        "classicSingle262K": "PASS",
+        "classicParagraph262K": "INCOMPLETE_EXTERNAL_TIMEOUT",
+        "nativeParagraph262K": "NOT_RUN_SERIAL_TIMEOUT"
+      },
+      "requiredTextGraph": "FIVE_ISOLATED_WINDOWS_SHARDS_SAME_INSTALLER_BINARY_ALL_REQUIRED",
+      "requiredFullCiJobs": 15,
+      "checkpoint": {
+        "tag": "checkpoint/20261114-before-rmv2-resume-18a9b16",
+        "bundleSha256": "fe9db1ad53fe8d9feeefcf6deb90353f55526cf91a2ec2dfffbc4631691c854a",
+        "archiveSha256": "bbc56daea350cb351e7773820b4791fc4b70b5a1af5023733be3763f95d67a55",
+        "restore": "PASS",
+        "source": "18a9b16622487b1d570c53b706781c479336885c"
+      }
     }
   }
 }

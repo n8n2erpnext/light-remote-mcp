@@ -1,0 +1,67 @@
+name: Required RM native text stress
+on:
+  workflow_call:
+    inputs:
+      native_artifact:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  stress:
+    name: ${{ matrix.case }}
+    runs-on: windows-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [rich-paragraph, rich-single, classic-single, classic-paragraph, native-paragraph]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.native_artifact }}
+          path: dist/rmv2-ci-native
+      - name: Verify exact source and every native binary hash
+        shell: pwsh
+        run: |
+          node deploy/unified/rmv2-native-artifact.mjs verify dist/rmv2-ci-native $env:GITHUB_SHA (git rev-parse 'HEAD^{tree}')
+          if ($LASTEXITCODE -ne 0) { throw 'Wrong source or changed native binary' }
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+      - name: Required real input and full readback on an isolated Windows desktop
+        id: acceptance
+        timeout-minutes: 45
+        shell: pwsh
+        env:
+          TEXT_CASE: ${{ matrix.case }}
+        run: |
+          ./client/windows-native/test-rmv2-text.ps1 -Exe (Join-Path $PWD 'dist/rmv2-ci-native/helper/LightRemote.RM.exe') -FixtureExe (Join-Path $PWD 'dist/rmv2-ci-native/fixture/LightRemote.RM.TextFixture.exe') -CaseName $env:TEXT_CASE -Output (Join-Path $PWD 'dist/windows/rmv2-text-acceptance.json')
+          $receipt = Get-Content dist/windows/rmv2-text-acceptance.json -Raw | ConvertFrom-Json
+          if ($receipt.result -ne 'PASS' -or $receipt.caseName -ne $env:TEXT_CASE -or -not $receipt.allSelectedCasesVerified) { throw 'Required stress case is not fully verified' }
+      - name: Bind completed receipt to tested bytes and source
+        if: always()
+        shell: pwsh
+        env:
+          TEXT_CASE: ${{ matrix.case }}
+          STEP_OUTCOME: ${{ steps.acceptance.outcome }}
+        run: |
+          $out = Join-Path $PWD 'dist/windows/rmv2-text-acceptance.json'
+          if (-not (Test-Path $out)) { @{ result='INCOMPLETE';caseName=$env:TEXT_CASE } | ConvertTo-Json | Set-Content -LiteralPath $out -Encoding utf8 }
+          $receipt = Get-Content $out -Raw | ConvertFrom-Json
+          if ($receipt.result -eq 'RUNNING') { $receipt.result = 'INCOMPLETE' }
+          $manifest = Get-Content dist/rmv2-ci-native/manifest.json -Raw | ConvertFrom-Json
+          $receipt | Add-Member -Force -NotePropertyMembers @{sourceCommit=$env:GITHUB_SHA;sourceTree=(git rev-parse 'HEAD^{tree}');ciRunId=$env:GITHUB_RUN_ID;caseName=$env:TEXT_CASE;ciStepOutcome=$env:STEP_OUTCOME;helperSha256=($manifest.files | Where-Object path -eq 'helper/LightRemote.RM.exe').sha256;fixtureSha256=($manifest.files | Where-Object path -eq 'fixture/LightRemote.RM.TextFixture.exe').sha256}
+          $receipt | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $out -Encoding utf8
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rmv2-text-${{ matrix.case }}-${{ github.sha }}
+          path: dist/windows/rmv2-text-acceptance.json
+          if-no-files-found: error
+          retention-days: 14

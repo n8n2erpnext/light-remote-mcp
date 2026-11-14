@@ -1,6 +1,11 @@
 name: Light Remote Windows component
 on:
   workflow_call:
+    inputs:
+      native_artifact:
+        required: false
+        type: string
+        default: ''
 permissions:
   contents: read
 env:
@@ -631,12 +636,26 @@ jobs:
           node deploy/scripts/selftest-gold-client-core-imports.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Gold Client Core recovery module import missing' }
 
+      - name: Download the native binary used by every required stress case
+        if: inputs.native_artifact != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.native_artifact }}
+          path: dist/rmv2-ci-native
+
       - name: Publish isolated Real Remote V2 companion
         shell: pwsh
         run: |
           $out = Join-Path $PWD 'dist\realremote-v2'
-          dotnet publish client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj -c Release -r win-x64 --self-contained true -o $out
-          if ($LASTEXITCODE -ne 0) { throw 'Real Remote V2 publish failed' }
+          if ('${{ inputs.native_artifact }}') {
+            node deploy/unified/rmv2-native-artifact.mjs verify dist/rmv2-ci-native $env:GITHUB_SHA (git rev-parse 'HEAD^{tree}')
+            if ($LASTEXITCODE -ne 0) { throw 'Shared tested RM binary source/hash mismatch' }
+            New-Item -ItemType Directory -Force $out | Out-Null
+            Copy-Item -Path 'dist/rmv2-ci-native/helper/*' -Destination $out -Recurse
+          } else {
+            dotnet publish client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj -c Release -r win-x64 --self-contained true -o $out
+            if ($LASTEXITCODE -ne 0) { throw 'Real Remote V2 publish failed' }
+          }
           $exe = Join-Path $out 'LightRemote.RM.exe'
           if (-not (Test-Path $exe)) { throw 'Real Remote V2 executable missing' }
           "RMV2_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -764,18 +783,23 @@ jobs:
         timeout-minutes: 3
         shell: pwsh
         run: |
-          dotnet publish client/windows-native/TestFixtures/Rmv2TextFixture/Rmv2TextFixture.csproj -c Release -r win-x64 --self-contained false -o (Join-Path $PWD 'dist/rmv2-text-fixture')
-          if ($LASTEXITCODE -ne 0) { throw 'RM text fixture build failed' }
+          if ('${{ inputs.native_artifact }}') {
+            New-Item -ItemType Directory -Force dist/rmv2-text-fixture | Out-Null
+            Copy-Item -Path 'dist/rmv2-ci-native/fixture/*' -Destination dist/rmv2-text-fixture -Recurse
+          } else {
+            dotnet publish client/windows-native/TestFixtures/Rmv2TextFixture/Rmv2TextFixture.csproj -c Release -r win-x64 --self-contained false -o (Join-Path $PWD 'dist/rmv2-text-fixture')
+            if ($LASTEXITCODE -ne 0) { throw 'RM text fixture build failed' }
+          }
           "RMV2_TEXT_FIXTURE_EXE=$(Join-Path $PWD 'dist/rmv2-text-fixture/LightRemote.RM.TextFixture.exe')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Real Remote V2 target-bound Unicode text acceptance
         id: rmv2_text_acceptance
-        # Full262K real-keyboard/readback stress can exceed15minutes on hosted
-        # Windows. This is only a bounded CI budget, not input authority or RPC.
-        timeout-minutes: 40
+        # Five262K cases run on independent Windows desktops in the required
+        # text-stress matrix, using this exact same hash-verified RM executable.
+        timeout-minutes: 10
         shell: pwsh
         run: |
-          ./client/windows-native/test-rmv2-text.ps1 -Exe $env:RMV2_EXE -FixtureExe $env:RMV2_TEXT_FIXTURE_EXE -Output (Join-Path $PWD 'dist/windows/rmv2-text-acceptance.json')
+          ./client/windows-native/test-rmv2-text.ps1 -Exe $env:RMV2_EXE -FixtureExe $env:RMV2_TEXT_FIXTURE_EXE -CaseName smoke -Output (Join-Path $PWD 'dist/windows/rmv2-text-acceptance.json')
 
       - name: Classify externally interrupted RMv2 text receipt
         if: always()

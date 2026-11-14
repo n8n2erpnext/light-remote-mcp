@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Exe,[Parameter(Mandatory=$true)][string]$Output,[Parameter(Mandatory=$true)][string]$FixtureExe)
+param([Parameter(Mandatory=$true)][string]$Exe,[Parameter(Mandatory=$true)][string]$Output,[Parameter(Mandatory=$true)][string]$FixtureExe,[ValidateSet('all','smoke','rich-paragraph','rich-single','classic-single','classic-paragraph','native-paragraph')][string]$CaseName='all')
 $ErrorActionPreference='Stop'
 # Isolated Actions desktop only. Never run on the Owner's installed desktop.
 $script:lastStage='starting';$script:testUnits=0;$script:testOffset=0
@@ -81,14 +81,17 @@ try {
  $slowReport=@{units=$slowText.Length;elapsedMs=$slowClock.Elapsed.TotalMilliseconds;nativeVerified=$true;exactFixtureReadback=$true;authorityExpiredAfterSend=$true;delayPerWmCharMs=$shared.delayMs}
  $sizes=@()
  $matrix=@(
-  @{units=16384;kind='classic';layout='single-paragraph'},
-  @{units=65536;kind='classic';layout='single-paragraph'},
-  @{units=262144;kind='rich';layout='paragraphs-cr'},
-  @{units=262144;kind='rich';layout='single-paragraph'},
-  @{units=262144;kind='classic';layout='single-paragraph'},
-  @{units=262144;kind='classic';layout='paragraphs-cr'},
-  @{units=262144;kind='native';layout='paragraphs-cr'}
+  @{case='smoke';units=16384;kind='classic';layout='single-paragraph'},
+  @{case='smoke';units=65536;kind='classic';layout='single-paragraph'},
+  @{case='rich-paragraph';units=262144;kind='rich';layout='paragraphs-cr'},
+  @{case='rich-single';units=262144;kind='rich';layout='single-paragraph'},
+  @{case='classic-single';units=262144;kind='classic';layout='single-paragraph'},
+  @{case='classic-paragraph';units=262144;kind='classic';layout='paragraphs-cr'},
+  @{case='native-paragraph';units=262144;kind='native';layout='paragraphs-cr'}
  )
+ if($CaseName -ne 'all'){$matrix=@($matrix|Where-Object {$_.case -eq $CaseName})}
+ if($matrix.Count -lt 1){throw 'text_selected_case_missing'}
+ $selectedCases=$matrix.Count
  foreach($case in $matrix){
   $size=$case.units
   $script:testUnits=$size;$script:testOffset=0;$script:sizeClock=[diagnostics.stopwatch]::StartNew();Write-TextStage 'resetting_control'
@@ -178,7 +181,8 @@ try {
  if($shared.result -cne 'prefix' -or $shared.other -cne ''){throw 'text_suffix_leaked_to_other_control'}
  $closed=Invoke-Rm @{op='desktop.visual.detach';visualSessionId=$view.visualSessionId;leaseToken=$view.leaseToken}
  if(-not $closed.scopeClosed){throw 'text_scope_not_closed'}
- $receipt=@{result='PASS';scope='isolated_actions_native_and_managed_editors_not_owner_physical';nativeMultilineLineEndings=$newlineReports;unicodeReadbackSizes=$sizes;sizeMeasurements=$script:completedSizes;delayedDelivery=$slowReport;requiredManaged262KCases=4;managedAccessibilityProviderNotActivated=$true;elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
+ if($script:completedSizes.Count -ne $selectedCases){throw 'text_selected_cases_not_complete'}
+ $receipt=@{caseName=$CaseName;selectedCaseCount=$selectedCases;allSelectedCasesVerified=$true;result='PASS';scope='isolated_actions_native_and_managed_editors_not_owner_physical';nativeMultilineLineEndings=$newlineReports;unicodeReadbackSizes=$sizes;sizeMeasurements=$script:completedSizes;delayedDelivery=$slowReport;requiredManaged262KCases=@($matrix|Where-Object {$_.units -eq 262144 -and $_.kind -ne 'native'}).Count;managedAccessibilityProviderNotActivated=$true;elapsedMs=$script:totalClock.Elapsed.TotalMilliseconds;focusSwitchStopsSuffix=$true;otherControlUnmodified=$true;explicitClose=$true;automaticReplay=$false}
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Compress)
 } catch {

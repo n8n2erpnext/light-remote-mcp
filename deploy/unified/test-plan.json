@@ -99,6 +99,7 @@
     }
   ],
   "extraUnitFiles": [
-    "deploy/scripts/f16-owner-uat-artifact-preflight.test.mjs"
+    "deploy/scripts/f16-owner-uat-artifact-preflight.test.mjs",
+    "deploy/unified/rmv2-native-artifact.test.mjs"
   ]
 }

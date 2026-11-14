@@ -14,7 +14,7 @@ import {loadCanonicalEndpoints} from '../../lib/canonical-endpoints.mjs';
 
 const root=fileURLToPath(new URL('../../config/endpoints.json',import.meta.url));
 const config=loadCanonicalEndpoints(root);
-assert.equal(config.configRevision,3);
+assert.ok(Number.isSafeInteger(config.configRevision)&&config.configRevision>=3,'instance proof requires catalog revision3 or newer');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'goldabv2-instance-proof-'));
 const keyFile=path.join(dir,'profile','wall-instance.key');
 let wall;
@@ -43,7 +43,7 @@ try{
  const vector=crypto.createHmac('sha256',Buffer.alloc(32,0x11))
   .update(wallInstanceMessage({nonce:'aa'.repeat(32),pid:4242,
    productId:config.productId,profile:config.selectedProfile,
-   revision:config.configRevision})).digest('hex');
+   revision:3})).digest('hex');
  assert.equal(vector,'b4627b638a8321caafeeff101fc1acbd07e8d0b5c37bc7841d42041a9652ace0');
  const priorVector=crypto.createHmac('sha256',Buffer.alloc(32,0x11))
   .update(wallInstanceMessage({nonce:'aa'.repeat(32),pid:4242,

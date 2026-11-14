@@ -127,6 +127,44 @@ jobs:
           name: light-remote-mcp-core-${{ github.sha }}
           path: build-output/
           if-no-files-found: error
+  rm-native-build:
+    name: RM native binary shared by stress and installer
+    needs: [changes, truth, dependency-lock]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build one locked RM helper and isolated test fixture
+        shell: pwsh
+        run: |
+          $root = Join-Path $PWD 'dist/rmv2-ci-native'
+          dotnet publish client/windows-native/GptOperator.RealRemoteV2/GptOperator.RealRemoteV2.csproj -c Release -r win-x64 --self-contained true -p:RestoreLockedMode=true -o (Join-Path $root 'helper')
+          if ($LASTEXITCODE -ne 0) { throw 'Shared RM helper build failed' }
+          dotnet publish client/windows-native/TestFixtures/Rmv2TextFixture/Rmv2TextFixture.csproj -c Release -r win-x64 --self-contained false -o (Join-Path $root 'fixture')
+          if ($LASTEXITCODE -ne 0) { throw 'Isolated native text fixture build failed' }
+          node deploy/unified/rmv2-native-artifact.mjs write $root $env:GITHUB_SHA (git rev-parse 'HEAD^{tree}') $env:GITHUB_RUN_ID (Get-Content VERSION -Raw).Trim()
+          if ($LASTEXITCODE -ne 0) { throw 'Native source/hash manifest failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rmv2-native-${{ github.sha }}
+          path: dist/rmv2-ci-native/
+          if-no-files-found: error
+          retention-days: 14
+  text-stress:
+    needs: [changes, truth, rm-native-build]
+    if: needs.changes.outputs.code == 'true'
+    uses: ./.github/workflows/rmv2-text-stress.yml
+    with:
+      native_artifact: rmv2-native-${{ github.sha }}
+    permissions:
+      contents: read
   desktop:
     needs: [changes, truth, dependency-lock]
     if: needs.changes.outputs.code == 'true'
@@ -134,15 +172,17 @@ jobs:
     permissions:
       contents: read
   windows:
-    needs: [changes, truth, dependency-lock]
+    needs: [changes, truth, dependency-lock, rm-native-build]
     if: needs.changes.outputs.code == 'true'
     uses: ./.github/workflows/windows-native-client.yml
+    with:
+      native_artifact: rmv2-native-${{ github.sha }}
     permissions:
       contents: read
 
   baseline-required:
     name: baseline-required
-    needs: [changes, truth, dependency-lock, core-contract-integration, desktop, windows]
+    needs: [changes, truth, dependency-lock, core-contract-integration, desktop, windows, rm-native-build, text-stress]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -154,7 +194,7 @@ jobs:
           import json, os
           jobs = json.loads(os.environ['RESULTS'])
           code = jobs['changes']['outputs'].get('code') == 'true'
-          required = ['changes','truth'] + (['dependency-lock','core-contract-integration','desktop','windows'] if code else [])
+          required = ['changes','truth'] + (['dependency-lock','core-contract-integration','desktop','windows','rm-native-build','text-stress'] if code else [])
           failed = {name: jobs[name]['result'] for name in required if jobs[name]['result'] != 'success'}
           if failed:
               raise SystemExit('Required baseline scope failed: ' + json.dumps(failed))

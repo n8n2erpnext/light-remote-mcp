@@ -1,0 +1,176 @@
+{
+  "sourceCommit": "bf974886fdad20ea996f9551913f95f3233e65c2",
+  "ciRunId": 43542849681,
+  "artifactId": 14094184006,
+  "artifactSha256": "46332ca7524cdb71dc5711b126f7720361eb47beebeefedee9aab8ada9810e99",
+  "stage": "typing_chunks",
+  "nativeMultilineLineEndings": [
+    {
+      "fullFixtureReadback": true,
+      "nativeVerified": true,
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "controlKind": "classic",
+      "sourceUnits": 18
+    },
+    {
+      "fullFixtureReadback": true,
+      "nativeVerified": true,
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "controlKind": "classic",
+      "sourceUnits": 20
+    },
+    {
+      "fullFixtureReadback": true,
+      "nativeVerified": true,
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "controlKind": "classic",
+      "sourceUnits": 18
+    },
+    {
+      "fullFixtureReadback": true,
+      "nativeVerified": true,
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "controlKind": "rich",
+      "sourceUnits": 18
+    },
+    {
+      "fullFixtureReadback": true,
+      "nativeVerified": true,
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "controlKind": "rich",
+      "sourceUnits": 20
+    },
+    {
+      "fullFixtureReadback": true,
+      "nativeVerified": true,
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "controlKind": "rich",
+      "sourceUnits": 18
+    },
+    {
+      "fullFixtureReadback": true,
+      "nativeVerified": true,
+      "lineEndingCodeUnits": [
+        10
+      ],
+      "controlKind": "native",
+      "sourceUnits": 18
+    },
+    {
+      "fullFixtureReadback": true,
+      "nativeVerified": true,
+      "lineEndingCodeUnits": [
+        13,
+        10
+      ],
+      "controlKind": "native",
+      "sourceUnits": 20
+    },
+    {
+      "fullFixtureReadback": true,
+      "nativeVerified": true,
+      "lineEndingCodeUnits": [
+        13
+      ],
+      "controlKind": "native",
+      "sourceUnits": 18
+    }
+  ],
+  "sizeElapsedMs": 15643.9402,
+  "elapsedMs": 2395876.9524,
+  "sentOffset": 8698,
+  "at": "2026-11-14T02:36:39.5946823Z",
+  "lastChunkTiming": {
+    "sentUnits": 8698,
+    "observedUnits": 8698,
+    "phase": "complete",
+    "nativeHandlerMs": 451.0928,
+    "textTiming": {
+      "targetMs": 0.0389,
+      "sendMs": 80.2695,
+      "deliveryMs": 370.2575
+    },
+    "nativeQueueMs": 0.0523
+  },
+  "scope": "isolated_actions_synthetic_text_no_raw_content",
+  "requestedUnits": 262144,
+  "result": "INCOMPLETE",
+  "completedSizes": [
+    {
+      "layout": "single-paragraph",
+      "verificationMethod": "win32-empty-edit-full-line-endings",
+      "controlKind": "classic-edit",
+      "units": 16384,
+      "accessibilityObjectCreated": false,
+      "comparison": "full-content-line-ending-equivalence-only",
+      "wordWrap": true,
+      "nativeVerified": true,
+      "elapsedMs": 29838.9679,
+      "fullFixtureReadback": true
+    },
+    {
+      "layout": "single-paragraph",
+      "verificationMethod": "win32-empty-edit-full-line-endings",
+      "controlKind": "classic-edit",
+      "units": 65536,
+      "accessibilityObjectCreated": false,
+      "comparison": "full-content-line-ending-equivalence-only",
+      "wordWrap": true,
+      "nativeVerified": true,
+      "elapsedMs": 117701.0954,
+      "fullFixtureReadback": true
+    },
+    {
+      "layout": "paragraphs-cr",
+      "verificationMethod": "win32-empty-edit-full-line-endings",
+      "controlKind": "rich-edit",
+      "units": 262144,
+      "accessibilityObjectCreated": false,
+      "comparison": "full-content-line-ending-equivalence-only",
+      "wordWrap": true,
+      "nativeVerified": true,
+      "elapsedMs": 444400.5719,
+      "fullFixtureReadback": true
+    },
+    {
+      "layout": "single-paragraph",
+      "verificationMethod": "win32-empty-edit-full-line-endings",
+      "controlKind": "rich-edit",
+      "units": 262144,
+      "accessibilityObjectCreated": false,
+      "comparison": "full-content-line-ending-equivalence-only",
+      "wordWrap": true,
+      "nativeVerified": true,
+      "elapsedMs": 624994.2608,
+      "fullFixtureReadback": true
+    },
+    {
+      "layout": "single-paragraph",
+      "verificationMethod": "win32-empty-edit-full-line-endings",
+      "controlKind": "classic-edit",
+      "units": 262144,
+      "accessibilityObjectCreated": false,
+      "comparison": "full-content-line-ending-equivalence-only",
+      "wordWrap": true,
+      "nativeVerified": true,
+      "elapsedMs": 1155132.0081,
+      "fullFixtureReadback": true
+    }
+  ],
+  "interruption": "CI_STEP_ENDED_BEFORE_FINAL_NATIVE_ACCEPTANCE",
+  "ciStepOutcome": "failure"
+}
