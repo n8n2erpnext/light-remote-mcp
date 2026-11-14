@@ -28,9 +28,17 @@ try {
   if($RequestedBackend -eq 'gdi' -and $frame.captureBackend -ne 'gdi'){throw 'capture_default_gdi_changed'}
   if($frame.captureBackend -notin @('gdi','dxgi-d3d11')){throw 'capture_backend_unknown'}
   if($RequestedBackend -eq 'dxgi' -and $frame.captureBackend -eq 'gdi' -and -not $frame.captureFallback){throw 'capture_silent_gpu_fallback'}
-  if($frame.gpuResize -or $frame.hardwareEncoding){throw 'capture_unimplemented_acceleration_claim'}
+  if($frame.hardwareEncoding){throw 'capture_jpeg_hardware_encoder_claim'}
+  if($frame.captureBackend -eq 'dxgi-d3d11' -and (-not $frame.gpuResize -or $frame.gpuResizeStage -ne 'before-cpu-readback' -or $frame.readbackPixels -ne ($frame.frame.width*$frame.frame.height))){throw 'capture_gpu_resize_not_before_readback'}
+  if($frame.captureBackend -eq 'gdi' -and $frame.gpuResize){throw 'capture_gdi_claims_gpu_resize'}
  }
  Assert-Backend $crop
+ $scaled=Invoke-Rm @{op='desktop.frame';screen=0;maxWidth=320;maxHeight=180;quality=50}
+ Assert-Backend $scaled
+ $scaledJpeg=[convert]::FromBase64String($scaled.data)
+ Add-Type -AssemblyName System.Drawing
+ $scaledStream=[IO.MemoryStream]::new($scaledJpeg);$scaledImage=[Drawing.Image]::FromStream($scaledStream)
+ try{if($scaledImage.Width -ne $scaled.frame.width -or $scaledImage.Height -ne $scaled.frame.height -or $scaled.frame.width -gt 320 -or $scaled.frame.height -gt 180){throw 'capture_scaled_dimensions_invalid'}}finally{$scaledImage.Dispose();$scaledStream.Dispose()}
  $gpuFrames=0;$fallbackFrames=0
  if($crop.captureBackend -eq 'dxgi-d3d11'){$gpuFrames++}elseif($RequestedBackend -eq 'dxgi'){$fallbackFrames++}
  $jpeg=[convert]::FromBase64String($crop.data)
@@ -66,7 +74,7 @@ try {
  # Synthetic cache self-test verifies identical-pixel reuse deterministically;
  # actual screen reuse is recorded without assuming the CI desktop is static.
  function Percentile($values,[double]$p){$sorted=@($values|Sort-Object);return $sorted[[int][math]::Ceiling(($sorted.Count-1)*$p)]}
- $receipt=@{result='PASS';scope='isolated_actions_capture_geometry_freshness_fallback_not_owner_gpu_acceptance';requestedBackend=$RequestedBackend;gpuFrameCount=$gpuFrames;fallbackFrameCount=$fallbackFrames;gpuAcceptance=$(if($gpuFrames -gt 0){'RUNNER_CAPTURE_ONLY_NOT_OWNER_HARDWARE'}elseif($RequestedBackend -eq 'dxgi'){'UNAVAILABLE_FALLBACK_ONLY'}else{'NOT_RUN'});roi=$region;roiJpegValid=$true;freshPixelsEveryRead=$true;scopeCloseClearsCache=$true;frameSeqMonotonic=$true;coldSamples=$cold.Count;warmSamples=$warm.Count;coldCaptureP50Ms=(Percentile $cold .5);coldCaptureP95Ms=(Percentile $cold .95);warmCaptureP50Ms=(Percentile $warm .5);warmCaptureP95Ms=(Percentile $warm .95);actualEncodeReuseCount=$reused;actualPayloadOmissionCount=$omitted;comparison='SAME_SOURCE_CAPTURE_ONLY_COLD_ALLOCATION_VS_WARM_CACHE_NOT_PRIOR_RELEASE_OR_NETWORK';gpuPhysical='NOT_RUN';mixedDpiPhysical='PENDING_OWNER'}
+ $receipt=@{result='PASS';scope='isolated_actions_capture_geometry_freshness_fallback_not_owner_gpu_acceptance';requestedBackend=$RequestedBackend;gpuFrameCount=$gpuFrames;fallbackFrameCount=$fallbackFrames;gpuAcceptance=$(if($gpuFrames -gt 0){'RUNNER_CAPTURE_ONLY_NOT_OWNER_HARDWARE'}elseif($RequestedBackend -eq 'dxgi'){'UNAVAILABLE_FALLBACK_ONLY'}else{'NOT_RUN'});roi=$region;roiJpegValid=$true;freshPixelsEveryRead=$true;scopeCloseClearsCache=$true;frameSeqMonotonic=$true;coldSamples=$cold.Count;warmSamples=$warm.Count;coldCaptureP50Ms=(Percentile $cold .5);coldCaptureP95Ms=(Percentile $cold .95);warmCaptureP50Ms=(Percentile $warm .5);warmCaptureP95Ms=(Percentile $warm .95);actualEncodeReuseCount=$reused;actualPayloadOmissionCount=$omitted;comparison='SAME_SOURCE_CAPTURE_ONLY_COLD_ALLOCATION_VS_WARM_CACHE_NOT_PRIOR_RELEASE_OR_NETWORK';gpuPhysical='NOT_RUN';mixedDpiPhysical='PENDING_OWNER';scaledBackend=$scaled.captureBackend;scaledGpuResize=$scaled.gpuResize;scaledOutputPixels=($scaled.frame.width*$scaled.frame.height);scaledReadbackPixels=$scaled.readbackPixels;computeShaderWarpCorrectness='REQUIRED_NATIVE_SELFTEST'}
  $receipt|ConvertTo-Json -Depth 6|Set-Content -LiteralPath $Output -Encoding utf8
  Write-Host ($receipt|ConvertTo-Json -Depth 6 -Compress)
 } finally {

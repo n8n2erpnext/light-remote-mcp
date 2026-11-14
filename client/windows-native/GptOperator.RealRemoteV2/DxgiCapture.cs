@@ -8,14 +8,15 @@ using Vortice.DXGI;
 namespace GptOperator.RealRemoteV2;
 
 // Optional on-demand desktop duplication. No capture timer, transport, input or
-// permission path lives here. JPEG/resize remain CPU work, not zero-copy video.
+// permission path lives here. GPU crop/resize precede reduced CPU readback.
+// JPEG remains CPU encoding; no hardware video/zero-copy claim.
 internal sealed class DxgiCapture
 {
     private readonly object _gate=new();
     private ID3D11Device? _device;
     private ID3D11DeviceContext? _context;
     private IDXGIOutputDuplication? _duplication;
-    private ID3D11Texture2D? _staging;
+    private GpuFrameScaler? _scaler;
     private string _key="";
     private long _retryAfter;
     private long _captures,_fallbacks;
@@ -24,13 +25,13 @@ internal sealed class DxgiCapture
     {
         if(!Monitor.TryEnter(_gate))return new {compiled=true,busy=true,hardwareAccepted=false,defaultBackend="gdi"};
         try{return new {compiled=true,busy=false,active=_device is not null,captures=_captures,fallbacks=_fallbacks,lastFallback=_lastFallback,
-            hardwareAccepted=false,videoEncoder=false,gpuResize=false,acquireTimeoutMs=16,defaultBackend="gdi"};}
+            hardwareAccepted=false,videoEncoder=false,gpuResizeSupported=true,gpuResizeStage="d3d11-compute-before-reduced-readback",acquireTimeoutMs=16,defaultBackend="gdi"};}
         finally{Monitor.Exit(_gate);}
     }
     public void Clear() {lock(_gate){Reset();_retryAfter=0;}}
     private void Reset()
     {
-        _staging?.Dispose();_staging=null;
+        _scaler?.Dispose();_scaler=null;
         _duplication?.Dispose();_duplication=null;
         _context?.Dispose();_context=null;
         _device?.Dispose();_device=null;_key="";
@@ -58,17 +59,8 @@ internal sealed class DxgiCapture
                         var desc=texture.Description;
                         if(desc.Format!=Format.B8G8R8A8_UNorm||desc.Width!=screen.Width||desc.Height!=screen.Height)
                             throw new InvalidOperationException("dxgi_surface_geometry_or_format");
-                        _context!.CopyResource(_staging!,texture);
-                        var mapped=_context.Map(_staging!,0,MapMode.Read);
-                        try {
-                            if(mapped.DataPointer==0||mapped.RowPitch<(long)screen.Width*4)throw new InvalidOperationException("dxgi_invalid_row_pitch");
-                            var local=new Rectangle(crop.X-screen.X,crop.Y-screen.Y,crop.Width,crop.Height);
-                            if(local.X<0||local.Y<0||local.Right>screen.Width||local.Bottom>screen.Height||destination.Width!=local.Width||destination.Height!=local.Height)
-                                throw new InvalidOperationException("dxgi_invalid_crop");
-                            var bits=destination.LockBits(new Rectangle(0,0,destination.Width,destination.Height),ImageLockMode.WriteOnly,PixelFormat.Format24bppRgb);
-                            try {CopyBgraToBgr(mapped.DataPointer,checked((int)mapped.RowPitch),bits.Scan0,bits.Stride,local);}
-                            finally {destination.UnlockBits(bits);}
-                        } finally {_context.Unmap(_staging!,0);}
+                        var local=new Rectangle(crop.X-screen.X,crop.Y-screen.Y,crop.Width,crop.Height);
+                        _scaler!.Copy(texture,local,destination);
                     }
                 } finally {_duplication.ReleaseFrame().CheckError();}
                 _captures++;_lastFallback="";return true;
@@ -98,8 +90,7 @@ internal sealed class DxgiCapture
                     _device=device;_context=context;
                     using var output1=output.QueryInterface<IDXGIOutput1>();
                     _duplication=output1.DuplicateOutput(device);
-                    _staging=device.CreateTexture2D(new Texture2DDescription(Format.B8G8R8A8_UNorm,(uint)bounds.Width,(uint)bounds.Height,
-                        mipLevels:1,bindFlags:BindFlags.None,usage:ResourceUsage.Staging,cpuAccessFlags:CpuAccessFlags.Read));
+                    _scaler=new GpuFrameScaler(device,context);
                     return;
                 }
             }

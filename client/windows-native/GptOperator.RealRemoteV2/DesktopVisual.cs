@@ -107,7 +107,7 @@ internal static class DesktopVisual
     private static int _clearRequested;
     public static string RequestedCaptureBackend=>String.Equals(Environment.GetEnvironmentVariable("LIGHT_REMOTE_RM_CAPTURE_BACKEND"),"dxgi",StringComparison.OrdinalIgnoreCase)?"dxgi":"gdi";
     public static object CaptureCapabilities()=>new {requestedBackend=RequestedCaptureBackend,defaultBackend="gdi",cleanupPending=Volatile.Read(ref _clearRequested)!=0,dxgi=Dxgi.Metadata(),
-        transport="existing-authorized-image-jpeg",videoStreaming=false,gpuResize=false,hardwareEncoding=false};
+        transport="existing-authorized-image-jpeg",videoStreaming=false,gpuResizeSupported=true,gpuResizeBackend="dxgi-d3d11-compute",hardwareEncoding=false};
     public static void ClearCaptureCache()
     {
         Interlocked.Exchange(ref _clearRequested,1);
@@ -145,10 +145,19 @@ internal static class DesktopVisual
         var outW=Math.Max(1,(int)Math.Round(b.Width*scale));var outH=Math.Max(1,(int)Math.Round(b.Height*scale));
         var requestedBackend=RequestedCaptureBackend;var backend="gdi";var fallback="";
         var key=$"{requestedBackend}:{topologyBefore}:{screenIndex}:{b.X},{b.Y},{b.Width},{b.Height}:{outW},{outH}:{quality}";
-        var captured=FrameCache.CaptureBitmap(key,b.Width,b.Height,outW,outH,quality,(bitmap,graphics)=>{
-            if(requestedBackend=="dxgi"&&Dxgi.TryCopy(bitmap,screen.DeviceName,screenBounds,b,topologyBefore,out fallback)){backend="dxgi-d3d11";return;}
-            graphics.CopyFromScreen(b.X,b.Y,0,0,new Size(b.Width,b.Height),CopyPixelOperation.SourceCopy);
-        });
+        EncodedCapture captured;
+        try {
+            if(requestedBackend!="dxgi")throw new CaptureBackendUnavailable();
+            // Cache/encode only the output-sized bitmap. Full screen pixels stay
+            // on D3D11 until after crop and resize; never CPU-map the full frame.
+            captured=FrameCache.CaptureBitmap(key+":gpu-scaled",outW,outH,outW,outH,quality,(bitmap,graphics)=>{
+                if(!Dxgi.TryCopy(bitmap,screen.DeviceName,screenBounds,b,topologyBefore,out fallback))throw new CaptureBackendUnavailable();
+                backend="dxgi-d3d11";
+            });
+        }catch(CaptureBackendUnavailable) {
+            captured=FrameCache.CaptureBitmap(key+":fresh-gdi",b.Width,b.Height,outW,outH,quality,(bitmap,graphics)=>
+                graphics.CopyFromScreen(b.X,b.Y,0,0,new Size(b.Width,b.Height),CopyPixelOperation.SourceCopy));
+        }
         var topologyId=ReadTopologyId();
         if(topologyBefore!=topologyId)throw new InvalidOperationException("display_topology_changed_during_capture");
         var dpi=ReadDpi(screen);var unchanged=omitUnchanged&&previousSha==captured.Sha256;
@@ -160,7 +169,7 @@ internal static class DesktopVisual
             dataBytes=captured.Bytes,mime="image/jpeg",unchanged,
             capturedAt=startedAt,captureDurationMs=clock.Elapsed.TotalMilliseconds,
             captureBackend=backend,requestedCaptureBackend=requestedBackend,captureFallback=fallback.Length>0?fallback:null,
-            gpuCapture=backend=="dxgi-d3d11",gpuResize=false,hardwareEncoding=false,
+            gpuCapture=backend=="dxgi-d3d11",gpuResize=backend=="dxgi-d3d11",gpuResizeStage=backend=="dxgi-d3d11"?"before-cpu-readback":null,readbackPixels=backend=="dxgi-d3d11"?outW*outH:b.Width*b.Height,hardwareEncoding=false,
             freshPixelsChecked=true,encodeReused=captured.EncodeReused,
             captureTiming=new {copyMs=captured.CopyMs,pixelHashMs=captured.HashMs,encodeMs=captured.EncodeMs},
             captureCounters=new {captures=captured.Captures,encodes=captured.Encodes},
@@ -172,6 +181,7 @@ internal static class DesktopVisual
         } finally {DrainCaptureCleanup();}
         }
     }
+    private sealed class CaptureBackendUnavailable:Exception {}
     internal static bool CleanupSelfTest()
     {
         using var entered=new ManualResetEventSlim();using var release=new ManualResetEventSlim();

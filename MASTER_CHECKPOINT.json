@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-14T01:17:15.065Z",
+  "updatedAt": "2026-11-14T01:23:04.951Z",
   "version": "0.10.1-dev.11",
   "phase": "RMV2_MANAGED_TEXT_GPU_RESIZE_VIDEO_COMPLETION",
-  "status": "RM_PLAN_COMPLETION_IN_PROGRESS_NATIVE_TEXT_CI_PENDING",
+  "status": "RM_PLAN_COMPLETION_IN_PROGRESS",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -451,7 +451,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.",
+  "nextAction": "Follow native text and GPU Actions results, fix failures. Implement encoded video pipeline and authorized bounded transport/viewer; then verify the combined candidate before Owner download/UAT. CI118 remains comparison/rollback, not completed RM plan.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -542,13 +542,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261114-rmv2-native-editor-full-plan-resume",
-    "status": "RM_PLAN_COMPLETION_IN_PROGRESS_NATIVE_TEXT_CI_PENDING",
-    "summary": "Resume full RM plan before acceptance. Empty supported Unicode Edit/RICHEDIT50W targets bind/read with bounded read-only User32 messages before any UIA activation; nonempty selection-aware documents retain UIA. Require stable before/after lengths, complete copied count and full content equality; reject truncated/unstable reads without replay. Bind native class/thread/process/focus and tracked destroy generation. Keep 1000ms mutation admission,5s read-only completion and existing cancellation/Owner guards. Reinstate all four previously unaccepted managed262K cases as required positives alongside16K/64K/pureWin32 and newline tests; assert native readback does not create managed accessibility providers and retain nonempty UIA regression. No managed262K PASS or speedup claimed before Actions proof.",
-    "verification": "Full checkpoint checkpoint/20261114-before-rmv2-complete-plan-1c27f62 bundleSHA 882a35850f0d06c1841690f51451a61fbe1c19019105881467df2ec82ad6c781 archiveSHA 6fdf502a6d077f0e4de8d7a0f4c0932333077998661677edb49e5782bb7d0ea7 independent bundle/restore/fsckPASS. PowerShell text matrix AST PASS; native code/build and OS tests remain Actions-only. User32 source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendmessagetimeoutw and /windows/win32/winmsg/wm-gettext (older RichEdit64K limitation is fail-closed, not assumed supported).",
-    "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.",
-    "sourceDigest": "5e5b93aacdaa4592a04a00ee5c2a32b394084ebabb2f2e338bcd2675b3140fba",
-    "sourceFileCount": 1706
+    "taskId": "20261114-rmv2-gpu-resize-before-readback",
+    "status": "RM_GPU_RESIZE_SOURCE_NATIVE_CI_PENDING_VIDEO_REQUIRED",
+    "summary": "Implement optional DXGI GPU crop/bilinear resize before CPU readback. D3D11 compute samples a bounded source texture, writes output-sized RGBA UAV, maps only reduced staging pixels and copies channels into the JPEG bitmap; CPU JPEG remains explicit. One bounded resource set is released on scope cleanup/topology/device loss. GDI stays default and copies current pixels on any DXGI/compute failure with reason/backoff, never stale pixels. Native selftest requires actual shader dispatch/readback via WARP with cropped colors, changed/odd dimensions and channel checks; WARP is software correctness evidence, not physical GPU performance. Actual capture probe checks downscaled JPEG dimensions and only reports gpuResize on successful DXGI dispatch.",
+    "verification": "Full checkpoint checkpoint/20261114-before-rmv2-gpu-a686ef2 bundleSHA b5b03ab156354d0eebd9704788192212a2c8d80d1f6da2621b5a507f495ae8dc restore/fsckPASS. Pinned Vortice3.8.3 APIs and Microsoft D3DCompile contract reviewed. Native compilation/compute/capture tests run only Actions; no GPU PASS or speedup inferred from source.",
+    "nextAction": "Follow native text and GPU Actions results, fix failures. Implement encoded video pipeline and authorized bounded transport/viewer; then verify the combined candidate before Owner download/UAT. CI118 remains comparison/rollback, not completed RM plan.",
+    "sourceDigest": "792a75f1b900daf15accfc28b8eff8990e6b8e7faf3ed99feead172cdf4c4ea3",
+    "sourceFileCount": 1707
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -2517,9 +2517,17 @@
         "restore": "PASS"
       },
       "requiredManaged262KCases": 4,
-      "gpuResize": "PENDING_IMPLEMENTATION",
+      "gpuResize": "IMPLEMENTED_NATIVE_CI_PENDING",
       "encodedVideoAndAuthorizedViewer": "PENDING_IMPLEMENTATION",
-      "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate."
+      "nextAction": "Follow exact native Actions managed262K results and fix actual failures. Implement/test actual GPU resize and encoded video with authorized bounded transport/viewer before consolidated Owner download/acceptance. CI118 is comparison/rollback only, not the finished-plan candidate.",
+      "gpuResizeBackend": "D3D11_COMPUTE_CROP_BILINEAR_REDUCED_STAGING",
+      "gpuResizeCheckpoint": {
+        "tag": "checkpoint/20261114-before-rmv2-gpu-a686ef2",
+        "bundleSha256": "b5b03ab156354d0eebd9704788192212a2c8d80d1f6da2621b5a507f495ae8dc",
+        "archiveSha256": "217eaadd8d73a9106851b0766322ec7b3c5fe68650940c435d26b2075c171f60",
+        "restore": "PASS",
+        "source": "a686ef29fc9a24d21b3f7711ffaa9b6137b880f9"
+      }
     }
   }
 }
