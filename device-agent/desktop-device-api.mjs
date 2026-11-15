@@ -61,6 +61,7 @@ export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSy
   if(action==='codex.read'){
    if(!modulesView.codexBridge)return {...base,codex:null};
    const observer=modules.observer(),runtime=modules.managedCodexStatus();
+   if(runtime.installed||runtime.externalAvailable)modules.codexPlusWarmup?.();
    return {...base,codex:{session:modules.codexPlusView?.()||null,coverage:{returned:Math.min(100,observer.tasks.length),total:observer.tasks.length},tasks:observer.tasks.slice(0,100).map(t=>({id:t.id,title:text(t.title),state:t.state,
     createdAt:number(t.createdAt),changedAt:number(t.changedAt)})),recommendation:observer.recommendation,
     runtime:{state:runtime.state,installed:runtime.installed===true,externalAvailable:runtime.externalAvailable===true,
@@ -162,7 +163,7 @@ export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSy
   }
   if(action==='codex.account'){
    exact(payload,[]);
-   const r=await modules.codexPlusStatus();
+   const r=await modules.codexPlusStatus({force:true});
    return {connected:r.connected===true,authMode:text(r.authMode,40),plan:text(r.plan,40),session:modules.codexPlusView?.()||null};
   }
   if(['codex.runtime-install','codex.runtime-remove','codex.login','codex.logout','codex.login-cancel','codex.observe'].includes(action)){

@@ -14,7 +14,7 @@ export const screenTitles:Record<RouteKey,{title:string;subtitle:string}>={
  'live-monitor':{title:'Live Monitor',subtitle:'Follow tasks and recent activity across your devices.'},
  devices:{title:'Devices',subtitle:'The computers linked to your Light Remote account.'},
  'long-memory':{title:'Long Memory',subtitle:'Keep project context ready for your next session.'},
- 'codex-bridge':{title:'Codex Bridge',subtitle:'Connect Codex and manage the work you choose to delegate.'},
+ 'codex-bridge':{title:'API Worker',subtitle:'Set up your AI workers and choose the work you want to delegate.'},
  account:{title:'Account',subtitle:'Your profile, plan and monthly usage.'},
  settings:{title:'Settings',subtitle:'Make Light Remote work the way you want.'}
 };

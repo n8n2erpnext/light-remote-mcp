@@ -410,3 +410,7 @@ Source version advances to0.10.1-dev.13 for typed Memory Agent commands and new 
 ## Unify Memory extension capture and manual context restore for ChatGPT and Claude
 
 Core CI now packages the canonical extension0.4 into a separate light-remote-memory-extension-<commit> artifact with exact source/tree and per-file/ZIP hashes. Chromium DOM fixture smoke joins desktop visual QA; it intercepts all provider URLs with synthetic pages and contacts no account or local runtime. Owner Chrome load-unpacked acceptance is separate and remains NOT_RUN. Do not install the old0.2/0.3 preview as the current extension.
+
+## Rename API Worker and warm account metadata with truthful quota and partial usage
+
+P1 source0e4df88 has full CI13415PASS but artifact bytes remain unverified. P2 sourcecad2c4f CI135 failed web DOM Unicode assertion; synthetic fixture now declares UTF8 and retains capture diagnostics in P3. Current full-source CI/extension ZIP/native verification pending; do not offer a source-only metadata change as an installed or physically accepted build.

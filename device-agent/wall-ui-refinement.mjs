@@ -167,6 +167,7 @@ export const WALL_NATIVE_DIALOG_SCRIPT = `
 })();
 `;
 export function decorateWallSubpage(html,{csrf='',authEnabled=false,moduleSupported=false,materialIcon,path='/'}={}){
+  if(path==='/codex-cli')path='/api-worker';
   if(typeof html!=='string'||!html.includes('</body>')||!html.includes('</style>'))throw Error('wall_subpage_html_contract');
   const esc=value=>String(value||'').replace(/[&<>"']/g,ch=>ch==='&'?'&amp;':ch==='<'?'&lt;':ch==='>'?'&gt;':ch==='"'?'&quot;':'&#39;');
   const icons={wall:'dashboard',connect:'link',disconnect:'power',permissions:'security',approve:'approve',memory:'folder',codex:'smart_toy',settings:'settings',logout:'logout'};
@@ -177,7 +178,7 @@ export function decorateWallSubpage(html,{csrf='',authEnabled=false,moduleSuppor
    anchor('/#disconnectCloud','disconnect','Disconnect')+
    anchor('/permissions','permissions','Permissions')+
    anchor('/approve','approve','Approve B');
-  if(moduleSupported)nav+=anchor('/long-memory','memory','Long Memory')+anchor('/codex-cli','codex','Codex');
+  if(moduleSupported)nav+=anchor('/long-memory','memory','Long Memory')+anchor('/api-worker','codex','API Worker');
   nav+=anchor('/settings','settings','Settings');
   if(authEnabled)nav+='<form method="post" action="/auth/logout"><input type="hidden" name="csrf" value="'+esc(csrf)+'"><button type="submit" class="btn" title="Logout">'+materialIcon('logout')+'<span>Logout</span></button></form>';
   const sidebar='<aside id="wallSidebar" class="wall-sidebar" aria-label="Wall navigation"><button class="sidebar-toggle" id="sidebarToggle" type="button" aria-expanded="true"><span class="nav-menu-glyph">☰</span><span class="nav-label">Navigation</span></button><nav class="sidebar-items">'+nav+'</nav></aside>';

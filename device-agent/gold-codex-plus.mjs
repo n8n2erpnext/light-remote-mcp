@@ -94,11 +94,12 @@ export function resolveGoldCodexBinary({platform=process.platform,env=process.en
   return candidates.find(c=>exists(c))||candidates[0];
 }
 
-export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawnImpl=spawn}){
+export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawnImpl=spawn,metadataEnabled=()=>true}){
   if(!path.isAbsolute(home)||!path.isAbsolute(command))
     throw fault('codex_plus_runtime_paths_invalid');
   let child=null,buffer='',requestId=0,booting=null,pending=new Map();
-  let login=null,currentTurn=null,accountRefresh=null,metadataAt=0,lastAccountAt=0,generation=0,working=false;
+  let login=null,currentTurn=null,accountRefresh=null,metadataRefresh=null,lastAccountAt=0,lastWarmupAttempt=0,generation=0,working=false,accountDirty=false;
+  let metadataSuccess={},metadataAttempt={};
   const session=createCodexSessionView({home});
   function emit(msg){
     if(msg?.method==='account/login/completed'){
@@ -108,9 +109,9 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
         if(login.state==='completed')queueMicrotask(()=>account().catch(()=>{}));
       }
     }
-    if(msg?.method==='account/updated')queueMicrotask(()=>account().catch(()=>{}));
+    if(msg?.method==='account/updated'){session.invalidateAccount();accountDirty=metadataEnabled();metadataSuccess={};if(accountDirty)queueMicrotask(()=>account().catch(()=>{}));}
     if(msg?.method==='thread/tokenUsage/updated')session.ingestTokens(msg.params);
-    if(msg?.method==='account/rateLimits/updated'&&session.snapshot().account.connected)session.applyRateLimits(msg.params);
+    if(msg?.method==='account/rateLimits/updated'&&session.snapshot().account.connected)session.applyRateLimits(msg.params,{replace:false});
     if(currentTurn){
       if(msg.params?.threadId&&msg.params.threadId!==currentTurn.threadId)return;
       if(msg.method==='item/agentMessage/delta'){
@@ -143,7 +144,7 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
     if(msg?.method)emit(msg);
   }
   function stop(reason='codex_runtime_disconnected'){
-    const old=child;child=null;booting=null;buffer='';login=null;generation++;metadataAt=0;session.disconnected();
+    const old=child;child=null;booting=null;buffer='';login=null;accountDirty=false;generation++;metadataSuccess={};metadataAttempt={};session.disconnected();
     for(const [id,item] of pending){clearTimeout(item.timer);item.reject(fault(reason,503));pending.delete(id);}
     if(currentTurn){currentTurn.reject(fault(reason,503));currentTurn=null;}
     if(old && !old.killed){try{old.kill('SIGTERM');}catch{}}
@@ -197,27 +198,41 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
     finally{booting=null;}
   }
   async function refreshMetadata(force=false){
-    if(!force&&Date.now()-metadataAt<30000)return;
-    const epoch=generation;metadataAt=Date.now();
+    if(metadataRefresh){const active=metadataRefresh;await active.promise;if((force&&!active.force)||active.token!==generation+'|'+session.identityEpoch())return refreshMetadata(force);return;}
+    const token=generation+'|'+session.identityEpoch();
+    const current=()=>token===generation+'|'+session.identityEpoch()&&metadataEnabled();
     const requests=[
       ['models',async()=>{
-        if(session.catalogFresh()&&!force)return;
-        const rows=[];let cursor=null;
+        const rows=[],seen=new Set();let cursor=null,pages=0;
         do{
+          if(++pages>10||cursor&&seen.has(cursor))throw fault('codex_model_catalog_invalid',502);
+          if(cursor)seen.add(cursor);
           const result=await rpc('model/list',{limit:50,includeHidden:false,...(cursor?{cursor}:{})},5000);
           if(!Array.isArray(result.data))throw fault('codex_model_catalog_invalid',502);
           rows.push(...result.data);cursor=typeof result.nextCursor==='string'?result.nextCursor:null;
         }while(cursor&&rows.length<100);
-        if(epoch===generation)session.applyModels(rows);
+        if(!rows.length)throw fault('codex_model_catalog_unavailable',502);
+        if(current())session.applyModels(rows);
       }],
-      ['quota',async()=>{const r=await rpc('account/rateLimits/read',undefined,5000);if(epoch===generation)session.applyRateLimits(r);}],
-      ['usage',async()=>{const r=await rpc('account/usage/read',undefined,5000);if(epoch===generation)session.applyAccountUsage(r);}]
+      ['quota',async()=>{const value=await rpc('account/rateLimits/read',undefined,5000);if(current())session.applyRateLimits(value,{replace:true});}],
+      ['usage',async()=>{const value=await rpc('account/usage/read',undefined,5000);if(current())session.applyAccountUsage(value);}]
     ];
-    const results=await Promise.allSettled(requests.map(([,read])=>read()));
-    results.forEach((r,i)=>{if(r.status==='rejected'&&epoch===generation)session.unavailable(requests[i][0]);});
+    const active={force,token,promise:null};metadataRefresh=active;
+    active.promise=Promise.allSettled(requests.map(async([kind,read])=>{
+      const at=Date.now(),ttl=kind==='models'?60000:30000;
+      if(!force&&((metadataSuccess[kind]?.token===token&&at-metadataSuccess[kind].at<ttl)||(metadataAttempt[kind]?.token===token&&at-metadataAttempt[kind].at<3000)))return;
+      metadataAttempt[kind]={token,at};
+      try{
+        await read();if(!current())return;
+        const view=session.snapshot(),state=kind==='models'?view.catalog.state:kind==='quota'?view.quota.state:view.accountUsage.state;
+        if(state==='ready')metadataSuccess[kind]={token,at:Date.now()};
+      }catch{if(current())session.unavailable(kind);}
+    })).finally(()=>{if(metadataRefresh===active)metadataRefresh=null;});
+    return active.promise;
   }
-  async function account(){
-    if(accountRefresh)return accountRefresh;
+  async function account({force=false}={}){
+    if(accountRefresh){const value=await accountRefresh;if(force)return account({force:true});return {...value,connected:session.snapshot().account.connected,session:session.snapshot()};}
+    accountDirty=false;
     const epoch=generation;lastAccountAt=Date.now();
     accountRefresh=(async()=>{
       await start();
@@ -228,16 +243,25 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
       // A verified connected account is authoritative even when an older CLI
       // omits/reorders the login/completed notification.
       if(connected&&login?.state==='pending')login=null;
-      if(connected)await refreshMetadata();
-      return {connected,authMode:a?.type||a?.authMode||null,
+      if(connected)await refreshMetadata(force);
+      return {connected:session.snapshot().account.connected,authMode:a?.type||a?.authMode||null,
         plan:a?.planType||null,requiresOpenaiAuth:result?.requiresOpenaiAuth!==false,
         runtime:'codex-app-server',billing:'chatgpt_plan',
         login:login?.state==='pending'?{state:'pending',verificationUrl:login.verificationUrl,userCode:login.userCode}:null,
         session:session.snapshot()};
     })();
-    try{return await accountRefresh;}finally{accountRefresh=null;}
+    try{return await accountRefresh;}finally{accountRefresh=null;if(accountDirty){accountDirty=false;queueMicrotask(()=>account().catch(()=>{}));}}
   }
-  function snapshot(){if(child?.stdin?.writable&&Date.now()-lastAccountAt>3000&&(login?.state==='pending'||session.snapshot().account.connected))void account().catch(()=>{});return {...session.snapshot(),login:login?.state==='pending'?{state:'pending',userCode:login.userCode}:null};}
+  function snapshot(){
+    if(metadataEnabled()&&child?.stdin?.writable&&Date.now()-lastAccountAt>3000&&login?.state==='pending')void account().catch(()=>{});
+    return {...session.snapshot(),login:login?.state==='pending'?{state:'pending',userCode:login.userCode}:null};
+  }
+  function warmup(){
+    if(!metadataEnabled()||!fs.existsSync(command)||accountRefresh)return;
+    const at=Date.now(),view=session.snapshot();
+    if(at-lastWarmupAttempt<3000||view.account.state==='ready'&&view.catalog.state==='ready'&&view.quota.state==='ready'&&view.accountUsage.state==='ready'&&at-lastAccountAt<30000)return;
+    lastWarmupAttempt=at;void account().catch(()=>{});
+  }
   async function preferences(input,beforeSave=()=>{}){
     const a=await account();if(!a.connected)throw fault('codex_chatgpt_sign_in_required',409);
     await refreshMetadata(true);beforeSave();return session.select(input);
@@ -272,7 +296,7 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
     await start();
     if(login?.state==='pending')await cancelLogin();
     await rpc('account/logout',undefined,12000);
-    generation++;metadataAt=0;login=null;session.updateAccount(null);
+    generation++;metadataSuccess={};metadataAttempt={};login=null;session.updateAccount(null);
     return {signedOut:true};
   }
   async function performTurn(threadId,text,choice,ms){
@@ -379,5 +403,5 @@ export function createGoldCodexPlus({home,command=resolveGoldCodexBinary(),spawn
     return performTurn(threadId,instruction,choice,90000);
   }
   const guarded=fn=>async input=>{if(working)throw fault('codex_run_already_in_progress',409);working=true;try{return await fn(input);}finally{working=false;}};
-  return {account,snapshot,preferences,beginLogin,cancelLogin,logout,runReadOnly:guarded(runReadOnly),runDelegated:guarded(runDelegated),runReviewReport:guarded(runReviewReport),stop};
+  return {account,snapshot,warmup,preferences,beginLogin,cancelLogin,logout,runReadOnly:guarded(runReadOnly),runDelegated:guarded(runDelegated),runReviewReport:guarded(runReviewReport),stop};
 }

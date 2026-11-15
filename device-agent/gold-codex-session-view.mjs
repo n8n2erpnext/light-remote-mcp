@@ -10,12 +10,12 @@ const count=x=>Number.isSafeInteger(x)&&x>=0?x:null;
 const fail=code=>Object.assign(Error(code),{status:400});
 const tokenFields=['totalTokens','inputTokens','cachedInputTokens','outputTokens','reasoningOutputTokens'];
 function tokens(raw){
- if(!raw||tokenFields.some(k=>count(raw[k])===null))return null;
- return Object.fromEntries(tokenFields.map(k=>[k,raw[k]]));
+ if(!raw||!tokenFields.some(k=>count(raw[k])!==null))return null;
+ return Object.fromEntries(tokenFields.map(k=>[k,count(raw[k])]));
 }
-function windowView(raw){
+function windowView(raw,asOf){
  if(!raw||!Number.isFinite(raw.usedPercent)||raw.usedPercent<0||raw.usedPercent>100)return null;
- return {usedPercent:raw.usedPercent,windowDurationMins:count(raw.windowDurationMins),resetsAt:count(raw.resetsAt)};
+ return {usedPercent:raw.usedPercent,remainingPercent:100-raw.usedPercent,windowDurationMins:count(raw.windowDurationMins),resetsAt:count(raw.resetsAt),asOf};
 }
 export function createCodexSessionView({home,now=()=>Date.now()}={}){
  const file=path.join(home,'light-remote-preferences.json');
@@ -29,6 +29,7 @@ export function createCodexSessionView({home,now=()=>Date.now()}={}){
   }catch{preferenceError=true;}
  }
 
+ let accountEpoch=0;
  let owner=null,account={state:'not_checked',connected:false,plan:null},models=[],catalogAt=null,catalogError=null;
  let quota={state:'not_checked',asOf:null,buckets:[],ordinaryUsageAllowed:null};
  let accountUsage={state:'not_checked',asOf:null,lifetimeTokens:null,daily:[]};
@@ -37,7 +38,7 @@ export function createCodexSessionView({home,now=()=>Date.now()}={}){
  function resetPrivate(){models=[];catalogAt=null;catalogError=null;threads.clear();quota={state:'not_checked',asOf:null,buckets:[],ordinaryUsageAllowed:null};accountUsage={state:'not_checked',asOf:null,lifetimeTokens:null,daily:[]};usage={state:'not_reported',asOf:null,total:null,last:null,model:null,reasoningEffort:null};}
  function updateAccount(raw){
   const fingerprint=raw?crypto.createHash('sha256').update(JSON.stringify([raw.type,raw.id??raw.email??raw.chatgptAccountId??null])).digest('hex'):null;
-  if(!raw||fingerprint!==owner){resetPrivate();owner=fingerprint;}
+  if(!raw||fingerprint!==owner){resetPrivate();owner=fingerprint;accountEpoch++;}
   account={state:'ready',connected:!!raw&&raw.type!=='apiKey'&&raw.authMode!=='apiKey',plan:label(raw?.planType,40)};
  }
  function applyModels(raw){
@@ -64,36 +65,47 @@ export function createCodexSessionView({home,now=()=>Date.now()}={}){
   fs.writeFileSync(tmp,JSON.stringify(p)+'\n',{mode:0o600});fs.renameSync(tmp,file);preference=p;preferenceError=false;
   return selection();
  }
- function applyRateLimits(raw){
-  const multi=raw?.rateLimitsByLimitId;
-  const values=multi&&typeof multi==='object'&&!Array.isArray(multi)?Object.entries(multi):[['codex',raw?.rateLimits]];
-  const buckets=values.filter(([,v])=>v&&typeof v==='object').slice(0,32).map(([key,v])=>({
-   id:label(v.limitId||key),name:label(v.limitName||v.limitId||key),primary:windowView(v.primary),secondary:windowView(v.secondary),
-   reached:label(v.rateLimitReachedType,100)}));
-  quota={state:buckets.some(b=>b.primary||b.secondary)?'ready':'unavailable',asOf:now(),buckets,
-   ordinaryUsageAllowed:typeof raw?.ordinaryUsageAllowed==='boolean'?raw.ordinaryUsageAllowed:null};
+ function applyRateLimits(raw,{replace=true}={}){
+  const source=replace?'account/rateLimits/read':'account/rateLimits/updated',at=now(),multi=raw?.rateLimitsByLimitId;
+  const values=multi&&typeof multi==='object'&&!Array.isArray(multi)?Object.entries(multi):[[raw?.rateLimits?.limitId||'codex',raw?.rateLimits]];
+  const map=new Map(replace?[]:quota.buckets.map(b=>[b.id,b]));
+  for(const [key,v] of values.slice(0,32)){
+   if(!v||typeof v!=='object')continue;
+   const id=label(v.limitId||key),old=map.get(id);
+   const window=name=>Object.hasOwn(v,name)?windowView(v[name],at):replace?null:old?.[name]??null;
+   map.set(id,{id,name:label(v.limitName||old?.name||v.limitId||key),primary:window('primary'),secondary:window('secondary'),
+    reached:Object.hasOwn(v,'rateLimitReachedType')?label(v.rateLimitReachedType,100):old?.reached??null,asOf:at,source});
+  }
+  const buckets=[...map.values()].slice(0,32);
+  quota={state:buckets.some(b=>b.primary||b.secondary)?'ready':'unavailable',asOf:at,buckets,source,
+   ordinaryUsageAllowed:typeof raw?.ordinaryUsageAllowed==='boolean'?raw.ordinaryUsageAllowed:replace?null:quota.ordinaryUsageAllowed};
  }
  function applyAccountUsage(raw){
   const lifetimeTokens=count(raw?.summary?.lifetimeTokens);
   const daily=(Array.isArray(raw?.dailyUsageBuckets)?raw.dailyUsageBuckets:[]).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d?.startDate)&&count(d.tokens)!==null).slice(-31).map(d=>({date:d.startDate,tokens:d.tokens}));
-  accountUsage={state:lifetimeTokens!==null||daily.length?'ready':'unavailable',asOf:now(),lifetimeTokens,daily};
+  accountUsage={state:lifetimeTokens!==null||daily.length?'ready':'unavailable',asOf:now(),source:'account/usage/read',lifetimeTokens,daily};
  }
  function trackThread(id,config){
   threads.set(id,{...config,total:null});while(threads.size>100)threads.delete(threads.keys().next().value);
  }
  function ingestTokens(params){
   const thread=threads.get(params?.threadId),total=tokens(params?.tokenUsage?.total),last=tokens(params?.tokenUsage?.last);
-  if(!thread||!total||!last)return;
-  // Notifications contain cumulative totals. Repeated/stale notices cannot
-  // inflate counters; the UI labels this as Bridge-observed process usage.
-  if(thread.total&&tokenFields.some(k=>total[k]<thread.total[k]))return;
-  const sum=usage.total||Object.fromEntries(tokenFields.map(k=>[k,0]));
-  for(const k of tokenFields)sum[k]+=total[k]-(thread.total?.[k]||0);
-  thread.total=total;usage={state:'ready',asOf:now(),total:sum,last,model:thread.model,reasoningEffort:thread.reasoningEffort};
+  if(!thread||(!total&&!last))return;
+  if(total&&thread.total&&tokenFields.some(k=>total[k]!==null&&thread.total[k]!=null&&total[k]<thread.total[k]))return;
+  const sum=usage.total||Object.fromEntries(tokenFields.map(k=>[k,null]));
+  if(total){
+   for(const k of tokenFields)if(total[k]!==null){const value=(sum[k]??0)+total[k]-(thread.total?.[k]??0);sum[k]=count(value);}
+   thread.total=Object.fromEntries(tokenFields.map(k=>[k,total[k]??thread.total?.[k]??null]));
+  }
+  thread.complete=!!total&&tokenFields.every(k=>total[k]!==null);
+  const partial=[...threads.values()].some(t=>!t.complete)||tokenFields.some(k=>sum[k]===null);
+  usage={state:partial?'partial':'ready',asOf:now(),source:'thread/tokenUsage/updated',total:sum,last,
+   model:thread.model,reasoningEffort:thread.reasoningEffort};
  }
- return {updateAccount,applyModels,selection,select,applyRateLimits,applyAccountUsage,trackThread,ingestTokens,
+ return {updateAccount,identityEpoch:()=>accountEpoch,
+  invalidateAccount(){accountEpoch++;resetPrivate();account={state:'checking',connected:false,plan:null};},applyModels,selection,select,applyRateLimits,applyAccountUsage,trackThread,ingestTokens,
   catalogFresh:()=>catalogAt!==null&&now()-catalogAt<60000,
   unavailable(kind){if(kind==='models')catalogError='codex_model_catalog_unavailable';else if(kind==='quota')quota={...quota,state:quota.asOf?'stale':'unavailable'};else accountUsage={...accountUsage,state:accountUsage.asOf?'stale':'unavailable'};},
-  disconnected(){account={...account,state:'unavailable',connected:false};},
+  disconnected(){accountEpoch++;owner=null;resetPrivate();account={state:'unavailable',connected:false,plan:null};},
   snapshot(){return structuredClone({account,catalog:{state:catalogError?(catalogAt?'stale':'unavailable'):catalogAt?'ready':'not_checked',asOf:catalogAt,error:catalogError,models},selection:selection(),quota,accountUsage,usage});}};
 }

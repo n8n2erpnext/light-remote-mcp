@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 332,
+    "total": 333,
     "markdown": 230,
-    "json": 102
+    "json": 103
   },
   "files": [
     {
@@ -459,6 +459,25 @@
       ]
     },
     {
+      "path": "docs/evidence/memory/api-worker-metadata-20261115.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 378,
+      "sha256": "d91f919b62ee0b6d9e2ba5b24f71853c8824a1f38b2e04411f8ec5e0812985e1",
+      "topLevelKeys": [
+        "schemaVersion",
+        "baseSource",
+        "portableTests",
+        "existingRegressions",
+        "result",
+        "realProviderInference",
+        "realProviderLogin",
+        "frontendCi",
+        "extensionBrowserRetest",
+        "deployed"
+      ]
+    },
+    {
       "path": "docs/evidence/memory/extension-v04-portable-20261115.json",
       "shelf": "evidence",
       "extension": "json",
@@ -480,8 +499,8 @@
       "path": "docs/evidence/memory/typed-content-plane-20261115.json",
       "shelf": "evidence",
       "extension": "json",
-      "bytes": 554,
-      "sha256": "a6bf123af2896b6dd48193f829b54efe97fe3735d66ad7748b0c7cc9a49e3a56",
+      "bytes": 746,
+      "sha256": "a8e5aca624e47522e3e3ee646f71b46af5ffb3fe85eeb3a3365840c5997fe990",
       "topLevelKeys": [
         "schemaVersion",
         "date",
@@ -3586,8 +3605,8 @@
       "path": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 31883,
-      "sha256": "0177ba990565a7546f8bcf1d3f0bd346ce95f85f36e421c9b6d61a3b5b854d7f",
+      "bytes": 34813,
+      "sha256": "f130d769cf063c4fa532a1a44daf1e3ff0de5e37a0df51e298f53e214969e935",
       "title": "Long Memory, extension ngữ cảnh và API Worker nhiều nhà cung cấp"
     },
     {

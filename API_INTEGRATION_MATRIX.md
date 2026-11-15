@@ -216,3 +216,7 @@ New private POST routes /v1/plugin/memory/operation and /v1/plugin/memory/result
 ## Unify Memory extension capture and manual context restore for ChatGPT and Claude
 
 Extension0.4 uses only existing same-origin authenticated local /api/status, /api/gold/modules, /api/gold/modules/scope/context/read and /scope/handoff. No new public endpoint or Owner-cookie extraction. Current device/account/scope checked before and after restore read; full-context SHA checked in browser. No automatic POST/save or ChatGPT/Claude submission. MCP Memory transport remains the P1 typed path.
+
+## Rename API Worker and warm account metadata with truthful quota and partial usage
+
+Local Owner GET /api-worker aliases the existing Codex UI; /codex-cli retained. Desktop#/api-worker resolves the same codex-bridge key. Existing Codex status GET accepts optional fresh=1 for manual force; codex.account native action uses force=true; codex.read asynchronously warms only enabled installed/external Codex. No new Agent grant or inference endpoint. configRevision6 records the page alias. Renderer projections allow only sanitized current account metadata, nullable usage and timestamps.

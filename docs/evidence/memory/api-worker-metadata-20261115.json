@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "light-remote.api-worker-metadata.evidence.v1",
+  "baseSource": "cad2c4fc35c6208ef0d29d4ea0ab5983751dc8f8",
+  "portableTests": 16,
+  "existingRegressions": 4,
+  "result": "PORTABLE_PASS",
+  "realProviderInference": false,
+  "realProviderLogin": false,
+  "frontendCi": "PENDING",
+  "extensionBrowserRetest": "PENDING_UTF8_FIXTURE_FIX",
+  "deployed": false
+}

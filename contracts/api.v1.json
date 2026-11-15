@@ -153,7 +153,9 @@
     },
     "wallCodexStatus": {
       "component": "device-agent/local-wall.mjs",
-      "request": [],
+      "request": [
+        "optional fresh=1 forces account and metadata reads"
+      ],
       "response": "Sanitized ChatGPT-plan account, pending code, runtime catalog/selection, actual rate-limit windows and token usage; unavailable/stale remain explicit",
       "authority": "Authenticated local Owner; mutation also requires current CSRF; no A/B grant inferred"
     },
@@ -250,6 +252,11 @@
     "memoryContentPushInternal": {
       "authorization": "exact current account/device/A-B Agent/session, filesystem local capability",
       "content": "RAM-only 120s; durable control metadata refs only"
+    },
+    "wallApiWorkerPage": {
+      "component": "device-agent/local-wall.mjs",
+      "response": "API Worker Owner UI, alias /codex-cli retained",
+      "authority": "Same authenticated local Owner/module authority; no new Agent execution grant"
     }
   },
   "nonClaims": [

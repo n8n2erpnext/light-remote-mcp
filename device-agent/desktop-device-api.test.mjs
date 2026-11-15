@@ -9,7 +9,7 @@ import {createDesktopDeviceApi} from './desktop-device-api.mjs';
 const setup=t=>{
  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'lr-desktop-device-'));
  const file=path.join(folder,'modules.sqlite');
- const modules=createGoldWallModules({file,scopeIdentity:{accountId:'owner',deviceId:'local'}});
+ const modules=createGoldWallModules({file,scopeIdentity:{accountId:'owner',deviceId:'local'},plusImpl:{stop(){},warmup(){},snapshot:()=>null}});
  t.after(()=>{modules.close();fs.rmSync(folder,{recursive:true,force:true});});
  const api=createDesktopDeviceApi({modules,localStatus:()=>({deviceName:'Actual device',cloudState:'connected',
   cloudDesiredConnected:true,version:'test',platformAdapter:process.platform,privateKey:'NEVER_RETURN',
@@ -76,4 +76,15 @@ test('sync write rechecks binding after async roster and never forwards foreign 
  assert.equal(writes,0);
  await assert.rejects(api.dispatch('memory.sync-policy',{...payload,devices:[{deviceId:'foreign',selected:true,mode:'manual'}]}),e=>e.status===403);
  assert.equal(writes,0);
+});
+test('only enabled and installed provider snapshots warm metadata, manual account refresh is forced',async t=>{
+ const {modules,call}=setup(t);let warms=0,force=null;
+ modules.codexPlusWarmup=()=>{warms++;};modules.managedCodexStatus=()=>({state:'missing',installed:false,externalAvailable:false});
+ await call('codex.read');assert.equal(warms,0);
+ await call('module.configure',{module:'codexBridge',enabled:true,expectedRevision:0});
+ await call('codex.read');assert.equal(warms,0);
+ modules.managedCodexStatus=()=>({state:'installed',installed:true,externalAvailable:false});
+ await call('codex.read');assert.equal(warms,1);
+ modules.codexPlusStatus=async options=>{force=options.force;return {connected:true};};
+ await call('codex.account');assert.equal(force,true);
 });

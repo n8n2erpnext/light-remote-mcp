@@ -23,7 +23,7 @@ hr{border:0;border-top:1px solid #243247;margin:20px 0}pre{white-space:pre-wrap;
 <h2>Light Remote — Optional modules</h2>
 <p class="muted">These are independent Light Remote device settings. <b>No Project needs to be created first.</b> Projects below only organize tasks, decisions and memory scopes.</p>
 <div class="switch"><span><b>Long Memory</b><br><small>Recover context across ChatGPT Web sessions when authorized. No Codex subscription or Project needed.</small></span><input aria-label="Enable Project Memory globally" id="memory" type="checkbox"></div>
-<div class="switch"><span><b>Codex Bridge — Observer</b><br><small>Read-only planning observer. It may recommend when ChatGPT should continue, but it cannot code, execute tasks or control ChatGPT Web without a supported integration.</small></span><input aria-label="Enable Codex Bridge globally" id="codex" type="checkbox"></div>
+<div class="switch"><span><b>API Worker — Observer</b><br><small>Read-only planning observer. It may recommend when ChatGPT should continue, but it cannot code, execute tasks or control ChatGPT Web without a supported integration.</small></span><input aria-label="Enable API Worker globally" id="codex" type="checkbox"></div>
 <div class="row" style="margin-top:12px"><button class="primary" id="save">Save Light Remote modules</button><span id="moduleState" class="muted">Loading module settings…</span></div>
 <div id="globalMemoryArea" hidden>
  <hr><h2>ChatGPT Web cross-session access</h2>
@@ -64,7 +64,7 @@ hr{border:0;border-top:1px solid #243247;margin:20px 0}pre{white-space:pre-wrap;
  <pre id="globalToolActivity" aria-label="Observed local Gold tool activity"></pre>
 </div>
 <div id="globalCodexArea" hidden>
- <hr><h2>Codex Bridge — Plan observer</h2>
+ <hr><h2>API Worker — Plan observer</h2>
  <p class="muted">Codex may observe the task ledger and suggest a safe continuation. Codex does NOT perform tasks or inject ChatGPT Web messages in this build. No Project is required.</p>
  <form id="defaultPlanCreate" class="row">
   <input id="defaultPlanTitle" maxlength="160" placeholder="Current work plan or task">
@@ -187,7 +187,7 @@ async function refresh(){
 }
 by('reloadActivity').onclick=()=>all();
 by('defaultPlanCreate').onsubmit=async e=>{e.preventDefault();try{
- if(!moduleState?.codexEnabled)throw Error('Codex Bridge is disabled');
+ if(!moduleState?.codexEnabled)throw Error('API Worker is disabled');
  const title=by('defaultPlanTitle').value.trim();
  if(!title)return;
  await api('createTask',{projectId:moduleState.defaultScopeId,title});

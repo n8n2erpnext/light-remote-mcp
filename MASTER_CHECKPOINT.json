@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-15T08:08:31.115Z",
+  "updatedAt": "2026-11-15T08:45:39.606Z",
   "version": "0.10.1-dev.13",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
-  "status": "P1_P2_PORTABLE_PASS_BROWSER_CI_PENDING",
+  "status": "P1_CI_PASS_P2_P3_CURRENT_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Finish exact-source P2 CI/browser fixtures and verify downloadable extension ZIP source hashes. Continue API Worker display rename while preserving old route/module/storage aliases, automatic enabled-provider account/model/quota warmup, explicit force refresh, source/asOf/remaining+used semantics and partial token fields. Then official provider adapters and authorized read-only reasoning/bounded workers, with live paid calls only after selected provider/auth/budget. RMv2 live text/GPU acceptance remains separate/open; no Windows VM task.",
+  "nextAction": "Complete exact-source P3 full CI, inspect real Chromium extension fixtures and API Worker UI tests, verify source/hash extension ZIP. Continue plan P4 governed read-only reasoning worker MCP contract, then official selected Claude/Gemini adapters and bounded multi-worker with account/device/session/context/budget fences. Live provider tests need chosen provider/auth and explicit budget; do not spend quota or install/login CLI automatically. RMv2 live text/GPU acceptance remains separate NOT_APPROVED and has no Windows VM task.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,13 +691,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261115-memory-extension-p2-capture-restore",
-    "status": "IMPLEMENTED_PORTABLE_PASS_BROWSER_CI_PENDING",
-    "summary": "Implement P2 canonical Memory extension0.4: explicit local/approved NetBird Wall pairing to account/device; optional exact-origin permission and activeTab-only ChatGPT/Claude adapters; loaded-DOM coverage, hidden-ancestor exclusion, multiple blocks/code whitespace and UTF8/hash guards; reviewed capture stages only into an empty authenticated matching Wall. Generation/single-flight and absolute TTL prevent duplicate/stale draft overwrite. Restore reads selected-work verified context/history, rechecks identity/scope and full-context hash, then reviews/copies or inserts into a uniquely identified empty ChatGPT/Claude composer without submitting. Preserve existing drafts. Package app Google Sans and license; Actions generates a separate exact-source ZIP. Old0.2/0.3 sources/artifact remain historical.",
-    "verification": "Portable extension VM tests10/10 PASS plus packaging/permission guard PASS. Covered ChatGPT/Claude Unicode multi-block capture, hidden parent, changed capture digest, endpoint validation, reviewed-content hash, Wall identity/expiry/draft fences, full-context hash and account drift, restore draft preservation/no submit, repeated navigation single-flight, generation race and pending/restore TTL erasure. Real Chromium two-provider DOM fixtures and source/hash ZIP packaging are wired to exact-source CI but not yet run. No claim of actual provider website/Owner Chrome installation or cross-device sync acceptance. Full pre-change checkpoint checkpoint/20261115-before-rmv2-memoryextension-0e4df88 restore/fsckPASS. P1 CI134 has core/contracts/PG/Redis, native dependency/helper, web QA and Linux/macOS desktop PASS; remaining stress/installer/baseline pending at this receipt.",
-    "nextAction": "Finish exact-source P2 CI/browser fixtures and verify downloadable extension ZIP source hashes. Continue API Worker display rename while preserving old route/module/storage aliases, automatic enabled-provider account/model/quota warmup, explicit force refresh, source/asOf/remaining+used semantics and partial token fields. Then official provider adapters and authorized read-only reasoning/bounded workers, with live paid calls only after selected provider/auth/budget. RMv2 live text/GPU acceptance remains separate/open; no Windows VM task.",
-    "sourceDigest": "61620b88c2c5429ac071b3b6708ffdf9f00996216cc8f822735a368860d4d2f3",
-    "sourceFileCount": 1748
+    "taskId": "20261115-api-worker-p3-metadata-usage",
+    "status": "IMPLEMENTED_PORTABLE_PASS_CURRENT_CI_PENDING",
+    "summary": "Implement P3 API Worker display/navigation rename with /api-worker aliases while preserving codexBridge module keys, old routes, tasks and preferences. Enabled installed Codex warms account/models/quota metadata without login/install/inference; manual account/usage refresh forces fresh reads. Per-field success TTL/backoff, single-flight, bounded model pagination and account-generation fences reject late cross-account metadata. Show reported allowance remaining plus used, actual windows/reset timezone/received times; merge bucket notifications without erasing other windows. Preserve partial token fields as unknown and count only owned reported subtotals. Disable automatic metadata when provider/module is off. Include P2 Chromium synthetic fixture UTF8 declaration correction without weakening Unicode/code whitespace assertions. Claude/Gemini adapters, MCP reasoning jobs and bounded multi-worker are still pending.",
+    "verification": "ARM isolated Node metadata/session/native API suite16/16 PASS plus4 existing official Codex/mock-CLI, coordinator, supervisor and core-import scripts PASS. No real provider auth/inference. React tests added for remaining63/used37 and partial fields; exact-source frontend/browser/native CI pending. Reviewed React skill checklist: deduped read poller, no inference from effects, account epoch fences, bounded reads, live select options and accessible controls. P1 source0e4df88 full CI13443691579319 all15 jobs PASS, including actual PG/Redis integration, five native text fixtures, web, Windows installer and Linux/macOS; artifact bytes not independently verified and no physical acceptance. P2 CI13543693120042 core/PG/Redis/helper and five text fixtures PASS; web failed at synthetic Unicode assertion. Fixture lacked UTF8 HTTP/meta declarations; corrected here and diagnostic capture retained, browser retest pending. Legacy selftest-gold-codex-api HTML API-key assertion also fails unchanged cad2c4f (input already absent), is not registered in portable suite, and is not treated as a P3 regression. Full pre-change checkpoint checkpoint/20261115-before-rmv2-apiworkermetadata-cad2c4f restore/fsckPASS.",
+    "nextAction": "Complete exact-source P3 full CI, inspect real Chromium extension fixtures and API Worker UI tests, verify source/hash extension ZIP. Continue plan P4 governed read-only reasoning worker MCP contract, then official selected Claude/Gemini adapters and bounded multi-worker with account/device/session/context/budget fences. Live provider tests need chosen provider/auth and explicit budget; do not spend quota or install/login CLI automatically. RMv2 live text/GPU acceptance remains separate NOT_APPROVED and has no Windows VM task.",
+    "sourceDigest": "760e889f60d6d489cc755479f9a53dfc43e88dc0b939c7a421edf059b85fc04b",
+    "sourceFileCount": 1749
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -2013,12 +2013,12 @@
     }
   },
   "localMemoryApiWorkerResearch": {
-    "status": "IMPLEMENTATION_IN_PROGRESS_P1_P2_PORTABLE_PASS_CI_PENDING",
+    "status": "IMPLEMENTATION_IN_PROGRESS_P1_CI_PASS_P2_P3_CURRENT_CI_PENDING",
     "ownerScope": "IMPLEMENT_PLAN_AUTHORIZED_20261115",
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "0177ba990565a7546f8bcf1d3f0bd346ce95f85f36e421c9b6d61a3b5b854d7f",
+    "documentSha256": "f130d769cf063c4fa532a1a44daf1e3ff0de5e37a0df51e298f53e214969e935",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2044,22 +2044,26 @@
       "version": "0.4.0",
       "canonicalSource": "extensions/light-remote-lm-abv2",
       "historicalZipSha256": "76a3649a4fb7704cb930f4a1912f70b80d8387128f69aff023e9a306f3fd0dcd",
-      "zipArtifact": "PENDING_EXACT_SOURCE_ACTIONS",
+      "zipArtifact": "CI135_CORE_BUILT_HASH_VERIFICATION_PENDING",
       "portableTests": "10/10 VM plus package/permission guard PASS",
-      "realChromiumDomFixtures": "PENDING_CI"
+      "realChromiumDomFixtures": "CI135_FAILED_SYNTHETIC_UNICODE_ASSERTION_UTF8_DECLARATION_FIXED_RETEST_PENDING"
     },
     "codex": {
-      "desktopColdMetadataWarmupCurrent": false,
-      "explicitRefreshForcesQuotaCurrent": false,
-      "metadataThrottleMs": 30000,
+      "desktopColdMetadataWarmupCurrent": true,
+      "explicitRefreshForcesQuotaCurrent": true,
+      "metadataThrottleMs": "SUCCESS_TTL_PER_FIELD_30S_QUOTA_USAGE_60S_MODELS_FAILURE_BACKOFF3S_FORCE_BYPASS",
       "modelCatalogTtlMs": 60000,
       "screenshotRemaining69Used31": "MATHEMATICALLY_COMPATIBLE_NOT_PROOF_OF_INVERSION",
       "tokenLifetimeSeparateFromQuota": true,
       "localSupervisorCurrent": "SINGLE_WORKER_OWNER_APPROVED",
-      "dedicatedMcpReasoningWorkerCurrent": false
+      "dedicatedMcpReasoningWorkerCurrent": false,
+      "partialFields": "PRESERVE_KNOWN_NULL_UNKNOWN",
+      "accountFencing": "RUNTIME_AND_ACCOUNT_GENERATIONS",
+      "quotaDisplay": "REPORTED_USED_AND_100_MINUS_USED_REMAINING_PER_WINDOW_RECEIVE_TIME",
+      "bucketNotifications": "MERGE_EXPLICIT_BUCKET_WINDOWS"
     },
     "apiWorker": {
-      "displayRenameImplemented": false,
+      "displayRenameImplemented": true,
       "claudeGeminiAdaptersImplementedByThisTask": false,
       "multiworkerImplemented": false,
       "proposed": [
@@ -2072,16 +2076,16 @@
     },
     "implementationChanged": true,
     "functionalTestsRun": true,
-    "nativeBuildTestRun": false,
+    "nativeBuildTestRun": true,
     "providerLoginOrInferenceRun": false,
     "deploymentChanged": false,
     "peerReview": "PASS_WITH_HIDDEN_DOM_COVERAGE_LIMIT_EXPLICIT",
     "nativeBuildStillDeferredByOwner": false,
     "implementation": {
-      "milestone": "P2_EXTENSION_CAPTURE_RESTORE",
-      "base": "0e4df886fc8a43c17b4f786beb57545d9e480972",
-      "portableTests": "P1 nine tests plus seven regressions; P2 ten VM tests plus packaging guard PASS",
-      "fullCi": "PENDING",
+      "milestone": "P3_DISPLAY_METADATA_USAGE",
+      "base": "cad2c4fc35c6208ef0d29d4ea0ab5983751dc8f8",
+      "portableTests": "P3 sixteen tests and four existing Codex/core regression scripts PASS",
+      "fullCi": "PENDING_CURRENT_SOURCE",
       "deployed": false,
       "physicalChrome": "NOT_RUN",
       "providerInference": "NOT_RUN",
@@ -2095,11 +2099,18 @@
       "p1Ci": {
         "runId": 43691579319,
         "number": 134,
-        "result": "IN_PROGRESS",
-        "corePgRedis": "PASS",
-        "desktopWeb": "PASS",
-        "nativeHelper": "PASS",
-        "fullAcceptance": false
+        "source": "0e4df886fc8a43c17b4f786beb57545d9e480972",
+        "result": "PASS",
+        "jobs": 15,
+        "artifactVerification": "PENDING",
+        "physicalAcceptance": false
+      },
+      "p2Ci": {
+        "runId": 43693120042,
+        "number": 135,
+        "source": "cad2c4fc35c6208ef0d29d4ea0ab5983751dc8f8",
+        "result": "WEB_FAILED_FIXTURE_UNICODE_ASSERTION",
+        "utf8Fix": "IN_CURRENT_SOURCE_RETEST_PENDING"
       }
     }
   },

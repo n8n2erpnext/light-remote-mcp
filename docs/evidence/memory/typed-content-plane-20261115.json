@@ -10,5 +10,12 @@
   "runtimeChanged": false,
   "historicalLogsCleaned": false,
   "physicalAcceptance": false,
-  "nativeCi": "PENDING"
+  "nativeCi": {
+    "result": "PASS",
+    "sourceCommit": "0e4df886fc8a43c17b4f786beb57545d9e480972",
+    "runId": 43691579319,
+    "jobs": 15,
+    "artifactBytesVerified": false,
+    "physicalAcceptance": false
+  }
 }

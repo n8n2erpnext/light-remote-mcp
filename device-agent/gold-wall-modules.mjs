@@ -67,7 +67,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
 
   const codex=createGoldCodexConnection({storageFile:file+'.codex.enc',fetchImpl});
   const managedCodex=createManagedCodexRuntime({root:path.join(path.dirname(file),'codex-runtime')});
-  const plus=plusImpl||createGoldCodexPlus({home:path.join(path.dirname(file),'codex-home'),
+  const plus=plusImpl||createGoldCodexPlus({home:path.join(path.dirname(file),'codex-home'),metadataEnabled:()=>flags().codexBridge,
     command:resolveGoldCodexBinary({managedRoot:managedCodex.managedRoot})});
   const checkpointKeyFile=file+'.checkpoint-key';
   const scopeKeyFile=file+'.device-ed25519-key';
@@ -443,7 +443,8 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     supervisorDelegate(input={}){return supervisor().delegate(input);},
     supervisorPause(input={}){return supervisor().pause(input);},
     async supervisorTick(){if(!flags().codexBridge)return {ran:false,reason:'module_off'};return supervisor().tick();},
-    async codexPlusStatus(){enabled('codexBridge');return plus.account();},
+    async codexPlusStatus(options={}){enabled('codexBridge');return plus.account(options);},
+    codexPlusWarmup(){enabled('codexBridge');plus.warmup?.();},
     codexPlusView(){enabled('codexBridge');return plus.snapshot?.()||null;},
     async codexPlusPreferences(input,guard=()=>{}){enabled('codexBridge');return plus.preferences(input,()=>{enabled('codexBridge');guard();});},
     async codexPlusLogin(){enabled('codexBridge');return plus.beginLogin();},

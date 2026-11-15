@@ -5,7 +5,7 @@ export const navRoutes = [
   { key: 'live-monitor', label: 'Live Monitor', icon: 'activity' },
   { key: 'devices', label: 'Devices', icon: 'monitor' },
   { key: 'long-memory', label: 'Long Memory', icon: 'database' },
-  { key: 'codex-bridge', label: 'Codex Bridge', icon: 'terminal' },
+  { key: 'codex-bridge', label: 'API Worker', icon: 'terminal' },
   { key: 'account', label: 'Account', icon: 'user' },
   { key: 'settings', label: 'Settings', icon: 'settings' }
 ] as const;
@@ -16,7 +16,7 @@ const aliases: Record<string, RouteKey> = {
   '/': 'overview', '/overview': 'overview', '/ai-access': 'ai-access',
   '/sessions': 'sessions', '/live-monitor': 'live-monitor',
   '/devices': 'devices', '/long-memory': 'long-memory',
-  '/codex-bridge': 'codex-bridge', '/account': 'account', '/settings': 'settings'
+  '/api-worker': 'codex-bridge', '/codex-bridge': 'codex-bridge', '/account': 'account', '/settings': 'settings'
 };
 
 export function parseRoute(hash: string): RouteKey {
@@ -25,5 +25,5 @@ export function parseRoute(hash: string): RouteKey {
 }
 
 export function routeHref(route: RouteKey): string {
-  return '#/' + route;
+  return '#/' + (route==='codex-bridge'?'api-worker':route);
 }

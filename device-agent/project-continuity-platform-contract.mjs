@@ -34,6 +34,6 @@ export function continuityPlatformContract(platform,{desktop=false}={}){
  const id=platform==='linux'?(desktop?'linux-desktop':'linux-server'):platform;
  const contract=CONTINUITY_PLATFORMS[id];
  if(!contract)throw Error('continuity_unsupported_platform');
- return {id,...contract,ownerBrokerRequired:true,optionalModules:['Project Memory','Codex Bridge'],
+ return {id,...contract,ownerBrokerRequired:true,optionalModules:['Project Memory','API Worker'],
   defaultModules:{memory:false,codex:false}};
 }

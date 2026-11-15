@@ -61,9 +61,9 @@ describe('Desktop module controls backed by native Agent state',()=>{
   await waitFor(()=>expect(invoke.mock.calls.some(c=>c[1].action==='memory.delete-local')).toBe(true));
   expect(invoke.mock.calls.find(c=>c[1].action==='memory.delete-local')?.[1].payload).toEqual({scopeId,confirmName:'Project receipt',confirmed:true});
  });
- it('opening Codex reads its persisted module status without login, installation or process execution',async()=>{
+ it('opening API Worker reads metadata without requesting login, installation or work',async()=>{
   render(<CodexBridgeScreen accountId="owner"/>);
-  await waitFor(()=>expect((screen.getByRole('button',{name:'Enable Codex Bridge'}) as HTMLButtonElement).disabled).toBe(false));
+  await waitFor(()=>expect((screen.getByRole('button',{name:'Enable API Worker'}) as HTMLButtonElement).disabled).toBe(false));
   expect(invoke.mock.calls.map(c=>c[1].action)).toEqual(['device.read','codex.read']);
   expect((screen.getByRole('button',{name:'Sign in to Codex'}) as HTMLButtonElement).disabled).toBe(true);
  });

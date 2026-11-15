@@ -39,7 +39,7 @@ assert.match(wall,/v2CsrfScript/);
 assert.match(wall,/class="joblead"/);
 assert.match(wall,/class="jobtime muted"/);
 assert.match(wall,/goldCodexDisabledNotice/);
-assert.match(wall,/Enable Codex Bridge/);
+assert.match(wall,/Enable API Worker/);
 assert.match(wall,/goldCodexDisableButton/);
 assert.match(wall,/expectedRevision/);
 console.log('GOLDABV2_V2_ONLY_OWNER_ENROLLMENT_BASED_DISCOVERY_AND_WALL_UX_PASS');

@@ -115,7 +115,7 @@ try{
  const admin={'x-fixture-owner':'yes'};
  const ownerPage=await fetch(url+'/projects',{headers:admin});assert.equal(ownerPage.status,200);
  const markup=await ownerPage.text();
- assert.match(markup,/Project Memory/);assert.match(markup,/Codex Bridge/);
+ assert.match(markup,/Project Memory/);assert.match(markup,/API Worker/);
  const scriptMatch=markup.match(/<script>([\s\S]*?)<\/script>/);assert(scriptMatch);
  new vm.Script(scriptMatch[1]);
  const denied=await fetch(url+'/api/project-continuity/createProject',

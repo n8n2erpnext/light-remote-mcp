@@ -188,3 +188,7 @@ MCP Memory now submits a typed sealed private operation. Operator admits the exa
 ## Unify Memory extension capture and manual context restore for ChatGPT and Claude
 
 The single current Memory extension core is extensions/light-remote-lm-abv2 v0.4. activeTab capture is explicit and provider-specific; host access is optional for the selected validated Wall origin. Pairing binds account/device metadata, and every staging/read checks the authenticated current identity. Captured text stages locally in existing Wall fields; only Owner manually saves via the unchanged CSRF/Home flow. Restore calls existing verified scoped reads, reviews then stages into an empty composer, never auto-submits. Content is session-only with an absolute expiry/alarm; persistent extension storage contains pairing metadata alone.
+
+## Rename API Worker and warm account metadata with truthful quota and partial usage
+
+API Worker is the new display/navigation name; codexBridge storage, native actions and old/codex-cli and#/codex-bridge aliases are retained. Automatic enabled/installed Codex metadata is single-flight and performs no login/install/turn. Success caches are per field with runtime/account epoch fences. Disabling the provider stops automatic metadata refresh. Partial usage remains nullable and owned-thread scoped. Additional providers and MCP reasoning contracts are future milestones, not implied by renaming.
