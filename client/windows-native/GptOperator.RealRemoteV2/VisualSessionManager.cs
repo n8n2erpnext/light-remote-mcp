@@ -26,6 +26,7 @@ internal sealed class VisualSessionManager : IDisposable
         public required long LastSeenAt { get; set; }
         public Rectangle? Region {get;init;}
         public long FrameSeq { get; set; }
+        public GpuObservation? Observation {get;set;}
     }
 
     private readonly object _gate=new();
@@ -148,7 +149,7 @@ internal sealed class VisualSessionManager : IDisposable
             var now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             if(now>session.ExpiresAt)
             {
-                _sessions.Remove(session.Id);
+                session.Observation?.Dispose();_sessions.Remove(session.Id);
                 throw new InvalidOperationException("visual_lease_expired");
             }
             session.LastSeenAt=now;
@@ -176,6 +177,35 @@ internal sealed class VisualSessionManager : IDisposable
         lock(_gate){EnsurePresentLocked(session);var now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();if(now>session.ExpiresAt)throw new InvalidOperationException("visual_lease_expired");session.LastSeenAt=now;session.ExpiresAt=now+session.LeaseMs;seq=++session.FrameSeq;}
         return new {visualSessionId=session.Id,epoch=session.Epoch,displayTopologyId=session.TopologyId,frameSeq=seq,expiresAt=session.ExpiresAt,video=packet};
     }
+    // The background guard checks authority and topology without renewing it.
+    public object ObservationStart(string id,string token,string profile,int fps,Rectangle? region)
+    {
+        var s=GetAuthorized(id,token);EnsureTopology(s);
+        if(profile=="precision"&&region is null)throw new InvalidOperationException("observation_precision_region_required");
+        var screen=Screen.AllScreens[s.Screen];var crop=DesktopVisual.Crop(screen.Bounds,region??s.Region);
+        var scope=DesktopVisual.Crop(screen.Bounds,s.Region);
+        if(!scope.Contains(crop))throw new InvalidOperationException("observation_region_outside_attached_scope");
+        void Guard(){if(!ReferenceEquals(GetAuthorized(id,token),s))throw new InvalidOperationException("visual_session_replaced");EnsureTopology(s);}
+        lock(_gate){
+            EnsurePresentLocked(s);
+            if(s.Observation is not null)throw new InvalidOperationException("observation_already_started_stop_first");
+            if(_sessions.Values.Count(x=>x.Observation is not null)>=2)throw new InvalidOperationException("observation_producer_limit");
+            s.Observation=new GpuObservation(screen.DeviceName,screen.Bounds,crop,s.TopologyId,profile,fps,Guard);
+            Renew(s,0);
+            return new {visualSessionId=s.Id,epoch=s.Epoch,observationId=s.Observation.Id,observationEpoch=s.Observation.Epoch,state="starting",backgroundRenewsLease=false};
+        }
+    }
+    public object ObservationRead(string id,string token,string observationId,long afterSeq,int waitMs)
+    {
+        var s=GetAuthorized(id,token);EnsureTopology(s);GpuObservation producer;
+        lock(_gate){producer=s.Observation??throw new InvalidOperationException("observation_not_started");if(producer.Id!=observationId)throw new InvalidOperationException("observation_id_mismatch");Renew(s,0);}
+        var observation=producer.Read(afterSeq,waitMs);
+        lock(_gate){EnsurePresentLocked(s);if(!ReferenceEquals(s.Observation,producer))throw new InvalidOperationException("observation_closed_during_read");return new {visualSessionId=s.Id,epoch=s.Epoch,displayTopologyId=s.TopologyId,frameSeq=++s.FrameSeq,observation};}
+    }
+    public object ObservationStop(string id,string token,string observationId)
+    {
+        var s=GetAuthorized(id,token);lock(_gate){if(s.Observation?.Id!=observationId)throw new InvalidOperationException("observation_id_mismatch");s.Observation.Dispose();s.Observation=null;return new {stopped=true,observationId,retainedFrames=0,backgroundRenewsLease=false};}
+    }
     public object ValidateInput(string visualSessionId,string leaseToken)
     {
         var session=GetAuthorized(visualSessionId,leaseToken);
@@ -198,6 +228,7 @@ internal sealed class VisualSessionManager : IDisposable
         var session=GetAuthorized(visualSessionId,leaseToken);
         lock(_gate)
         {
+            session.Observation?.Dispose();
             if(!_sessions.Remove(session.Id)) throw new InvalidOperationException("visual_session_missing");
         }
 
@@ -242,7 +273,7 @@ internal sealed class VisualSessionManager : IDisposable
             var now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             if(now>session.ExpiresAt)
             {
-                _sessions.Remove(visualSessionId);
+                session.Observation?.Dispose();_sessions.Remove(visualSessionId);
                 throw new InvalidOperationException("visual_lease_expired");
             }
 
@@ -269,7 +300,7 @@ internal sealed class VisualSessionManager : IDisposable
             var now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             if(now>session.ExpiresAt)
             {
-                _sessions.Remove(session.Id);
+                session.Observation?.Dispose();_sessions.Remove(session.Id);
                 throw new InvalidOperationException("visual_lease_expired");
             }
             if(requestedLeaseMs!=0)
@@ -289,7 +320,7 @@ internal sealed class VisualSessionManager : IDisposable
     {
         if(_sessions.Count==0) return;
         var expired=_sessions.Values.Where(x=>now>x.ExpiresAt).Select(x=>x.Id).ToArray();
-        foreach(var id in expired) _sessions.Remove(id);
+        foreach(var id in expired){_sessions[id].Observation?.Dispose();_sessions.Remove(id);}
     }
 
     private static int NormalizeLeaseMs(int requested,int fallback)
@@ -319,6 +350,6 @@ internal sealed class VisualSessionManager : IDisposable
     {
         if(_disposed) return;
         _disposed=true;
-        lock(_gate) _sessions.Clear();
+        lock(_gate){foreach(var s in _sessions.Values)s.Observation?.Dispose();_sessions.Clear();}
     }
 }

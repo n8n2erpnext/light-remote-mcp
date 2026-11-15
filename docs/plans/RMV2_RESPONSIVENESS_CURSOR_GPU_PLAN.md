@@ -1,6 +1,6 @@
 # RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn
 
-Status: AGENT_GPU_OBSERVATION_OWNER_REQUIREMENT_ACCEPTED_DESIGN_ONLY_LIVE_PARTIAL
+Status: AGENT_GPU_OBSERVATION_IMPLEMENTED_CI_PENDING_PHYSICAL_NOT_RUN
 Edition: 2026-11-11, Asia/Saigon
 Scope: Windows RM v2, đối chiếu typing macOS; giữ các tool, semantic UI, A/B và local policy hiện tại
 Original research snapshot: GitHub `work` `764e1d7ce7670c9e95690fca26b58dd2e3c86f02`, tree `41a48add6e01f3e4f6d28271a59b77f92a8acaca`
@@ -9,11 +9,21 @@ Supersedes: none; bổ sung kế hoạch, không phải handoff/checkpoint thứ
 
 ## Current implementation and acceptance
 
-**Mục tiêu hiện tại: bổ sung GPU observation cho Agent; mới chốt thiết kế, chưa triển khai.** Screenshot theo yêu cầu và toàn bộ tính năng RM đang ổn định giữ nguyên. Khi Agent làm thiết kế/PowerPoint cần kiểm tra1–2px liên tục, Robot thu nhận thay đổi tại GPU, giữ cập nhật mới nhất và chuyển hình cần thiết cho Agent. Precision ROI phải giữ độ phân giải vật lý gốc/lossless; overview có thể thu nhỏ. `/rm-video` không phải mục tiêu hoặc điều kiện để Agent nhận dữ liệu.
+**GPU observation cho Agent đã có trong source dev12; đang chờ CI và nghiệm thu vật lý.** Giữ screenshot và toàn bộ đường RM cũ. Tool `desktop_observation_start/read/stop` bổ sung bộ thu DXGI nền; Agent nhận ảnh PNG1:1 vùng tối đa384×384 hoặc JPEG tổng quan trực tiếp bằng MCP image content. Thu hình nền không tự gia hạn phiên45s. Không dùng Owner viewer làm điều kiện để Agent nhận ảnh.
 
-**Live acceptance còn một phần, theo báo cáo Owner:** desktop/UIA/filesystem/process/PTY/SCP và năm ca262K qua paste được báo PASS. `write_text`4096 chỉ thấy khoảng686 ký tự hoặc giao dịch chưa kết thúc; thiếu writeId/terminal receipt để xác định nguyên nhân. GPU thực tế vẫn GDI, viewer chưa có producer; routing được báo offline lúc kết thúc, hiện chưa kiểm tra lại. Source/installer cụ thể của máy chưa được xác nhận. Không chuyển các kết quả này thành direct-write/GPU/Agent-perception PASS.
+Implemented boundaries:
+- `GpuObservation` owns one MTA capture thread per producer, maximum2 producers and one latest ROI per scope. `ObservationCapture` owns a separate D3D11/DXGI instance; dirty/move metadata skips unrelated ROI readback, identical ROI pixels do not queue duplicates. No DXGI update is normal idle, never a new-path GDI fallback. Topology/source/lease loss fails closed. Rotation and unsupported duplication report unavailable; old screenshot remains the explicit fallback.
+- Precision requires an explicit screen-local physical ROI<=384x384 inside the attached scope. D3D crop output matches physical pixels, RGB PNG lossless; overview<=640x360 JPEG45 is context only. Image payload<=650KiB; encoding occurs only when Agent reads, not on every producer frame. Acquired/captured timestamps differ from fresh source-validation time. Consumer gets latest sourceSeq and an intermediate-change count, not every frame.
+- Three additive MCP tools `light_remote_desktop_observation_start/read/stop`; read waits0..1500ms on producer changes, sends encoded pixels through the enrolled signed channel into a separate bounded16MiB RAM-only relay with5s TTL and closed-scope tombstones. Read rechecks exact current account/device/A-B actor/desktop grant and an exact epoch/frame/sourceSeq/observation ticket. Binary is returned as MCP `{type:image}`; job/history contain metadata only. Current MCP host must support image content; no claim that a model reasons at capture fps.
+- Frame mapping uses physical virtual-desktop bounds including negative monitor origins and existing frame-coordinate input guards. After input, read after the previous sourceSeq and inspect the target ROI. A new frame or no_change does not itself prove the application completed the intended edit. To change ROI, stop/start the producer; old screenshot and input remain usable. Stop closes only the producer; desktop_detach must confirm taskEnded before final report. Background capture never renews the45s quiet fallback; real reads/input do.
+- Required Windows CI uses the same native binary as installer and stress tests. A synthetic WARP D3D texture moves a1px line by1px and2px while the consumer is not reading; production producer/scaler/PNG pipeline is checked pixel-for-pixel and its PNG passes through the production MCP formatter into an independent Node PNG decoder. Close/revocation/no-change/GPU disposal/background-no-renew/legacy screenshot coexistence are checked. Physical DXGI capture is diagnosed separately and never replaced by GDI as a GPU PASS. This source commit does not yet have new native results.
 
-Baseline executable vẫn là `1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9` /0.10.1-dev.11, [CI12715/15PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850). Các receipt CI và bộ cài đã xác minh được giữ nguyên theo scope cũ; chúng không chứng minh mục tiêu GPU observation mới đã hoàn tất. [Plan](RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) · [Report live đã phân loại](../evidence/rmv2/owner-live-report-20261115.json). Lượt này chỉ ghi tài liệu; không build/deploy hay thao tác máy Owner.
+User physical acceptance remains NOT_RUN. Prior CI127 and pasted live results retain their original artifact/scopes. Direct write_text4096 partial-or-unfinished/busy and current routing are unresolved separately; no clipboard result accepts the direct API. No release/feed or Owner installation.
+
+
+## Historical accepted design before implementation
+
+The following source audit describes the pre-implementation snapshot; current implementation above supersedes its NOT_IMPLEMENTED classifications.
 
 ## Agent GPU observation — Owner clarification 2026-11-15
 

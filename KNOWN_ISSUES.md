@@ -1,10 +1,10 @@
 # Known issues and remaining verification
 
-**Mục tiêu hiện tại: bổ sung GPU observation cho Agent; mới chốt thiết kế, chưa triển khai.** Screenshot theo yêu cầu và toàn bộ tính năng RM đang ổn định giữ nguyên. Khi Agent làm thiết kế/PowerPoint cần kiểm tra1–2px liên tục, Robot thu nhận thay đổi tại GPU, giữ cập nhật mới nhất và chuyển hình cần thiết cho Agent. Precision ROI phải giữ độ phân giải vật lý gốc/lossless; overview có thể thu nhỏ. `/rm-video` không phải mục tiêu hoặc điều kiện để Agent nhận dữ liệu.
+**GPU observation cho Agent đã có trong source dev12; đang chờ CI và nghiệm thu vật lý.** Giữ screenshot và toàn bộ đường RM cũ. Tool `desktop_observation_start/read/stop` bổ sung bộ thu DXGI nền; Agent nhận ảnh PNG1:1 vùng tối đa384×384 hoặc JPEG tổng quan trực tiếp bằng MCP image content. Thu hình nền không tự gia hạn phiên45s. Không dùng Owner viewer làm điều kiện để Agent nhận ảnh.
 
-**Live acceptance còn một phần, theo báo cáo Owner:** desktop/UIA/filesystem/process/PTY/SCP và năm ca262K qua paste được báo PASS. `write_text`4096 chỉ thấy khoảng686 ký tự hoặc giao dịch chưa kết thúc; thiếu writeId/terminal receipt để xác định nguyên nhân. GPU thực tế vẫn GDI, viewer chưa có producer; routing được báo offline lúc kết thúc, hiện chưa kiểm tra lại. Source/installer cụ thể của máy chưa được xác nhận. Không chuyển các kết quả này thành direct-write/GPU/Agent-perception PASS.
+Source implementation only; no Owner installation, live desktop, runtime/service/DB, production/callback/domain/main/feed mutation. Last deployed Gold Lab and compiled historical CI127 baseline remain1bd6fcc/dev11 until a newly verified deployment. New dev12 is opt-in through observation_start; no viewer required.
 
-Baseline executable vẫn là `1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9` /0.10.1-dev.11, [CI12715/15PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850). Các receipt CI và bộ cài đã xác minh được giữ nguyên theo scope cũ; chúng không chứng minh mục tiêu GPU observation mới đã hoàn tất. [Plan](docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) · [Report live đã phân loại](docs/evidence/rmv2/owner-live-report-20261115.json). Lượt này chỉ ghi tài liệu; không build/deploy hay thao tác máy Owner.
+Remaining: native CI pending; physical GPU/Agent latency and image perception NOT_RUN. Direct public write_text and routing report remain unaccepted.
 
 ## Historical candidates and prior evidence
 

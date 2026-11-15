@@ -247,7 +247,9 @@ npm test
 
 ## Project status
 
-Existing on-demand screenshots and stable RM features are preserved. Owner clarified an additive continuous GPU screen-observation path consumed by the Agent for precise1-2px design and PowerPoint work. This path is designed, not implemented; the existing H264/Owner viewer is not its acceptance target. Native baseline1bd6fcc/CI12715of15 remains valid within its component scope. The pasted Owner live report is partial and not bound to an installed source/installer hash: paste262K does not accept direct write_text, which is reported partial-or-unfinished at4096units; actual GPU and Agent perception remain unaccepted. See [plan](docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) and [classified report](docs/evidence/rmv2/owner-live-report-20261115.json). This update is documentation-only: no native build, service or Owner-machine changes.
+Implement additive Agent GPU observation in dev12: dedicated background DXGI/D3D11 collector with dirty/move ROI filtering, bounded latest cache and explicit precision PNG1:1 or overview JPEG; scoped start/read/stop, ephemeral exact-ticket signed RAM relay, and actual MCP image-content delivery to the Agent. Existing screenshot/GDI/DXGI/H264/viewer/input/task behavior remains available and unchanged by default. Background capture does not renew control. Native synthetic GPU1px2px parity and production MCP image formatter are wired into the same-helper required Windows CI; native build/CI and physical Agent acceptance are still pending at this source commit.
+
+Source implementation only; no Owner installation, live desktop, runtime/service/DB, production/callback/domain/main/feed mutation. Last deployed Gold Lab and compiled historical CI127 baseline remain1bd6fcc/dev11 until a newly verified deployment. New dev12 is opt-in through observation_start; no viewer required.
 
 ## License
 

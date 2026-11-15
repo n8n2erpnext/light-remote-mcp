@@ -35,6 +35,18 @@ jobs:
           if (-not (Test-Path $helper)) { throw 'Exact-source media helper missing' }
           "RM_MEDIA_EXE=$helper" >> $env:GITHUB_ENV
           @{ sourceCommit=$env:GITHUB_SHA; sourceTree=(git rev-parse 'HEAD^{tree}'); ciRunId=$env:GITHUB_RUN_ID; version=(Get-Content VERSION -Raw).Trim(); scope='isolated-media-diagnostics-not-installer-acceptance'; helperSha256=(Get-FileHash -LiteralPath $helper -Algorithm SHA256).Hash.ToLowerInvariant(); physicalOwnerAcceptance=$false } | ConvertTo-Json | Set-Content dist/windows/rmv2-media-source.json -Encoding utf8
+      - name: Agent GPU observation background1px2px and MCP image delivery
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          ./client/windows-native/test-rmv2-observation.ps1 -Exe $env:RM_MEDIA_EXE -Output (Join-Path $PWD 'dist/windows/rmv2-observation.json')
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rmv2-observation-probe-${{ github.sha }}
+          path: dist/windows/rmv2-observation.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Exercise native encode, current desktop video and close/revocation fence
         shell: pwsh
         run: |

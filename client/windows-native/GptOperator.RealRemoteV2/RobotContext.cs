@@ -131,6 +131,9 @@ internal sealed class RobotContext : ApplicationContext
                 Text(request,"visualSessionId"),Text(request,"leaseToken"),
                 Text(request,"previousFrameSha256"),Bool(request,"omitUnchanged")
             ),
+            "desktop.observation.start" => _visual.ObservationStart(Text(request,"visualSessionId"),Text(request,"leaseToken"),Text(request,"profile"),Int(request,"fps",15),ReadRegion(request)),
+            "desktop.observation.read" => _visual.ObservationRead(Text(request,"visualSessionId"),Text(request,"leaseToken"),Text(request,"observationId"),Long(request,"afterSeq",0),Int(request,"waitMs",0)),
+            "desktop.observation.stop" => _visual.ObservationStop(Text(request,"visualSessionId"),Text(request,"leaseToken"),Text(request,"observationId")),
             "desktop.visual.video" => _visual.VideoFrame(Text(request,"visualSessionId"),Text(request,"leaseToken"),Int(request,"fps",15),Bool(request,"preferHardware",true),Bool(request,"preferGpuCapture",true)),
             "desktop.visual.detach" or "desktop-visual-detach" => DetachVisualWithCursor(request),
             "batch.run" => RunBatch(request,32),
@@ -304,7 +307,7 @@ internal sealed class RobotContext : ApplicationContext
         indicator=_ambientGlow is null?null:_ambientGlow.Dispatcher.Invoke(()=>_ambientGlow.Diagnostics()),
         inputContentVerification="unverified-unless-explicit-readback",
         uiSignals=new {produced=_rpc.UiEventsProduced,forwarded=_rpc.UiEventsForwarded,coalesceMs=40,pendingCapacity=1},
-        captureCapabilities=new {backend=DesktopVisual.RequestedCaptureBackend,maxWidth=1280,maxHeight=720,maxQuality=70,region=true,freshPixelEncodeCache=true,maxSourcePixels=16*1024*1024,actualBackendReportedPerFrame=true,optional=DesktopVisual.CaptureCapabilities()},
+        captureCapabilities=new {backend=DesktopVisual.RequestedCaptureBackend,maxWidth=1280,maxHeight=720,maxQuality=70,region=true,freshPixelEncodeCache=true,maxSourcePixels=16*1024*1024,actualBackendReportedPerFrame=true,agentGpuObservation=new {available=true,optIn=true,precisionMaxWidth=384,precisionMaxHeight=384,precisionLossless=true,backgroundRenewsLease=false,delivery="mcp-image-content"},optional=DesktopVisual.CaptureCapabilities()},
         logicalText=new {supported=true,active=_textWrites.Active,inlineUnits=262144,referenceBytes=16777216,referenceUnits=8388608,chunkUnits=LogicalTextWriter.MaxChunkUnits,pacedChunkUnits=128,maxGraphemeUnits=128,preferredPacketUnits=32,deliveryWaitMs=TypingTarget.DeliveryWaitMs,inputAuthorityBudgetMaxMs=1000,deliveryBackpressure="when-readback-available",verification="capability-dependent-no-replay",pacingUnit="grapheme"},
         requestLanes=new {orderedInput=true,independentCapture=true,independentUiaObservation=true,fastStatusCancel=true,inputQueue=16,captureQueue=2,observationQueue=2,fastConcurrency=4},
         interactionProfiles=new {defaultProfile="compatibility",supported=new[]{"compatibility","precision","responsive","smooth"},responsiveClickProgrammedMs=17,compatibilityClickProgrammedMs=75,automaticRetry=false},

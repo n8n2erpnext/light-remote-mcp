@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {runObservation} from '../lib/rmv2-observation-agent.mjs';
 import {captureAuthorizedVideo,recentLocalVideo} from '../lib/rmv2-video.mjs';
 import {RM_TASK_IDLE_MS,requireOwnedRmTask,rmTaskMayExpire,withRmTask,closeRmTask,rememberRmTaskClose,confirmedRmTaskClose} from '../lib/rmv2-task-lifecycle.mjs';
 import {normalizeCaptureRegion,frameCoordinateInput} from '../lib/rmv2-capture.mjs';
@@ -303,7 +304,7 @@ async function ownerApproveServerPermissions({email,password,approvedCapabilitie
 async function heartbeat(state,base,{persist=true}={}){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const capabilities=effectiveCapabilitiesForState(state);const timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const message=deviceHeartbeatMessage({deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities});const signature=crypto.sign(null,Buffer.from(message),privateKey(state)).toString('base64url');const upstream=await operator(base,'device-heartbeat',{deviceId:state.enrollment.deviceId,timestamp,nonce,capabilities,signature,policyRevision:Math.max(0,Number(state.policy?.serverPolicyRevision)||0)});applyPolicyEnvelope(state,upstream.policy);state.lastHeartbeatAt=Date.now();state.effectiveCapabilities=effectiveCapabilitiesForState(state);if(persist)writeState(state);return upstream.device;}
 let observerChannelTail=Promise.resolve(),observerChannelNextAt=0,rmLiveChannelTail=Promise.resolve(),rmLiveChannelNextAt=0;
 function clientChannelLane(action){
-  if(action==='desktop-live-push'||action==='desktop-video-push')return 'rm-live';
+  if(action==='desktop-live-push'||action==='desktop-video-push'||action==='desktop-observation-push')return 'rm-live';
   return ['status','activity','fleet-intent','fleet-authority','fleet-status','fleet-devices','fleet-sessions','fleet-activity','fleet-jobs'].includes(action)?'observer':'direct';
 }
 function signedChannelEnvelope(state,action,payload){if(!state.enrollment?.deviceId)throw new Error('device_not_enrolled');const deviceId=state.enrollment.deviceId,timestamp=Date.now(),nonce=crypto.randomBytes(18).toString('base64url');const signature=crypto.sign(null,Buffer.from(deviceChannelMessage({deviceId,action,timestamp,nonce,payload})),privateKey(state)).toString('base64url');return {deviceId,timestamp,nonce,signature,payload};}
@@ -474,7 +475,7 @@ async function stopRealRemoteVisual(row,{detach=true}={}){
     },
     release:r=>{try{r.release?.();}finally{r.release=null;}},
     closeIdle:()=>NATIVE_DESKTOP.closeIfIdle()
-  }).then(async receipt=>{row.latestVideo=null;rememberRmTaskClose(REAL_REMOTE_VISUAL_CLOSED,row,receipt);if(row.closeVideoRelay){const close=row.closeVideoRelay;row.closeVideoRelay=null;try{await close();}catch{ /* Relay TTL2s remains fail-closed; never keep native control alive for networking. */ }}return receipt;}).catch(error=>{
+  }).then(async receipt=>{row.latestVideo=null;if(row.closeObservationRelay){const close=row.closeObservationRelay;row.closeObservationRelay=null;row.observationId=null;try{await close();}catch{ /* Bounded RAM TTL fails closed. */ }}rememberRmTaskClose(REAL_REMOTE_VISUAL_CLOSED,row,receipt);if(row.closeVideoRelay){const close=row.closeVideoRelay;row.closeVideoRelay=null;try{await close();}catch{ /* Relay TTL2s remains fail-closed; never keep native control alive for networking. */ }}return receipt;}).catch(error=>{
     // Explicit close failure must get the same eventual cleanup as orphan expiry.
     if(REAL_REMOTE_VISUAL.get(row.desktopSessionId)===row&&!row.timer){
       row.timer=setTimeout(()=>{row.timer=null;void stopRealRemoteVisual(row,{detach}).catch(()=>{});},5000);row.timer.unref?.();
@@ -956,7 +957,7 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
     },{timeoutMs:3000})}),armRealRemoteVisual);
   }
   const mutation=['run','input','act'].includes(op);
-  const realObservation=['resume','windows','frame','video-frame','observe','semantic-attach','semantic-snapshot','semantic-events','live-open'].includes(op);
+  const realObservation=['resume','windows','frame','video-frame','observe-start','observe-read','observe-stop','observe','semantic-attach','semantic-snapshot','semantic-events','live-open'].includes(op);
   if(!rmScope&&(mutation||realObservation)){
     if(mutation&&!effective.includes(REAL_REMOTE_INPUT_CAPABILITY))throw new Error('local capability denied: desktop-input');
     let scope;
@@ -1020,6 +1021,12 @@ async function executeDesktopCommand(state,p,{hub=DEFAULT_HUB,rmScope=null}={}){
   if(op==='resume')return {ok:true,operation:op,desktop:await resumeRealRemoteVisual(p,request)};
   if(op==='detach')return {ok:true,operation:op,desktop:await detachRealRemoteVisual(p,request)};
   if(op==='windows')return {ok:true,operation:op,desktop:await NATIVE_DESKTOP.request('windows',{limit:Math.max(1,Math.min(Number(request.limit)||100,200))})};
+  if(['observe-start','observe-read','observe-stop'].includes(op)){
+    if(process.platform!=='win32')throw Error('observation_windows_only');
+    const row=requireOwnedRmTask(REAL_REMOTE_VISUAL,visualOwner(p),request.desktopSessionId);
+    const desktop=await runObservation(row,visualOwner(p),request,{requestNative:(...args)=>NATIVE_DESKTOP.request(...args),isCurrent:r=>REAL_REMOTE_VISUAL.get(r.desktopSessionId)===r&&effectiveCapabilitiesForState(readState()||state).includes('desktop'),send:payload=>channelRequest(readState()||state,hub,'desktop-observation-push',payload)});
+    return {ok:true,operation:op,desktop:visualPublicView(row,desktop)};
+  }
   if(op==='video-frame'){
     if(process.platform!=='win32')throw Error('video_windows_only');
     const row=requireOwnedRmTask(REAL_REMOTE_VISUAL,visualOwner(p),request.desktopSessionId);

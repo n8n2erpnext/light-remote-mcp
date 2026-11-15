@@ -212,6 +212,28 @@
         "desktopSessionId"
       ],
       "response": "bounded RAM-only media or metadata, no-store"
+    },
+    "desktopObservationPushInternal": {
+      "component": "operator-host/executor-routes-device-channel.mjs",
+      "authority": "Exact live A/B actor, desktop policy, device connection; signed push or private authenticated plugin read",
+      "request": [
+        "sessionId",
+        "agentId",
+        "desktopSessionId",
+        "observationId"
+      ],
+      "response": "Exact-ticket image in bounded RAM only; no-store, never persisted in jobs"
+    },
+    "desktopObservationReadInternal": {
+      "component": "operator-host/executor-routes-runtime.mjs",
+      "authority": "Exact live A/B actor, desktop policy, device connection; signed push or private authenticated plugin read",
+      "request": [
+        "sessionId",
+        "agentId",
+        "desktopSessionId",
+        "observationId"
+      ],
+      "response": "Exact-ticket image in bounded RAM only; no-store, never persisted in jobs"
     }
   },
   "nonClaims": [

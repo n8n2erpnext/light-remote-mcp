@@ -438,6 +438,10 @@
       "destination": "device-agent/wall-ui-refinement.mjs"
     },
     {
+      "source": "device-agent/wall-video-viewer.mjs",
+      "destination": "device-agent/wall-video-viewer.mjs"
+    },
+    {
       "source": "lib/activity-ring.mjs",
       "destination": "lib/activity-ring.mjs"
     },
@@ -554,6 +558,14 @@
       "destination": "lib/rmv2-capture.mjs"
     },
     {
+      "source": "lib/rmv2-observation-agent.mjs",
+      "destination": "lib/rmv2-observation-agent.mjs"
+    },
+    {
+      "source": "lib/rmv2-observation.mjs",
+      "destination": "lib/rmv2-observation.mjs"
+    },
+    {
       "source": "lib/rmv2-semantic-value.cjs",
       "destination": "lib/rmv2-semantic-value.cjs"
     },
@@ -568,6 +580,10 @@
     {
       "source": "lib/rmv2-text-write.mjs",
       "destination": "lib/rmv2-text-write.mjs"
+    },
+    {
+      "source": "lib/rmv2-video.mjs",
+      "destination": "lib/rmv2-video.mjs"
     },
     {
       "source": "lib/rmv2-visual-lease-recovery.mjs",
@@ -604,14 +620,6 @@
     {
       "source": "project.manifest.json",
       "destination": "project.manifest.json"
-    },
-    {
-      "source": "lib/rmv2-video.mjs",
-      "destination": "lib/rmv2-video.mjs"
-    },
-    {
-      "source": "device-agent/wall-video-viewer.mjs",
-      "destination": "device-agent/wall-video-viewer.mjs"
     }
   ]
 }

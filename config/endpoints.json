@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "configRevision": 4,
+  "configRevision": 5,
   "selectedProfile": "goldabv2-lab",
   "profiles": {
     "goldabv2-lab": {
@@ -159,6 +159,11 @@
       "originRole": "deviceChannel",
       "method": "POST",
       "path": "/device-channel/desktop-video-push"
+    },
+    "desktopObservationPush": {
+      "originRole": "deviceChannel",
+      "method": "POST",
+      "path": "/device-channel/desktop-observation-push"
     }
   },
   "releaseIntegrity": {
@@ -185,6 +190,16 @@
     "desktopVideoReadInternal": {
       "method": "POST",
       "path": "/v1/plugin/desktop-video/read",
+      "transport": "operator-private-unix"
+    },
+    "desktopObservationPushInternal": {
+      "method": "POST",
+      "path": "/v1/device-channel/desktop-observation-push",
+      "transport": "operator-private-unix"
+    },
+    "desktopObservationReadInternal": {
+      "method": "POST",
+      "path": "/v1/plugin/desktop-observation/read",
       "transport": "operator-private-unix"
     }
   }

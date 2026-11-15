@@ -8,14 +8,14 @@
   ],
   "repository": "n8n2erpnext/light-remote-mcp",
   "activeCheckpoint": "MASTER_CHECKPOINT.json",
-  "projectVersion": "0.10.1-dev.11",
+  "projectVersion": "0.10.1-dev.12",
   "apiContractVersion": "light-remote.api.v1",
   "profile": "goldabv2-desktop-v4",
   "officialRepositoryId": 1450214328,
   "verifiedBuiltSourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
   "verifiedBuiltSourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
-  "checkpointUpdatedAt": "2026-11-15T01:44:35.895Z",
-  "migrationPhase": "PRESERVE_STABLE_RM_ADD_AGENT_GPU_OBSERVATION_DESIGN",
+  "checkpointUpdatedAt": "2026-11-15T02:14:55.828Z",
+  "migrationPhase": "ADDITIVE_AGENT_GPU_OBSERVATION_IMPLEMENTATION",
   "ci": {
     "status": "success",
     "runId": 43564848850,
@@ -46,9 +46,9 @@
     "Existing reconstruction backlog retained: legacy Long Memory extension/RC50/Guest prototypes and full Mac/Linux installers",
     "Complete endpoint/schema catalog coverage and remaining legacy server route constants; new three routes use canonical catalog",
     "Memory/Codex100-row native read window remains explicit; Desktop task/session history is bounded/pageable",
-    "RM: implement optional continuous GPU observation consumed by Agent with lossless physical1:1 precision ROI and measured design/PowerPoint1-2px feedback; current viewer is not this objective.",
     "RM: Owner-reported direct write_text4096 partial-or-unfinished/busy must be diagnosed through public API/writeId/terminal receipts; clipboard262K does not accept it.",
-    "RM: reported routing offline cause/current liveness and exact installed artifact remain unverified; preserve enrollment/B/session and test leftovers until authorized recovery."
+    "RM: reported routing offline cause/current liveness and exact installed artifact remain unverified; preserve enrollment/B/session and test leftovers until authorized recovery.",
+    "RM: new dev12 Agent GPU observation native/full CI, physical DXGI1px2px and actual Agent image/latency UAT pending."
   ],
   "historicalRefsOnly": {
     "oldRepository": "n8n2erpnext/light-remote-mcp-archive-20261108",

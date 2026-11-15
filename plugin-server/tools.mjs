@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import {appendObservationImage,agentObservationRead} from './rmv2-observation-image.mjs';
 import { z } from 'zod';
 import {goldAbV2LabV1Disabled} from '../lib/gold-ab-v2-lab-v1-lock.mjs';
 import { AccountOperatorAdapter } from './operator-adapter.mjs';
@@ -96,11 +97,11 @@ export function pluginToolErrorResult(error){
   return {content:[{type:'text',text:redactRestrictedText(error?.message||'Light Remote operation failed.')}],
     structuredContent:structured,...(reconciliation?{}:{isError:true})};
 }
-function guarded(identity,scopes,fn){
+function guarded(identity,scopes,fn,format=result){
   return async(input={})=>{
     const denied=requireScopes(identity,[...scopes,...(input.sourcePath&&scopes.includes('remote:execute')?['remote:read']:[])]);
     if(denied)return denied;
-    try{return result(await fn(new AccountOperatorAdapter(identity),input));}
+    try{return format(await fn(new AccountOperatorAdapter(identity),input));}
     catch(error){return pluginToolErrorResult(error);}
   };
 }
@@ -638,6 +639,22 @@ export function registerPluginTools(server,identity){
     description:'Read one fresh desktop frame for bootstrap/resynchronization. Windows optional screen-local region crops pixels before encoding; for scoped reads select region at attach. Effective limits and crop-to-virtual mapping are returned. Does not send input.',
     inputSchema:{sessionId:id,operationId:opId,desktopSessionId:z.string().max(160).optional(),screen:z.number().int().min(-1).max(31).optional(),region:captureRegion.optional(),maxWidth:z.number().int().min(64).max(7680).optional(),maxHeight:z.number().int().min(64).max(4320).optional(),quality:z.number().int().min(1).max(100).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'frame',['desktopSessionId','semanticSessionId','afterSeq','limit','screen','maxWidth','maxHeight','quality','region','minIntervalMs','omitUnchanged','idleTimeoutMs','provider','scope','cdpEndpoint','targetId','urlMatch','maxDepth','maxNodes'])));
+
+  add(server,'light_remote_desktop_observation_start',{
+    title:'Start GPU observation for design work',
+    description:'Optional Windows GPU producer for repeated visual design feedback. Keeps the latest changed screen pixels locally while the Agent reasons; does not send input. Existing frame/screenshot tools stay available. Attach first. precision requires a screen-local physical ROI at most384x384, lossless PNG1:1 for1-2px edits. overview uses a smaller JPEG and cannot prove pixel accuracy. Read with observation_read. Background capture does NOT renew the45s task lease. MUST desktop_detach before final report; stop only stops this producer.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:id,profile:z.enum(['precision','overview']).optional(),region:captureRegion.optional(),fps:z.number().int().min(1).max(30).optional()},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,false)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'observe-start',['profile','region','fps'])));
+  add(server,'light_remote_desktop_observation_read',{
+    title:'See latest changed GPU observation',
+    description:'Returns the newest GPU-collected image directly as MCP image content for the Agent, plus physical bounds/frameSeq for frame-coordinate input. afterSeq is the prior sourceSeq; no_change returns metadata only. waitMs0..1500 waits for change without requesting another screenshot. Intermediate changes are counted, never queued. Use precision PNG for pixel decisions, overview only for context. An unfinished job must be reconciled with the SAME operationId. Source loss requires stop/start or existing frame fallback. Reading is real RM work; background capture alone does not renew the lease. Close desktop scope before final report.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:id,observationId:id,afterSeq:z.number().int().min(0).optional(),waitMs:z.number().int().min(0).max(1500).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,false)
+  },guarded(identity,['remote:read'],(a,x)=>agentObservationRead(a,x,operationView),value=>value.packet?appendObservationImage(result(value.view),value.packet,value.ticket):result(value.view)));
+  add(server,'light_remote_desktop_observation_stop',{
+    title:'Stop GPU screen collection',
+    description:'Stop this optional GPU producer and erase its local and relay image buffers. The desktop task remains open for existing screenshot/input tools. To end all task observation and the AI indicator, desktop_detach and confirm taskEnded before final report.',
+    inputSchema:{sessionId:id,operationId:opId,desktopSessionId:id,observationId:id},securitySchemes:security(['remote:read']),annotations:annotations(false,false,false,true)
+  },guarded(identity,['remote:read'],(a,x)=>desktopOperation(a,x,'observe-stop',['observationId'])));
 
   add(server,'light_remote_desktop_video_frame',{
     title:'Read an advanced H.264 desktop video frame',

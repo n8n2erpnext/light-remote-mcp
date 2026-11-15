@@ -33,7 +33,7 @@ internal sealed class RpcWorkScheduler : IDisposable
     {
         if(_disposed)return Task.FromException<object?>(new ObjectDisposedException(nameof(RpcWorkScheduler)));
         if(op is "ping" or "status" or "desktop.status" or "desktop.cancel")return Fast(run);
-        var frame=op is "desktop.frame" or "desktop.visual.frame" or "desktop-visual-frame" or "desktop.visual.video";
+        var frame=op is "desktop.frame" or "desktop.visual.frame" or "desktop-visual-frame" or "desktop.visual.video" or "desktop.observation.start" or "desktop.observation.read" or "desktop.observation.stop";
         var observe=op is "uia.snapshot" or "desktop.semantic.snapshot" or "desktop-semantic-snapshot"
             or "desktop.semantic.events" or "desktop-semantic-events";
         var reply=new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);

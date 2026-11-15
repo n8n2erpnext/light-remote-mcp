@@ -729,6 +729,18 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Agent GPU observation background1px2px and MCP image delivery
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          ./client/windows-native/test-rmv2-observation.ps1 -Exe $env:RMV2_EXE -Output (Join-Path $PWD 'dist/windows/rmv2-observation.json')
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rmv2-observation-native-${{ github.sha }}
+          path: dist/windows/rmv2-observation.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Real Remote V2 native H264 encode and visual-scope acceptance
         timeout-minutes: 3
         shell: pwsh
