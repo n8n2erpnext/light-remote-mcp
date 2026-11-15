@@ -12,7 +12,7 @@ const CHANNEL = new Set([
   // Local Wall signed device-scoped Stop/Cancel control; Operator remains the authorization authority.
   'job-cancel',
   // G3: the Operator separately verifies enrollment-signed device proofs.
-  'memory-peers','memory-invites','memory-relay','memory-sync-policy','memory-account-delete','account-notifications','abv2-pending-preview','abv2-owner-approve'
+  'memory-content-fetch','memory-content-push','memory-peers','memory-invites','memory-relay','memory-sync-policy','memory-account-delete','account-notifications','abv2-pending-preview','abv2-owner-approve'
 ]);
 let publicRedis=null,publicPrefix='';
 export function initializePublicRateRedis(client,prefix){

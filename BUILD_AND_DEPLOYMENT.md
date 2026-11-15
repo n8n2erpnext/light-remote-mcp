@@ -402,3 +402,7 @@ Exact executable source 2b65a379e1fd5b3f05c101354495dcd4f6c64397, tree 2decc4dde
 ## Record dev12 live text mismatches and separate tool binding from native completion
 
 Executable/Gold remains exact2b65a37/dev12/CI13115PASS; current Owner helper independently matches it. No executable changes, new native build, installation/update, service restart, DB migration, production/callback/domain/feed/main change in this audit. Owner has installed the exact CI131 helper; do not ask to reinstall or rebuild merely to diagnose the tool catalog. Windows VM removed from requested scope.
+
+## Replace MCP Memory shell transport with typed ephemeral content plane
+
+Source version advances to0.10.1-dev.13 for typed Memory Agent commands and new core import closure. Node/synthetic tests PASS; native build/package only in exact-source GitHub Actions. No installation/deployment/feed promotion. Runtime remains dev12 source2b65a37 until verified artifact rollout.

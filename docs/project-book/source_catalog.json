@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 330,
+    "total": 331,
     "markdown": 230,
-    "json": 100
+    "json": 101
   },
   "files": [
     {
@@ -456,6 +456,27 @@
         "allowDeletions",
         "humanReviewRequirementAdded",
         "verifiedAt"
+      ]
+    },
+    {
+      "path": "docs/evidence/memory/typed-content-plane-20261115.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 554,
+      "sha256": "a6bf123af2896b6dd48193f829b54efe97fe3735d66ad7748b0c7cc9a49e3a56",
+      "topLevelKeys": [
+        "schemaVersion",
+        "date",
+        "baseSource",
+        "phase",
+        "newUnitTests",
+        "regressionScripts",
+        "result",
+        "scope",
+        "runtimeChanged",
+        "historicalLogsCleaned",
+        "physicalAcceptance",
+        "nativeCi"
       ]
     },
     {
@@ -3547,8 +3568,8 @@
       "path": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 28006,
-      "sha256": "12fc6425532ec66a154df580dec6bdb5a743df21dc1b7638a91598a6d58049b9",
+      "bytes": 29853,
+      "sha256": "c08675b8c00384344395ae0bda71164c8bfa1bc6111dc9175d085549bd1d4249",
       "title": "Long Memory, extension ngữ cảnh và API Worker nhiều nhà cung cấp"
     },
     {

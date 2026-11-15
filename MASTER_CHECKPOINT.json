@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-15T05:00:22.371Z",
-  "version": "0.10.1-dev.12",
-  "phase": "OWNER_LIVE_NATIVE_TEXT_AND_TOOL_CONTRACT_DIAGNOSIS",
-  "status": "OWNER_DEV12_LIVE_TEXT_NOT_ACCEPTED_TERMINAL_TRACE_PENDING",
+  "updatedAt": "2026-11-15T07:48:18.842Z",
+  "version": "0.10.1-dev.13",
+  "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
+  "status": "P1_TYPED_MEMORY_PORTABLE_PASS_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "After Owner tool refresh, inspect a freshly supplied tool inventory for desktop_text_status/cancel and observation/video routes. Reproduce two sequential4096 writes and paced300words in one dedicated synthetic target; poll each writeId to terminal before readback, next transaction or detach; record reason, accepted/sent/observed/verified counts and hashes. Investigate authority-budget/target/focus/ACK only from actual final receipts; do not queue or replay uncertain input. Then run direct262K via inline/sourcePath and exercise Agent GPU observation separately from legacy GDI/viewer. No Windows VM task. Preserve fixtures and existing device/grant/session.",
+  "nextAction": "Complete exact-source CI for P1 and record results. Continue the same plan with one configurable ChatGPT/Claude extension and manual draft-preserving restore, then API Worker rename and account/model/usage warmup. Add official per-provider adapters and governed MCP reasoning workers with budgets after the retention foundation; do not perform paid inference/login without concrete selected provider/auth/budget. RMv2 live text/GPU acceptance remains separate and open; no Windows VM task.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,13 +691,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261115-rmv2-dev12-owner-live-text-contract-audit",
-    "status": "OWNER_DEV12_LIVE_TEXT_NOT_ACCEPTED_TERMINAL_TRACE_PENDING",
-    "summary": "Keep RMv2 live acceptance OPEN/NOT_APPROVED after Owner dev12 report. Independently hash-verified the installed helper as exact CI131 source2b65a37 and the synthetic fixture mismatches:8192expected/6816actual and1391expected/49actual;4096 matches. Existing text-start jobs return exit0 with statepreparing, not completion; no text-write-status job exists in the audited session/window, so terminal write reason/ACK remains unknown. Gold serving registry has262K/sourcePath/status/cancel/GPU/video tools, while this active turn still receives old bindings after Owner refresh. No native source fix or live direct262K/GPU acceptance is claimed. Owner explicitly removed Windows VM work.",
-    "verification": "Read-only governed operations on the exact already-authorized S9X0R0 session; no new enrollment/B or test-input replay. Installed file hash matches the shared CI131/installer helper. Fixture lengths and SHA256 recomputed on Windows without clipboard/input. Existing job receipts and schema registry projected without typed content or credentials. Native status:2560x1600,144DPI,0visual scopes, idle, osCursorOverriddenfalse, logical inline262144, GPU opt-in supported/defaultGDI. This is diagnosis, not a repaired binary or retest of the reported failed transactions. Full pre-audit checkpoint checkpoint/20261115-before-rmv2-textinput-286d815 independent restore/fsckPASS.",
-    "nextAction": "After Owner tool refresh, inspect a freshly supplied tool inventory for desktop_text_status/cancel and observation/video routes. Reproduce two sequential4096 writes and paced300words in one dedicated synthetic target; poll each writeId to terminal before readback, next transaction or detach; record reason, accepted/sent/observed/verified counts and hashes. Investigate authority-budget/target/focus/ACK only from actual final receipts; do not queue or replay uncertain input. Then run direct262K via inline/sourcePath and exercise Agent GPU observation separately from legacy GDI/viewer. No Windows VM task. Preserve fixtures and existing device/grant/session.",
-    "sourceDigest": "d6d7897de9dd99554d0b9c1c82b3e36bc20c58efc9d62f74d051e8dfb70fc708",
-    "sourceFileCount": 1733
+    "taskId": "20261115-memory-api-worker-p1-typed-content",
+    "status": "IMPLEMENTED_PORTABLE_PASS_CI_PENDING",
+    "summary": "Implement P1 typed Long Memory content transport: remove the MCP shell/base64/stdout bridge, exact current A/B actor admission and signed device fetch/push/result checks, bounded RAM-only relay120s/64rows/8MiB, refs-only durable command/job metadata, result sanitization before telemetry/output/persistence, and atomic client SQLite save+dedupe receipts with erase tombstones. Preserve existing local Memory, sync, scope/Home consent and module keys. Older Agents fail closed with upgrade-required; no shell fallback. This is the first milestone of the authorized Long Memory/API Worker plan; extension, metadata/provider UX and worker scheduler remain pending.",
+    "verification": "Isolated ARM Node tests9/9 PASS and7 existing plugin/CLI/scoped-memory/delete/sync/endpoint/core-import regression scripts PASS. Synthetic sentinels are absent from recorded command/events/control results and actual GoldJobLedger serialized SQL values; wrong account/device/Agent/session, revoked grant, local-disabled, Home-only, stale ref/TTL/restart/unknown and duplicate-save/reopen/delete fences covered. Instrumented stores, not Owner production-log or physical Chrome acceptance. Full verified pre-change checkpoint checkpoint/20261115-before-rmv2-memoryworker-452968f, independent restore/fsckPASS. Full exact-source GitHub CI and native package verification pending.",
+    "nextAction": "Complete exact-source CI for P1 and record results. Continue the same plan with one configurable ChatGPT/Claude extension and manual draft-preserving restore, then API Worker rename and account/model/usage warmup. Add official per-provider adapters and governed MCP reasoning workers with budgets after the retention foundation; do not perform paid inference/login without concrete selected provider/auth/budget. RMv2 live text/GPU acceptance remains separate and open; no Windows VM task.",
+    "sourceDigest": "ce82b2783e5837211abc0aabcf177f2f68f23e0bb4095d49d1b3967688fd1a00",
+    "sourceFileCount": 1740
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -2013,19 +2013,21 @@
     }
   },
   "localMemoryApiWorkerResearch": {
-    "status": "RESEARCH_COMPLETE_IMPLEMENTATION_NOT_STARTED",
-    "ownerScope": "RESEARCH_AND_PLAN_ONLY",
+    "status": "IMPLEMENTATION_IN_PROGRESS_P1_PORTABLE_PASS_CI_PENDING",
+    "ownerScope": "IMPLEMENT_PLAN_AUTHORIZED_20261115",
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "12fc6425532ec66a154df580dec6bdb5a743df21dc1b7638a91598a6d58049b9",
+    "documentSha256": "c08675b8c00384344395ae0bda71164c8bfa1bc6111dc9175d085549bd1d4249",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
-      "mcpExecBridgePayloadLogging": "SOURCE_CONFIRMED_POTENTIAL_DURABLE_OPERATOR_EVENT_LOG_COPY",
+      "mcpExecBridgePayloadLogging": "REMOVED_IN_NEW_SOURCE_OLD_RUNTIME_AND_HISTORICAL_LOGS_NOT_CHANGED",
       "actualOwnerLogOrDatabaseInspected": false,
       "retentionRequirement": "NO_DURABLE_MEMORY_BODY_ON_LIGHT_REMOTE_SERVER",
-      "cleanupPerformed": false
+      "cleanupPerformed": false,
+      "typedRelay": "IMPLEMENTED_BOUNDED_RAM_120S_EXACT_ACTOR",
+      "clientReceipt": "ATOMIC_SQLITE_SAVE_AND_DEDUPE_DELETE_TOMBSTONE"
     },
     "extension": {
       "recoveredVersions": [
@@ -2065,13 +2067,28 @@
         "context/artifact local and server payload retention policy"
       ]
     },
-    "implementationChanged": false,
-    "functionalTestsRun": false,
+    "implementationChanged": true,
+    "functionalTestsRun": true,
     "nativeBuildTestRun": false,
     "providerLoginOrInferenceRun": false,
     "deploymentChanged": false,
     "peerReview": "PASS_WITH_HIDDEN_DOM_COVERAGE_LIMIT_EXPLICIT",
-    "nativeBuildStillDeferredByOwner": true
+    "nativeBuildStillDeferredByOwner": false,
+    "implementation": {
+      "milestone": "P1_RETENTION_TRANSPORT",
+      "base": "452968ffde4ec7050ba302f86143a0a285b6490f",
+      "portableTests": "9 new tests +7 regression scripts PASS",
+      "fullCi": "PENDING",
+      "deployed": false,
+      "physicalChrome": "NOT_RUN",
+      "providerInference": "NOT_RUN",
+      "next": [
+        "extension ChatGPT Claude capture/restore",
+        "API Worker display rename and metadata UX",
+        "official provider adapters",
+        "governed reasoning MCP and bounded scheduler"
+      ]
+    }
   },
   "installerGoogleFollowup": {
     "taskId": "20261111-installer-tray-google-integration",

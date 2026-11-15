@@ -164,6 +164,16 @@
       "originRole": "deviceChannel",
       "method": "POST",
       "path": "/device-channel/desktop-observation-push"
+    },
+    "memoryContentFetch": {
+      "originRole": "deviceChannel",
+      "method": "POST",
+      "path": "/device-channel/memory-content-fetch"
+    },
+    "memoryContentPush": {
+      "originRole": "deviceChannel",
+      "method": "POST",
+      "path": "/device-channel/memory-content-push"
     }
   },
   "releaseIntegrity": {
@@ -200,6 +210,26 @@
     "desktopObservationReadInternal": {
       "method": "POST",
       "path": "/v1/plugin/desktop-observation/read",
+      "transport": "operator-private-unix"
+    },
+    "memoryOperationInternal": {
+      "method": "POST",
+      "path": "/v1/plugin/memory/operation",
+      "transport": "operator-private-unix"
+    },
+    "memoryResultInternal": {
+      "method": "POST",
+      "path": "/v1/plugin/memory/result",
+      "transport": "operator-private-unix"
+    },
+    "memoryContentFetchInternal": {
+      "method": "POST",
+      "path": "/v1/device-channel/memory-content-fetch",
+      "transport": "operator-private-unix"
+    },
+    "memoryContentPushInternal": {
+      "method": "POST",
+      "path": "/v1/device-channel/memory-content-push",
       "transport": "operator-private-unix"
     }
   }

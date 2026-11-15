@@ -446,3 +446,7 @@ Current compiled Agent observation source 2b65a379e1fd5b3f05c101354495dcd4f6c643
 ## Dev12 live acceptance audit
 
 Keep RMv2 live acceptance OPEN/NOT_APPROVED after Owner dev12 report. Independently hash-verified the installed helper as exact CI131 source2b65a37 and the synthetic fixture mismatches:8192expected/6816actual and1391expected/49actual;4096 matches. Existing text-start jobs return exit0 with statepreparing, not completion; no text-write-status job exists in the audited session/window, so terminal write reason/ACK remains unknown. Gold serving registry has262K/sourcePath/status/cancel/GPU/video tools, while this active turn still receives old bindings after Owner refresh. No native source fix or live direct262K/GPU acceptance is claimed. Owner explicitly removed Windows VM work.
+
+## Replace MCP Memory shell transport with typed ephemeral content plane
+
+Memory boundary: lib/gold-memory-operation.mjs canonical request and metadata projection; plugin-server/gold-memory-bridge.mjs + operator-adapter.mjs typed private operation/result; operator-host/gold-memory-operation.mjs admission/refs-only dispatch; gold-memory-content-relay.mjs bounded transient payload; runtime/device-channel routes enforce current exact actors. device-agent/gold-memory-operation.mjs typed local dispatch; gold-wall-modules.mjs atomic client receipt; gold-memory-delete.mjs retains erase fence. No Memory content enters exec script/stdout/result telemetry. Desktop API Worker and extension phases pending.

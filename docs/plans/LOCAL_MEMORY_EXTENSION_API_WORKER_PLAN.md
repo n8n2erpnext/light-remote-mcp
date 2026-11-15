@@ -1,14 +1,16 @@
 # Long Memory, extension ngữ cảnh và API Worker nhiều nhà cung cấp
 
-Status: RESEARCH_COMPLETE / IMPLEMENTATION_NOT_STARTED
-Edition: 2026-11-11, Asia/Saigon
+Status: IMPLEMENTATION_IN_PROGRESS / P1_TYPED_MEMORY_PORTABLE_PASS / CI_PENDING
+Edition: 2026-11-15, Asia/Saigon; research audit preserved from 2026-11-11
 Scope: Long Memory local-first, Chrome extension ChatGPT/Claude, Codex metadata và API Worker
-Source: `work` `ad3db2f6ffaae0f9de639716e5657dd11bb40da4`; product source digest `537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516`
+Research source: `work` `ad3db2f6ffaae0f9de639716e5657dd11bb40da4`; product source digest `537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516`
 Authority: cùng [Project Truth](../../PROJECT_TRUTH.md), [Master Checkpoint](../../MASTER_CHECKPOINT.json), [rolling Handoff](../../PROJECT_HANDOFF.md); đây là kế hoạch chuyên đề, không phải checkpoint/handoff mới
 
 ## Phạm vi Owner đã chốt
 
-Owner xác nhận Long Memory lưu checkpoint/docs ở client và đồng bộ đã hoạt động; Claude dùng endpoint MCP cũng đã test ổn. Chrome extension và trải nghiệm ngữ cảnh xuyên session chưa được test đầy đủ. Owner chọn **nghiên cứu và ghi kế hoạch trước**, không sửa implementation, chạy CLI/provider, gọi tác vụ trả phí, build/test native hoặc deploy trong nhiệm vụ này.
+**2026-11-15: Owner yêu cầu bắt đầu triển khai plan Long Memory và API Worker.** Mốc P1 thay remote exec Memory bằng typed request + enrolled signed fetch/push + đọc kết quả theo đúng actor, nội dung chỉ chuyển tiếp trong RAM tối đa120s. Command/job/events chỉ chứa ref/hash/metadata. Client ghi checkpoint và biên nhận chống lặp trong cùng transaction; mất ACK/restart/TTL là unknown và không tự replay. Agent cũ phải cập nhật, không fallback sang shell. Kiểm thử Node cách ly PASS; chưa deploy hay nghiệm thu Chrome/worker thật. Extension, metadata UX, provider adapters và bounded workers vẫn pending.
+
+Research scope dated2026-11-11 (historical, superseded for implementation authorization): Owner xác nhận Long Memory lưu checkpoint/docs ở client và đồng bộ đã hoạt động; Claude dùng endpoint MCP cũng đã test ổn. Chrome extension và trải nghiệm ngữ cảnh xuyên session chưa được test đầy đủ. Owner chọn **nghiên cứu và ghi kế hoạch trước**, không sửa implementation, chạy CLI/provider, gọi tác vụ trả phí, build/test native hoặc deploy trong nhiệm vụ này.
 
 Giữ Long Memory local-first và mục tiêu server chỉ chuyển tiếp nội dung; rà tất cả đường dữ liệu trước khi tuyên bố không có bản sao bền trên server. Chuẩn bị đổi tên hiển thị Codex Bridge thành **API Worker**, cho chọn và setup riêng OpenAI/Codex, Anthropic/Claude và Google/Gemini. Có luồng ChatGPT Web gọi MCP Light Remote, nhờ một worker suy luận/review, nhận kết quả rồi Agent tiếp tục; multi-worker là giai đoạn tiếp theo có kiểm soát.
 
@@ -179,3 +181,9 @@ Mọi test live worker phải có provider được chọn, auth sẵn có hợp
 Đã có source map, lỗi/gap rõ, ranh giới retention và thiết kế extension/API Worker/multi-worker/test. Chưa đổi nhãn UI, thêm provider login, sửa account refresh, extension hoặc worker implementation. Chưa có Chrome/provider/native physical test hay benchmark mới. Last verified Lab vẫn8e0d932/dev5, main8ac6273 và máy Owner không đổi.
 
 Chỉ docs/checkpoint gates được chạy khi xuất bản kế hoạch. RMv2 typing đã xuất bản riêng ởad3db2f, CI76 documentation-only PASS; core/Desktop/Windows/native dependency jobs skipped. Sau khi Owner yêu cầu triển khai, ưu tiên retention + một extension chuẩn + metadata UX, sau đó một MCP reasoning worker trước khi mở nhiều provider/worker song song.
+
+## Mốc triển khai P1 — 2026-11-15
+
+Implemented typed MCP Memory transport, current exact A/B/grant checks at admission, signed device fetch/push and result read. RAM relay64requests/8MiB/120s absoluteTTL; no file/PG/Redis dependency in content plane. Device uses existing module/identity/Home checks and atomic SQLite save+dedupe receipt. Clear-local erases receipt content and keeps an operation tombstone to prevent old saves reappearing. Unknown replies never retry a write automatically. Historical logs/backups untouched.
+
+Isolated Node tests9/9 plus7 existing Memory/endpoint/core-import regressions PASS. Sentinel tests traverse actual typed device handlers, result sanitizer and real PG ledger serializer with an instrumented pool; they are not an inspection of Owner logs or a deployed production PG acceptance. Native/Chrome/provider physical acceptance and full exact-source CI remain separate. Research findings above describe the old source at audit time, not the new P1 source.

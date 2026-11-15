@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "light-remote.memory-content-plane.evidence.v1",
+  "date": "2026-11-15",
+  "baseSource": "452968ffde4ec7050ba302f86143a0a285b6490f",
+  "phase": "P1",
+  "newUnitTests": 9,
+  "regressionScripts": 7,
+  "result": "PORTABLE_PASS",
+  "scope": "Synthetic data in isolated ARM directory; actual route/device dispatch and GoldJobLedger serializer, instrumented pool/event sinks. No Owner logs or production PG inspection.",
+  "runtimeChanged": false,
+  "historicalLogsCleaned": false,
+  "physicalAcceptance": false,
+  "nativeCi": "PENDING"
+}

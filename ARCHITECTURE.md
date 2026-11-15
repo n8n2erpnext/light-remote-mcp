@@ -180,3 +180,7 @@ Capture fps is local source processing, not model inference fps. The initial val
 
 CI evidence is isolated synthetic/runtime evidence, not a claim that ChatGPT/Claude on the Owner device already consumed these images or that physical response speed improved by a measured factor. The pasted live report and direct-write/routing questions retain their separate unaccepted scope.
 Gold Lab Operator+Plugin serves exact2b65a37/dev12; preparation/recovery and post-cutover receipt verified. No DB migration; account/device/grant/Owner counts and independent Wall/process-supervisor/mTLS services checked by the cutover guard. Previous1bd6fcc runtime/recovery retained. Production Google callback/domain, protected main, public release/feed and Owner Windows installation unchanged.
+
+## Replace MCP Memory shell transport with typed ephemeral content plane
+
+MCP Memory now submits a typed sealed private operation. Operator admits the exact current A/B principal and queues only an opaque requestRef/hash. The enrolled Agent fetches content over a signed short-lived channel, executes existing local modules/Home guards, pushes the reply to RAM-only relay, and sends only safe metadata to the durable job channel. Reply reads recheck live authority. Server restart/expiry never replay an uncertain effect; client SQLite commits save+receipt atomically. Existing encrypted client-to-client sync is unchanged. Historical event logs are preserved; source fixes do not erase old copies.

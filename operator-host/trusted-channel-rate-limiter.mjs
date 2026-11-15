@@ -7,6 +7,7 @@ const ACTION_LANES=Object.freeze({
   'desktop-live-push':'rm-live','desktop-video-push':'rm-live','desktop-observation-push':'rm-live',
   'fleet-intent':'fleet','fleet-authority':'fleet','fleet-status':'fleet',
   'fleet-devices':'fleet','fleet-sessions':'fleet','fleet-activity':'fleet','fleet-jobs':'fleet','fleet-job-cancel':'control','job-cancel':'control','fleet-process-stop':'control',
+  'memory-content-fetch':'control','memory-content-push':'control',
   status:'observer',activity:'observer','access-lookup':'control'
 });
 const LUA_INCREMENT="local n=redis.call('INCR',KEYS[1]);if n==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end;return n";

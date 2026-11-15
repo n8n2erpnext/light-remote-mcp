@@ -234,6 +234,22 @@
         "observationId"
       ],
       "response": "Exact-ticket image in bounded RAM only; no-store, never persisted in jobs"
+    },
+    "memoryOperationInternal": {
+      "authorization": "exact current account/device/A-B Agent/session, filesystem local capability",
+      "content": "RAM-only 120s; durable control metadata refs only"
+    },
+    "memoryResultInternal": {
+      "authorization": "exact current account/device/A-B Agent/session, filesystem local capability",
+      "content": "RAM-only 120s; durable control metadata refs only"
+    },
+    "memoryContentFetchInternal": {
+      "authorization": "exact current account/device/A-B Agent/session, filesystem local capability",
+      "content": "RAM-only 120s; durable control metadata refs only"
+    },
+    "memoryContentPushInternal": {
+      "authorization": "exact current account/device/A-B Agent/session, filesystem local capability",
+      "content": "RAM-only 120s; durable control metadata refs only"
     }
   },
   "nonClaims": [
@@ -476,5 +492,20 @@
       "database": false,
       "redis": false
     }
+  },
+  "longMemory": {
+    "transport": "typed operation, signed enrolled fetch/push, exact actor read",
+    "relay": {
+      "ttlMs": 120000,
+      "maxEntries": 64,
+      "maxTotalBytes": 8388608,
+      "database": false,
+      "redis": false,
+      "history": false
+    },
+    "control": "opaque requestRef and digest only; no shell/stdout/body",
+    "idempotency": "client SQLite transaction commits save plus receipt; expired/restarted server reply is unknown, no automatic replay",
+    "minimumAgent": "0.10.1-dev.13",
+    "legacyKeysAndScopeConsent": "unchanged"
   }
 }

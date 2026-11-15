@@ -21,3 +21,4 @@ function authorizeRm(ctx,{sessions,accounts,requireDeviceConnection,targetRoute,
 
 export function authorizeRmWork(ctx,deps,now=Date.now()){return authorizeRm(ctx,deps,now,['desktop','desktop-input']);}
 export function authorizeRmVideo(ctx,deps,now=Date.now()){return authorizeRm(ctx,deps,now,['desktop']);}
+export function authorizeMemoryWork(ctx,deps,now=Date.now()){return authorizeRm(ctx,deps,now,['filesystem']);}

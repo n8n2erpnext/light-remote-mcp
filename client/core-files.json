@@ -318,6 +318,10 @@
       "destination": "device-agent/gold-memory-manual-evidence.mjs"
     },
     {
+      "source": "device-agent/gold-memory-operation.mjs",
+      "destination": "device-agent/gold-memory-operation.mjs"
+    },
+    {
       "source": "device-agent/gold-memory-peer.mjs",
       "destination": "device-agent/gold-memory-peer.mjs"
     },
@@ -484,6 +488,10 @@
     {
       "source": "lib/gold-execution-epoch.mjs",
       "destination": "lib/gold-execution-epoch.mjs"
+    },
+    {
+      "source": "lib/gold-memory-operation.mjs",
+      "destination": "lib/gold-memory-operation.mjs"
     },
     {
       "source": "lib/gold-pro-share-device-guest-fence.mjs",

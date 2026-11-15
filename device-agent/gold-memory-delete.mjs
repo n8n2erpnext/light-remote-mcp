@@ -25,6 +25,10 @@ export function clearLocalMemory(db,{confirmed=false}={}){
   db.exec('PRAGMA secure_delete=ON');
   db.exec('BEGIN IMMEDIATE');
   try{
+    // Erase receipt content but retain an operation fence: clearing Memory
+    // must not make an old lost-ACK save eligible to recreate deleted data.
+    if(tables.has('lm_remote_operation_receipts'))
+      db.exec(`UPDATE lm_remote_operation_receipts SET result_json='{"outcome":"deleted"}'`);
     for(const t of MEMORY_TABLES_IN_DEPENDENCY_ORDER){
       if(!tables.has(t))continue;
       if(t==='lm_sync_device_selection'){

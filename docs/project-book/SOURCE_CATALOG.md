@@ -8,7 +8,7 @@ A bookmark and SHA-256 map for existing documentation outside project-book. A re
 Regenerate: node deploy/scripts/generate-doc-catalog.mjs --write
 Validate: node deploy/scripts/generate-doc-catalog.mjs --check
 
-Documents: 330 (230 Markdown, 100 JSON).
+Documents: 331 (230 Markdown, 101 JSON).
 
 | Shelf | Source | Document | SHA-256 |
 | --- | --- | --- | --- |
@@ -36,6 +36,7 @@ Documents: 330 (230 Markdown, 100 JSON).
 | evidence | [docs/evidence/distribution-redesign/DEV5_LAB_DEPLOYMENT.json](../evidence/distribution-redesign/DEV5_LAB_DEPLOYMENT.json) | result, sourceCommit, sourceTree, version, databaseMigrated, dbArchiveIndexVerified, dbArchiveSh | 457141a6fe3284427db096172643e97ad50a37698258f988ca34f054e93c0b97 |
 | evidence | [docs/evidence/github-clone-verification.json](../evidence/github-clone-verification.json) | verifiedAt, repositoryId, repository, clonedFrom, candidateDirectory, sourceCommit, sourceTree,  | af2a38f771941bca97e3967fc080c216e588719ac7d2b9d0e6723b8bfbfa9b94 |
 | evidence | [docs/evidence/main-protection.json](../evidence/main-protection.json) | repositoryId, branch, requiredCheck, checkAppId, checkAppSlug, strict, enforceAdmins, allowForce | 8417d9a5415938472634c7ec2a93ea754751b998c122bc8f6933b367210b0d04 |
+| evidence | [docs/evidence/memory/typed-content-plane-20261115.json](../evidence/memory/typed-content-plane-20261115.json) | schemaVersion, date, baseSource, phase, newUnitTests, regressionScripts, result, scope, runtimeC | a6bf123af2896b6dd48193f829b54efe97fe3735d66ad7748b0c7cc9a49e3a56 |
 | evidence | [docs/evidence/old-runtime-commit-proof.json](../evidence/old-runtime-commit-proof.json) |  | 6dca49afc8f06dcaf60ddb7f0a4827e2f3b9c820f8b2eece2fd4f2fea73616e6 |
 | evidence | [docs/evidence/old-runtime-databases.json](../evidence/old-runtime-databases.json) |  | b1ef019453d28489e14a446d14fc603b9e1f80852df512c85bd69c50b48cf7d2 |
 | evidence | [docs/evidence/preconversion-ci-status.json](../evidence/preconversion-ci-status.json) | runId, url, sourceCommit, sourceTree, conclusion, jobs, passedJobs, nodeTests, portableSourceInv | cfc1e7f9053b699ecfc68552cdd0cd1328e7633e64ed7be190a5ee53e6e843ea |
@@ -309,7 +310,7 @@ Documents: 330 (230 Markdown, 100 JSON).
 | optimization | [docs/optimization/RDC_LIGHT_REMOTE_GOLD_MASTER_PLAN.md](../optimization/RDC_LIGHT_REMOTE_GOLD_MASTER_PLAN.md) | RDC → Light Remote Gold: reliability optimization master plan | bcf1e46371d57eb1e00f304780fbd29ac48a7137fb5d263f70aefd17ba31dbb6 |
 | plans | [docs/plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md](../plans/desktop-user-experience/CODEX_WALL_FOLLOWUP.md) | Codex, Wall and Desktop follow-up — 2026-11-10 | aabeb020caa313351fd8a22231f5478199e0a5595eb58c91c5b7cb8303a546db |
 | plans | [docs/plans/desktop-user-experience/README.md](../plans/desktop-user-experience/README.md) | Desktop user experience reconstruction | 2fe4928a903a2e3634cc86aa5cec9dc10bbfd5c871324e832842a356ac2dc779 |
-| plans | [docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md](../plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md) | Long Memory, extension ngữ cảnh và API Worker nhiều nhà cung cấp | 12fc6425532ec66a154df580dec6bdb5a743df21dc1b7638a91598a6d58049b9 |
+| plans | [docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md](../plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md) | Long Memory, extension ngữ cảnh và API Worker nhiều nhà cung cấp | c08675b8c00384344395ae0bda71164c8bfa1bc6111dc9175d085549bd1d4249 |
 | plans | [docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md](../plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) | RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn | a34847bb9a3b880362a7bdfdc1a18b4bc3d6e0a8826be7ee88b6643c6140fb86 |
 | plans | [docs/plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md](../plans/windows-distribution/TRAY_INSTALLER_REDESIGN_20261110.md) | Windows tray, setup and branding follow-up — 2026-11-10 | 7bc713ad524e99348e66ccde7d2b0cde1c4f69d7c5002f1eaff474d59f242e63 |
 | plans | [docs/plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json](../plans/windows-single-primary-exe/LIGHT_REMOTE_CORE_EXE_BRANCH_COVERAGE_20261107.json) | schemaVersion, status, dateLocal, timezone, repository, scope, requestedTarget, currentGithubHea | cccd37f78676a45a4605c91cbe37ac46b647e24024d9bef663a90d3abcdfbc4d |

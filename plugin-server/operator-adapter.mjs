@@ -320,6 +320,11 @@ export class AccountOperatorAdapter{
   async process(sessionId,process,operationId=opId('process'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'process',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,process,waitMs};return callOperatorJson('POST','/v1/process',sealOperatorPayload(payload));}
   async terminal(sessionId,terminal,operationId=opId('terminal'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'terminal',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,terminal,waitMs};return callOperatorJson('POST','/v1/terminal',sealOperatorPayload(payload));}
   async scp(sessionId,scp,operationId=opId('scp'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'scp',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,scp,waitMs};return callOperatorJson('POST','/v1/scp',sealOperatorPayload(payload));}
+  async memory(sessionId,memory,operationId=opId('memory')){
+    const s=await this.sessionRaw(sessionId);
+    return callOperatorJson('POST',apiPath('memoryOperationInternal'),sealOperatorPayload({action:'memory',accountId:this.identity.accountId,sessionId,agentId:this.agentId,nodeId:s.nodeId,operationId,memory}));
+  }
+  async memoryResult(sessionId,requestRef){await this.sessionRaw(sessionId);return callOperatorJson('POST',apiPath('memoryResultInternal'),{accountId:this.identity.accountId,sessionId,agentId:this.agentId,requestRef});}
   async desktop(sessionId,desktop,operationId=opId('desktop'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'desktop',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,desktop,waitMs};return callOperatorJson('POST','/v1/desktop',sealOperatorPayload(payload));}
   async desktopObservationRead(sessionId,ticket){await this.sessionRaw(sessionId);return callOperatorJson('POST',apiPath('desktopObservationReadInternal'),{...ticket,accountId:this.identity.accountId,sessionId,agentId:this.agentId});}
   async desktopVideoRead(sessionId,{desktopSessionId,includeData=false}={}){await this.sessionRaw(sessionId);return callOperatorJson('POST',apiPath('desktopVideoReadInternal'),{accountId:this.identity.accountId,sessionId,agentId:this.agentId,desktopSessionId,includeData});}

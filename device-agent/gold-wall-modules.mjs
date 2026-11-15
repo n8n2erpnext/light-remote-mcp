@@ -25,6 +25,8 @@ import {goldDeviceSelection,goldSetDeviceSelection} from './gold-memory-device-s
 import {queueGoldReplicaEvidence,pendingGoldReplicaEvidence,acceptGoldReplicaEvidence,applyGoldReplicaEvidenceAck} from './gold-memory-evidence.mjs';
 import {manualEvidenceCap,signManualEvidenceFrames} from './gold-memory-manual-evidence.mjs';
 import {receiveGoldPeerRequest,pollGoldPeer,allowGoldPeerHomeUrl,configureGoldPeerRoute,listGoldPeerRoutes,runGoldPeerRoutes} from './gold-memory-peer.mjs';
+import {executeMemoryRequest} from './gold-memory-operation.mjs';
+import {memoryActorKey,memoryDigest,memoryOperationId,normalizeMemoryRequest} from '../lib/gold-memory-operation.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
 function fault(code,status=400){return Object.assign(new Error(code),{status});}
@@ -119,7 +121,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     if(!flags()[feature])throw fault('gold_module_disabled',409);
     return open();
   }
-  return {
+  const api={
     flags,
     configure(input={}){
       if(typeof input.longMemory!=='boolean'||typeof input.codexBridge!=='boolean'
@@ -138,6 +140,27 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     removeManagedCodexRuntime(){enabled('codexBridge');plus.stop();return managedCodex.remove();},
     localMemoryDeletePreview(){scopedIdentity();return localMemoryDeletePreview(enabled('longMemory'));},
     clearLocalMemory(input={}){scopedIdentity();return clearLocalMemoryData(enabled('longMemory'),input);},
+    // Dedupe is durable ONLY on this client, committed atomically with a save.
+    // Existing Owner module, account identity and Home-only checks still run.
+    remoteMemoryOperation({owner,operationId,request}){
+      const identity=scopedIdentity(),db=enabled('longMemory');
+      if(owner.accountId!==identity.accountId||owner.deviceId!==identity.deviceId)throw fault('gold_memory_local_actor_denied',403);
+      const actor=memoryActorKey(owner),id=memoryOperationId(operationId),clean=normalizeMemoryRequest(request);
+      if(!['save','scope_save'].includes(clean.action))return executeMemoryRequest(api,clean);
+      db.exec('CREATE TABLE IF NOT EXISTS lm_remote_operation_receipts(actor TEXT NOT NULL,operation_id TEXT NOT NULL,request_hash TEXT NOT NULL,result_json TEXT NOT NULL,PRIMARY KEY(actor,operation_id))');
+      const hash=memoryDigest(clean);db.exec('BEGIN IMMEDIATE');
+      try{
+        const previous=db.prepare('SELECT request_hash,result_json FROM lm_remote_operation_receipts WHERE actor=? AND operation_id=?').get(actor,id);
+        if(previous){
+          if(previous.request_hash!==hash)throw fault('gold_memory_operation_conflict',409);
+          if(JSON.parse(previous.result_json).outcome==='deleted')throw fault('gold_memory_operation_deleted',409);
+          db.exec('COMMIT');return JSON.parse(previous.result_json);
+        }
+        const result=executeMemoryRequest(api,clean,{transactionManaged:true});
+        db.prepare('INSERT INTO lm_remote_operation_receipts VALUES(?,?,?,?)').run(actor,id,hash,JSON.stringify(result));
+        db.exec('COMMIT');return result;
+      }catch(error){db.exec('ROLLBACK');throw error;}
+    },
     saveCheckpoint(input={}){return saveGoldCheckpoint(enabled('longMemory'),checkpointKeyFile,input);},
     readCheckpoint(id){return readGoldCheckpoint(enabled('longMemory'),checkpointKeyFile,id);},
     listCheckpoints(input={}){return listGoldCheckpoints(enabled('longMemory'),checkpointKeyFile,input);},
@@ -246,7 +269,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
       scopeKeyFile,scopeEncryptKeyFile,{accountId:x.accountId,deviceId:x.deviceId});},
     bindMemoryScope(input={}){const x=scopedIdentity();return bindGoldScope(enabled('longMemory'),{...input,accountId:x.accountId});},
     resolveMemoryScope(input={}){const x=scopedIdentity();return resolveGoldScope(enabled('longMemory'),{...input,accountId:x.accountId});},
-    appendScopedCheckpoint(input={}){const x=scopedIdentity();return appendGoldScopedCheckpoint(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
+    appendScopedCheckpoint(input={},internalOptions={}){const x=scopedIdentity();return appendGoldScopedCheckpoint(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId},internalOptions);},
     readScopedCheckpoint(input={}){const x=scopedIdentity();return readGoldScopedCheckpoint(enabled('longMemory'),{...input,accountId:x.accountId});},
     scopedHandoff(input={}){const x=scopedIdentity();return goldScopedHandoff(enabled('longMemory'),{...input,accountId:x.accountId});},
     scopedExport(input={}){const x=scopedIdentity();return goldScopedExport(enabled('longMemory'),{...input,accountId:x.accountId});},
@@ -464,4 +487,5 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     },
     close(){codexSupervisor?.close();plus.stop();if(database){database.close();database=null;}}
   };
+  return api;
 }

@@ -1,5 +1,7 @@
 import {observationOptions} from '../lib/rmv2-observation.mjs';
 import {RmObservationRelay} from './rmv2-observation-relay.mjs';
+import {GoldMemoryContentRelay} from './gold-memory-content-relay.mjs';
+import {startGoldMemoryOperation} from './gold-memory-operation.mjs';
 import {RmVideoRelay} from './rmv2-video-relay.mjs';
 import {videoOptions} from '../lib/rmv2-video.mjs';
 import {API_CONTRACT_VERSION,API_VERSION_HEADER} from '../lib/api-contract.mjs';
@@ -431,6 +433,7 @@ const fleetAuthority = new FleetAuthorityRegistry({ ttlMs:FLEET_AUTHORITY_TTL_MS
 const realRemoteLive = new RealRemoteLiveRegistry();
 const realRemoteVideo=new RmVideoRelay();
 const realRemoteObservation=new RmObservationRelay();
+const memoryContent=new GoldMemoryContentRelay();
 const hostIdentity = INTEGRATED_HOST_ENABLED ? loadOrCreateHostDeviceIdentity(HOST_DEVICE_IDENTITY_FILE) : null;
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
@@ -1165,6 +1168,10 @@ async function startDesktopOperation(payload,requestId){
   return job;
 }
 
+async function startMemoryOperation(payload,requestId){
+ return startGoldMemoryOperation(payload,requestId,{...routeDeps(),memoryContent,operationDedupe,jobs,createAccumulator,assertToolCallQuota,reserveGoldJob,goldJobs,pushEvent,enqueueForJob,fleet,finishJob,OPERATION_DEDUPE_MS});
+}
+
 async function startSearchOperation(payload,requestId){
   const operationId=String(payload.operationId||'').trim();if(!/^[A-Za-z0-9._:-]{16,128}$/.test(operationId))throw new Error('invalid_operation_id');
   const agentId=String(payload.agentId||'').trim(),session=sessions.ensure(String(payload.sessionId||''),{agentId});requireDeviceConnection(session.deviceId);
@@ -1735,6 +1742,7 @@ const goldSnapshotShortIds=async({accountId,deviceIds})=>{
   .map(r=>[r.device_id,r.short_id]));
 };
 const routeDeps=()=>({
+  memoryContent,startMemoryOperation,
   goldShortIdByDevice,goldSnapshotShortIds,
   desktopWallSsoSignedRedeem:desktopWallSsoOperatorGate.signedRedeem,
   desktopWallSsoInternalIssue:desktopWallSsoOperatorGate.internalIssue,

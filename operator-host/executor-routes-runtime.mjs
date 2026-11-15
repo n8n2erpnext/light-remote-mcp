@@ -1,5 +1,6 @@
 import {authorizeRmVideo} from './rmv2-work-authority.mjs';
 import {apiPath} from '../lib/api-contract.mjs';
+import {memorySessionOwner} from './gold-memory-operation.mjs';
 export async function handleRuntimeRoutes(req,res,url,deps){
   const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,assertToolCallQuota,cancelControlJob,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,goldJobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,realRemoteLive,realRemoteVideo,realRemoteObservation,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob,planEntitlements,operationalAccount}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/devices') {
@@ -103,6 +104,24 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       if (req.method === 'POST' && action === 'hold') return sendJson(res, 200, { ok:true, session:sessions.hold(sid, aid, body?.reason || 'transport_lost') });
       if (req.method === 'POST' && action === 'close') return sendJson(res, 200, { ok:true, session:sessions.close(sid, aid) });
       if (req.method === 'POST' && action === 'touch') return sendJson(res, 200, { ok:true, session:sessions.touch(sid, aid, body?.action || 'tool') });
+    }
+    if(req.method==='POST'&&url.pathname===apiPath('memoryOperationInternal')){
+      const {payload,requestId}=decryptEnvelope(await readJson(req));
+      if(payload.action!=='memory')throw Error('gold_memory_request_invalid');
+      const job=await deps.startMemoryOperation(payload,requestId);
+      await waitForJob(job,7000);
+      // Recheck grant after the wait. Only an opaque ref enters the job ledger.
+      const {owner}=memorySessionOwner(payload,deps);
+      const requestRef=job.resultData?.memory?.requestRef;
+      res.setHeader?.('Cache-Control','no-store');
+      let reply;try{reply=deps.memoryContent.read(owner,requestRef);}catch{reply={ok:false,error:'gold_memory_result_unavailable',outcome:'unknown',nextAction:'reconcile_client_receipt_do_not_replay'};}
+      return sendJson(res,200,{...reply,operationId:payload.operationId,requestRef,jobId:job.id});
+    }
+    if(req.method==='POST'&&url.pathname===apiPath('memoryResultInternal')){
+      const body=await readJson(req),{owner}=memorySessionOwner(body,deps);
+      res.setHeader?.('Cache-Control','no-store');
+      let reply;try{reply=deps.memoryContent.read(owner,body.requestRef);}catch{reply={ok:false,error:'gold_memory_result_unavailable',outcome:'unknown',nextAction:'reconcile_client_receipt_do_not_replay'};}
+      return sendJson(res,200,{...reply,requestRef:body.requestRef});
     }
     if(req.method==='POST'&&url.pathname===apiPath('desktopObservationReadInternal')){
       const body=await readJson(req),session=sessions.ensure(String(body.sessionId||''),{agentId:String(body.agentId||'')});

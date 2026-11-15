@@ -379,9 +379,16 @@ export function registerPluginTools(server,identity){
     inputSchema:{sessionId:id,path:pathText,maxEntries:z.number().int().min(1).max(1000).optional(),maxDepth:z.number().int().min(0).max(3).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:read'],async(a,x)=>operationView(await a.fs(x.sessionId,{op:'list',path:x.path,maxEntries:x.maxEntries,maxDepth:x.maxDepth||0}))));
 
+  add(server,'light_remote_long_memory_status',{
+    title:'Read an existing Long Memory operation result',
+    description:'Poll the opaque requestRef returned by Long Memory. Never repeats a save. Expired or lost replies are unknown, not evidence of failure; reconcile on the client. Exact current A/B session and remote:execute remain required.',
+    inputSchema:{sessionId:id,requestRef:z.string().regex(/^mem_[a-f0-9]{48}$/)},
+    securitySchemes:security(['remote:execute']),annotations:annotations(true,false,false,true)
+  },guarded(identity,['remote:execute'],(a,x)=>a.memoryResult(x.sessionId,x.requestRef)));
+
   add(server,'light_remote_long_memory_read',{
     title:'Retrieve owner-approved Long Memory checkpoints across ChatGPT sessions',
-    description:'Read verified device-local handoff checkpoints from one explicitly selected, currently A/B-authorized Gold session. No hidden ChatGPT transcript, no Project. Uses the existing governed Agent and requires remote:execute.',
+    description:'Read verified device-local handoff checkpoints from the exact current A/B session. Typed content relay is RAM-only for up to 120 seconds, never shell/stdout. Requires updated Agent and remote:execute. Poll pending results with long_memory_status; do not repeat saves. No hidden transcript access.',
     inputSchema:{sessionId:id,operationId:opId,clientRoot:pathText.optional(),action:z.enum(['handoff','list','get','scopes','scope_resolve','scope_handoff','scope_get','scope_usage','scope_full_context']),
       id:z.string().uuid().optional(),scopeId:z.string().uuid().optional(),query:z.string().max(160).optional(),
       sourceType:z.enum(['workspace','repository','job','task','work_context']).optional(),sourceId:z.string().max(1024).optional(),limit:z.number().int().min(1).max(30).optional(),offset:z.number().int().min(0).max(524288).optional(),maxChars:z.number().int().min(1).max(10000).optional()},
@@ -390,7 +397,7 @@ export function registerPluginTools(server,identity){
 
   add(server,'light_remote_long_memory_checkpoint',{
     title:'Save explicitly approved handoff to Long Memory',
-    description:'Append a device-local HMAC-verified checkpoint on the exact A/B-authorized Gold session. Only save information the owner explicitly approved; do not claim access to hidden ChatGPT context.',
+    description:'Save an explicitly approved checkpoint on the exact A/B-authorized device. Scoped checkpoints use the existing Home signature; legacy records use local HMAC. Typed RAM-only relay, no shell or stdout. Pending results require long_memory_status, never a second save with a new operationId.',
     inputSchema:{sessionId:id,operationId:opId,clientRoot:pathText.optional(),title:z.string().min(1).max(240),
       body:z.string().min(1).max(12000),source:z.string().min(1).max(512),scopeId:z.string().uuid().optional(),
       status:z.enum(['observed','claimed','test_passed','owner_approved','blocked']).optional(),

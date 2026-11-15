@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import {apiPath} from '../lib/api-contract.mjs';
-import {authorizeRmWork,authorizeRmVideo} from './rmv2-work-authority.mjs';
+import {authorizeRmWork,authorizeRmVideo,authorizeMemoryWork} from './rmv2-work-authority.mjs';
+import {memoryControlResult} from '../lib/gold-memory-operation.mjs';
 import {verifyGoldGuestLaunchEvidence} from '../lib/gold-pro-share-guest-launch-evidence.mjs';
 import {memoryDirectory,memoryInvites,memoryRelay} from './gold-memory-rendezvous.mjs';
 import { DEVICE_DUPLEX_PROTOCOL } from './device-duplex-transport.mjs';
@@ -16,6 +17,14 @@ import { handleDesktopWallSsoInternalIssueV4 } from './desktop-wall-sso-internal
 
 export async function handleDeviceChannelRoutes(req,res,url,deps){
   const {ACCOUNT_ID,AccountError,AgentClientRegistryError,CLIENT_BACKWARD_RELEASES,CONNECTION_LEASE_ENFORCE,DeviceAccessGrantError,DevicePairingRegistryError,EnrollmentError,FleetAuthorityError,FleetError,MAX_MEMORY_OUTPUT,MAX_RING_EVENTS,MIN_SUPPORTED_CLIENT_VERSION,NODE_ID,VERSION,abandonedCommandReceiptFromDisk,completedCommandReceiptFromDisk,accessGrants,accounts,agentClients,allDeviceViews,applyDeviceTelemetry,capabilities,clientCompatibility,connectionSpec,connections,deviceView,devices,emitStream,enrollments,finishJob,fleet,fleetAuthority,fleetEligibility,fleetTarget,jobView,jobs,goldJobs,deviceResourceLocks,staleClaimMonitor,deviceResourceSampleCache,deviceBootObservations,goldShortIdAfterEnrollment,goldShortIdByDevice,cancelQueuedPersonalJob,cancelControlJob,deviceStopRequests,requestFleetProcessStop,reconcileSignedTerminalProcessReceipts,executionEpochs,requiresExecutionEpoch,normalizeUpdateReport,pairingCodes,planEntitlements,pushEvent,queueHelperUpdate,readJson,reapAccessGrants,realRemoteLive,realRemoteVideo,realRemoteObservation,recentEvents,requireDeviceConnection,sendJson,sessions,targetRoute,terminalResultSummary,verifiedChannelContext,verifiedFleetContext,verifiedLeafCapabilities,memorySyncPolicy,memoryAccountDelete,accountNotifications,proTeams,goldAbV2SignedPreview,goldAbV2SignedApproval}=deps;
+  if(req.method==='POST'&&[apiPath('memoryContentFetchInternal'),apiPath('memoryContentPushInternal')].includes(url.pathname)){
+    const action=url.pathname===apiPath('memoryContentFetchInternal')?'memory-content-fetch':'memory-content-push';
+    const ctx=await verifiedChannelContext(await readJson(req),action);authorizeMemoryWork(ctx,deps);
+    const p=ctx.payload,owner={accountId:ctx.binding.accountId,deviceId:ctx.device.deviceId,sessionId:p.sessionId,agentId:p.agentId};
+    res.setHeader?.('Cache-Control','no-store');
+    if(action==='memory-content-fetch')return sendJson(res,200,{ok:true,...deps.memoryContent.fetch(owner,p.requestRef,p.requestDigest)});
+    return sendJson(res,200,{ok:true,...deps.memoryContent.push(owner,p.requestRef,p.reply)});
+  }
   if(req.method==='POST'&&url.pathname==='/v1/device-channel/desktop-work-authorize'){
     const body=await readJson(req),ctx=await verifiedChannelContext(body,'desktop-work-authorize');
     res.setHeader?.('Cache-Control','no-store');
@@ -303,6 +312,13 @@ export async function handleDeviceChannelRoutes(req,res,url,deps){
        job.accountId!==ctx.binding.accountId||
        job.deviceId!==ctx.device.deviceId)
       throw new FleetError('remote_job_not_found',404);
+    if(command.payload?.type==='memory'){
+      // Do this BEFORE telemetry, stdout, resultData, events, or persistence.
+      // Even a buggy Agent cannot accidentally echo Memory into the ledger.
+      const data=memoryControlResult(result.data);
+      if(data.memory.requestRef!==command.payload.requestRef)throw Error('gold_memory_control_ref_denied');
+      result={commandId:result.commandId,status:result.status,exitCode:result.exitCode,data,stdout:'',stderr:''};
+    }
     const stdout=String(result.stdout||''),stderr=String(result.stderr||'');
     if(Buffer.byteLength(stdout)>MAX_MEMORY_OUTPUT||Buffer.byteLength(stderr)>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_too_large',413);
     if(result.data!==undefined&&Buffer.byteLength(JSON.stringify(result.data))>MAX_MEMORY_OUTPUT)throw new FleetError('remote_result_data_too_large',413);
