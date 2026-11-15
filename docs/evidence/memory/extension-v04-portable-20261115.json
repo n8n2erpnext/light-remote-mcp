@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "light-remote.memory-extension.evidence.v1",
+  "baseSource": "0e4df886fc8a43c17b4f786beb57545d9e480972",
+  "version": "0.4.0",
+  "vmTests": 10,
+  "packageGuard": "PASS",
+  "browserDomFixtures": "PENDING_CI",
+  "physicalChromeAcceptance": false,
+  "providerNetworkContacted": false,
+  "ownerBrowserChanged": false
+}

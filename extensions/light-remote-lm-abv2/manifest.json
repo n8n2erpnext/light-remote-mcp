@@ -1,19 +1,18 @@
 {
   "manifest_version": 3,
-  "name": "Light Remote LM — GoldABV2 Lab",
-  "short_name": "LR LM ABV2",
-  "version": "0.3.0",
-  "description": "Manual, owner-reviewed ChatGPT Web snapshot handoff to the isolated Light Remote GoldABV2 Long Memory Lab.",
+  "minimum_chrome_version": "116",
+  "name": "Light Remote Memory",
+  "short_name": "LR Memory",
+  "version": "0.4.0",
+  "description": "Review and save loaded ChatGPT/Claude context to your selected Light Remote device, then manually restore it to a new chat.",
   "permissions": [
     "activeTab",
     "scripting",
-    "tabs",
     "storage",
-    "alarms"
+    "alarms",
+    "clipboardWrite"
   ],
-  "host_permissions": [
-    "http://100.94.184.141:15591/*"
-  ],
+  "host_permissions": [],
   "background": {
     "service_worker": "background.js"
   },
@@ -25,5 +24,10 @@
     "16": "icon.png",
     "48": "icon.png",
     "128": "icon.png"
-  }
+  },
+  "optional_host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "http://100.94.184.141/*"
+  ]
 }

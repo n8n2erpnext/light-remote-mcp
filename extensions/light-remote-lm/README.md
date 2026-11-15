@@ -1,3 +1,5 @@
+> Historical v0.2 reference. The current unified extension is `../light-remote-lm-abv2` v0.4, with explicit device pairing and ChatGPT/Claude adapters. Do not package this frozen source as the current extension.
+
 # Light Remote LM v0.2 — Chrome extension (Gold preview)
 
 Light Remote LM is an optional Chrome Manifest V3 extension for capturing **ChatGPT conversations that are presently loaded in the web page**. It stages the user's capture in the existing authenticated **Light Remote Gold Local Wall**. The owner then selects a verified Memory Scope and explicitly approves saving it.

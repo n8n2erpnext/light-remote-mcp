@@ -184,3 +184,7 @@ Gold Lab Operator+Plugin serves exact2b65a37/dev12; preparation/recovery and pos
 ## Replace MCP Memory shell transport with typed ephemeral content plane
 
 MCP Memory now submits a typed sealed private operation. Operator admits the exact current A/B principal and queues only an opaque requestRef/hash. The enrolled Agent fetches content over a signed short-lived channel, executes existing local modules/Home guards, pushes the reply to RAM-only relay, and sends only safe metadata to the durable job channel. Reply reads recheck live authority. Server restart/expiry never replay an uncertain effect; client SQLite commits save+receipt atomically. Existing encrypted client-to-client sync is unchanged. Historical event logs are preserved; source fixes do not erase old copies.
+
+## Unify Memory extension capture and manual context restore for ChatGPT and Claude
+
+The single current Memory extension core is extensions/light-remote-lm-abv2 v0.4. activeTab capture is explicit and provider-specific; host access is optional for the selected validated Wall origin. Pairing binds account/device metadata, and every staging/read checks the authenticated current identity. Captured text stages locally in existing Wall fields; only Owner manually saves via the unchanged CSRF/Home flow. Restore calls existing verified scoped reads, reviews then stages into an empty composer, never auto-submits. Content is session-only with an absolute expiry/alarm; persistent extension storage contains pairing metadata alone.

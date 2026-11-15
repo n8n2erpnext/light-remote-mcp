@@ -406,3 +406,7 @@ Executable/Gold remains exact2b65a37/dev12/CI13115PASS; current Owner helper ind
 ## Replace MCP Memory shell transport with typed ephemeral content plane
 
 Source version advances to0.10.1-dev.13 for typed Memory Agent commands and new core import closure. Node/synthetic tests PASS; native build/package only in exact-source GitHub Actions. No installation/deployment/feed promotion. Runtime remains dev12 source2b65a37 until verified artifact rollout.
+
+## Unify Memory extension capture and manual context restore for ChatGPT and Claude
+
+Core CI now packages the canonical extension0.4 into a separate light-remote-memory-extension-<commit> artifact with exact source/tree and per-file/ZIP hashes. Chromium DOM fixture smoke joins desktop visual QA; it intercepts all provider URLs with synthetic pages and contacts no account or local runtime. Owner Chrome load-unpacked acceptance is separate and remains NOT_RUN. Do not install the old0.2/0.3 preview as the current extension.

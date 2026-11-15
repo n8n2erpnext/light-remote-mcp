@@ -1,6 +1,6 @@
 # Long Memory, extension ngữ cảnh và API Worker nhiều nhà cung cấp
 
-Status: IMPLEMENTATION_IN_PROGRESS / P1_TYPED_MEMORY_PORTABLE_PASS / CI_PENDING
+Status: IMPLEMENTATION_IN_PROGRESS / P1_TYPED_MEMORY_AND_P2_EXTENSION_PORTABLE_PASS / CI_PENDING
 Edition: 2026-11-15, Asia/Saigon; research audit preserved from 2026-11-11
 Scope: Long Memory local-first, Chrome extension ChatGPT/Claude, Codex metadata và API Worker
 Research source: `work` `ad3db2f6ffaae0f9de639716e5657dd11bb40da4`; product source digest `537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516`
@@ -187,3 +187,11 @@ Chỉ docs/checkpoint gates được chạy khi xuất bản kế hoạch. RMv2 
 Implemented typed MCP Memory transport, current exact A/B/grant checks at admission, signed device fetch/push and result read. RAM relay64requests/8MiB/120s absoluteTTL; no file/PG/Redis dependency in content plane. Device uses existing module/identity/Home checks and atomic SQLite save+dedupe receipt. Clear-local erases receipt content and keeps an operation tombstone to prevent old saves reappearing. Unknown replies never retry a write automatically. Historical logs/backups untouched.
 
 Isolated Node tests9/9 plus7 existing Memory/endpoint/core-import regressions PASS. Sentinel tests traverse actual typed device handlers, result sanitizer and real PG ledger serializer with an instrumented pool; they are not an inspection of Owner logs or a deployed production PG acceptance. Native/Chrome/provider physical acceptance and full exact-source CI remain separate. Research findings above describe the old source at audit time, not the new P1 source.
+
+## Mốc triển khai P2 — 2026-11-15
+
+Implement P2 canonical Memory extension0.4: explicit local/approved NetBird Wall pairing to account/device; optional exact-origin permission and activeTab-only ChatGPT/Claude adapters; loaded-DOM coverage, hidden-ancestor exclusion, multiple blocks/code whitespace and UTF8/hash guards; reviewed capture stages only into an empty authenticated matching Wall. Generation/single-flight and absolute TTL prevent duplicate/stale draft overwrite. Restore reads selected-work verified context/history, rechecks identity/scope and full-context hash, then reviews/copies or inserts into a uniquely identified empty ChatGPT/Claude composer without submitting. Preserve existing drafts. Package app Google Sans and license; Actions generates a separate exact-source ZIP. Old0.2/0.3 sources/artifact remain historical.
+
+Portable extension VM tests10/10 PASS plus packaging/permission guard PASS. Covered ChatGPT/Claude Unicode multi-block capture, hidden parent, changed capture digest, endpoint validation, reviewed-content hash, Wall identity/expiry/draft fences, full-context hash and account drift, restore draft preservation/no submit, repeated navigation single-flight, generation race and pending/restore TTL erasure. Real Chromium two-provider DOM fixtures and source/hash ZIP packaging are wired to exact-source CI but not yet run. No claim of actual provider website/Owner Chrome installation or cross-device sync acceptance. Full pre-change checkpoint checkpoint/20261115-before-rmv2-memoryextension-0e4df88 restore/fsckPASS. P1 CI134 has core/contracts/PG/Redis, native dependency/helper, web QA and Linux/macOS desktop PASS; remaining stress/installer/baseline pending at this receipt.
+
+No Owner Chrome installation/profile modification, provider login/inference, Gold/production runtime change, DB migration, feed/main/domain/callback change or Owner Windows install. Gold and installed Owner helper remain dev12 source2b65a37; dev13 candidate source is not deployed.

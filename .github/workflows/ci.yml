@@ -119,6 +119,14 @@ jobs:
         run: python3 -B -m unittest discover -s deploy/unified -p 'test_*.py'
       - name: Isolated actual backend and schema integration
         run: python3 deploy/unified/dev.py test
+      - name: Package canonical manual Memory extension with source hashes
+        run: python3 deploy/unified/package-memory-extension.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: light-remote-memory-extension-${{ github.sha }}
+          path: build-output/memory-extension/
+          if-no-files-found: error
+          retention-days: 14
       - name: Record exact source manifest
         run: node deploy/unified/build-manifest.mjs --platform linux-core --out build-output/BUILD_MANIFEST.json
       - uses: actions/upload-artifact@v4

@@ -1,131 +1,66 @@
 'use strict';
-const GOLD_ABV2_WALL_URL = 'http://100.94.184.141:15591/long-memory';
-const MAX_BYTES = 512 * 1024;
-const PENDING_TTL_MS = 10 * 60 * 1000;
-function allowedWall(url) {
-  try {
-    const value = new URL(url);
-    return value.protocol === 'http:' && value.hostname === '100.94.184.141' &&
-      value.port === '15591' && value.pathname === '/long-memory' &&
-      !value.username && !value.password && !value.search && !value.hash;
-  } catch { return false; }
+importScripts('shared.js','wall.js');
+const memory=LightRemoteMemory,inFlight=new Map();
+async function expire(){
+ const rows=await chrome.storage.session.get(['pendingWall','restore']);
+ for(const key of ['pendingWall','restore'])if(rows[key]&&Date.now()>=rows[key].expiresAt)await chrome.storage.session.remove(key);
 }
-function validSnapshot(s) {
-  if (!s || s.ok !== true || s.source !== 'chatgpt-dom-user-initiated' ||
-      typeof s.text !== 'string' || !Number.isInteger(s.turns) || s.turns < 1 ||
-      !/^https:\/\/chatgpt\.com\/[^?#]*$/.test(s.url || '') ||
-      !/^[0-9a-f]{64}$/.test(s.sha256 || '') || s.coverage !== 'loaded_dom_only')
-    return false;
-  return new TextEncoder().encode(s.text).byteLength <= MAX_BYTES;
+chrome.storage.session.setAccessLevel?.({accessLevel:'TRUSTED_CONTEXTS'});
+chrome.alarms.create('memory-content-expiry',{periodInMinutes:1});
+chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='memory-content-expiry')void expire();});
+chrome.runtime.onStartup?.addListener(()=>void expire());
+chrome.runtime.onMessage.addListener((request,sender,respond)=>{
+ if(sender.id!==chrome.runtime.id||sender.url!==chrome.runtime.getURL('popup.html'))return false;
+ (async()=>{
+  await expire();
+  if(!['LRLM_PAIR_WALL','LRLM_PREPARE_WALL'].includes(request?.type))throw Error('unsupported_action');
+  const target=memory.wall(request.url);
+  if(!await chrome.permissions.contains({origins:[target.permission]}))throw Error('wall_permission_required');
+  const {profile}=await chrome.storage.local.get('profile');
+  const pair=request.type==='LRLM_PAIR_WALL';
+  if(!pair&&(!profile||profile.url!==target.url||!await memory.validCapture(request.snapshot)))throw Error('pair_wall_and_review_capture_first');
+  const tab=await chrome.tabs.create({url:target.url,active:true});
+  const pending={tabId:tab.id,generation:crypto.randomUUID(),url:target.url,pair,expiresAt:Date.now()+memory.ttlMs,
+   ...(pair?{}:{profile,snapshot:request.snapshot})};
+  await chrome.storage.session.set({pendingWall:pending,lastStatus:'Sign in to your selected Wall if prompted.'});
+  respond({ok:true});void maybePrepare(tab.id);
+ })().catch(()=>respond({ok:false,error:'Wall was not opened. Pair your selected device and review the capture first.'}));
+ return true;
+});
+chrome.tabs.onUpdated.addListener((id,change)=>{if(change.status==='complete')void maybePrepare(id);});
+chrome.tabs.onRemoved.addListener(async id=>{
+ const {pendingWall}=await chrome.storage.session.get('pendingWall');
+ if(pendingWall?.tabId===id)await chrome.storage.session.remove('pendingWall');
+});
+function maybePrepare(id){
+ if(inFlight.has(id))return inFlight.get(id);
+ const promise=prepare(id).finally(()=>inFlight.delete(id));inFlight.set(id,promise);return promise;
 }
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request?.type !== 'LRLM_PREPARE_WALL' || sender.id !== chrome.runtime.id)
-    return false;
-  (async () => {
-    if (!validSnapshot(request.snapshot)) throw Error('Invalid or oversized capture.');
-    const tab = await chrome.tabs.create({url:GOLD_ABV2_WALL_URL,active:true});
-    await chrome.storage.session.set({pendingWall:{
-      tabId:tab.id,expiresAt:Date.now()+PENDING_TTL_MS,
-      snapshot:request.snapshot
-    }});
-    await chrome.alarms.create('abv2-pending-expiry',{delayInMinutes:10});
-    sendResponse({ok:true});
-    // Cover fast page loads that may precede the service-worker's next event.
-    void maybePrepare(tab.id);
-  })().catch(error => sendResponse({ok:false,error:String(error.message||error)}));
-  return true;
-});
-chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
-  if (change.status === 'complete' || change.url) void maybePrepare(tabId,tab.url);
-});
-chrome.tabs.onRemoved.addListener(async tabId => {
-  const {pendingWall} = await chrome.storage.session.get('pendingWall');
-  if (pendingWall?.tabId === tabId) await chrome.storage.session.remove('pendingWall');
-});
-// MV3 service workers may sleep. Alarm guarantees expired plaintext is evicted.
-chrome.alarms.onAlarm.addListener(async alarm => {
-  if (alarm.name !== 'abv2-pending-expiry') return;
-  const {pendingWall} = await chrome.storage.session.get('pendingWall');
-  if (pendingWall && Date.now() >= pendingWall.expiresAt)
-    await chrome.storage.session.remove('pendingWall');
-});
-async function maybePrepare(tabId, providedUrl) {
-  const {pendingWall} = await chrome.storage.session.get('pendingWall');
-  if (!pendingWall || pendingWall.tabId !== tabId) return;
-  if (Date.now() > pendingWall.expiresAt) {
-    await chrome.storage.session.remove('pendingWall');
-    return;
+async function prepare(id){
+ try{
+  await expire();const {pendingWall:p}=await chrome.storage.session.get('pendingWall');if(!p||p.tabId!==id)return;
+  const tab=await chrome.tabs.get(id);if(tab.url!==p.url)return; // no silent redirect/account/endpoint fallback
+  const run=(func,args)=>chrome.scripting.executeScript({target:{tabId:id},world:'ISOLATED',func,args}).then(rows=>rows[0]?.result);
+  const identity=await run(lightRemoteLmWallIdentity,[p.url]);
+  if(!identity?.ok){await chrome.storage.session.set({lastStatus:'Sign in to the selected Wall, then reload it to continue.'});return;}
+  const current=await chrome.storage.session.get('pendingWall');
+  if(current.pendingWall?.generation!==p.generation||Date.now()>=p.expiresAt)return;
+  if(p.pair){
+   await chrome.storage.local.set({profile:{url:p.url,accountId:identity.accountId,deviceId:identity.deviceId,name:identity.name}});
+   await chrome.storage.session.remove(['pendingWall','restore']);
+   await chrome.storage.session.set({lastStatus:'Paired with '+identity.name+'. Capture a conversation when you are ready.'});return;
   }
-  let tab;
-  try { tab = await chrome.tabs.get(tabId); } catch { return; }
-  const target = providedUrl || tab.url || '';
-  // Login redirects are handled by the owner in the Wall itself.
-  if (!allowedWall(target)) return;
-  try {
-    const result = await chrome.scripting.executeScript({
-      target:{tabId},world:'ISOLATED',func:prepareWallPage,args:[pendingWall.snapshot]
-    });
-    if (result[0]?.result?.ok) {
-      await chrome.storage.session.set({lastStaged:{
-        url:pendingWall.snapshot.url,
-        sha256:pendingWall.snapshot.sha256,
-        preparedAt:Date.now()
-      }});
-      await chrome.storage.session.remove('pendingWall');
-    }
-  } catch { /* No data sent; user can try again from the popup. */ }
-}
-async function prepareWallPage(snapshot) {
-  if (location.protocol !== 'http:' || location.hostname !== '100.94.184.141' ||
-      location.port !== '15591' || location.pathname !== '/long-memory')
-    return {ok:false,reason:'wrong_wall'};
-  let textarea, title, scope, panel;
-  for (let attempt = 0; attempt < 60; attempt++) {
-    textarea = document.getElementById('goldContextText');
-    title = document.getElementById('goldContextTitle');
-    scope = document.getElementById('goldReaderScope');
-    panel = document.getElementById('goldModulesPanel');
-    if (textarea && title && scope && panel) break;
-    await new Promise(resolve=>setTimeout(resolve,200));
+  if(identity.accountId!==p.profile.accountId||identity.deviceId!==p.profile.deviceId||!identity.memoryEnabled){
+   await chrome.storage.session.remove('pendingWall');await chrome.storage.session.set({lastStatus:'Device/account changed or Memory is off. Pair the intended device again.'});return;
   }
-  if (!textarea || !title || !scope || !panel)
-    return {ok:false,reason:'wall_long_memory_not_ready'};
-  panel.open = true;
-  const contextDetails = document.getElementById('goldMemoryContextDetails');
-  if (contextDetails) contextDetails.open = true;
-  const captureArea = document.getElementById('goldContextCapture');
-  if (!captureArea) return {ok:false,reason:'wall_context_import_missing'};
-  textarea.value = snapshot.text;
-  textarea.dispatchEvent(new Event('input',{bubbles:true}));
-  title.value = 'ChatGPT · ' + new Date(snapshot.capturedAt).toLocaleString().slice(0,114);
-  title.dispatchEvent(new Event('input',{bubbles:true}));
-  // Deliberately neither select a scope nor grant opt-in or click Save.
-  // Both decisions must be made by the Wall owner in its authenticated UI.
-  const message = document.createElement('div');
-  message.id = 'lightRemoteLmImportBanner';
-  message.setAttribute('role','status');
-  message.style.cssText =
-    'background:#21382d;border:1px solid #74b58a;border-radius:9px;' +
-    'padding:12px;margin-bottom:12px;color:#e5fff0;font-size:13px;line-height:1.5';
-  message.textContent = 'GoldABV2 Lab: ' + snapshot.turns +
-    ' loaded ChatGPT turns staged in this page, NOT saved. Open an existing authorized Work or create a new Work under the CURRENT GoldABV2 owner (do not select historical Gold scopes). ' +
-    'Review/redact the text, explicitly enable full-context opt-in and click Save context. ' +
-    'No scope or approval was selected automatically.';
-  document.getElementById('lightRemoteLmImportBanner')?.remove();
-  captureArea.prepend(message);
-  // GoldABV2 hides the context panel until the Owner opens an authorized Work.
-  const list=document.getElementById('goldMemoryWorkList');
-  if (list) {
-    const notice=document.createElement('p');
-    notice.id='lightRemoteLmWorkNotice';
-    notice.setAttribute('role','status');
-    notice.style.cssText='border:1px solid #bd9340;padding:10px;border-radius:8px;color:#f7dfaa;font-size:13px';
-    notice.textContent='GoldABV2 LM snapshot staged in this browser tab (not saved). Open an authorized Work or Add work, then review Saved context and manually click Save context.';
-    document.getElementById('lightRemoteLmWorkNotice')?.remove();
-    list.prepend(notice);
+  const prepared=await run(lightRemoteLmStageWall,[p.profile,p.snapshot,p.generation,p.expiresAt]);
+  const after=await chrome.storage.session.get('pendingWall');
+  if(after.pendingWall?.generation!==p.generation)return;
+  if(prepared?.ok){
+   await chrome.storage.session.remove('pendingWall');
+   await chrome.storage.session.set({lastStatus:'Conversation prepared. Review, choose your work and save it in the Wall.'});
+  }else if(prepared?.error==='wall_draft_not_empty'){
+   await chrome.storage.session.remove('pendingWall');await chrome.storage.session.set({lastStatus:'The Wall already has a draft. It was kept. Copy the capture manually or use an empty page.'});
   }
-  // Reveal only view state; NEVER auto-click Save or change a scope/opt-in.
-  const area=document.getElementById('goldMemoryWorkDetail');
-  if (area && !area.hidden) captureArea.scrollIntoView({behavior:'smooth',block:'center'});
-  return {ok:true,prepared:true};
+ }catch{await chrome.storage.session.set({lastStatus:'Wall not ready. Sign in and reload the selected Wall to continue.'});}
 }

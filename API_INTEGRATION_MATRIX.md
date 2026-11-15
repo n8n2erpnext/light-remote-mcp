@@ -212,3 +212,7 @@ Keep RMv2 live acceptance OPEN/NOT_APPROVED after Owner dev12 report. Independen
 ## Replace MCP Memory shell transport with typed ephemeral content plane
 
 New private POST routes /v1/plugin/memory/operation and /v1/plugin/memory/result; signed enrolled /device-channel/memory-content-fetch and /memory-content-push proxy to matching /v1 routes. MCP read/checkpoint names and legacy clientRoot field remain compatible, but clientRoot is ignored and no shell fallback remains. New long_memory_status polls requestRef. Minimum Agent0.10.1-dev.13. Ref/digest-only jobs, RAM TTL120s, exact current account/device/Agent/session grant+filesystem, client module/Home guards. Old Agents return upgrade-required. Full CI/physical acceptance pending.
+
+## Unify Memory extension capture and manual context restore for ChatGPT and Claude
+
+Extension0.4 uses only existing same-origin authenticated local /api/status, /api/gold/modules, /api/gold/modules/scope/context/read and /scope/handoff. No new public endpoint or Owner-cookie extraction. Current device/account/scope checked before and after restore read; full-context SHA checked in browser. No automatic POST/save or ChatGPT/Claude submission. MCP Memory transport remains the P1 typed path.

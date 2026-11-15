@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "tauri:check": "cargo check --manifest-path src-tauri/Cargo.toml",
     "tauri:build": "tauri build --no-bundle",
-    "test:visual": "node e2e/visual-smoke.mjs && node e2e/product-ux-smoke.mjs && node e2e/wall-followup-smoke.mjs"
+    "test:visual": "node e2e/visual-smoke.mjs && node e2e/product-ux-smoke.mjs && node e2e/wall-followup-smoke.mjs && node e2e/memory-extension-smoke.mjs"
   },
   "engines": {
     "node": ">=22.12.0"

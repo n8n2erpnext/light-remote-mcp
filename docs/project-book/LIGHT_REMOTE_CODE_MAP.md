@@ -450,3 +450,7 @@ Keep RMv2 live acceptance OPEN/NOT_APPROVED after Owner dev12 report. Independen
 ## Replace MCP Memory shell transport with typed ephemeral content plane
 
 Memory boundary: lib/gold-memory-operation.mjs canonical request and metadata projection; plugin-server/gold-memory-bridge.mjs + operator-adapter.mjs typed private operation/result; operator-host/gold-memory-operation.mjs admission/refs-only dispatch; gold-memory-content-relay.mjs bounded transient payload; runtime/device-channel routes enforce current exact actors. device-agent/gold-memory-operation.mjs typed local dispatch; gold-wall-modules.mjs atomic client receipt; gold-memory-delete.mjs retains erase fence. No Memory content enters exec script/stdout/result telemetry. Desktop API Worker and extension phases pending.
+
+## Unify Memory extension capture and manual context restore for ChatGPT and Claude
+
+Extension ownership: shared.js endpoint/provider/hash limits; capture.js self-contained ChatGPT/Claude DOM adapters; wall.js exact identity, draft-safe staging and verified scoped restore reads; background.js explicit pairing, trusted session TTL/generation/single-flight; restore.js empty composer staging/no submit; popup.js manual review/copy controls. lib/memory-extension.test.mjs exercises VM privacy/draft races; client/desktop-v4/e2e/memory-extension-smoke.mjs covers real Chromium synthetic DOM. deploy/unified/package-memory-extension.py emits exact-source ZIP/manifest in CI. Legacy0.2 and recovered0.3 ZIP remain historical, not active source.
