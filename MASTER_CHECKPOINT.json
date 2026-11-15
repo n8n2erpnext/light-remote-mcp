@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-15T02:29:32.643Z",
+  "updatedAt": "2026-11-15T03:01:59.413Z",
   "version": "0.10.1-dev.12",
-  "phase": "ADDITIVE_AGENT_GPU_OBSERVATION_IMPLEMENTATION",
-  "status": "AGENT_GPU_OBSERVATION_COORDINATE_FIX_EXACT_SOURCE_CI_PENDING",
+  "phase": "ADDITIVE_AGENT_GPU_OBSERVATION_INTERNAL_CANDIDATE_VERIFIED",
+  "status": "AGENT_GPU_CI131_PASS_GOLD_DEPLOYED_OWNER_PHYSICAL_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -482,17 +482,54 @@
       "currentRoutingRechecked": false
     },
     "agentGpuObservation20261115": {
-      "status": "SOURCE_IMPLEMENTED_CI_PENDING",
-      "portableTests": "6_PASS",
-      "native": "NOT_RUN_YET_ACTIONS_ONLY",
-      "physical": "NOT_RUN",
+      "status": "CI13115_PASS_GOLD_DEPLOYED_OWNER_PHYSICAL_PENDING",
+      "path": "docs/evidence/rmv2/agent-observation-ci131.json",
+      "sourceCommit": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+      "ciRunId": 43668040391,
+      "physicalOwnerAcceptance": false,
       "ownerRuntimeChanged": false,
-      "checkpoint": {
-        "tag": "checkpoint/20261115-before-rmv2-implementation-a6b56c2",
-        "bundleSha256": "cef1b3e202be612f0b1e995996100dd2bd31fc6894a49a25dccfadbfb3b9c8ac",
-        "archiveSha256": "32d90d3027cf5275771caef7c1c878dc47ed2431b17f08ccc535c73ad7870c1a",
-        "restore": "PASS",
-        "source": "a6b56c274fa3a64e911f247112e8ebd0ca37f323"
+      "installer": {
+        "sourceCommit": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+        "sourceTree": "2decc4dde0866c302e9641bc34cf8da0dd2e0476",
+        "version": "0.10.1-dev.12",
+        "ciRunId": 43668040391,
+        "artifactId": 14143916515,
+        "artifactZipSha256": "5277ac32dc36ebadd1c187761732608da32d9b06b0da1d5ad39ca31a4a607801",
+        "installerSha256": "ecfb1d767ca86bc5f008ea19dd42f63d3a0a889efa5d6c26270321ffa8a43215",
+        "installerBytes": 172718826,
+        "result": "VERIFIED_INTERNAL_ARTIFACT",
+        "primaryCount": 1,
+        "oldPrimariesAbsent": true,
+        "migration": "PASS",
+        "installedLifecycle": "PASS",
+        "physicalOwnerAcceptance": false,
+        "publicFeedPromoted": false
+      },
+      "goldLab": {
+        "result": "PASS",
+        "sourceCommit": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+        "sourceTree": "2decc4dde0866c302e9641bc34cf8da0dd2e0476",
+        "version": "0.10.1-dev.12",
+        "databaseMigrated": false,
+        "dbArchiveIndexVerified": true,
+        "dbArchiveSha256": "f86f13fc4eda6cf54b20e8880f580cb95105d726eee05250538eb48da1fcc734",
+        "independentPidsPreserved": true,
+        "dependencyGraphUnchanged": true,
+        "homeAncestorAclChanged": false,
+        "persistentCountsUnchanged": true,
+        "snapshotUnauthenticatedStatus": 401,
+        "workAuthorizationUnauthenticatedStatus": 400,
+        "videoPushUnauthenticatedStatus": 400,
+        "videoReadUnauthenticatedStatus": 400,
+        "servingSourceEnvironmentVerified": true,
+        "observationPushUnauthenticatedStatus": 400,
+        "observationReadUnauthenticatedStatus": 400,
+        "apiContractVersion": "light-remote.api.v1",
+        "publicHealth": "PASS",
+        "oldSourcesPreserved": true,
+        "ownerWindowsInstallationChanged": false,
+        "physicalOwnerAcceptance": false,
+        "publicReleaseOrFeed": false
       }
     },
     "agentGpuObservationProbe20261115": {
@@ -515,7 +552,7 @@
     "Memory/Codex100-row native read window remains explicit; Desktop task/session history is bounded/pageable",
     "RM: Owner-reported direct write_text4096 partial-or-unfinished/busy must be diagnosed through public API/writeId/terminal receipts; clipboard262K does not accept it.",
     "RM: reported routing offline cause/current liveness and exact installed artifact remain unverified; preserve enrollment/B/session and test leftovers until authorized recovery.",
-    "RM: new dev12 Agent GPU observation native/full CI, physical DXGI1px2px and actual Agent image/latency UAT pending."
+    "RM: dev12 physical GPU/Agent-host perception,150%DPI1px2px mapping and same-device design latency UAT pending; public direct-write and routing report remain separate."
   ],
   "repositoryReplacement": {
     "ownerConfirmed": true,
@@ -553,7 +590,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Complete the corrected exact-source full CI, verify shared native/installer/observation receipts, then stage/deploy only verified Gold Lab backend while preserving state. Owner physical GPU design latency and Agent-host perception remain pending; no Owner installation or production promotion.",
+  "nextAction": "Owner self-download the verified CI131 COMPLETE Windows x64 artifact, install dev12 and test the new optional GPU Agent path at actual150% DPI/design/PowerPoint: real images received by the Agent,1px2px fidelity, physical coordinate mapping, source-loss/fallback and same-device response time. Existing screenshot path stays available. Public direct write_text4096/busy and reported routing remain separate live acceptance questions; never substitute clipboard or CI evidence for those reports.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -644,11 +681,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261115-rmv2-gpu-unchanged-frame-mapping",
-    "status": "AGENT_GPU_OBSERVATION_COORDINATE_FIX_EXACT_SOURCE_CI_PENDING",
-    "summary": "Fix unchanged-image coordinate freshness in the new optional Agent GPU observation path: a current source validation can refresh frame mapping without resending pixels only for the exact previously published observationId/epoch/sourceSeq base. A future/unseen cursor, stale source or different epoch cannot bless input coordinates; these replies expose frameCoordinatesAvailable=false and no input frameSeq. Update tool guidance for unchanged frames and expired ephemeral tickets. All original RM paths remain unchanged.",
-    "verification": "Portable observation tests6/6 plus signed route test PASS. Exact native source33272c9 passed Actions media probe43666877343: same production background producer/scaler/PNG,1px2px full RGB parity and real MCP image formatter/independent decoder PASS; actual production DXGI captured a frame in the CI desktop. Cold/warm synthetic change-to-read184.37/17.96/46.36ms, not Owner latency. Shared native artifact14142219881 independently verified on ARM, helperSHA17e88d9e8bac0b93bf56d7411de8e928b2936d3a32a05e6e661f0d6ca42dbf38. Full CI130 still pending and this Agent correction needs its own exact-source CI. Full pre-subtask checkpoint checkpoint/20261115-before-rmv2-evidence-33272c9 restore/fsckPASS.",
-    "nextAction": "Complete the corrected exact-source full CI, verify shared native/installer/observation receipts, then stage/deploy only verified Gold Lab backend while preserving state. Owner physical GPU design latency and Agent-host perception remain pending; no Owner installation or production promotion.",
+    "taskId": "20261115-rmv2-agent-gpu-ci131-artifact-gold-receipt",
+    "status": "AGENT_GPU_CI131_PASS_GOLD_DEPLOYED_OWNER_PHYSICAL_PENDING",
+    "summary": "Agent GPU observation dev12 is implemented, integrated, full CI13115/15 PASS, exact shared native/installer bytes independently verified, and deployed to internal Gold Lab only. Background DXGI collection, physical1:1 PNG ROI, direct MCP image delivery, unchanged-frame coordinate revalidation, and close/no-renew behavior passed synthetic production-path tests. Original on-demand screenshot/input/viewer/Agent functionality remains available. Owner physical GPU/Agent-host perception and design latency remain NOT_RUN; no public release/feed or Owner installation.",
+    "verification": "Exact executable source 2b65a379e1fd5b3f05c101354495dcd4f6c64397, tree 2decc4dde0866c302e9641bc34cf8da0dd2e0476, CI 43668040391, all15 jobs PASS. Five isolated native262K cases and existing media/browser/installer migration/rollback/lifecycle PASS. New native observation artifact 14143645111 SHA256 a451fb1ef043e8480122d07f9ca4a6fec571d4c736c7f49c0cbd7e71d42ecc68:1px+2px full RGB parity through production PNG and MCP image formatter/independent decoder, no-change/lease/revocation/cleanup/legacy screenshot coexistence PASS. Actual DXGI diagnostic: DXGI_CAPTURED_UNVERIFIED_DESKTOP_PIXELS. Shared helper SHA256 02a3ea7826cddf9ee25837d2da334037df67b0ca7a60331ec0269978ca11d926; installer SHA256 ecfb1d767ca86bc5f008ea19dd42f63d3a0a889efa5d6c26270321ffa8a43215, bytes 172718826, artifact 14143916515, ZIP SHA256 5277ac32dc36ebadd1c187761732608da32d9b06b0da1d5ad39ca31a4a607801. Physical Owner acceptance false. Pre-receipt full checkpoint checkpoint/20261115-before-rmv2-acceptance-2b65a37, restore/fsckPASS. Superseded full CI130 was cancelled for the corrected source; media probe43666877343 remains historical component PASS, not full acceptance.",
+    "nextAction": "Owner self-download the verified CI131 COMPLETE Windows x64 artifact, install dev12 and test the new optional GPU Agent path at actual150% DPI/design/PowerPoint: real images received by the Agent,1px2px fidelity, physical coordinate mapping, source-loss/fallback and same-device response time. Existing screenshot path stays available. Public direct write_text4096/busy and reported routing remain separate live acceptance questions; never substitute clipboard or CI evidence for those reports.",
     "sourceDigest": "d6d7897de9dd99554d0b9c1c82b3e36bc20c58efc9d62f74d051e8dfb70fc708",
     "sourceFileCount": 1733
   },
@@ -2357,7 +2394,7 @@
       "appleSilicon": "PENDING_NOT_ACCEPTED_HOSTED_CAPACITY_FAILURE_CI117",
       "Linux": "UBUNTU24_NATIVE_SOURCE_TESTS"
     },
-    "status": "AGENT_GPU_OBSERVATION_IMPLEMENTED_CI_PENDING_PHYSICAL_NOT_RUN",
+    "status": "AGENT_GPU_CI131_PASS_GOLD_DEPLOYED_OWNER_LIVE_PARTIAL",
     "compiledSourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
     "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
     "version": "0.10.1-dev.11",
@@ -3302,7 +3339,7 @@
     "stableScreenshotPath": "PRESERVED_ON_DEMAND_DEFAULT",
     "ownerReportedLiveEvidence": "docs/evidence/rmv2/owner-live-report-20261115.json",
     "agentGpuObservation": {
-      "status": "IMPLEMENTED_CI_PENDING_PHYSICAL_NOT_RUN",
+      "status": "IMPLEMENTED_INTEGRATED_CI131_PASS_GOLD_DEPLOYED_PHYSICAL_PENDING",
       "additive": true,
       "defaultEnabled": false,
       "goal": "AGENT_CONTINUOUS_SCREEN_PERCEPTION_PRECISE_DESIGN_POWERPOINT_NOT_OWNER_VIEWER",
@@ -3330,8 +3367,15 @@
         "restore": "PASS",
         "source": "a6b56c274fa3a64e911f247112e8ebd0ca37f323"
       },
-      "ci": "NATIVE_PROBE_33272C9_PASS_CURRENT_FULL_CI_PENDING",
-      "unchangedCoordinates": "EXACT_PUBLISHED_IMAGE_BASE_REVALIDATED_NO_DUPLICATE_PIXELS"
+      "ci": "FULL15OF15_PASS",
+      "unchangedCoordinates": "EXACT_PUBLISHED_IMAGE_BASE_REVALIDATED_NO_DUPLICATE_PIXELS",
+      "compiledSourceCommit": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+      "ciRunId": 43668040391,
+      "internalCandidateReady": true,
+      "evidence": "docs/evidence/rmv2/agent-observation-ci131.json",
+      "goldLabDeployedSource": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+      "installerSha256": "ecfb1d767ca86bc5f008ea19dd42f63d3a0a889efa5d6c26270321ffa8a43215",
+      "helperSha256": "02a3ea7826cddf9ee25837d2da334037df67b0ca7a60331ec0269978ca11d926"
     }
   }
 }

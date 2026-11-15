@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 328,
+    "total": 329,
     "markdown": 230,
-    "json": 98
+    "json": 99
   },
   "files": [
     {
@@ -628,6 +628,27 @@
         "physicalOwnerAcceptance",
         "publicReleaseOrFeed",
         "productionDomainCallbackChanged"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/agent-observation-ci131.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 14361,
+      "sha256": "2a4ea08ea916bfda4cf0af26db707ec8c371c3d99485db05709b1a2845de6daf",
+      "topLevelKeys": [
+        "sourceCommit",
+        "sourceTree",
+        "version",
+        "ci",
+        "native",
+        "observation",
+        "installer",
+        "goldLabDeployment",
+        "physicalOwnerAcceptance",
+        "publicReleaseOrFeed",
+        "ownerReportedDirectWriteAccepted",
+        "checkpointBeforeReceipt"
       ]
     },
     {
@@ -3513,8 +3534,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 121293,
-      "sha256": "6a097d831682b9e22d62c3dbe446b55e50a1f60792b4aedc6c418135f6191a91",
+      "bytes": 122240,
+      "sha256": "ad75bf7393a720070d61b53ed40024ce65148b920e232d5c5c00164f140f84b0",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {

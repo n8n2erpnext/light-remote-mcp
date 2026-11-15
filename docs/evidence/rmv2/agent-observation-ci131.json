@@ -1,0 +1,417 @@
+{
+  "sourceCommit": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+  "sourceTree": "2decc4dde0866c302e9641bc34cf8da0dd2e0476",
+  "version": "0.10.1-dev.12",
+  "ci": {
+    "sourceCommit": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+    "ciRunId": 43668040391,
+    "runNumber": 131,
+    "attempt": 1,
+    "scope": "full",
+    "result": "PASS",
+    "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43668040391",
+    "allJobs": 15,
+    "successfulJobs": 15,
+    "requiredCheck": "baseline-required",
+    "mainProtectionUnchanged": true,
+    "mainSource": "8ac627342e7caea097d551978ec0ed5b3c8bbc4a",
+    "physicalOwnerAcceptance": false,
+    "jobs": [
+      {
+        "id": 132672151550,
+        "name": "truth",
+        "conclusion": "success"
+      },
+      {
+        "id": 132672151734,
+        "name": "changes",
+        "conclusion": "success"
+      },
+      {
+        "id": 132672195682,
+        "name": "Committed native dependency resolution",
+        "conclusion": "success"
+      },
+      {
+        "id": 132672195690,
+        "name": "Core, contracts, PostgreSQL/Redis integration",
+        "conclusion": "success"
+      },
+      {
+        "id": 132672285454,
+        "name": "RM native binary shared by stress and installer",
+        "conclusion": "success"
+      },
+      {
+        "id": 132672285591,
+        "name": "desktop / Web build, tests, isolated browser screenshots",
+        "conclusion": "success"
+      },
+      {
+        "id": 132672600303,
+        "name": "text-stress / rich-single",
+        "conclusion": "success"
+      },
+      {
+        "id": 132672600313,
+        "name": "text-stress / classic-single",
+        "conclusion": "success"
+      },
+      {
+        "id": 132672600334,
+        "name": "text-stress / rich-paragraph",
+        "conclusion": "success"
+      },
+      {
+        "id": 132672600335,
+        "name": "text-stress / classic-paragraph",
+        "conclusion": "success"
+      },
+      {
+        "id": 132672600339,
+        "name": "windows / build-install-smoke",
+        "conclusion": "success"
+      },
+      {
+        "id": 132672600442,
+        "name": "text-stress / native-paragraph",
+        "conclusion": "success"
+      },
+      {
+        "id": 132673065193,
+        "name": "desktop / Unified Light Remote Desktop V4 / macos-15-intel",
+        "conclusion": "success"
+      },
+      {
+        "id": 132673065197,
+        "name": "desktop / Unified Light Remote Desktop V4 / ubuntu-24.04",
+        "conclusion": "success"
+      },
+      {
+        "id": 132677721258,
+        "name": "baseline-required",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "native": {
+    "sourceCommit": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+    "sourceTree": "2decc4dde0866c302e9641bc34cf8da0dd2e0476",
+    "ciRunId": 43668040391,
+    "helperSha256": "02a3ea7826cddf9ee25837d2da334037df67b0ca7a60331ec0269978ca11d926",
+    "fixtureSha256": "90d72474644f307f0c7ba77aeb85101ff1531c482cd7dac0be5ede049c0a526e",
+    "cases": {
+      "rich-paragraph": {
+        "result": "PASS",
+        "elapsedMs": 444874.8207,
+        "controlKind": "rich-edit",
+        "layout": "paragraphs-cr"
+      },
+      "rich-single": {
+        "result": "PASS",
+        "elapsedMs": 419566.1109,
+        "controlKind": "rich-edit",
+        "layout": "single-paragraph"
+      },
+      "classic-single": {
+        "result": "PASS",
+        "elapsedMs": 1180136.1176,
+        "controlKind": "classic-edit",
+        "layout": "single-paragraph"
+      },
+      "classic-paragraph": {
+        "result": "PASS",
+        "elapsedMs": 705719.5333,
+        "controlKind": "classic-edit",
+        "layout": "paragraphs-cr"
+      },
+      "native-paragraph": {
+        "result": "PASS",
+        "elapsedMs": 1261312.117,
+        "controlKind": "win32-edit",
+        "layout": "paragraphs-cr"
+      }
+    },
+    "ready": true,
+    "physicalOwnerAcceptance": false,
+    "media": "PASS",
+    "artifacts": [
+      {
+        "name": "rmv2-native-2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+        "artifactId": 14143137774,
+        "artifactSha256": "c5a9dc7f5d6d02c6d1a389f045ddba0a2afbdd3df169b5bedf0db6ce7e93a5b8"
+      },
+      {
+        "name": "rmv2-text-rich-paragraph-2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+        "artifactId": 14143735204,
+        "artifactSha256": "68288ba89b5e5094fac64c9a72a7133db8cb31a771755cb976a3f12d91f63986"
+      },
+      {
+        "name": "rmv2-text-rich-single-2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+        "artifactId": 14143138988,
+        "artifactSha256": "3103ce2b2145c10f3f82bc4ea461a08a680b943a7227484d55af0cec9c31619a"
+      },
+      {
+        "name": "rmv2-text-classic-single-2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+        "artifactId": 14144285113,
+        "artifactSha256": "93e9216b5ce5143e0f047bf6ea49a19ad6b7d0bbba462f17698d2baa8508aad2"
+      },
+      {
+        "name": "rmv2-text-classic-paragraph-2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+        "artifactId": 14143302864,
+        "artifactSha256": "86aab6d32390ce1ec56fe0af10298cda0a2ad86d06a5263024f2aa0c5e9eeeef"
+      },
+      {
+        "name": "rmv2-text-native-paragraph-2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+        "artifactId": 14143657535,
+        "artifactSha256": "8471512e5525eaf41227c8f6eb15eeebf50be5724475c59021e6d5cef7991dc2"
+      },
+      {
+        "name": "rmv2-video-acceptance-2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+        "artifactId": 14143760702,
+        "artifactSha256": "91677091d3a63909c3571f3b1b2ccb214cfcd13dedbc262e12372c64d12aa852"
+      }
+    ]
+  },
+  "observation": {
+    "sourceCommit": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+    "runId": 43668040391,
+    "artifactId": 14143645111,
+    "artifactSha256": "a451fb1ef043e8480122d07f9ca4a6fec571d4c736c7f49c0cbd7e71d42ecc68",
+    "scope": "native",
+    "receipt": {
+      "result": "PASS",
+      "scope": "isolated_synthetic_warp_gpu_not_owner_physical",
+      "sameProductionProducer": true,
+      "backgroundCapture": true,
+      "precisionPixelParity": true,
+      "oneAndTwoPixelChanges": true,
+      "noChange": true,
+      "closedReadDenied": true,
+      "backgroundDoesNotRenewLease": true,
+      "legacyScreenshotPreserved": true,
+      "gpuResourcesDisposed": true,
+      "actualDxgi": "DXGI_CAPTURED_UNVERIFIED_DESKTOP_PIXELS",
+      "changeToReadMs": [
+        205.5728,
+        16.1929,
+        41.6934
+      ],
+      "frames": [
+        {
+          "position": 70,
+          "expectedImageX": 38,
+          "frame": {
+            "observationId": "obs_8d32bb94390647cfa716908d24982442",
+            "observationEpoch": "oepoch_eedc7f0d5d46446888330b7f59db278a",
+            "state": "changed",
+            "reason": null,
+            "sourceSeq": 1,
+            "capturedAt": 1794710341329,
+            "validatedAt": 1794710341329,
+            "capturedAgeMs": 10.5215,
+            "sourceValidationAgeMs": 10.5248,
+            "sourceBackend": "dxgi-d3d11",
+            "gpuCapture": true,
+            "profile": "precision",
+            "lossless": true,
+            "resampled": false,
+            "width": 128,
+            "height": 96,
+            "fps": 30,
+            "physicalBounds": {
+              "x": -368,
+              "y": 16,
+              "width": 128,
+              "height": 96
+            },
+            "displayTopologyId": "7d733ed91f8524b6da054dcb0a227fda29b3a23ce519dbfbd8aa0386202e44c0",
+            "inputMapping": {
+              "xOffset": -368,
+              "yOffset": 16,
+              "xScale": 1,
+              "yScale": 1,
+              "coordinateConvention": "frame-pixel-centers-to-physical-virtual-no-extra-dpi"
+            },
+            "image": {
+              "mimeType": "image/png",
+              "dataBytes": 509,
+              "sha256": "329dc97fed1cbabfe136c2111b0ba6abee8f4446fe83b42144cb537b33d9abed",
+              "pixelSha256": "fc3e44c0db3fae7c447c341b657c04fa6ade64aeeafeb59ae45a4f5816915b2e"
+            },
+            "stats": {
+              "acquiredFrames": 1,
+              "idlePolls": 0,
+              "identicalRoiFrames": 0,
+              "changedFrames": 1,
+              "intermediateChangesSinceRead": 0,
+              "retainedFrames": 1,
+              "backgroundRenewsLease": false
+            },
+            "storedOnDisk": false
+          }
+        },
+        {
+          "position": 71,
+          "expectedImageX": 39,
+          "frame": {
+            "observationId": "obs_8d32bb94390647cfa716908d24982442",
+            "observationEpoch": "oepoch_eedc7f0d5d46446888330b7f59db278a",
+            "state": "changed",
+            "reason": null,
+            "sourceSeq": 2,
+            "capturedAt": 1794710341493,
+            "validatedAt": 1794710341493,
+            "capturedAgeMs": 3.8231,
+            "sourceValidationAgeMs": 3.8235,
+            "sourceBackend": "dxgi-d3d11",
+            "gpuCapture": true,
+            "profile": "precision",
+            "lossless": true,
+            "resampled": false,
+            "width": 128,
+            "height": 96,
+            "fps": 30,
+            "physicalBounds": {
+              "x": -368,
+              "y": 16,
+              "width": 128,
+              "height": 96
+            },
+            "displayTopologyId": "7d733ed91f8524b6da054dcb0a227fda29b3a23ce519dbfbd8aa0386202e44c0",
+            "inputMapping": {
+              "xOffset": -368,
+              "yOffset": 16,
+              "xScale": 1,
+              "yScale": 1,
+              "coordinateConvention": "frame-pixel-centers-to-physical-virtual-no-extra-dpi"
+            },
+            "image": {
+              "mimeType": "image/png",
+              "dataBytes": 496,
+              "sha256": "d49c2a93f6e5f30da276bd57f8e630831b15aafdc1885dc74b317feeb63c8d06",
+              "pixelSha256": "2e951cd2b09cc32168563109a9cd7765a006364a18bbc9a0ef2d61b97bcbee88"
+            },
+            "stats": {
+              "acquiredFrames": 2,
+              "idlePolls": 4,
+              "identicalRoiFrames": 0,
+              "changedFrames": 2,
+              "intermediateChangesSinceRead": 0,
+              "retainedFrames": 1,
+              "backgroundRenewsLease": false
+            },
+            "storedOnDisk": false
+          }
+        },
+        {
+          "position": 73,
+          "expectedImageX": 41,
+          "frame": {
+            "observationId": "obs_8d32bb94390647cfa716908d24982442",
+            "observationEpoch": "oepoch_eedc7f0d5d46446888330b7f59db278a",
+            "state": "changed",
+            "reason": null,
+            "sourceSeq": 3,
+            "capturedAt": 1794710341527,
+            "validatedAt": 1794710341527,
+            "capturedAgeMs": 11.7961,
+            "sourceValidationAgeMs": 11.7965,
+            "sourceBackend": "dxgi-d3d11",
+            "gpuCapture": true,
+            "profile": "precision",
+            "lossless": true,
+            "resampled": false,
+            "width": 128,
+            "height": 96,
+            "fps": 30,
+            "physicalBounds": {
+              "x": -368,
+              "y": 16,
+              "width": 128,
+              "height": 96
+            },
+            "displayTopologyId": "7d733ed91f8524b6da054dcb0a227fda29b3a23ce519dbfbd8aa0386202e44c0",
+            "inputMapping": {
+              "xOffset": -368,
+              "yOffset": 16,
+              "xScale": 1,
+              "yScale": 1,
+              "coordinateConvention": "frame-pixel-centers-to-physical-virtual-no-extra-dpi"
+            },
+            "image": {
+              "mimeType": "image/png",
+              "dataBytes": 390,
+              "sha256": "e05de9d2096965f070c4717bae079ae5ac5d9930bae21a2851f58f76c6e4a598",
+              "pixelSha256": "0183f327beb0cdab35b87e3a2e981b3083ed74dcd4a3f28b72e813c52209e817"
+            },
+            "stats": {
+              "acquiredFrames": 3,
+              "idlePolls": 4,
+              "identicalRoiFrames": 0,
+              "changedFrames": 3,
+              "intermediateChangesSinceRead": 0,
+              "retainedFrames": 1,
+              "backgroundRenewsLease": false
+            },
+            "storedOnDisk": false
+          }
+        }
+      ]
+    },
+    "physicalOwnerAcceptance": false
+  },
+  "installer": {
+    "sourceCommit": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+    "sourceTree": "2decc4dde0866c302e9641bc34cf8da0dd2e0476",
+    "version": "0.10.1-dev.12",
+    "ciRunId": 43668040391,
+    "artifactId": 14143916515,
+    "artifactZipSha256": "5277ac32dc36ebadd1c187761732608da32d9b06b0da1d5ad39ca31a4a607801",
+    "installerSha256": "ecfb1d767ca86bc5f008ea19dd42f63d3a0a889efa5d6c26270321ffa8a43215",
+    "installerBytes": 172718826,
+    "result": "VERIFIED_INTERNAL_ARTIFACT",
+    "primaryCount": 1,
+    "oldPrimariesAbsent": true,
+    "migration": "PASS",
+    "installedLifecycle": "PASS",
+    "physicalOwnerAcceptance": false,
+    "publicFeedPromoted": false
+  },
+  "goldLabDeployment": {
+    "result": "PASS",
+    "sourceCommit": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+    "sourceTree": "2decc4dde0866c302e9641bc34cf8da0dd2e0476",
+    "version": "0.10.1-dev.12",
+    "databaseMigrated": false,
+    "dbArchiveIndexVerified": true,
+    "dbArchiveSha256": "f86f13fc4eda6cf54b20e8880f580cb95105d726eee05250538eb48da1fcc734",
+    "independentPidsPreserved": true,
+    "dependencyGraphUnchanged": true,
+    "homeAncestorAclChanged": false,
+    "persistentCountsUnchanged": true,
+    "snapshotUnauthenticatedStatus": 401,
+    "workAuthorizationUnauthenticatedStatus": 400,
+    "videoPushUnauthenticatedStatus": 400,
+    "videoReadUnauthenticatedStatus": 400,
+    "servingSourceEnvironmentVerified": true,
+    "observationPushUnauthenticatedStatus": 400,
+    "observationReadUnauthenticatedStatus": 400,
+    "apiContractVersion": "light-remote.api.v1",
+    "publicHealth": "PASS",
+    "oldSourcesPreserved": true,
+    "ownerWindowsInstallationChanged": false,
+    "physicalOwnerAcceptance": false,
+    "publicReleaseOrFeed": false
+  },
+  "physicalOwnerAcceptance": false,
+  "publicReleaseOrFeed": false,
+  "ownerReportedDirectWriteAccepted": false,
+  "checkpointBeforeReceipt": {
+    "tag": "checkpoint/20261115-before-rmv2-acceptance-2b65a37",
+    "bundleSha256": "2d1fe0b8818ea39945d37e1e0521e35e1319d157c1966d4cc7d290b62c59a97a",
+    "archiveSha256": "f83bb3fee6111c410b7951b47e4a0c732cb9d660f7a4265ef915f2da4c18a3b5",
+    "restore": "PASS",
+    "source": "2b65a379e1fd5b3f05c101354495dcd4f6c64397"
+  }
+}

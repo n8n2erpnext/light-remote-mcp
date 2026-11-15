@@ -10,7 +10,7 @@
   <img alt="MCP" src="https://img.shields.io/badge/MCP-Streamable%20HTTP-2563eb">
   <img alt="Access" src="https://img.shields.io/badge/Access-Short%20ID%20%2B%20A%2FB-059669">
   <img alt="Real Remote" src="https://img.shields.io/badge/Real%20Remote-V2-2563eb">
-  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.11-f59e0b">
+  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.12-f59e0b">
   <img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-555555">
 </p>
 
@@ -21,7 +21,7 @@
 - **ChatGPT plugin:** [Cài hoặc mở Light Remote trong ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e)
 - **Source:** [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp)
 
-> **Trạng thái bản build:** Windows `0.10.1-dev.11` là ứng viên **kiểm thử nội bộ**, không phải bản phát hành nhị phân công khai. Tính năng có trong source, đã qua CI, đã deploy nội bộ và đã được Owner nghiệm thu trên máy vật lý là **những trạng thái khác nhau**. Xem [Trạng thái dự án](#trạng-thái-dự-án).
+> **Trạng thái bản build:** Windows `0.10.1-dev.12` là ứng viên **kiểm thử nội bộ**, không phải bản phát hành nhị phân công khai. Tính năng có trong source, đã qua CI, đã deploy nội bộ và đã được Owner nghiệm thu trên máy vật lý là **những trạng thái khác nhau**. Xem [Trạng thái dự án](#trạng-thái-dự-án).
 
 ## Vì sao Light Remote khác công cụ remote thông thường?
 
@@ -255,11 +255,11 @@ npm test
 
 ## Trạng thái dự án
 
-**GPU observation cho Agent đã có trong source dev12; đang chờ CI và nghiệm thu vật lý.** Giữ screenshot và toàn bộ đường RM cũ. Tool `desktop_observation_start/read/stop` bổ sung bộ thu DXGI nền; Agent nhận ảnh PNG1:1 vùng tối đa384×384 hoặc JPEG tổng quan trực tiếp bằng MCP image content. Thu hình nền không tự gia hạn phiên45s. Không dùng Owner viewer làm điều kiện để Agent nhận ảnh.
+**GPU observation cho Agent đã triển khai trong dev12, CI131 PASS15/15 và Gold Lab đã cập nhật.** Giữ nguyên screenshot theo yêu cầu và các luồng RM cũ. Bộ thu DXGI chạy nền khi Agent chủ động mở; vùng chi tiết PNG1:1 tối đa384×384, tổng quan JPEG tối đa640×360. Ảnh được trả trực tiếp bằng MCP image content; vùng không đổi chỉ cập nhật metadata/tọa độ đã xác nhận. Thu nền không tự gia hạn phiên45s. Nghiệm thu vật lý trên máy Owner còn chờ.
 
-Source implementation only; no Owner installation, live desktop, runtime/service/DB, production/callback/domain/main/feed mutation. Last deployed Gold Lab and compiled historical CI127 baseline remain1bd6fcc/dev11 until a newly verified deployment. New dev12 is opt-in through observation_start; no viewer required.
+[CI131](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43668040391) · [Verified internal Windows installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43668040391/artifacts/14143916515) · [Evidence](docs/evidence/rmv2/agent-observation-ci131.json)
 
-Owner live acceptance and direct write_text remain partial; see the single RM plan and classified report.
+Gold Lab Operator+Plugin serves exact2b65a37/dev12; preparation/recovery and post-cutover receipt verified. No DB migration; account/device/grant/Owner counts and independent Wall/process-supervisor/mTLS services checked by the cutover guard. Previous1bd6fcc runtime/recovery retained. Production Google callback/domain, protected main, public release/feed and Owner Windows installation unchanged.
 
 ## License
 

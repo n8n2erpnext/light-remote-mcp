@@ -7,7 +7,7 @@
   <img alt="Protocol" src="https://img.shields.io/badge/MCP-Streamable%20HTTP-2563eb">
   <img alt="Access" src="https://img.shields.io/badge/Access-Short%20ID%20%2B%20A%2FB-059669">
   <img alt="Real Remote" src="https://img.shields.io/badge/Real%20Remote-V2-2563eb">
-  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.11-f59e0b">
+  <img alt="Build" src="https://img.shields.io/badge/Internal%20build-0.10.1--dev.12-f59e0b">
   <img alt="License" src="https://img.shields.io/badge/License-Apache--2.0-555555">
 </p>
 
@@ -18,7 +18,7 @@
 - **ChatGPT plugin:** [Connect Light Remote in ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e)
 - **Source:** [n8n2erpnext/light-remote-mcp](https://github.com/n8n2erpnext/light-remote-mcp)
 
-> **Build status:** Windows `0.10.1-dev.11` is an **internal testing candidate**, not a publicly published binary Release. Source implementation, CI passing, internal deployment and physical Owner acceptance are separate levels of evidence. See [Project status](#project-status).
+> **Build status:** Windows `0.10.1-dev.12` is an **internal testing candidate**, not a publicly published binary Release. Source implementation, CI passing, internal deployment and physical Owner acceptance are separate levels of evidence. See [Project status](#project-status).
 
 ## What makes Light Remote different?
 
@@ -247,9 +247,11 @@ npm test
 
 ## Project status
 
-Implement additive Agent GPU observation in dev12: dedicated background DXGI/D3D11 collector with dirty/move ROI filtering, bounded latest cache and explicit precision PNG1:1 or overview JPEG; scoped start/read/stop, ephemeral exact-ticket signed RAM relay, and actual MCP image-content delivery to the Agent. Existing screenshot/GDI/DXGI/H264/viewer/input/task behavior remains available and unchanged by default. Background capture does not renew control. Native synthetic GPU1px2px parity and production MCP image formatter are wired into the same-helper required Windows CI; native build/CI and physical Agent acceptance are still pending at this source commit.
+Agent GPU observation dev12 is implemented, integrated, full CI13115/15 PASS, exact shared native/installer bytes independently verified, and deployed to internal Gold Lab only. Background DXGI collection, physical1:1 PNG ROI, direct MCP image delivery, unchanged-frame coordinate revalidation, and close/no-renew behavior passed synthetic production-path tests. Original on-demand screenshot/input/viewer/Agent functionality remains available. Owner physical GPU/Agent-host perception and design latency remain NOT_RUN; no public release/feed or Owner installation.
 
-Source implementation only; no Owner installation, live desktop, runtime/service/DB, production/callback/domain/main/feed mutation. Last deployed Gold Lab and compiled historical CI127 baseline remain1bd6fcc/dev11 until a newly verified deployment. New dev12 is opt-in through observation_start; no viewer required.
+[CI131](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43668040391) · [Verified internal Windows installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43668040391/artifacts/14143916515) · [Evidence](docs/evidence/rmv2/agent-observation-ci131.json)
+
+Gold Lab Operator+Plugin serves exact2b65a37/dev12; preparation/recovery and post-cutover receipt verified. No DB migration; account/device/grant/Owner counts and independent Wall/process-supervisor/mTLS services checked by the cutover guard. Previous1bd6fcc runtime/recovery retained. Production Google callback/domain, protected main, public release/feed and Owner Windows installation unchanged.
 
 ## License
 
