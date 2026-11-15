@@ -167,3 +167,7 @@ Implemented boundaries:
 - Required Windows CI uses the same native binary as installer and stress tests. A synthetic WARP D3D texture moves a1px line by1px and2px while the consumer is not reading; production producer/scaler/PNG pipeline is checked pixel-for-pixel and its PNG passes through the production MCP formatter into an independent Node PNG decoder. Close/revocation/no-change/GPU disposal/background-no-renew/legacy screenshot coexistence are checked. Physical DXGI capture is diagnosed separately and never replaced by GDI as a GPU PASS. This source commit does not yet have new native results.
 
 User physical acceptance remains NOT_RUN. Prior CI127 and pasted live results retain their original artifact/scopes. Direct write_text4096 partial-or-unfinished/busy and current routing are unresolved separately; no clipboard result accepts the direct API. No release/feed or Owner installation.
+
+## Revalidate unchanged GPU image coordinates without resending pixels
+
+Fix unchanged-image coordinate freshness in the new optional Agent GPU observation path: a current source validation can refresh frame mapping without resending pixels only for the exact previously published observationId/epoch/sourceSeq base. A future/unseen cursor, stale source or different epoch cannot bless input coordinates; these replies expose frameCoordinatesAvailable=false and no input frameSeq. Update tool guidance for unchanged frames and expired ephemeral tickets. All original RM paths remain unchanged.

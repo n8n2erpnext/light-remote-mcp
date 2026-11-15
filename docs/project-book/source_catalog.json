@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 327,
+    "total": 328,
     "markdown": 230,
-    "json": 97
+    "json": 98
   },
   "files": [
     {
@@ -628,6 +628,22 @@
         "physicalOwnerAcceptance",
         "publicReleaseOrFeed",
         "productionDomainCallbackChanged"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/agent-observation-probe-33272c9.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 6201,
+      "sha256": "48608426475ada0d9c9c4df9c51f08cecb0b283ea5a05dcc6b36124b43eef4f2",
+      "topLevelKeys": [
+        "sourceCommit",
+        "runId",
+        "artifactId",
+        "artifactSha256",
+        "scope",
+        "receipt",
+        "physicalOwnerAcceptance"
       ]
     },
     {
@@ -3497,8 +3513,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 119731,
-      "sha256": "cf2e08f240c4df3ff5ae5f7dceb9bdd2aed1ca5a280d36271badb0e50bec5d0b",
+      "bytes": 121293,
+      "sha256": "6a097d831682b9e22d62c3dbe446b55e50a1f60792b4aedc6c418135f6191a91",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {

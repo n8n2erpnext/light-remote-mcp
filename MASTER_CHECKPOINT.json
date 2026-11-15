@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-15T02:14:55.828Z",
+  "updatedAt": "2026-11-15T02:29:32.643Z",
   "version": "0.10.1-dev.12",
   "phase": "ADDITIVE_AGENT_GPU_OBSERVATION_IMPLEMENTATION",
-  "status": "AGENT_GPU_OBSERVATION_IMPLEMENTED_CI_PENDING_PHYSICAL_NOT_RUN",
+  "status": "AGENT_GPU_OBSERVATION_COORDINATE_FIX_EXACT_SOURCE_CI_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -494,6 +494,14 @@
         "restore": "PASS",
         "source": "a6b56c274fa3a64e911f247112e8ebd0ca37f323"
       }
+    },
+    "agentGpuObservationProbe20261115": {
+      "path": "docs/evidence/rmv2/agent-observation-probe-33272c9.json",
+      "sourceCommit": "33272c97d387c6dbdb2a17a15fc5065a051b61e9",
+      "runId": 43666877343,
+      "nativeProducerPrecisionMcpImage": "PASS",
+      "actualDxgi": "CAPTURED_CI_DESKTOP_NOT_OWNER_PHYSICAL",
+      "physicalOwnerAcceptance": false
     }
   },
   "remaining": [
@@ -545,7 +553,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Run exact-source full Actions including native GPU producer1px2px/MCP PNG decode and shared installer helper; fix any failures before offering an internal artifact. Then measure physical GPU capture, actual Agent host image perception and same-device design latency on an authorized device. Direct public write_text and reported routing remain separate live investigations; no replay/relink/newB.",
+  "nextAction": "Complete the corrected exact-source full CI, verify shared native/installer/observation receipts, then stage/deploy only verified Gold Lab backend while preserving state. Owner physical GPU design latency and Agent-host perception remain pending; no Owner installation or production promotion.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -636,12 +644,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261115-rmv2-agent-gpu-observation-implementation",
-    "status": "AGENT_GPU_OBSERVATION_IMPLEMENTED_CI_PENDING_PHYSICAL_NOT_RUN",
-    "summary": "Implement additive Agent GPU observation in dev12: dedicated background DXGI/D3D11 collector with dirty/move ROI filtering, bounded latest cache and explicit precision PNG1:1 or overview JPEG; scoped start/read/stop, ephemeral exact-ticket signed RAM relay, and actual MCP image-content delivery to the Agent. Existing screenshot/GDI/DXGI/H264/viewer/input/task behavior remains available and unchanged by default. Background capture does not renew control. Native synthetic GPU1px2px parity and production MCP image formatter are wired into the same-helper required Windows CI; native build/CI and physical Agent acceptance are still pending at this source commit.",
-    "verification": "Portable Node observation tests5/5 and signed route authorization test1/1 PASS locally; syntax checks for Agent/Operator/MCP PASS. Native compile/run restricted to clean GitHub Actions. Full pre-change checkpoint checkpoint/20261115-before-rmv2-implementation-a6b56c2 bundleSHA cef1b3e202be612f0b1e995996100dd2bd31fc6894a49a25dccfadbfb3b9c8ac archiveSHA 32d90d3027cf5275771caef7c1c878dc47ed2431b17f08ccc535c73ad7870c1a independent restore/fsckPASS. Owner report remains independently unverified and direct write_text is not accepted by clipboard evidence.",
-    "nextAction": "Run exact-source full Actions including native GPU producer1px2px/MCP PNG decode and shared installer helper; fix any failures before offering an internal artifact. Then measure physical GPU capture, actual Agent host image perception and same-device design latency on an authorized device. Direct public write_text and reported routing remain separate live investigations; no replay/relink/newB.",
-    "sourceDigest": "d3cf8e4c2176d46e015580392f123129a021b929362282680460b400933e084b",
+    "taskId": "20261115-rmv2-gpu-unchanged-frame-mapping",
+    "status": "AGENT_GPU_OBSERVATION_COORDINATE_FIX_EXACT_SOURCE_CI_PENDING",
+    "summary": "Fix unchanged-image coordinate freshness in the new optional Agent GPU observation path: a current source validation can refresh frame mapping without resending pixels only for the exact previously published observationId/epoch/sourceSeq base. A future/unseen cursor, stale source or different epoch cannot bless input coordinates; these replies expose frameCoordinatesAvailable=false and no input frameSeq. Update tool guidance for unchanged frames and expired ephemeral tickets. All original RM paths remain unchanged.",
+    "verification": "Portable observation tests6/6 plus signed route test PASS. Exact native source33272c9 passed Actions media probe43666877343: same production background producer/scaler/PNG,1px2px full RGB parity and real MCP image formatter/independent decoder PASS; actual production DXGI captured a frame in the CI desktop. Cold/warm synthetic change-to-read184.37/17.96/46.36ms, not Owner latency. Shared native artifact14142219881 independently verified on ARM, helperSHA17e88d9e8bac0b93bf56d7411de8e928b2936d3a32a05e6e661f0d6ca42dbf38. Full CI130 still pending and this Agent correction needs its own exact-source CI. Full pre-subtask checkpoint checkpoint/20261115-before-rmv2-evidence-33272c9 restore/fsckPASS.",
+    "nextAction": "Complete the corrected exact-source full CI, verify shared native/installer/observation receipts, then stage/deploy only verified Gold Lab backend while preserving state. Owner physical GPU design latency and Agent-host perception remain pending; no Owner installation or production promotion.",
+    "sourceDigest": "d6d7897de9dd99554d0b9c1c82b3e36bc20c58efc9d62f74d051e8dfb70fc708",
     "sourceFileCount": 1733
   },
   "legacyFilesystemCleanup": {
@@ -3322,7 +3330,8 @@
         "restore": "PASS",
         "source": "a6b56c274fa3a64e911f247112e8ebd0ca37f323"
       },
-      "ci": "PENDING_EXACT_SOURCE_ACTIONS"
+      "ci": "NATIVE_PROBE_33272C9_PASS_CURRENT_FULL_CI_PENDING",
+      "unchangedCoordinates": "EXACT_PUBLISHED_IMAGE_BASE_REVALIDATED_NO_DUPLICATE_PIXELS"
     }
   }
 }

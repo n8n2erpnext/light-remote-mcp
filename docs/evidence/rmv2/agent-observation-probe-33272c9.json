@@ -1,0 +1,188 @@
+{
+  "sourceCommit": "33272c97d387c6dbdb2a17a15fc5065a051b61e9",
+  "runId": 43666877343,
+  "artifactId": 14142905681,
+  "artifactSha256": "0c912d5a596913aa741161cc88f3f01a365a62db9ac746a3f086c644da84c847",
+  "scope": "probe",
+  "receipt": {
+    "result": "PASS",
+    "scope": "isolated_synthetic_warp_gpu_not_owner_physical",
+    "sameProductionProducer": true,
+    "backgroundCapture": true,
+    "precisionPixelParity": true,
+    "oneAndTwoPixelChanges": true,
+    "noChange": true,
+    "closedReadDenied": true,
+    "backgroundDoesNotRenewLease": true,
+    "legacyScreenshotPreserved": true,
+    "gpuResourcesDisposed": true,
+    "actualDxgi": "DXGI_CAPTURED_UNVERIFIED_DESKTOP_PIXELS",
+    "changeToReadMs": [
+      184.3727,
+      17.9559,
+      46.3574
+    ],
+    "frames": [
+      {
+        "position": 70,
+        "expectedImageX": 38,
+        "frame": {
+          "observationId": "obs_641a8ac8530a4b0997af7c200e37200f",
+          "observationEpoch": "oepoch_f68bf7cdbc534e96a9c12d0b2e279f9b",
+          "state": "changed",
+          "reason": null,
+          "sourceSeq": 1,
+          "capturedAt": 1794708977008,
+          "validatedAt": 1794708977011,
+          "capturedAgeMs": 32.4703,
+          "sourceValidationAgeMs": 32.4535,
+          "sourceBackend": "dxgi-d3d11",
+          "gpuCapture": true,
+          "profile": "precision",
+          "lossless": true,
+          "resampled": false,
+          "width": 128,
+          "height": 96,
+          "fps": 30,
+          "physicalBounds": {
+            "x": -368,
+            "y": 16,
+            "width": 128,
+            "height": 96
+          },
+          "displayTopologyId": "7d733ed91f8524b6da054dcb0a227fda29b3a23ce519dbfbd8aa0386202e44c0",
+          "inputMapping": {
+            "xOffset": -368,
+            "yOffset": 16,
+            "xScale": 1,
+            "yScale": 1,
+            "coordinateConvention": "frame-pixel-centers-to-physical-virtual-no-extra-dpi"
+          },
+          "image": {
+            "mimeType": "image/png",
+            "dataBytes": 509,
+            "sha256": "329dc97fed1cbabfe136c2111b0ba6abee8f4446fe83b42144cb537b33d9abed",
+            "pixelSha256": "fc3e44c0db3fae7c447c341b657c04fa6ade64aeeafeb59ae45a4f5816915b2e"
+          },
+          "stats": {
+            "acquiredFrames": 1,
+            "idlePolls": 1,
+            "identicalRoiFrames": 0,
+            "changedFrames": 1,
+            "intermediateChangesSinceRead": 0,
+            "retainedFrames": 1,
+            "backgroundRenewsLease": false
+          },
+          "storedOnDisk": false
+        }
+      },
+      {
+        "position": 71,
+        "expectedImageX": 39,
+        "frame": {
+          "observationId": "obs_641a8ac8530a4b0997af7c200e37200f",
+          "observationEpoch": "oepoch_f68bf7cdbc534e96a9c12d0b2e279f9b",
+          "state": "changed",
+          "reason": null,
+          "sourceSeq": 2,
+          "capturedAt": 1794708977121,
+          "validatedAt": 1794708977121,
+          "capturedAgeMs": 7.5303,
+          "sourceValidationAgeMs": 7.5306,
+          "sourceBackend": "dxgi-d3d11",
+          "gpuCapture": true,
+          "profile": "precision",
+          "lossless": true,
+          "resampled": false,
+          "width": 128,
+          "height": 96,
+          "fps": 30,
+          "physicalBounds": {
+            "x": -368,
+            "y": 16,
+            "width": 128,
+            "height": 96
+          },
+          "displayTopologyId": "7d733ed91f8524b6da054dcb0a227fda29b3a23ce519dbfbd8aa0386202e44c0",
+          "inputMapping": {
+            "xOffset": -368,
+            "yOffset": 16,
+            "xScale": 1,
+            "yScale": 1,
+            "coordinateConvention": "frame-pixel-centers-to-physical-virtual-no-extra-dpi"
+          },
+          "image": {
+            "mimeType": "image/png",
+            "dataBytes": 496,
+            "sha256": "d49c2a93f6e5f30da276bd57f8e630831b15aafdc1885dc74b317feeb63c8d06",
+            "pixelSha256": "2e951cd2b09cc32168563109a9cd7765a006364a18bbc9a0ef2d61b97bcbee88"
+          },
+          "stats": {
+            "acquiredFrames": 2,
+            "idlePolls": 3,
+            "identicalRoiFrames": 0,
+            "changedFrames": 2,
+            "intermediateChangesSinceRead": 0,
+            "retainedFrames": 1,
+            "backgroundRenewsLease": false
+          },
+          "storedOnDisk": false
+        }
+      },
+      {
+        "position": 73,
+        "expectedImageX": 41,
+        "frame": {
+          "observationId": "obs_641a8ac8530a4b0997af7c200e37200f",
+          "observationEpoch": "oepoch_f68bf7cdbc534e96a9c12d0b2e279f9b",
+          "state": "changed",
+          "reason": null,
+          "sourceSeq": 3,
+          "capturedAt": 1794708977160,
+          "validatedAt": 1794708977160,
+          "capturedAgeMs": 14.8293,
+          "sourceValidationAgeMs": 14.8295,
+          "sourceBackend": "dxgi-d3d11",
+          "gpuCapture": true,
+          "profile": "precision",
+          "lossless": true,
+          "resampled": false,
+          "width": 128,
+          "height": 96,
+          "fps": 30,
+          "physicalBounds": {
+            "x": -368,
+            "y": 16,
+            "width": 128,
+            "height": 96
+          },
+          "displayTopologyId": "7d733ed91f8524b6da054dcb0a227fda29b3a23ce519dbfbd8aa0386202e44c0",
+          "inputMapping": {
+            "xOffset": -368,
+            "yOffset": 16,
+            "xScale": 1,
+            "yScale": 1,
+            "coordinateConvention": "frame-pixel-centers-to-physical-virtual-no-extra-dpi"
+          },
+          "image": {
+            "mimeType": "image/png",
+            "dataBytes": 390,
+            "sha256": "e05de9d2096965f070c4717bae079ae5ac5d9930bae21a2851f58f76c6e4a598",
+            "pixelSha256": "0183f327beb0cdab35b87e3a2e981b3083ed74dcd4a3f28b72e813c52209e817"
+          },
+          "stats": {
+            "acquiredFrames": 3,
+            "idlePolls": 3,
+            "identicalRoiFrames": 0,
+            "changedFrames": 3,
+            "intermediateChangesSinceRead": 0,
+            "retainedFrames": 1,
+            "backgroundRenewsLease": false
+          },
+          "storedOnDisk": false
+        }
+      }
+    ]
+  },
+  "physicalOwnerAcceptance": false
+}
