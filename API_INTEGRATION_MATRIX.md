@@ -176,3 +176,7 @@ Signed desktop-video-push now rejects video_relay_scope_closed for an exact clos
 ## Record complete RM text GPU video CI and verified internal installer
 
 Optional video_frame/video_read and Owner Local Wall video are implemented and CI-verified; same live A/B actor/device scope, no durable pixels,2s latest relay, closed-scope late packet fence and no Owner-view lease renewal. Gold Lab Operator/Plugin đã chạy exact source `1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9` /dev11; health/API PASS, không migration DB; giữ nguyên Agent/Wall/supervisor/mTLS và dữ liệu. Production/domain/Google callback, protected main, public feed và Owner installation không đổi.
+
+## Align additive GPU observation with Agent design feedback and record partial live evidence
+
+DESIGN_ONLY, no registered endpoint/schema change. Proposed observe_start/read/roi/stop bind to current RM task/A-B actor/device, return bounded changed/no_change/source_lost/expired plus actual host-consumable image/precision ROI and seq/epoch/topology/input-correlation metadata. Never equate encoded bytes or Owner canvas with model input. Existing API tools and screenshots unchanged. Direct public write_text remains owner-live-unaccepted; audit async receipt/status/backpressure without replay or clipboard substitution.

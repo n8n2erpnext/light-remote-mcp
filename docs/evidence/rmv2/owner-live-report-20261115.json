@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "light-remote.rmv2.owner-report.v1",
+  "receivedDate": "2026-11-15",
+  "timezone": "Asia/Saigon",
+  "provenance": "Owner pasted another Agent's live-test report into this chat; summarized, not independently reproduced",
+  "installedVersionReported": "0.10.1-dev.11",
+  "installedSourceCommit": null,
+  "installedInstallerSha256": null,
+  "exactArtifactBinding": "NOT_PROVIDED_VERSION_ALONE_IS_NOT_SUFFICIENT",
+  "reviewedOfficialExecutableBaseline": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
+  "ci127": "15_OF15_PASS_COMPONENT_AND_NATIVE_FIXTURE_EVIDENCE_REMAINS_VALID_SEPARATE_FROM_THIS_REPORT",
+  "device": {
+    "name": "DESKTOP-VA16D27",
+    "shortId": "S9X0R0",
+    "osReported": "Windows 10 Home x64 build19045",
+    "physicalPixelsReported": [
+      2560,
+      1600
+    ],
+    "dpiScaleReported": 1.5,
+    "monitorsReported": 1
+  },
+  "ownerReportedPassGroups": [
+    "desktop attach/resume/detach",
+    "screenshot and window inventory",
+    "mouse move/click/scroll/drag",
+    "keyboard and hotkeys",
+    "semantic UIA",
+    "filesystem",
+    "process",
+    "terminal and PTY",
+    "SCP upload/download"
+  ],
+  "paste262K": {
+    "status": "OWNER_REPORTED_PASS_CLIPBOARD_PATH_ONLY",
+    "cases": [
+      "ASCII",
+      "Vietnamese",
+      "emoji+CJK+ASCII",
+      "2048 CRLF lines",
+      "mixed Unicode+multiline"
+    ],
+    "utf16UnitsPerCaseReported": 262144,
+    "fullUtf8AndSha256ParityReported": true,
+    "clipboardInputEchoAvoidanceReported": true,
+    "rawFixturesOrHashValuesSuppliedToThisChat": false,
+    "acceptsDirectWriteTextApi": false
+  },
+  "directWriteText": {
+    "status": "UNACCEPTED_OWNER_REPORTED_PARTIAL_OR_UNFINISHED_TRANSACTION",
+    "requestedUnitsReported": 4096,
+    "visibleCharactersReportedApproximately": 686,
+    "subsequentNewWriteErrorReported": "desktop_logical_write_busy",
+    "single256WriteReported": "PASS",
+    "writeIdTerminalReceiptAndProgressTraceAvailable": false,
+    "rootCause": "UNCONFIRMED_AUDIT_ASYNC_STATE_ACK_BACKPRESSURE_PUBLIC_TOOL_TO_NATIVE",
+    "nextAcceptance": "FULL_DIRECT_PUBLIC_API_TRANSACTION_NO_CLIPBOARD_SUBSTITUTION"
+  },
+  "gpu": {
+    "status": "NOT_PHYSICALLY_ACCEPTED",
+    "sourceRoiReported": [
+      1280,
+      960
+    ],
+    "outputReported": [
+      640,
+      480
+    ],
+    "cropAndResizeReported": "PASS",
+    "actualBackendReported": "gdi",
+    "gpuResizeReported": false,
+    "hardwareGpuPathProven": false
+  },
+  "h264Viewer": {
+    "status": "NO_PRODUCER_TEST_INCOMPLETE_NOT_A_DECODER_FAILURE_VERDICT",
+    "pageReportedReachable": "/rm-video",
+    "messageReported": "No recent AI video / No recent frames",
+    "satisfiesAgentContinuousGpuObservationGoal": false
+  },
+  "installer": {
+    "ownerPhysicalStatus": "NOT_RUN",
+    "reasonReported": "No isolated VM on Windows Home; low disk space and no existing rollback folder",
+    "ciInstallUpgradeRollbackEvidence": "SEPARATE_CI127_PASS_NOT_OWNER_PHYSICAL_PASS"
+  },
+  "routingAtReportEnd": {
+    "status": "OWNER_REPORTED_REGISTRY_ONLINE_ROUTING_OFFLINE_SESSION_ACTIVE",
+    "queuedAndInflightReported": 0,
+    "desktopObservationReportedDetached": true,
+    "cause": "UNKNOWN",
+    "currentLivenessRecheckedInThisTurn": false,
+    "relinkReinstallOrNewBPerformedByThisTurn": false
+  },
+  "leftoversReported": {
+    "folder": "%TEMP%\\RMV2-Acceptance-20261114",
+    "unsavedNotepadTestDocument": true,
+    "cleanupPerformedByThisTurn": false,
+    "personalDocumentOverwriteReported": false
+  },
+  "overall": "PARTIAL_OWNER_REPORTED_LIVE_ACCEPTANCE_NOT_FULL_RMV2_PASS",
+  "ownerGoalClarification": "Preserve all existing features and on-demand screenshots; add optional continuously acquired GPU screen updates consumed by the Agent for precise1-2px design and PowerPoint feedback. Owner viewer is not the objective.",
+  "newAgentGpuObservationImplementation": "PLANNED_NOT_IMPLEMENTED"
+}

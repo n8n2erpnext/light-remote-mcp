@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-14T06:50:17.218Z",
+  "updatedAt": "2026-11-15T01:44:35.895Z",
   "version": "0.10.1-dev.11",
-  "phase": "RMV2_TEXT_GPU_VIDEO_IMPLEMENTED_CI_AND_LAB_VERIFIED_PHYSICAL_PENDING",
-  "status": "RM_IMPLEMENTATION_COMPLETE_CI15_LAB_PASS_OWNER_UAT_PENDING",
+  "phase": "PRESERVE_STABLE_RM_ADD_AGENT_GPU_OBSERVATION_DESIGN",
+  "status": "RM_OWNER_CLARIFICATION_AGENT_GPU_OBSERVATION_PLANNED_LIVE_PARTIAL",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -51,7 +51,7 @@
       "report": "docs/evidence/dev-integration.json",
       "ciUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/42803494868"
     },
-    "physicalOwnerAcceptance": "PENDING_COMBINED_RMV2_OWNER_SELF_INSTALL",
+    "physicalOwnerAcceptance": "PARTIAL_OWNER_REPORTED_UNPINNED_ARTIFACT_NOT_INDEPENDENTLY_REPRODUCED",
     "historicalPhysicalSource": "4dddf5114248a014c0695e853109358039afa7ad",
     "historicalPreconversionCi": {
       "runId": 42468832737,
@@ -470,6 +470,16 @@
         "publicReleaseOrFeed": false
       },
       "physicalOwnerAcceptance": "PENDING_DEV11_OWNER_SELF_INSTALL_CONSOLIDATED_TEST"
+    },
+    "ownerLiveRmv2Report20261115": {
+      "path": "docs/evidence/rmv2/owner-live-report-20261115.json",
+      "provenance": "OWNER_PASTED_REPORT",
+      "installedSourceCommit": null,
+      "installedInstallerSha256": null,
+      "independentlyReproduced": false,
+      "directWriteText": "UNACCEPTED",
+      "agentGpuObservation": "NOT_IMPLEMENTED",
+      "currentRoutingRechecked": false
     }
   },
   "remaining": [
@@ -481,7 +491,9 @@
     "Existing reconstruction backlog retained: legacy Long Memory extension/RC50/Guest prototypes and full Mac/Linux installers",
     "Complete endpoint/schema catalog coverage and remaining legacy server route constants; new three routes use canonical catalog",
     "Memory/Codex100-row native read window remains explicit; Desktop task/session history is bounded/pageable",
-    "RM v2 physical Owner GPU/encoder/mixedDPI/application acceptance pending against the pinned combined installer; native/source implementation and scoped CI are complete."
+    "RM: implement optional continuous GPU observation consumed by Agent with lossless physical1:1 precision ROI and measured design/PowerPoint1-2px feedback; current viewer is not this objective.",
+    "RM: Owner-reported direct write_text4096 partial-or-unfinished/busy must be diagnosed through public API/writeId/terminal receipts; clipboard262K does not accept it.",
+    "RM: reported routing offline cause/current liveness and exact installed artifact remain unverified; preserve enrollment/B/session and test leftovers until authorized recovery."
   ],
   "repositoryReplacement": {
     "ownerConfirmed": true,
@@ -519,7 +531,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Owner self-downloads and installs only the pinned internal installer, performs the consolidated Windows checklist including original cursors/sky-blue badge+glow/confirmed task close45s quiet fallback, local input/focus safety, Unicode/full-content receipts, crop/DPI, DXGI fallback and optional H264 viewer, then reports exact source/run/installerSHA outcomes. Hardware encoder/adapter/mixedDPI claims require physical evidence; no public release or main promotion.",
+  "nextAction": "Implement the accepted additive Agent GPU observation design behind a default-off flag: independent DXGI changed-region collector, bounded latest cache, physical1:1 lossless precision ROI, Agent-consumable image adapter and input-to-fresh-frame correlation, preserving existing screenshot/input/session behavior. Before integrated physical acceptance, audit the public write_text async receipt/status path and exact installed artifact; investigate reported routing separately without replay/relink/newB or changing stable runtime. Measure actual images delivered to the Agent,1-2px fidelity and same-device latency; Owner viewer/codec flags are not acceptance.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -610,11 +622,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261114-rmv2-combined-native-gpu-video-internal-acceptance",
-    "status": "RM_IMPLEMENTATION_COMPLETE_CI15_LAB_PASS_OWNER_UAT_PENDING",
-    "summary": "Complete internal RM implementation and exact-source acceptance: source1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9, CI127 all15jobs PASS, all five real keyboard262K editor/layout cases PASS on the identical helper staged in the one-primary installer, actual D3D11/WARP shader and reduced-readback DXGI probe PASS, native H264 plus production WebCodecs16color frames and lease/close/resource checks PASS. Independently verify installer/source/tree/hash and deploy only isolated Gold Lab with recovery, no DB migration or independent Agent/session/grant disruption. Owner physical GPU/mixedDPI/app acceptance remains pending, no public release or production/domain/callback/main/feed change.",
-    "verification": "Exact-source CI12715/15PASS; all five262K receipts, source/tree/shared helper SHA 45a3054b6619459774d91d680b7645baf8bf73de326d3b3adfbb9bfc1427f600, native GPU/H264/browser and one-primary installer verified. ZIP SHA 599ff43fc8203cbc9b691bf131d2336e40d9d675ebb30010fcb3b1d37ee951c7; installer SHA d9b84b6df878c1abc1c11feb8b378520a26ba34b69133a2e580c10eaddf452a8. checkpoint/20261114-before-rmv2-acceptance-1bd6fcc independent restore/fsckPASS.",
-    "nextAction": "Owner self-downloads and installs only the pinned internal installer, performs the consolidated Windows checklist including original cursors/sky-blue badge+glow/confirmed task close45s quiet fallback, local input/focus safety, Unicode/full-content receipts, crop/DPI, DXGI fallback and optional H264 viewer, then reports exact source/run/installerSHA outcomes. Hardware encoder/adapter/mixedDPI claims require physical evidence; no public release or main promotion.",
+    "taskId": "20261115-rmv2-agent-gpu-observation-owner-clarification",
+    "status": "RM_OWNER_CLARIFICATION_AGENT_GPU_OBSERVATION_PLANNED_LIVE_PARTIAL",
+    "summary": "Accept Owner clarification: preserve stable on-demand screenshots and every existing RM path; add an opt-in continuous GPU screen-observation path consumed by the Agent for1-2px design/PowerPoint feedback. Existing per-call H264/Owner viewer is a component baseline, not this goal. Record the pasted live report separately from CI127: five262K clipboard-paste cases do not accept direct write_text;4096 partial-or-unfinished/busy and routing-offline cause remain unconfirmed. New Agent GPU collector/precision ROI/host image adapter are planned, not implemented. This commit changes documentation only.",
+    "verification": "Reviewed existing DxgiCapture/DesktopVideo/native text orchestration and public video tool contracts against exact24b5d06 Git archive, byte parityPASS. Microsoft Desktop Duplication/MFT and current MCP tool-content primary references read; design/evidence classifications are not new runtime tests. Owner report has no supplied installed source/installer hash or raw per-operation receipts and is marked reported-only. Pre-change full checkpoint checkpoint/20261115-before-rmv2-agentvision-24b5d06 bundleSHA 576c2ec39907d3928283e9e670ccd689b12d04128b7cd2ce9b55c98e2d5a5255 archiveSHA 814856373ae2b64ca7e4d3f6aaa8aca7978e74642150ccdb1d04bd755a943e91 independent restore/fsckPASS.",
+    "nextAction": "Implement the accepted additive Agent GPU observation design behind a default-off flag: independent DXGI changed-region collector, bounded latest cache, physical1:1 lossless precision ROI, Agent-consumable image adapter and input-to-fresh-frame correlation, preserving existing screenshot/input/session behavior. Before integrated physical acceptance, audit the public write_text async receipt/status path and exact installed artifact; investigate reported routing separately without replay/relink/newB or changing stable runtime. Measure actual images delivered to the Agent,1-2px fidelity and same-device latency; Owner viewer/codec flags are not acceptance.",
     "sourceDigest": "b9ba5ed43128f28f616d30f1d87a171a18ee518e6fe1d82d56166ddf48676293",
     "sourceFileCount": 1722
   },
@@ -2228,7 +2240,15 @@
       "inputAlreadyQueuedCanRaceWithFocusChange": true,
       "arbitraryLfCrlfApplicationMatrix": "PENDING_PHYSICAL",
       "readbackCost": "FULL_DOCUMENT_PER256UNIT_WINDOW_INCREMENTAL_RANGE_NOT_IMPLEMENTED",
-      "sameInstallerHelperSha256": "45a3054b6619459774d91d680b7645baf8bf73de326d3b3adfbb9bfc1427f600"
+      "sameInstallerHelperSha256": "45a3054b6619459774d91d680b7645baf8bf73de326d3b3adfbb9bfc1427f600",
+      "ownerReportedPublicWrite4096": {
+        "status": "UNACCEPTED_PARTIAL_OR_UNFINISHED_ROOT_CAUSE_UNKNOWN",
+        "reportedVisibleApproximately": 686,
+        "busyReported": true,
+        "nativeCiEvidenceUnchanged": true,
+        "clipboard262KIsNotDirectWriteAcceptance": true,
+        "evidence": "docs/evidence/rmv2/owner-live-report-20261115.json"
+      }
     },
     "capture": {
       "defaultBackend": "gdi",
@@ -2306,14 +2326,16 @@
       },
       "physicalHardwareMatrix": "PENDING_OWNER",
       "hardwareEncoderPhysical": "NOT_RUN",
-      "zeroCopy": false
+      "zeroCopy": false,
+      "agentContinuousObservationImplemented": false,
+      "ownerReportedActualBackend": "GDI_ONLY_GPU_NOT_PHYSICALLY_ACCEPTED"
     },
     "platformCi": {
       "macOS": "STANDARD_MACOS15_INTEL_NATIVE_SOURCE_TESTS",
       "appleSilicon": "PENDING_NOT_ACCEPTED_HOSTED_CAPACITY_FAILURE_CI117",
       "Linux": "UBUNTU24_NATIVE_SOURCE_TESTS"
     },
-    "status": "IMPLEMENTED_FULL_CI15_AND_LAB_PASS_OWNER_PHYSICAL_PENDING",
+    "status": "CI_COMPONENT_BASELINE_PASS_OWNER_LIVE_PARTIAL_AGENT_GPU_OBSERVATION_PLANNED",
     "compiledSourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
     "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
     "version": "0.10.1-dev.11",
@@ -2433,11 +2455,11 @@
       "restore": "PASS",
       "source": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9"
     },
-    "acceptanceReadiness": true,
+    "acceptanceReadiness": false,
     "deployedToLab": true,
     "physicalAccepted": false,
     "publicRelease": false,
-    "ownerTestPlan": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md#consolidated-windows-acceptance",
+    "ownerTestPlan": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
     "historicalBeforeCombinedAcceptance": {
       "status": "IN_PROGRESS_NOT_READY_FOR_OWNER_ACCEPTANCE",
       "compiledSourceCommit": "f1092607fb96ed181e9b4c71a55e13429b183a60",
@@ -3236,7 +3258,9 @@
       "closedScopeKeys": "120S1024RAM_NO_PIXELS_OVERLOAD_REFUSES_PUSH",
       "viewer": "AUTHENTICATED_OWNER_LOCAL_WALL_RM_VIDEO_NO_CAPTURE_NO_RENEW",
       "zeroCopy": false,
-      "hardwareEncoderPhysical": "NOT_RUN"
+      "hardwareEncoderPhysical": "NOT_RUN",
+      "goalScope": "EXISTING_PULL_H264_AND_OWNER_VIEWER_COMPONENT_NOT_AGENT_OBSERVATION_GOAL",
+      "ownerReportedViewer": "NO_PRODUCER_NO_AGENT_DELIVERY_PROOF"
     },
     "evidence": {
       "acceptance": "docs/evidence/rmv2/acceptance-ci127.json",
@@ -3246,6 +3270,37 @@
       "comparison": "docs/evidence/rmv2/comparison-ci127.json",
       "text": "docs/evidence/rmv2/text-ci127.json",
       "video": "docs/evidence/rmv2/video-ci127.json"
+    },
+    "historicalStatusBeforeOwnerClarification20261115": {
+      "status": "IMPLEMENTED_FULL_CI15_AND_LAB_PASS_OWNER_PHYSICAL_PENDING",
+      "acceptanceReadiness": true,
+      "physicalAccepted": false,
+      "ownerTestPlan": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md#consolidated-windows-acceptance"
+    },
+    "stableScreenshotPath": "PRESERVED_ON_DEMAND_DEFAULT",
+    "ownerReportedLiveEvidence": "docs/evidence/rmv2/owner-live-report-20261115.json",
+    "agentGpuObservation": {
+      "status": "OWNER_REQUIREMENT_ACCEPTED_DESIGN_ONLY_NOT_IMPLEMENTED",
+      "additive": true,
+      "defaultEnabled": false,
+      "goal": "AGENT_CONTINUOUS_SCREEN_PERCEPTION_PRECISE_DESIGN_POWERPOINT_NOT_OWNER_VIEWER",
+      "preserveAllExistingFeatures": true,
+      "preserveOnDemandScreenshots": true,
+      "capture": "PROPOSED_CLIENT_DXGI_COLLECTOR_DIRTY_MOVE_METADATA",
+      "delivery": "PROPOSED_BOUNDED_LATEST_AND_AGENT_IMAGE_ADAPTER_HOST_CAPABILITY_NEGOTIATED",
+      "precision": "PROPOSED_PHYSICAL1_TO1_LOSSLESS_ROI_NO_OVERVIEW_DOWNSCALE_FOR1PX_VERDICT",
+      "inputFeedback": "PROPOSED_FRESH_ROI_AFTER_INPUT_RECEIPT_NOT_FIXED_SLEEP",
+      "codec": "OPTIONAL_TRANSPORT_NOT_THE_OBJECTIVE",
+      "backgroundCaptureRenewsControl": false,
+      "physicalAgentAcceptance": "NOT_RUN",
+      "plan": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
+      "checkpointBeforePlan": {
+        "tag": "checkpoint/20261115-before-rmv2-agentvision-24b5d06",
+        "bundleSha256": "576c2ec39907d3928283e9e670ccd689b12d04128b7cd2ce9b55c98e2d5a5255",
+        "archiveSha256": "814856373ae2b64ca7e4d3f6aaa8aca7978e74642150ccdb1d04bd755a943e91",
+        "restore": "PASS",
+        "source": "24b5d06fd8876a7386e1093b641732094a5d1d85"
+      }
     }
   }
 }

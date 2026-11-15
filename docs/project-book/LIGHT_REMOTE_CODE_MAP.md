@@ -1,7 +1,7 @@
 # Light Remote MCP — Unified Code Map
 
 Status: canonical source navigation, not runtime deployment proof
-Edition: 2026-11-14
+Edition: 2026-11-15
 Codebase: n8n2erpnext/light-remote-mcp; compiled0.10.1-dev.11/source1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9, CI12715/15PASS; same-source isolated Gold Lab
 Historical documentation foundation: de7eb2264d88546ecea00991730e596ee42768d3
 API contract: [light-remote.api.v1](../../contracts/api.v1.json)
@@ -426,3 +426,7 @@ Close the encoded-video relay race: native close already releases control, but a
 ## Record complete RM text GPU video CI and verified internal installer
 
 Current RM scheduler/typing/GPU/video/relay/Owner viewer/source/installer proof is consolidated in the single Master Checkpoint and docs/evidence/rmv2/acceptance-ci127.json. Historical incomplete262K/GPU/video entries are time-scoped; physical Owner acceptance remains pending.
+
+## Current Agent GPU observation design — 2026-11-15
+
+Existing native DxgiCapture and DesktopVideo are on-demand component paths; lib/rmv2-video.mjs strips image payload from capture replies, and plugin-server/tools.mjs exposes per-call IDR metadata and optional encoded-byte read. There is no continuous Agent collector/precision image adapter yet. The existing RM plan now describes additive collector/cache/Agent result delivery and1-2px feedback. These are proposed boundaries, not implemented files or routes. Public direct-write orchestration in lib/rmv2-text-write.mjs returns asynchronous state/writeId and requires terminal text_status evidence; Owner reported4096partial-or-unfinished/busy, root cause unconfirmed. See the single Master Checkpoint and docs/evidence/rmv2/owner-live-report-20261115.json.

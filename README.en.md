@@ -247,7 +247,7 @@ npm test
 
 ## Project status
 
-Internal0.10.1-dev.11, one primary LightRemote.exe. Exact source `1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9`; [CI127 all15PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850), [internal installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850/artifacts/14103290306), [source/hash/evidence](docs/evidence/rmv2/acceptance-ci127.json). All five262K real editor cases, actual GPU resize/reduced readback, native H264 and production WebCodecs decoding pass scoped CI. Isolated Gold Lab uses this source. Owner physical GPU/encoder/mixedDPI/application UAT remains pending. JPEG/GDI fallback is preserved; video is bounded H264 pull with CPU NV12, not zero-copy. No public release, feed/main promotion, production/domain/callback or Owner installation change.
+Existing on-demand screenshots and stable RM features are preserved. Owner clarified an additive continuous GPU screen-observation path consumed by the Agent for precise1-2px design and PowerPoint work. This path is designed, not implemented; the existing H264/Owner viewer is not its acceptance target. Native baseline1bd6fcc/CI12715of15 remains valid within its component scope. The pasted Owner live report is partial and not bound to an installed source/installer hash: paste262K does not accept direct write_text, which is reported partial-or-unfinished at4096units; actual GPU and Agent perception remain unaccepted. See [plan](docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) and [classified report](docs/evidence/rmv2/owner-live-report-20261115.json). This update is documentation-only: no native build, service or Owner-machine changes.
 
 ## License
 

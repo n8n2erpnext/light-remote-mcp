@@ -1,20 +1,78 @@
 # RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn
 
-Status: IMPLEMENTED_FULL_CI15_AND_ISOLATED_LAB_PASS_OWNER_PHYSICAL_PENDING
+Status: AGENT_GPU_OBSERVATION_OWNER_REQUIREMENT_ACCEPTED_DESIGN_ONLY_LIVE_PARTIAL
 Edition: 2026-11-11, Asia/Saigon
 Scope: Windows RM v2, đối chiếu typing macOS; giữ các tool, semantic UI, A/B và local policy hiện tại
 Original research snapshot: GitHub `work` `764e1d7ce7670c9e95690fca26b58dd2e3c86f02`, tree `41a48add6e01f3e4f6d28271a59b77f92a8acaca`
 Supersedes: none; bổ sung kế hoạch, không phải handoff/checkpoint thứ hai
 
+
 ## Current implementation and acceptance
 
-Nội bộ **0.10.1-dev.11**, một **LightRemote.exe** chính. Source `1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9`, tree `e030a88a578228ee08b7998d1fabfa68c93989ec`. [CI127:15/15 PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850) · [bộ cài nội bộ](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850/artifacts/14103290306) · [bằng chứng](../evidence/rmv2/acceptance-ci127.json). Installer SHA-256 `d9b84b6df878c1abc1c11feb8b378520a26ba34b69133a2e580c10eaddf452a8`. Commit docs này ghi nhận source đã build, không phải một bản native được build lại. **Owner physical UAT: PENDING.**
+**Mục tiêu hiện tại: bổ sung GPU observation cho Agent; mới chốt thiết kế, chưa triển khai.** Screenshot theo yêu cầu và toàn bộ tính năng RM đang ổn định giữ nguyên. Khi Agent làm thiết kế/PowerPoint cần kiểm tra1–2px liên tục, Robot thu nhận thay đổi tại GPU, giữ cập nhật mới nhất và chuyển hình cần thiết cho Agent. Precision ROI phải giữ độ phân giải vật lý gốc/lossless; overview có thể thu nhỏ. `/rm-video` không phải mục tiêu hoặc điều kiện để Agent nhận dữ liệu.
 
-Đã triển khai và có bằng chứng CI: cursor Windows nguyên bản; nhãn AI/viền xanh nhẹ; đóng task RM có xác nhận trước báo cáo và fallback45giây yên lặng; input có thứ tự, status/cancel riêng; nhập Unicode bind target với readback toàn nội dung khi capability hỗ trợ; năm ca262K Rich Edit/Classic/Win32 và smoke16K/64K; crop/ROI/mapping; DXGI/D3D11 crop+resize trước readback nhỏ, fresh GDI fallback; H264 Media Foundation ưu tiên hardware và software fallback; relay video RAM giới hạn không lưu pixels vào DB/jobs; Owner WebCodecs viewer không capture/renew quyền. Frame đến muộn sau close bị chặn. H264 là pull/independent-IDR có backpressure và CPU NV12, không zero-copy hoặc cam kết FPS. CI đã dùng software encoder/fallback; GPU adapter/encoder vật lý, mixedDPI và ứng dụng thật chờ Owner. Windows vẫn có một focus/con trỏ hệ thống; input đã vào OS queue có thể race với đổi focus, không tự replay hoặc giả verified.
+**Live acceptance còn một phần, theo báo cáo Owner:** desktop/UIA/filesystem/process/PTY/SCP và năm ca262K qua paste được báo PASS. `write_text`4096 chỉ thấy khoảng686 ký tự hoặc giao dịch chưa kết thúc; thiếu writeId/terminal receipt để xác định nguyên nhân. GPU thực tế vẫn GDI, viewer chưa có producer; routing được báo offline lúc kết thúc, hiện chưa kiểm tra lại. Source/installer cụ thể của máy chưa được xác nhận. Không chuyển các kết quả này thành direct-write/GPU/Agent-perception PASS.
 
-Gold Lab Operator/Plugin đã chạy exact source `1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9` /dev11; health/API PASS, không migration DB; giữ nguyên Agent/Wall/supervisor/mTLS và dữ liệu. Production/domain/Google callback, protected main, public feed và Owner installation không đổi.
+Baseline executable vẫn là `1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9` /0.10.1-dev.11, [CI12715/15PASS](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43564848850). Các receipt CI và bộ cài đã xác minh được giữ nguyên theo scope cũ; chúng không chứng minh mục tiêu GPU observation mới đã hoàn tất. [Plan](RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md) · [Report live đã phân loại](../evidence/rmv2/owner-live-report-20261115.json). Lượt này chỉ ghi tài liệu; không build/deploy hay thao tác máy Owner.
 
-Original research and receipts below are historical. Implementation for all requested phases is present and scoped CI is complete; physical Owner acceptance remains pending.
+## Agent GPU observation — Owner clarification 2026-11-15
+
+Status: OWNER_REQUIREMENT_ACCEPTED_DESIGN_ONLY_NOT_IMPLEMENTED
+
+Mục tiêu là bổ sung đường quan sát màn hình liên tục dành cho Agent khi làm thiết kế, chỉnh sửa PowerPoint và các thao tác cần kiểm tra sai lệch1–2px. Chụp/lấy frame theo yêu cầu và toàn bộ công cụ RM hiện có vẫn là đường mặc định ổn định. Không thay mặc định GDI, đổi quyền, thay cơ chế chuột/nhập liệu hoặc buộc người dùng bật viewer để Agent làm việc.
+
+Luồng cần xây dựng: **Agent mở chế độ quan sát → Robot thu nhận thay đổi từ GPU tại client → chọn vùng và giữ cập nhật mới nhất → adapter trả hình/thông tin Agent thực sự đọc được → Agent phân tích, chỉnh và kiểm tra kết quả tiếp theo → đóng chế độ quan sát.**
+
+### Đối chiếu source hiện tại
+
+Đã đối chiếu byte với source chính thức `24b5d06fd8876a7386e1093b641732094a5d1d85`; executable baseline vẫn `1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9` /CI127. Đây là kết quả rà source, không phải tái hiện trên máy Owner:
+
+- `DxgiCapture.TryCopy` là capture theo yêu cầu. `AcquireNextFrame(16,out _,...)` bỏ qua frame metadata; chưa có vòng thu nhận liên tục, dirty/move tracking hoặc cache cập nhật dành cho Agent. Timeout đang fallback GDI; cách đó không phù hợp cho một collector liên tục vì màn hình không đổi là trạng thái bình thường.
+- `DesktopVideo.Capture` tạo một IDR cho mỗi lần gọi, đọc về Bitmap và chuyển NV12 trên CPU; giới hạn1280×720 và chiều chẵn. Có GPU crop/resize và ưu tiên encoder hardware, nhưng chưa phải đường surface-to-encoder hoặc GPU inference.
+- `captureAuthorizedVideo` bỏ payload khỏi kết quả capture; `video_frame` trả metadata, `video_read` chỉ có encoded bytes khi yêu cầu. Chưa có adapter chứng minh hình từ đường mới đã vào ngữ cảnh phân tích của Agent. `/rm-video` giải mã cho người dùng; viewer này không phải tiêu chí thành công của mục tiêu mới.
+- `RmTextWrites.start` trả receipt trước khi giao dịch nền kết thúc và có `text_status`; busy khi một giao dịch còn active là guard có chủ đích. Báo cáo4096→khoảng686 cần xác định receipt/state/ACK/continuation từ tool công khai tới native. Chưa đủ dữ liệu kết luận lỗi nằm ở native sender hay adapter/việc theo dõi giao dịch.
+
+### Các thành phần bổ sung
+
+1. **Collector riêng, bật theo phiên.** Tạo nhánh opt-in gắn với desktop task/A-B đang hợp lệ, cửa sổ/màn hình/ROI được chọn. Robot duy trì Desktop Duplication tại client, lấy frame metadata và vùng thay đổi; xử lý move regions trước dirty regions khi dựng lại ảnh. Giữ surface/buffer dùng lại trên GPU, giảm readback và encode toàn màn hình. Không inject/hook vào ứng dụng hoặc đọc scene graph của GPU như thể đó là dữ liệu thiết kế gốc.
+2. **Bộ đệm cập nhật có giới hạn.** Tách nhịp thu nhận khỏi nhịp model suy luận. Giữ tối đa một ảnh hiện tại và một ảnh đang xử lý; gộp dirty regions có thứ tự, bỏ backlog frame cũ có thống kê rõ ràng. Khi mất base/epoch/topology phải đồng bộ lại trước khi áp dụng delta. Thay đổi thoáng qua phải được ghi nhận trong metadata, không trả `no_change` giả. Chế độ precision không được lọc mất thay đổi1px vì ngưỡng độ lớn, debounce hay chỉ vì số pixel thay đổi nhỏ.
+3. **Đường nhận cho Agent.** Đề xuất hợp đồng `observe_start`, `observe_read`, `observe_roi`, `observe_stop` trong namespace RM hiện tại; đây là tên thiết kế, chưa đăng ký tool/endpoint. `read` nhận `sinceSeq`, `waitMs` hữu hạn và profile, trả `changed/no_change/source_lost/expired`, metadata cùng ảnh mới nhất. Agent không phải gọi lệnh chụp cho từng frame. Một lần đọc có thể chờ thay đổi hoặc lấy cập nhật đã có. Tool result phải chứa hình Agent nhận được thật; text/base64, URL hoặc canvas người dùng thấy không tự chứng minh model đã nhận hình. Chỉ đăng ký route mới qua catalog/contracts chung khi triển khai.
+4. **Hai profile hình ảnh.** Overview có thể thu nhỏ để nắm bố cục; precision trả ROI ở độ phân giải vật lý gốc, ảnh RGB lossless, không resample. Nếu ảnh lớn, chia tile có tọa độ/base sequence rõ ràng và giới hạn dung lượng riêng cho nhánh mới. Không thay giới hạn hay chất lượng mặc định của screenshot cũ. Với căn chỉnh1–2px, không dùng ảnh overview thu nhỏ hoặc H264 NV124:2:0 làm bằng chứng pixel cuối cùng. H264/hardware encode chỉ là lựa chọn vận chuyển nếu consumer hỗ trợ và benchmark chứng minh có ích; không phải mục tiêu hay điều kiện để có đường Agent đầu tiên.
+5. **Adapter theo khả năng host.** Với host chỉ nhận ảnh qua MCP, chuyển cập nhật/ROI thành image content mà model đọc được, có tối đa một precision ROI và một overview cho mỗi lần trả. Với consumer video thực sự được hỗ trợ, có thể dùng surface/encoder/decoder phù hợp; phải kiểm chứng riêng. Collector chạy liên tục không đồng nghĩa LLM suy luận mọi frame hoặc một kết nối MCP tự đẩy vô hạn hình vào ngữ cảnh. Không bật local inference hay gửi thêm dữ liệu sang dịch vụ khác nếu chưa nằm trong cấu hình/ủy quyền.
+6. **Feedback sau thao tác.** Gắn ảnh với `frameSeq`, `sourceEpoch`, topology, ROI, physical bounds, timestamp và thời điểm input hoàn tất. Cho Agent chờ ảnh mới sau receipt thao tác thay vì sleep cố định. Frame sequence tăng đơn thuần chưa chứng minh đối tượng cần chỉnh đã render xong; cần so sánh đúng vùng/bối cảnh. Input vẫn dùng guard hiện có; observation không tự cấp quyền nhập liệu.
+
+### Chính xác1–2px và PowerPoint
+
+Ở máy báo cáo2560×1600/DPI150%, physical pixel, DIP và đơn vị tài liệu không đồng nhất. Nhánh mới phải khai báo phép biến đổi một lần: origin màn hình/cửa sổ/ROI, DPI, zoom và coordinate convention; không nhân DPI hai lần. ROI precision phải giữ1:1 physical pixels. Một dịch chuyển1px trong bản thiết kế/slide phải phân biệt với1px trên màn hình; với PowerPoint cần dùng zoom/đơn vị point hoặc trường số/UIA khi có, kết hợp hình để xác nhận. GPU cho pixels đã render, không tự cung cấp layer, font, constraint hoặc kích thước đối tượng của file gốc.
+
+### Phiên, quyền và hồi phục
+
+Giữ A/B, actor/device/session binding, policy và hành vi nhường input cục bộ hiện có. Mở collector không đồng nghĩa mở quyền điều khiển mới. Auto-capture, viewer và nội bộ pipeline không được tự renew control/task hay làm nhãn AI/glow tồn tại vô hạn. Agent đọc/điều khiển hợp lệ theo cơ chế task hiện hành; vẫn đóng task trước báo cáo và giữ fallback45giây yên lặng với bảo vệ công việc đang thực thi. Stop/expiry/revoke/topology loss phải dừng producer và xóa buffer đúng scope; không replay input hoặc trả frame cũ như frame mới. Khi không có cập nhật, trả idle/no_change với thông tin độ tươi; khi GPU không dùng được, báo lý do/backend thật và fallback có giới hạn. Screenshot cũ luôn còn dùng được độc lập.
+
+Pixel/delta chỉ giữ trong RAM có TTL/budget, không lưu lịch sử vào DB/jobs/logs. Không thay Agent, phiên/B code, enrollment, production, callback hay runtime đang phục vụ trong bước thiết kế này. Bỏ khỏi critical path yêu cầu mở `/rm-video`; viewer hiện có được giữ nguyên, không phát triển thêm làm trọng tâm.
+
+### Thứ tự triển khai và kiểm thử
+
+1. Giữ baseline1bd6fcc và rollback. Đối chiếu report live riêng, lấy đúng source/artifact và receipt giao dịch khi phục hồi routing được ủy quyền; không coi version dev11 là đủ để xác định binary. Audit `write_text`4096 và busy qua tool công khai, theo dõi cùng writeId tới terminal state. ACK/accepted không phải verified insertion; không thay bằng paste, tự replay hay tăng mutation authority để che lỗi.
+2. Xây collector GPU và read-latest/wait-change riêng sau feature flag tắt mặc định; kiểm thử độc lập với input. Sau đó nối adapter để hình đi tới Agent, không phụ thuộc browser viewer hoặc H264.
+3. Thêm precision ROI, dirty/move reconstruction và feedback sau input. Chạy cùng bộ test để chứng minh screenshot/GDI, chuột, keyboard, UIA, filesystem, process, PTY, SCP, lifecycle và các tính năng cũ không đổi khi feature tắt; khi bật vẫn phối hợp đúng với đường cũ.
+4. Test tổng hợp1px/2px bằng mẫu raster có ground truth: RGB sắc nét, đường mảnh, chữ, cạnh đối tượng; đối chiếu lossless ROI với frame nguồn, dirty regions, base sequence và vị trí vật lý. Test DPI100/125/150/200%, zoom, ROI sát biên, monitor origin âm, resize/đổi màn hình, mất GPU, static screen và overload. Không chọn ảnh đẹp trong viewer làm kết quả PASS.
+5. Nghiệm thu thực qua Agent trên ứng dụng thiết kế và PowerPoint: chỉnh1–2px, Agent đọc đúng cập nhật mới, phát hiện sai lệch và chỉnh tiếp bằng nhánh mới, không gọi screenshot cũ cho từng vòng. Ghi trace hình thực sự được chuyển vào tool result của host và kiểm tra Agent sử dụng được hình đó. Chỉ support flag hay metadata `gpuResizeSupported=true` không đủ.
+6. Benchmark cùng máy/cùng workload: tối thiểu30vòng, đo capture/preprocess/readback/encode/transport/adapter riêng, p50/p95 tuổi frame khi Agent nhận, CPU/GPU, bytes, số full-frame readbacks và queue/drop counts. Đặt và chốt ngưỡng cải thiện sau baseline thực; không suy ra latency end-to-end từ FPS/capture nội bộ hoặc hứa model phân tích60FPS. Chưa có số đo mới cho mục tiêu này.
+7. Install/upgrade/rollback dùng CI hoặc VM riêng; không chạy destructive acceptance trên Agent Windows Home thật đang làm việc. Ghi kết quả source/CI, live public API và Agent-perception thành các lớp riêng; chỉ đóng mục tiêu mới khi Agent dùng được nhánh GPU với fidelity và latency đã đo.
+
+### Nguồn kỹ thuật đã đọc
+
+- [Microsoft Desktop Duplication API](https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/desktop-dup-api): DXGI surface, dirty/move metadata, reconstruction và display transforms.
+- [Microsoft Direct3D-aware MFTs](https://learn.microsoft.com/en-us/windows/win32/medfound/direct3d-aware-mfts): surface-aware processing và negotiated software fallback; không chứng minh encoder hiện tại là zero-copy.
+- [MCP tool result content](https://modelcontextprotocol.io/specification/2026-07-28/server/tools): image content và host-facing results. Hợp đồng consumer phải được kiểm thử thực tế, không giả định encoded video resource tự thành vision input.
+
+Các API/tên thành phần/tiêu chí trên là thiết kế cho lần triển khai sau. Lượt2026-11-15 này chỉ cập nhật tài liệu/checkpoint/handoff và lưu report Owner; không sửa executable, build native, deploy hoặc thao tác máy Owner.
+
+
+## Historical research and component receipts
+
+Earlier research, component implementation and CI below retain their original scope. They are superseded for the clarified Agent-observation goal.
 
 ## Kết luận và giới hạn của nghiên cứu
 
