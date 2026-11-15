@@ -2,7 +2,7 @@
 
 Status: canonical source navigation, not runtime deployment proof
 Edition: 2026-11-15
-Codebase: n8n2erpnext/light-remote-mcp; compiled0.10.1-dev.11/source1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9, CI12715/15PASS; same-source isolated Gold Lab
+Codebase: n8n2erpnext/light-remote-mcp; compiled0.10.1-dev.12/source2b65a379e1fd5b3f05c101354495dcd4f6c64397, CI13115/15PASS, Gold deployed; Owner live text NOT_ACCEPTED
 Historical documentation foundation: de7eb2264d88546ecea00991730e596ee42768d3
 API contract: [light-remote.api.v1](../../contracts/api.v1.json)
 Endpoint catalog: [config/endpoints.json](../../config/endpoints.json)
@@ -442,3 +442,7 @@ lib/rmv2-observation-agent.mjs now keeps the last published observation identity
 ## Record CI131 GPU observation installer verification and Gold deployment
 
 Current compiled Agent observation source 2b65a379e1fd5b3f05c101354495dcd4f6c64397 is verified by CI131 and docs/evidence/rmv2/agent-observation-ci131.json. Native collector/cache -> lib observation orchestration -> signed/private bounded RAM relay -> typed MCP image is integrated and tested. Gold Lab Operator+Plugin serves exact2b65a37/dev12; preparation/recovery and post-cutover receipt verified. No DB migration; account/device/grant/Owner counts and independent Wall/process-supervisor/mTLS services checked by the cutover guard. Previous1bd6fcc runtime/recovery retained. Production Google callback/domain, protected main, public release/feed and Owner Windows installation unchanged.
+
+## Dev12 live acceptance audit
+
+Keep RMv2 live acceptance OPEN/NOT_APPROVED after Owner dev12 report. Independently hash-verified the installed helper as exact CI131 source2b65a37 and the synthetic fixture mismatches:8192expected/6816actual and1391expected/49actual;4096 matches. Existing text-start jobs return exit0 with statepreparing, not completion; no text-write-status job exists in the audited session/window, so terminal write reason/ACK remains unknown. Gold serving registry has262K/sourcePath/status/cancel/GPU/video tools, while this active turn still receives old bindings after Owner refresh. No native source fix or live direct262K/GPU acceptance is claimed. Owner explicitly removed Windows VM work.

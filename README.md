@@ -255,11 +255,9 @@ npm test
 
 ## Trạng thái dự án
 
-**GPU observation cho Agent đã triển khai trong dev12, CI131 PASS15/15 và Gold Lab đã cập nhật.** Giữ nguyên screenshot theo yêu cầu và các luồng RM cũ. Bộ thu DXGI chạy nền khi Agent chủ động mở; vùng chi tiết PNG1:1 tối đa384×384, tổng quan JPEG tối đa640×360. Ảnh được trả trực tiếp bằng MCP image content; vùng không đổi chỉ cập nhật metadata/tọa độ đã xác nhận. Thu nền không tự gia hạn phiên45s. Nghiệm thu vật lý trên máy Owner còn chờ.
+**RM v2 chưa đạt nghiệm thu live trên dev12.** Đã xác minh helper đang cài đúng source CI131 và đọc lại hash fixture:4.096 đúng;8.192 chỉ có6.816; bài300từ1391units chỉ có49. Năm ca262K qua paste không nghiệm thu API nhập trực tiếp. Job exit0 đang là xác nhận nhận lệnh; receipt ban đầu còn preparing, chưa có terminal writeId để xác định nguyên nhân. Server đã đăng ký schema262K/sourcePath/status/cancel và GPU/video; catalog của lượt đang chạy vẫn cũ sau thông báo refresh. Không coi GDI screenshot là bài test đường GPU mới. Bỏ mục dựng Windows VM theo yêu cầu Owner.
 
-[CI131](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43668040391) · [Verified internal Windows installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43668040391/artifacts/14143916515) · [Evidence](docs/evidence/rmv2/agent-observation-ci131.json)
-
-Gold Lab Operator+Plugin serves exact2b65a37/dev12; preparation/recovery and post-cutover receipt verified. No DB migration; account/device/grant/Owner counts and independent Wall/process-supervisor/mTLS services checked by the cutover guard. Previous1bd6fcc runtime/recovery retained. Production Google callback/domain, protected main, public release/feed and Owner Windows installation unchanged.
+Executable/Gold remains exact2b65a37/dev12/CI13115PASS; current Owner helper independently matches it. No executable changes, new native build, installation/update, service restart, DB migration, production/callback/domain/feed/main change in this audit.
 
 ## License
 

@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-15T03:01:59.413Z",
+  "updatedAt": "2026-11-15T05:00:22.371Z",
   "version": "0.10.1-dev.12",
-  "phase": "ADDITIVE_AGENT_GPU_OBSERVATION_INTERNAL_CANDIDATE_VERIFIED",
-  "status": "AGENT_GPU_CI131_PASS_GOLD_DEPLOYED_OWNER_PHYSICAL_PENDING",
+  "phase": "OWNER_LIVE_NATIVE_TEXT_AND_TOOL_CONTRACT_DIAGNOSIS",
+  "status": "OWNER_DEV12_LIVE_TEXT_NOT_ACCEPTED_TERMINAL_TRACE_PENDING",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -539,6 +539,15 @@
       "nativeProducerPrecisionMcpImage": "PASS",
       "actualDxgi": "CAPTURED_CI_DESKTOP_NOT_OWNER_PHYSICAL",
       "physicalOwnerAcceptance": false
+    },
+    "ownerDev12LiveText20261115": {
+      "path": "docs/evidence/rmv2/owner-dev12-live-text-audit-20261115.json",
+      "installedSource": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+      "installedHelperSha256": "02a3ea7826cddf9ee25837d2da334037df67b0ca7a60331ec0269978ca11d926",
+      "fixtureMismatchesIndependentlyVerified": true,
+      "terminalWriteReason": "NOT_CAPTURED",
+      "vmRequested": false,
+      "executableChanged": false
     }
   },
   "remaining": [
@@ -552,7 +561,8 @@
     "Memory/Codex100-row native read window remains explicit; Desktop task/session history is bounded/pageable",
     "RM: Owner-reported direct write_text4096 partial-or-unfinished/busy must be diagnosed through public API/writeId/terminal receipts; clipboard262K does not accept it.",
     "RM: reported routing offline cause/current liveness and exact installed artifact remain unverified; preserve enrollment/B/session and test leftovers until authorized recovery.",
-    "RM: dev12 physical GPU/Agent-host perception,150%DPI1px2px mapping and same-device design latency UAT pending; public direct-write and routing report remain separate."
+    "RM: dev12 physical GPU/Agent-host perception,150%DPI1px2px mapping and same-device design latency UAT pending; public direct-write and routing report remain separate.",
+    "RM: Owner dev12 direct input fixtures mismatch; capture final writeId/ACK/reason before a fix or PASS. Current active-turn catalog lacks new status/GPU bindings despite server registry support. Owner removed Windows VM work."
   ],
   "repositoryReplacement": {
     "ownerConfirmed": true,
@@ -590,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Owner self-download the verified CI131 COMPLETE Windows x64 artifact, install dev12 and test the new optional GPU Agent path at actual150% DPI/design/PowerPoint: real images received by the Agent,1px2px fidelity, physical coordinate mapping, source-loss/fallback and same-device response time. Existing screenshot path stays available. Public direct write_text4096/busy and reported routing remain separate live acceptance questions; never substitute clipboard or CI evidence for those reports.",
+  "nextAction": "After Owner tool refresh, inspect a freshly supplied tool inventory for desktop_text_status/cancel and observation/video routes. Reproduce two sequential4096 writes and paced300words in one dedicated synthetic target; poll each writeId to terminal before readback, next transaction or detach; record reason, accepted/sent/observed/verified counts and hashes. Investigate authority-budget/target/focus/ACK only from actual final receipts; do not queue or replay uncertain input. Then run direct262K via inline/sourcePath and exercise Agent GPU observation separately from legacy GDI/viewer. No Windows VM task. Preserve fixtures and existing device/grant/session.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -681,11 +691,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261115-rmv2-agent-gpu-ci131-artifact-gold-receipt",
-    "status": "AGENT_GPU_CI131_PASS_GOLD_DEPLOYED_OWNER_PHYSICAL_PENDING",
-    "summary": "Agent GPU observation dev12 is implemented, integrated, full CI13115/15 PASS, exact shared native/installer bytes independently verified, and deployed to internal Gold Lab only. Background DXGI collection, physical1:1 PNG ROI, direct MCP image delivery, unchanged-frame coordinate revalidation, and close/no-renew behavior passed synthetic production-path tests. Original on-demand screenshot/input/viewer/Agent functionality remains available. Owner physical GPU/Agent-host perception and design latency remain NOT_RUN; no public release/feed or Owner installation.",
-    "verification": "Exact executable source 2b65a379e1fd5b3f05c101354495dcd4f6c64397, tree 2decc4dde0866c302e9641bc34cf8da0dd2e0476, CI 43668040391, all15 jobs PASS. Five isolated native262K cases and existing media/browser/installer migration/rollback/lifecycle PASS. New native observation artifact 14143645111 SHA256 a451fb1ef043e8480122d07f9ca4a6fec571d4c736c7f49c0cbd7e71d42ecc68:1px+2px full RGB parity through production PNG and MCP image formatter/independent decoder, no-change/lease/revocation/cleanup/legacy screenshot coexistence PASS. Actual DXGI diagnostic: DXGI_CAPTURED_UNVERIFIED_DESKTOP_PIXELS. Shared helper SHA256 02a3ea7826cddf9ee25837d2da334037df67b0ca7a60331ec0269978ca11d926; installer SHA256 ecfb1d767ca86bc5f008ea19dd42f63d3a0a889efa5d6c26270321ffa8a43215, bytes 172718826, artifact 14143916515, ZIP SHA256 5277ac32dc36ebadd1c187761732608da32d9b06b0da1d5ad39ca31a4a607801. Physical Owner acceptance false. Pre-receipt full checkpoint checkpoint/20261115-before-rmv2-acceptance-2b65a37, restore/fsckPASS. Superseded full CI130 was cancelled for the corrected source; media probe43666877343 remains historical component PASS, not full acceptance.",
-    "nextAction": "Owner self-download the verified CI131 COMPLETE Windows x64 artifact, install dev12 and test the new optional GPU Agent path at actual150% DPI/design/PowerPoint: real images received by the Agent,1px2px fidelity, physical coordinate mapping, source-loss/fallback and same-device response time. Existing screenshot path stays available. Public direct write_text4096/busy and reported routing remain separate live acceptance questions; never substitute clipboard or CI evidence for those reports.",
+    "taskId": "20261115-rmv2-dev12-owner-live-text-contract-audit",
+    "status": "OWNER_DEV12_LIVE_TEXT_NOT_ACCEPTED_TERMINAL_TRACE_PENDING",
+    "summary": "Keep RMv2 live acceptance OPEN/NOT_APPROVED after Owner dev12 report. Independently hash-verified the installed helper as exact CI131 source2b65a37 and the synthetic fixture mismatches:8192expected/6816actual and1391expected/49actual;4096 matches. Existing text-start jobs return exit0 with statepreparing, not completion; no text-write-status job exists in the audited session/window, so terminal write reason/ACK remains unknown. Gold serving registry has262K/sourcePath/status/cancel/GPU/video tools, while this active turn still receives old bindings after Owner refresh. No native source fix or live direct262K/GPU acceptance is claimed. Owner explicitly removed Windows VM work.",
+    "verification": "Read-only governed operations on the exact already-authorized S9X0R0 session; no new enrollment/B or test-input replay. Installed file hash matches the shared CI131/installer helper. Fixture lengths and SHA256 recomputed on Windows without clipboard/input. Existing job receipts and schema registry projected without typed content or credentials. Native status:2560x1600,144DPI,0visual scopes, idle, osCursorOverriddenfalse, logical inline262144, GPU opt-in supported/defaultGDI. This is diagnosis, not a repaired binary or retest of the reported failed transactions. Full pre-audit checkpoint checkpoint/20261115-before-rmv2-textinput-286d815 independent restore/fsckPASS.",
+    "nextAction": "After Owner tool refresh, inspect a freshly supplied tool inventory for desktop_text_status/cancel and observation/video routes. Reproduce two sequential4096 writes and paced300words in one dedicated synthetic target; poll each writeId to terminal before readback, next transaction or detach; record reason, accepted/sent/observed/verified counts and hashes. Investigate authority-budget/target/focus/ACK only from actual final receipts; do not queue or replay uncertain input. Then run direct262K via inline/sourcePath and exercise Agent GPU observation separately from legacy GDI/viewer. No Windows VM task. Preserve fixtures and existing device/grant/session.",
     "sourceDigest": "d6d7897de9dd99554d0b9c1c82b3e36bc20c58efc9d62f74d051e8dfb70fc708",
     "sourceFileCount": 1733
   },
@@ -2394,7 +2404,7 @@
       "appleSilicon": "PENDING_NOT_ACCEPTED_HOSTED_CAPACITY_FAILURE_CI117",
       "Linux": "UBUNTU24_NATIVE_SOURCE_TESTS"
     },
-    "status": "AGENT_GPU_CI131_PASS_GOLD_DEPLOYED_OWNER_LIVE_PARTIAL",
+    "status": "OWNER_DEV12_LIVE_TEXT_NOT_ACCEPTED_TERMINAL_TRACE_PENDING",
     "compiledSourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
     "sourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
     "version": "0.10.1-dev.11",
@@ -3351,7 +3361,7 @@
       "inputFeedback": "AFTER_SOURCE_SEQ_CHANGED_READ_EXISTING_FRAME_COORDINATE_GUARDS",
       "codec": "OPTIONAL_TRANSPORT_NOT_THE_OBJECTIVE",
       "backgroundCaptureRenewsControl": false,
-      "physicalAgentAcceptance": "NOT_RUN",
+      "physicalAgentAcceptance": "UNEXERCISED_CURRENT_TURN_TOOL_CATALOG_STALE",
       "plan": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "checkpointBeforePlan": {
         "tag": "checkpoint/20261115-before-rmv2-agentvision-24b5d06",
@@ -3375,7 +3385,9 @@
       "evidence": "docs/evidence/rmv2/agent-observation-ci131.json",
       "goldLabDeployedSource": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
       "installerSha256": "ecfb1d767ca86bc5f008ea19dd42f63d3a0a889efa5d6c26270321ffa8a43215",
-      "helperSha256": "02a3ea7826cddf9ee25837d2da334037df67b0ca7a60331ec0269978ca11d926"
-    }
+      "helperSha256": "02a3ea7826cddf9ee25837d2da334037df67b0ca7a60331ec0269978ca11d926",
+      "installedHelperHashMatchesCI131": true
+    },
+    "ownerDev12LiveAudit": "docs/evidence/rmv2/owner-dev12-live-text-audit-20261115.json"
   }
 }

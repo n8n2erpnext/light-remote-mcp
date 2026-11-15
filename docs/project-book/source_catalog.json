@@ -3,9 +3,9 @@
   "scope": "docs/**/*.md and docs/**/*.json, excluding docs/project-book to avoid self-reference",
   "generatedBy": "deploy/scripts/generate-doc-catalog.mjs",
   "counts": {
-    "total": 329,
+    "total": 330,
     "markdown": 230,
-    "json": 99
+    "json": 100
   },
   "files": [
     {
@@ -969,6 +969,27 @@
         "normalizedLockSha256",
         "sourceCompile",
         "lockIntake"
+      ]
+    },
+    {
+      "path": "docs/evidence/rmv2/owner-dev12-live-text-audit-20261115.json",
+      "shelf": "evidence",
+      "extension": "json",
+      "bytes": 6300,
+      "sha256": "eeacd9741c514209a626a3695bd3649cd63bbda0e854f6ef7cc8e021ec4ecfce",
+      "topLevelKeys": [
+        "provenance",
+        "device",
+        "date",
+        "status",
+        "installedVersion",
+        "installedHelperSha256",
+        "installedHelperProductVersion",
+        "compiledSource",
+        "fixtureReadbackIndependentlyVerified",
+        "initialWriteReceipts",
+        "terminalWriteStates",
+        "textStatusJobsInAuditedSessionWindow"
       ]
     },
     {
@@ -3534,8 +3555,8 @@
       "path": "docs/plans/RMV2_RESPONSIVENESS_CURSOR_GPU_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 122240,
-      "sha256": "ad75bf7393a720070d61b53ed40024ce65148b920e232d5c5c00164f140f84b0",
+      "bytes": 120191,
+      "sha256": "a34847bb9a3b880362a7bdfdc1a18b4bc3d6e0a8826be7ee88b6643c6140fb86",
       "title": "RM v2 — cursor nguyên bản, phản hồi nhanh và GPU tùy chọn"
     },
     {

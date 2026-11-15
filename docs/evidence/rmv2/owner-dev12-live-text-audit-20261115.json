@@ -1,0 +1,188 @@
+{
+  "provenance": "OWNER_LIVE_REPORT_PLUS_READONLY_INDEPENDENT_AUDIT",
+  "device": "S9X0R0",
+  "date": "2026-11-15",
+  "status": "LIVE_ACCEPTANCE_NOT_APPROVED",
+  "installedVersion": "0.10.1-dev.12",
+  "installedHelperSha256": "02a3ea7826cddf9ee25837d2da334037df67b0ca7a60331ec0269978ca11d926",
+  "installedHelperProductVersion": "0.10.1-dev.12+2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+  "compiledSource": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+  "fixtureReadbackIndependentlyVerified": [
+    {
+      "case": "4096_ascii",
+      "expectedUnits": 4096,
+      "actualUnits": 4096,
+      "hashMatch": true,
+      "expectedSha256": "9aec711280669e3c0470796546f24aa8363e9d50665a755384d08b7fa6151535",
+      "actualSha256": "9aec711280669e3c0470796546f24aa8363e9d50665a755384d08b7fa6151535"
+    },
+    {
+      "case": "8192_ascii",
+      "expectedUnits": 8192,
+      "actualUnits": 6816,
+      "hashMatch": false,
+      "expectedSha256": "54f624253436dcd5fe656688f7ddb3a314b4524453ce553a5b39a62ce0de4ee5",
+      "actualSha256": "3dc37d8f1fdf002d145dcf64b21f383745aa6fbdba04367d4a16a969fecd974b"
+    },
+    {
+      "case": "300_words",
+      "expectedUnits": 1391,
+      "actualUnits": 49,
+      "hashMatch": false,
+      "expectedSha256": "4b5619a0f74139b69dc2428d31c04abbbddd54e68750355f5a076994443635a6",
+      "actualSha256": "ab4690035d98f88a6f955fefab4a1ed37198c3765d004721b2088743c62a3933"
+    }
+  ],
+  "initialWriteReceipts": [
+    {
+      "jobId": "eaa8906e-90ef-454e-bb14-5688df13b7d5",
+      "time": "2026-11-15T03:44:27.897Z",
+      "exitCode": 0,
+      "state": "preparing",
+      "requestedUnits": 7,
+      "verifiedInsertedUnits": null,
+      "error": null
+    },
+    {
+      "jobId": "088c3a7f-f7d3-492a-ac82-4337a988bb36",
+      "time": "2026-11-15T03:45:07.213Z",
+      "exitCode": 0,
+      "state": "preparing",
+      "requestedUnits": 24,
+      "verifiedInsertedUnits": null,
+      "error": null
+    },
+    {
+      "jobId": "9d55c7e5-ffd1-4b59-a108-430b068d6ecf",
+      "time": "2026-11-15T03:46:39.280Z",
+      "exitCode": 1,
+      "state": null,
+      "requestedUnits": null,
+      "verifiedInsertedUnits": null,
+      "error": "rm_task_closed_call_desktop_attach"
+    },
+    {
+      "jobId": "7acaf859-451c-4b1e-8ff9-32fea93b7f7d",
+      "time": "2026-11-15T03:47:52.434Z",
+      "exitCode": 0,
+      "state": "preparing",
+      "requestedUnits": 4096,
+      "verifiedInsertedUnits": null,
+      "error": null
+    },
+    {
+      "jobId": "219056c9-0c35-490f-9376-762d21bf4719",
+      "time": "2026-11-15T03:49:48.517Z",
+      "exitCode": 0,
+      "state": "preparing",
+      "requestedUnits": 4096,
+      "verifiedInsertedUnits": null,
+      "error": null
+    },
+    {
+      "jobId": "97d3c65e-f830-4573-84fd-dba1e56bd1a7",
+      "time": "2026-11-15T03:49:50.799Z",
+      "exitCode": 1,
+      "state": null,
+      "requestedUnits": null,
+      "verifiedInsertedUnits": null,
+      "error": "desktop_logical_write_busy"
+    },
+    {
+      "jobId": "5eea4588-0cd7-4da3-a47d-64adbcf38a65",
+      "time": "2026-11-15T03:50:33.210Z",
+      "exitCode": 0,
+      "state": "preparing",
+      "requestedUnits": 4096,
+      "verifiedInsertedUnits": null,
+      "error": null
+    },
+    {
+      "jobId": "e65973e0-fee0-41a3-8829-385c5dd43981",
+      "time": "2026-11-15T03:59:52.902Z",
+      "exitCode": 0,
+      "state": "preparing",
+      "requestedUnits": 4096,
+      "verifiedInsertedUnits": null,
+      "error": null
+    },
+    {
+      "jobId": "f02ac4f3-8df1-4b95-862e-fb01293ed077",
+      "time": "2026-11-15T04:11:38.490Z",
+      "exitCode": 0,
+      "state": "preparing",
+      "requestedUnits": 1391,
+      "verifiedInsertedUnits": null,
+      "error": null
+    },
+    {
+      "jobId": "9896e6e3-be8b-40ed-89fa-203f4218b6a5",
+      "time": "2026-11-15T04:15:17.928Z",
+      "exitCode": 0,
+      "state": "preparing",
+      "requestedUnits": 7,
+      "verifiedInsertedUnits": null,
+      "error": null
+    },
+    {
+      "jobId": "f5084927-24ff-45c1-9e52-af31b90d7b32",
+      "time": "2026-11-15T04:16:50.957Z",
+      "exitCode": 0,
+      "state": "preparing",
+      "requestedUnits": 7,
+      "verifiedInsertedUnits": null,
+      "error": null
+    }
+  ],
+  "terminalWriteStates": "NOT_CAPTURED_DO_NOT_INFER_FROM_EXIT0",
+  "textStatusJobsInAuditedSessionWindow": 0,
+  "nativeLossCause": "UNCONFIRMED_REQUIRES_TERMINAL_WRITEID_ACK_AND_TARGET_TRACE",
+  "clipPaste262KFiveCases": "OWNER_REPORTED_PASS_NOT_DIRECT_API_ACCEPTANCE",
+  "gpuPhysical": "UNEXERCISED_ADVANCED_PATH_OLD_GDI_SCREENSHOT_IS_EXPECTED_DEFAULT",
+  "h264Physical": "UNEXERCISED_NOT_A_PREREQUISITE_FOR_AGENT_GPU_IMAGES",
+  "servingGoldRegistry": {
+    "source": "2b65a379e1fd5b3f05c101354495dcd4f6c64397",
+    "toolNames": [
+      "light_remote_desktop_observation_start",
+      "light_remote_desktop_observation_read",
+      "light_remote_desktop_observation_stop",
+      "light_remote_desktop_video_frame",
+      "light_remote_desktop_video_read",
+      "light_remote_desktop_write_text",
+      "light_remote_desktop_type_text",
+      "light_remote_desktop_text_status",
+      "light_remote_desktop_text_cancel"
+    ],
+    "inlineMaxUnits": 262144,
+    "sourcePathSupported": true,
+    "statusCancelRegistered": true,
+    "publicAuthenticatedToolsListRead": false
+  },
+  "currentTurnBoundCatalog": {
+    "afterOwnerReportedRefresh": "STILL_OLD_IN_THIS_ACTIVE_TURN",
+    "missing": [
+      "desktop_text_status",
+      "desktop_text_cancel",
+      "desktop_observation_start",
+      "desktop_observation_read",
+      "desktop_observation_stop",
+      "desktop_video_frame",
+      "desktop_video_read"
+    ],
+    "largeTextSourcePathAbsent": true,
+    "cause": "HOST_BINDING_OR_SCHEMA_PUBLICATION_NOT_YET_DETERMINED"
+  },
+  "ownerDecision": "NO_WINDOWS_VM_INSTALL_UPGRADE_ROLLBACK_WORK_NEEDED",
+  "newInputOrReplayThisAudit": false,
+  "fixturesPreserved": true,
+  "newEnrollmentOrB": false,
+  "desktopScopesOpenedThisAudit": 0,
+  "nativeSourceChanged": false,
+  "checkpointBeforeAudit": {
+    "tag": "checkpoint/20261115-before-rmv2-textinput-286d815",
+    "bundleSha256": "17d65e4b3d7f86d12e20c1efaf217ca88cb97347297c61d0060f7f93422159d8",
+    "archiveSha256": "d51eebbd93ddb459145f1ad020f892de6df488f75953dfbbec95db3db49ef547",
+    "restore": "PASS",
+    "source": "286d8159819183024133cef2bd077e2757268f51"
+  }
+}

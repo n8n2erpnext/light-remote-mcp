@@ -247,11 +247,9 @@ npm test
 
 ## Project status
 
-Agent GPU observation dev12 is implemented, integrated, full CI13115/15 PASS, exact shared native/installer bytes independently verified, and deployed to internal Gold Lab only. Background DXGI collection, physical1:1 PNG ROI, direct MCP image delivery, unchanged-frame coordinate revalidation, and close/no-renew behavior passed synthetic production-path tests. Original on-demand screenshot/input/viewer/Agent functionality remains available. Owner physical GPU/Agent-host perception and design latency remain NOT_RUN; no public release/feed or Owner installation.
+Keep RMv2 live acceptance OPEN/NOT_APPROVED after Owner dev12 report. Independently hash-verified the installed helper as exact CI131 source2b65a37 and the synthetic fixture mismatches:8192expected/6816actual and1391expected/49actual;4096 matches. Existing text-start jobs return exit0 with statepreparing, not completion; no text-write-status job exists in the audited session/window, so terminal write reason/ACK remains unknown. Gold serving registry has262K/sourcePath/status/cancel/GPU/video tools, while this active turn still receives old bindings after Owner refresh. No native source fix or live direct262K/GPU acceptance is claimed. Owner explicitly removed Windows VM work.
 
-[CI131](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43668040391) · [Verified internal Windows installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/43668040391/artifacts/14143916515) · [Evidence](docs/evidence/rmv2/agent-observation-ci131.json)
-
-Gold Lab Operator+Plugin serves exact2b65a37/dev12; preparation/recovery and post-cutover receipt verified. No DB migration; account/device/grant/Owner counts and independent Wall/process-supervisor/mTLS services checked by the cutover guard. Previous1bd6fcc runtime/recovery retained. Production Google callback/domain, protected main, public release/feed and Owner Windows installation unchanged.
+Executable/Gold remains exact2b65a37/dev12/CI13115PASS; current Owner helper independently matches it. No executable changes, new native build, installation/update, service restart, DB migration, production/callback/domain/feed/main change in this audit.
 
 ## License
 

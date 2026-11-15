@@ -14,8 +14,8 @@
   "officialRepositoryId": 1450214328,
   "verifiedBuiltSourceCommit": "1bd6fcc7ea4d5aa48a0c460f9c90d9501e9500e9",
   "verifiedBuiltSourceTree": "e030a88a578228ee08b7998d1fabfa68c93989ec",
-  "checkpointUpdatedAt": "2026-11-15T03:01:59.413Z",
-  "migrationPhase": "ADDITIVE_AGENT_GPU_OBSERVATION_INTERNAL_CANDIDATE_VERIFIED",
+  "checkpointUpdatedAt": "2026-11-15T05:00:22.371Z",
+  "migrationPhase": "OWNER_LIVE_NATIVE_TEXT_AND_TOOL_CONTRACT_DIAGNOSIS",
   "ci": {
     "status": "success",
     "runId": 43564848850,
@@ -48,7 +48,8 @@
     "Memory/Codex100-row native read window remains explicit; Desktop task/session history is bounded/pageable",
     "RM: Owner-reported direct write_text4096 partial-or-unfinished/busy must be diagnosed through public API/writeId/terminal receipts; clipboard262K does not accept it.",
     "RM: reported routing offline cause/current liveness and exact installed artifact remain unverified; preserve enrollment/B/session and test leftovers until authorized recovery.",
-    "RM: dev12 physical GPU/Agent-host perception,150%DPI1px2px mapping and same-device design latency UAT pending; public direct-write and routing report remain separate."
+    "RM: dev12 physical GPU/Agent-host perception,150%DPI1px2px mapping and same-device design latency UAT pending; public direct-write and routing report remain separate.",
+    "RM: Owner dev12 direct input fixtures mismatch; capture final writeId/ACK/reason before a fix or PASS. Current active-turn catalog lacks new status/GPU bindings despite server registry support. Owner removed Windows VM work."
   ],
   "historicalRefsOnly": {
     "oldRepository": "n8n2erpnext/light-remote-mcp-archive-20261108",
