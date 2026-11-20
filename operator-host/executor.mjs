@@ -2,6 +2,8 @@ import {observationOptions} from '../lib/rmv2-observation.mjs';
 import {RmObservationRelay} from './rmv2-observation-relay.mjs';
 import {GoldMemoryContentRelay} from './gold-memory-content-relay.mjs';
 import {startGoldMemoryOperation} from './gold-memory-operation.mjs';
+import {createWorkerRelay} from './api-worker-operation.mjs';
+import {workerPilotEnabled} from '../lib/api-worker-request.mjs';
 import {RmVideoRelay} from './rmv2-video-relay.mjs';
 import {videoOptions} from '../lib/rmv2-video.mjs';
 import {API_CONTRACT_VERSION,API_VERSION_HEADER} from '../lib/api-contract.mjs';
@@ -434,6 +436,7 @@ const realRemoteLive = new RealRemoteLiveRegistry();
 const realRemoteVideo=new RmVideoRelay();
 const realRemoteObservation=new RmObservationRelay();
 const memoryContent=new GoldMemoryContentRelay();
+const workerContent=workerPilotEnabled()?createWorkerRelay():null;
 const hostIdentity = INTEGRATED_HOST_ENABLED ? loadOrCreateHostDeviceIdentity(HOST_DEVICE_IDENTITY_FILE) : null;
 
 fs.mkdirSync(LOG_DIR, { recursive: true });
@@ -1742,7 +1745,8 @@ const goldSnapshotShortIds=async({accountId,deviceIds})=>{
   .map(r=>[r.device_id,r.short_id]));
 };
 const routeDeps=()=>({
-  memoryContent,startMemoryOperation,
+  memoryContent,startMemoryOperation,workerContent,
+  operationDedupe,createAccumulator,reserveGoldJob,enqueueForJob,OPERATION_DEDUPE_MS,
   goldShortIdByDevice,goldSnapshotShortIds,
   desktopWallSsoSignedRedeem:desktopWallSsoOperatorGate.signedRedeem,
   desktopWallSsoInternalIssue:desktopWallSsoOperatorGate.internalIssue,

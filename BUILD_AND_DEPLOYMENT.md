@@ -418,3 +418,7 @@ P1 source0e4df88 has full CI13415PASS but artifact bytes remain unverified. P2 s
 ## Fix Memory composer readback and verify API Worker route aliases
 
 Isolated Windows Chrome headless fixtures PASS for ChatGPT and Claude. Existing ten extension unit tests and the Wall navigation regression PASS. CI136 at 3b052d1 failed the old navigation expectation in Core and Windows and the editor readback in Web. Corrected source needs its own CI and artifact verification. Full checkpoint checkpoint/20261115-before-rmv2-apiworkerreasoning-3b052d1 restored and passed fsck.
+
+## Add Owner-approved API Worker review pilot
+
+API Worker pilot candidate dev14. Runtime remains dev12. Build the exact source in Actions. Synthetic verification covers the real Fleet queue, Operator route handlers, the device queue and mocked Codex app-server. Covered authorization changes, cancellation and late replies, required local approval, content-free job records, restart without replay, module and CSRF guards, and the existing Long Memory and Codex flows. Real provider compatibility and inference are pending. CI137 Core and Web passed on 8513717. Full pilot Actions checks pending. Pre-pilot checkpoint checkpoint/20261115-before-rmv2-apiworkerpilot-8513717 restored and passed fsck.

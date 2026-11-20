@@ -8,6 +8,7 @@ import {WALL_PTY_READER_SCRIPT} from './wall-pty-reader.mjs';
 import {WALL_HISTORY_CONTROLS} from './wall-history-controls.mjs';
 import {WALL_CODEX_CONTROLS} from './wall-codex-controls.mjs';
 import fs from 'node:fs';
+import {workerPilotEnabled} from '../lib/api-worker-request.mjs';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { LOCAL_WALL_COOKIE } from './local-wall-auth.mjs';
@@ -792,6 +793,68 @@ function goldCodexNativeInit(){
   disable.style.cssText='margin:0 0 12px';area.insertBefore(disable,area.firstChild);
   enable.onclick=()=>void goldSetModule('codexBridge',true);
   disable.onclick=()=>void goldSetModule('codexBridge',false);
+  if(${JSON.stringify(workerPilotEnabled())})goldWorkerInbox(area);
+}
+function goldWorkerInbox(area){
+  const make=goldMemoryNativeElement;
+  const panel=make('section','sessionbox');panel.style.cssText='padding:12px;margin:0 0 12px';
+  const button=make('button','btn small','Check requests');button.type='button';
+  const body=make('div');
+  const notice=make('p','muted');notice.setAttribute('role','status');
+  panel.append(make('strong','','Review requests from your agents'),
+    make('p','muted','Review what will be sent to Codex. Approved requests use the ChatGPT plan signed in on this device.'),
+    button,notice,body);
+  area.insertBefore(panel,area.children[1]||null);
+  async function refresh(){
+    if(button.disabled)return;
+    button.disabled=true;body.replaceChildren();notice.textContent='Checking requests…';
+    try{
+      const response=await fetch('/api/gold/modules/api-worker/jobs',{cache:'no-store'});
+      const payload=await response.json();
+      if(!response.ok||!payload.ok)throw Error('request_failed');
+      notice.textContent=payload.jobs.length?'':'No review requests yet.';
+      for(const job of payload.jobs){
+        const box=make('section','sessionbox');
+        const status={awaiting_approval:'Waiting for you',authorizing:'Checking access',running:'Running',
+          stopping:'Stopping',completed:'Finished',failed:'Could not finish',cancelled:'Cancelled',
+          interrupted:'Interrupted',expired:'Expired'};
+        box.append(make('strong','','Codex · '+job.requestedModel),
+          make('p','muted',(status[job.state]||job.state)+' · '+Math.round(job.timeoutMs/1000)+' seconds'));
+        const canStop=['awaiting_approval','authorizing','running'].includes(job.state);
+        if(job.state==='awaiting_approval'){
+          for(const [label,value] of [['Request',job.prompt],['Reference material',job.context]]){
+            if(!value)continue;
+            const text=make('pre','',value);
+            text.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto';
+            box.append(make('p','muted',label),text);
+          }
+        }
+        if(canStop){
+          const controls=make('div','controls');
+          const decide=async approve=>{
+            for(const child of controls.children)child.disabled=true;
+            try{
+              await wallMutation('/api/gold/modules/api-worker/decision',
+                {workerId:job.workerId,contextDigest:job.contextDigest,approve});
+              await refresh();
+            }catch{
+              notice.textContent='Could not update this request. Check requests to see its latest status.';
+              for(const child of controls.children)child.disabled=false;
+            }
+          };
+          if(job.state==='awaiting_approval'){
+            const approve=make('button','btn small','Approve and send to Codex');approve.type='button';
+            approve.onclick=()=>void decide(true);controls.append(approve);
+          }
+          const stop=make('button','btn small','Cancel request');stop.type='button';
+          stop.onclick=()=>void decide(false);controls.append(stop);box.append(controls);
+        }
+        body.append(box);
+      }
+    }catch{notice.textContent='Review requests are unavailable.';}
+    finally{button.disabled=false;}
+  }
+  button.onclick=()=>void refresh();
 }
 function goldMemoryNativeInit(){
   if(location.pathname!=='/long-memory')return;
@@ -2991,6 +3054,15 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
     if(url.pathname.startsWith('/api/gold/modules/')||url.pathname===CODEX_STATUS_PATH||url.pathname===CODEX_PREFERENCES_PATH){
       if(!modules||!auth?.enabled||!auth.identity(req))return json(res,403,{ok:false,error:'gold_modules_owner_required'});
       if(req.method==='POST'&&!mutationAllowed(req))return json(res,403,{ok:false,error:'csrf_invalid'});
+      if(url.pathname.startsWith('/api/gold/modules/api-worker/')){
+        if(!modules.workerPilotEnabled?.())return json(res,404,{ok:false,error:'api_worker_pilot_disabled'});
+        res.setHeader('Cache-Control','no-store');
+        if(req.method==='GET'&&url.pathname==='/api/gold/modules/api-worker/jobs')
+          return json(res,200,{ok:true,jobs:modules.ownerWorkerJobs()});
+        if(req.method==='POST'&&url.pathname==='/api/gold/modules/api-worker/decision')
+          return json(res,200,{ok:true,job:modules.ownerWorkerDecision(await body(req))});
+        return json(res,404,{ok:false,error:'not_found'});
+      }
       if(req.method==='POST'&&url.pathname==='/api/gold/modules/configure')return json(res,200,{ok:true,modules:modules.configure(await body(req))});
       if(req.method==='GET'&&url.pathname==='/api/gold/modules/memory/delete/preview')
         return json(res,200,{ok:true,preview:modules.localMemoryDeletePreview()});

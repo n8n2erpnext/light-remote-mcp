@@ -28,6 +28,7 @@ import {createDesktopDeviceApi} from './desktop-device-api.mjs';
 import {assertNotificationOwnerEmail} from './wall-account-notifications.mjs';
 import {createGoldWallModules} from './gold-wall-modules.mjs';
 import {executeRemoteMemory} from './gold-memory-operation.mjs';
+import {executeWorkerCommand} from './api-worker-device.mjs';
 import {memorySafeError} from '../lib/gold-memory-operation.mjs';
 import { filesystemVolumeInventory } from './filesystem-volume-inventory.mjs';
 import { loadLocalWallAuth, writeLocalWallAuthConfig, writeAccountOnlyWallAuthConfig } from './local-wall-auth.mjs';
@@ -1201,6 +1202,17 @@ async function executeCommandCore(state,command,{hub=DEFAULT_HUB}={}){
     const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
     try{const source=String(p.update?.source||'remote-owner').slice(0,40),data=await requestLocalUpdate(source);const result={commandId:command.commandId,status:'ok',exitCode:0,stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
     catch(error){const result={commandId:command.commandId,status:'error',exitCode:1,stdout:'',stderr:String(error?.message||error)+'\n',durationMs:Date.now()-startedAt,data:{ok:false,error:String(error?.message||error)}};writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;}
+  }
+  if(p.type==='worker'){
+    const startedAt=Date.now();
+    writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});
+    const data=await executeWorkerCommand({state,command:p,modules:GOLD_WALL_MODULES,
+      channel:(action,payload)=>channelRequest(readState()||state,hub,action,payload),
+      allowed:()=>effectiveCapabilitiesForState(readState()||state).includes('filesystem')});
+    const result={commandId:command.commandId,status:data.ok?'ok':'error',exitCode:data.ok?0:1,
+      stdout:'',stderr:'',durationMs:Date.now()-startedAt,data};
+    writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,
+      state:'finished',startedAt,finishedAt:Date.now(),result});pruneCommandSpool();return result;
   }
   if(p.type==='memory'){
     const startedAt=Date.now();writeCommand(command.commandId,{commandId:command.commandId,operationId:p.operationId,state:'running',startedAt});

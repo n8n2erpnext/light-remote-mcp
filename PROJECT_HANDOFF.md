@@ -1,6 +1,6 @@
 # Project handoff — additive Agent GPU observation
 
-Current resume point: Verify the corrected candidate in Actions and hash the extension artifact. Implement the read-only API Worker MCP lifecycle, then official provider adapters and bounded workers.
+Current resume point: Finish exact-source CI and verify the extension ZIP. Validate the signed-in Codex runtime constraints before enabling the pilot. Implement the separately selected Claude/Gemini adapters and multi-worker scheduling afterward.
 
 **RM v2 chưa đạt nghiệm thu live trên dev12.** Đã xác minh helper đang cài đúng source CI131 và đọc lại hash fixture:4.096 đúng;8.192 chỉ có6.816; bài300từ1391units chỉ có49. Năm ca262K qua paste không nghiệm thu API nhập trực tiếp. Job exit0 đang là xác nhận nhận lệnh; receipt ban đầu còn preparing, chưa có terminal writeId để xác định nguyên nhân. Server đã đăng ký schema262K/sourcePath/status/cancel và GPU/video; catalog của lượt đang chạy vẫn cũ sau thông báo refresh. Không coi GDI screenshot là bài test đường GPU mới. Bỏ mục dựng Windows VM theo yêu cầu Owner.
 
@@ -857,3 +857,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: Isolated Windows Chrome headless fixtures PASS for ChatGPT and Claude. Existing ten extension unit tests and the Wall navigation regression PASS. CI136 at 3b052d1 failed the old navigation expectation in Core and Windows and the editor readback in Web. Corrected source needs its own CI and artifact verification. Full checkpoint checkpoint/20261115-before-rmv2-apiworkerreasoning-3b052d1 restored and passed fsck.
 - Next: Verify the corrected candidate in Actions and hash the extension artifact. Implement the read-only API Worker MCP lifecycle, then official provider adapters and bounded workers.
 - Runtime: Gold Lab and Owner Windows remain on dev12 source 2b65a37. Physical Chrome and provider acceptance are pending.
+
+## Task Receipt: 20261120-api-worker-p4-codex-review-pilot
+- Status: PILOT_SYNTHETIC_PASS_CI_PENDING. Add the API Worker pilot for text review through MCP. The calling Agent uses one UUID for a request and can read progress, retrieve the result or cancel it. Local Wall shows the exact text, model and timeout before approval. Each request is scoped to the active account, device, A/B Agent, session, grant and connection. Codex receives one review turn through the existing ChatGPT sign-in and a restricted read-only sandbox request. Hub content is transient and SQLite stores content-free receipts on the device. The pilot defaults off.
+- Source: permanent work after `851371784bd8b6bcdcb77b69d271c7e18116e719`; exact staged source digest stamped in this same commit.
+- Verification: Synthetic verification covers the real Fleet queue, Operator route handlers, the device queue and mocked Codex app-server. Covered authorization changes, cancellation and late replies, required local approval, content-free job records, restart without replay, module and CSRF guards, and the existing Long Memory and Codex flows. Real provider compatibility and inference are pending. CI137 Core and Web passed on 8513717. Full pilot Actions checks pending. Pre-pilot checkpoint checkpoint/20261115-before-rmv2-apiworkerpilot-8513717 restored and passed fsck.
+- Next: Finish exact-source CI and verify the extension ZIP. Validate the signed-in Codex runtime constraints before enabling the pilot. Implement the separately selected Claude/Gemini adapters and multi-worker scheduling afterward.
+- Runtime: Gold Lab and Owner Windows are on dev12 source 2b65a37. The dev14 pilot is a source candidate and remains disabled.

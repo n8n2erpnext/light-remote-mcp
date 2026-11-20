@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-20T03:05:02.418Z",
-  "version": "0.10.1-dev.13",
+  "updatedAt": "2026-11-20T03:28:54.996Z",
+  "version": "0.10.1-dev.14",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
-  "status": "CORRECTED_CI_PENDING",
+  "status": "P4_CODEX_REVIEW_PILOT_SOURCE",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Verify the corrected candidate in Actions and hash the extension artifact. Implement the read-only API Worker MCP lifecycle, then official provider adapters and bounded workers.",
+  "nextAction": "Finish exact-source CI and verify the extension ZIP. Validate the signed-in Codex runtime constraints before enabling the pilot. Implement the separately selected Claude/Gemini adapters and multi-worker scheduling afterward.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,13 +691,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261120-memory-restore-and-worker-navigation",
-    "status": "LOCAL_BROWSER_AND_NAVIGATION_PASS_CI_PENDING",
-    "summary": "Read plain text from simple editor paragraphs during context restore. Chromium innerText adds a visual blank line between paragraphs, which previously made a correct insert look incomplete. Verify Unicode, indentation and actual newline boundaries in both provider fixtures. The Wall regression now checks navigation to /api-worker and Owner authentication on both /api-worker and /codex-cli.",
-    "verification": "Isolated Windows Chrome headless fixtures PASS for ChatGPT and Claude. Existing ten extension unit tests and the Wall navigation regression PASS. CI136 at 3b052d1 failed the old navigation expectation in Core and Windows and the editor readback in Web. Corrected source needs its own CI and artifact verification. Full checkpoint checkpoint/20261115-before-rmv2-apiworkerreasoning-3b052d1 restored and passed fsck.",
-    "nextAction": "Verify the corrected candidate in Actions and hash the extension artifact. Implement the read-only API Worker MCP lifecycle, then official provider adapters and bounded workers.",
-    "sourceDigest": "c4efbc487b1390d3ddc855aaee55c8bf45d9783809f84491031ce44d4d333a4d",
-    "sourceFileCount": 1749
+    "taskId": "20261120-api-worker-p4-codex-review-pilot",
+    "status": "PILOT_SYNTHETIC_PASS_CI_PENDING",
+    "summary": "Add the API Worker pilot for text review through MCP. The calling Agent uses one UUID for a request and can read progress, retrieve the result or cancel it. Local Wall shows the exact text, model and timeout before approval. Each request is scoped to the active account, device, A/B Agent, session, grant and connection. Codex receives one review turn through the existing ChatGPT sign-in and a restricted read-only sandbox request. Hub content is transient and SQLite stores content-free receipts on the device. The pilot defaults off.",
+    "verification": "Synthetic verification covers the real Fleet queue, Operator route handlers, the device queue and mocked Codex app-server. Covered authorization changes, cancellation and late replies, required local approval, content-free job records, restart without replay, module and CSRF guards, and the existing Long Memory and Codex flows. Real provider compatibility and inference are pending. CI137 Core and Web passed on 8513717. Full pilot Actions checks pending. Pre-pilot checkpoint checkpoint/20261115-before-rmv2-apiworkerpilot-8513717 restored and passed fsck.",
+    "nextAction": "Finish exact-source CI and verify the extension ZIP. Validate the signed-in Codex runtime constraints before enabling the pilot. Implement the separately selected Claude/Gemini adapters and multi-worker scheduling afterward.",
+    "sourceDigest": "a0a889c31221b8319fe9f2370c748627f02b76168b5fa20c119d9c117864eb97",
+    "sourceFileCount": 1755
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -2013,12 +2013,12 @@
     }
   },
   "localMemoryApiWorkerResearch": {
-    "status": "IMPLEMENTATION_IN_PROGRESS_CORRECTED_CI_PENDING",
+    "status": "P4_CODEX_REVIEW_PILOT_SYNTHETIC_PASS",
     "ownerScope": "IMPLEMENT_PLAN_AUTHORIZED_20261115",
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "757109eae7b6e9cdd87e574dfb68528ec6ba2c1b93503b4263d732bce664ed44",
+    "documentSha256": "b1a5c11fd2a1a056ecc9538c23df5b7901827649b62a36e5ae7ed5aa9b1374d9",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2044,7 +2044,7 @@
       "version": "0.4.0",
       "canonicalSource": "extensions/light-remote-lm-abv2",
       "historicalZipSha256": "76a3649a4fb7704cb930f4a1912f70b80d8387128f69aff023e9a306f3fd0dcd",
-      "zipArtifact": "CI135_CORE_BUILT_HASH_VERIFICATION_PENDING",
+      "zipArtifact": "CI137_BUILT_BYTES_NOT_YET_VERIFIED",
       "portableTests": "10/10 VM plus package/permission guard PASS",
       "realChromiumDomFixtures": "WINDOWS_HEADLESS_SYNTHETIC_TWO_PROVIDERS_PASS"
     },
@@ -2072,7 +2072,18 @@
         "authorized MCP reasoning job/progress/result/cancel",
         "bounded scheduler, multiple readers and one writer lease per workspace",
         "context/artifact local and server payload retention policy"
-      ]
+      ],
+      "mcpReviewPilot": {
+        "implemented": true,
+        "defaultEnabled": false,
+        "minimumAgent": "0.10.1-dev.14",
+        "providers": [
+          "codex"
+        ],
+        "ownerApproval": true,
+        "maxConcurrent": 1,
+        "realProviderAcceptance": false
+      }
     },
     "implementationChanged": true,
     "functionalTestsRun": true,
@@ -2082,10 +2093,10 @@
     "peerReview": "PASS_WITH_HIDDEN_DOM_COVERAGE_LIMIT_EXPLICIT",
     "nativeBuildStillDeferredByOwner": false,
     "implementation": {
-      "milestone": "P3_BROWSER_AND_NAVIGATION_CORRECTION",
-      "base": "3b052d1520e17286f0f70e4aec8698c3a2916d88",
+      "milestone": "P4_CODEX_REVIEW_PILOT",
+      "base": "851371784bd8b6bcdcb77b69d271c7e18116e719",
       "portableTests": "P3 sixteen tests and four existing Codex/core regression scripts PASS",
-      "fullCi": "PENDING_CURRENT_SOURCE",
+      "fullCi": "PENDING_PILOT_SOURCE",
       "deployed": false,
       "physicalChrome": "NOT_RUN",
       "providerInference": "NOT_RUN",
@@ -2117,6 +2128,12 @@
         "runId": 43696008215,
         "source": "3b052d1520e17286f0f70e4aec8698c3a2916d88",
         "result": "FAILED_WALL_NAVIGATION_AND_COMPOSER_READBACK"
+      },
+      "correctedCi": {
+        "number": 137,
+        "runId": 44665270596,
+        "source": "851371784bd8b6bcdcb77b69d271c7e18116e719",
+        "result": "CORE_AND_WEB_PASS"
       }
     }
   },

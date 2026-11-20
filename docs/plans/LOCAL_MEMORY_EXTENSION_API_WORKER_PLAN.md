@@ -1,6 +1,6 @@
 # Long Memory, extension ngữ cảnh và API Worker nhiều nhà cung cấp
 
-Status: IMPLEMENTATION_IN_PROGRESS / P1_CI_PASS_P2_P3_LOCAL_RETEST_PASS / CORRECTED_CI_PENDING
+Status: IMPLEMENTATION_IN_PROGRESS / P1_CI_PASS_P2_P3_CORE_WEB_PASS / P4_CODEX_PILOT_SOURCE
 Edition: 2026-11-15, Asia/Saigon; research audit preserved from 2026-11-11
 Scope: Long Memory local-first, Chrome extension ChatGPT/Claude, Codex metadata và API Worker
 Research source: `work` `ad3db2f6ffaae0f9de639716e5657dd11bb40da4`; product source digest `537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516`
@@ -213,3 +213,13 @@ Read plain text from simple editor paragraphs during context restore. Chromium i
 Isolated Windows Chrome headless fixtures PASS for ChatGPT and Claude. Existing ten extension unit tests and the Wall navigation regression PASS. CI136 at 3b052d1 failed the old navigation expectation in Core and Windows and the editor readback in Web. Corrected source needs its own CI and artifact verification. Full checkpoint checkpoint/20261115-before-rmv2-apiworkerreasoning-3b052d1 restored and passed fsck.
 
 Gold Lab and Owner Windows remain on dev12 source 2b65a37. Physical Chrome and provider acceptance are pending.
+
+## API Worker review pilot — 2026-11-20
+
+Add the API Worker pilot for text review through MCP. The calling Agent uses one UUID for a request and can read progress, retrieve the result or cancel it. Local Wall shows the exact text, model and timeout before approval. Each request is scoped to the active account, device, A/B Agent, session, grant and connection. Codex receives one review turn through the existing ChatGPT sign-in and a restricted read-only sandbox request. Hub content is transient and SQLite stores content-free receipts on the device. The pilot defaults off.
+
+Synthetic verification covers the real Fleet queue, Operator route handlers, the device queue and mocked Codex app-server. Covered authorization changes, cancellation and late replies, required local approval, content-free job records, restart without replay, module and CSRF guards, and the existing Long Memory and Codex flows. Real provider compatibility and inference are pending. CI137 Core and Web passed on 8513717. Full pilot Actions checks pending. Pre-pilot checkpoint checkpoint/20261115-before-rmv2-apiworkerpilot-8513717 restored and passed fsck.
+
+Gold Lab and Owner Windows are on dev12 source 2b65a37. The dev14 pilot is a source candidate and remains disabled.
+
+The pilot uses LIGHT_REMOTE_API_WORKER_PILOT=1 in the Plugin, Operator and device Agent in a test environment. It requires dev14 and the local API Worker module. The local review expires after five minutes. One active review can run on a device. Text lives in device RAM for the review and for up to 15 minutes after completion. The client keeps the UUID and digest receipt to prevent replay. The 4,096-receipt ceiling intentionally refuses new jobs when full. The time and turn limits bound the local review. Provider billing and quota come from the signed-in account. The current input is an explicit text snapshot supplied by the Agent and checked by the Owner. Automatic Long Memory reference loading, provider CLI setup, desktop review controls and multi-worker are later steps. Runtime schema follows [App Server](https://learn.chatgpt.com/docs/app-server) and [ThreadStartParams](https://github.com/openai/codex/blob/main/codex-rs/app-server-protocol/schema/json/v2/ThreadStartParams.json).

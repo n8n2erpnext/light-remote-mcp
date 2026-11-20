@@ -8,6 +8,7 @@ import { redactRestrictedText, sanitizeForMcp } from './response-sanitizer.mjs';
 import { classifyPluginToolError } from './tool-error-classification.mjs';
 import { maybeInlineExecStdout } from './exec-inline-output.mjs';
 import {runGoldMemoryViaAuthorizedSession} from './gold-memory-bridge.mjs';
+import {normalizeWorkerRequest,workerPilotEnabled} from '../lib/api-worker-request.mjs';
 
 const id=z.string().regex(/^[A-Za-z0-9._:-]{1,160}$/);
 const opId=z.string().regex(/^[A-Za-z0-9._:-]{16,160}$/).optional();
@@ -378,6 +379,29 @@ export function registerPluginTools(server,identity){
     description:'List an allowed directory on the selected session target.',
     inputSchema:{sessionId:id,path:pathText,maxEntries:z.number().int().min(1).max(1000).optional(),maxDepth:z.number().int().min(0).max(3).optional()},securitySchemes:security(['remote:read']),annotations:annotations(true,false,false,true)
   },guarded(identity,['remote:read'],async(a,x)=>operationView(await a.fs(x.sessionId,{op:'list',path:x.path,maxEntries:x.maxEntries,maxDepth:x.maxDepth||0}))));
+
+  if(workerPilotEnabled()){
+    const scope=['remote:execute'];
+    const workerId=z.string().uuid();
+    for(const action of ['capabilities','start','status','events','result','cancel']){
+      const readOnly=['capabilities','status','events','result'].includes(action);
+      const inputSchema=action==='capabilities'?{sessionId:id}:{sessionId:id,workerId};
+      if(action==='start')Object.assign(inputSchema,{
+        provider:z.literal('codex'),model:id,prompt:z.string().min(1).max(8000),
+        context:z.string().max(48000).optional(),timeoutMs:z.number().int().min(10000).max(90000)
+      });
+      if(action==='events')inputSchema.after=z.number().int().min(0).optional();
+      const description=action==='capabilities'?
+        'Check whether the authorized device can accept review requests and which Codex models the signed-in runtime reports. This does not launch a provider turn.':
+        action==='start'?
+        'Request one text-only Codex review on the authorized device. The Owner reviews the exact prompt, context, model and time limit in Local Wall before any provider turn. Generate a UUIDv4 once and poll with the same workerId.':
+        'Use the workerId of an existing review on this exact A/B session. Poll status or event progress, read the final result, or cancel the review. A pending reply does not mean the review ran.';
+      add(server,'light_remote_api_worker_'+action,{title:'API Worker '+action,description,
+        inputSchema,securitySchemes:security(scope),annotations:annotations(readOnly,false,action==='start',true)
+      },guarded(identity,scope,(adapter,{sessionId,...input})=>
+        adapter.worker(sessionId,normalizeWorkerRequest({action,...input}))));
+    }
+  }
 
   add(server,'light_remote_long_memory_status',{
     title:'Read an existing Long Memory operation result',

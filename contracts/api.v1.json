@@ -257,6 +257,22 @@
       "component": "device-agent/local-wall.mjs",
       "response": "API Worker Owner UI, alias /codex-cli retained",
       "authority": "Same authenticated local Owner/module authority; no new Agent execution grant"
+    },
+    "workerOperationInternal": {
+      "authorization": "Opt-in API Worker pilot. Exact A/B account/device/Agent/session/current grant and connection.",
+      "content": "RAM-only request/result exchange. Provider turn additionally needs local Owner approval."
+    },
+    "workerContentFetchInternal": {
+      "authorization": "Opt-in API Worker pilot. Exact A/B account/device/Agent/session/current grant and connection.",
+      "content": "RAM-only request/result exchange. Provider turn additionally needs local Owner approval."
+    },
+    "workerContentPushInternal": {
+      "authorization": "Opt-in API Worker pilot. Exact A/B account/device/Agent/session/current grant and connection.",
+      "content": "RAM-only request/result exchange. Provider turn additionally needs local Owner approval."
+    },
+    "workerAuthorizeInternal": {
+      "authorization": "Opt-in API Worker pilot. Exact A/B account/device/Agent/session/current grant and connection.",
+      "content": "RAM-only request/result exchange. Provider turn additionally needs local Owner approval."
     }
   },
   "nonClaims": [

@@ -236,6 +236,26 @@
       "method": "POST",
       "path": "/v1/device-channel/memory-content-push",
       "transport": "operator-private-unix"
+    },
+    "workerOperationInternal": {
+      "method": "POST",
+      "path": "/v1/plugin/api-worker/operation",
+      "transport": "operator-private-unix"
+    },
+    "workerContentFetchInternal": {
+      "method": "POST",
+      "path": "/v1/device-channel/worker-content-fetch",
+      "transport": "operator-private-unix"
+    },
+    "workerContentPushInternal": {
+      "method": "POST",
+      "path": "/v1/device-channel/worker-content-push",
+      "transport": "operator-private-unix"
+    },
+    "workerAuthorizeInternal": {
+      "method": "POST",
+      "path": "/v1/device-channel/worker-authorize",
+      "transport": "operator-private-unix"
     }
   }
 }

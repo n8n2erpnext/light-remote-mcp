@@ -26,6 +26,8 @@ import {queueGoldReplicaEvidence,pendingGoldReplicaEvidence,acceptGoldReplicaEvi
 import {manualEvidenceCap,signManualEvidenceFrames} from './gold-memory-manual-evidence.mjs';
 import {receiveGoldPeerRequest,pollGoldPeer,allowGoldPeerHomeUrl,configureGoldPeerRoute,listGoldPeerRoutes,runGoldPeerRoutes} from './gold-memory-peer.mjs';
 import {executeMemoryRequest} from './gold-memory-operation.mjs';
+import {createApiWorkerQueue} from './api-worker-queue.mjs';
+import {workerPilotEnabled,workerError} from '../lib/api-worker-request.mjs';
 import {memoryActorKey,memoryDigest,memoryOperationId,normalizeMemoryRequest} from '../lib/gold-memory-operation.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
@@ -64,6 +66,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
   let codexRequestInFlight=false;
   let codexSupervisor=null;
   let codexCoordinator=null;
+  let workerQueue=null;
 
   const codex=createGoldCodexConnection({storageFile:file+'.codex.enc',fetchImpl});
   const managedCodex=createManagedCodexRuntime({root:path.join(path.dirname(file),'codex-runtime')});
@@ -121,8 +124,30 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     if(!flags()[feature])throw fault('gold_module_disabled',409);
     return open();
   }
+  function worker(){
+    if(!workerPilotEnabled()||typeof plus.runWorkerReview!=='function')throw workerError('pilot_disabled');
+    const db=enabled('codexBridge');
+    if(!workerQueue)workerQueue=createApiWorkerQueue({db,
+      identity:()=>typeof scopeIdentity==='function'?scopeIdentity():scopeIdentity,
+      enabled:()=>flags().codexBridge,
+      providers:{codex:{
+        run:input=>plus.runWorkerReview(input),
+        status:()=>{
+          const runtime=managedCodex.status();
+          if(runtime.installed||runtime.externalAvailable)plus.warmup?.();
+          const view=plus.snapshot();
+          return {installed:runtime.installed===true||runtime.externalAvailable===true,
+            signedIn:view.account.connected,models:view.catalog.state==='ready'?view.catalog.models.map(row=>row.model):[]};
+        }
+      }}});
+    return workerQueue;
+  }
   const api={
     flags,
+    workerPilotEnabled,
+    remoteWorkerRequest(actor,request,authorize){return worker().request(actor,request,authorize);},
+    ownerWorkerJobs(){return worker().ownerJobs();},
+    ownerWorkerDecision(input){return worker().ownerDecision(input);},
     configure(input={}){
       if(typeof input.longMemory!=='boolean'||typeof input.codexBridge!=='boolean'
         ||!Number.isSafeInteger(input.expectedRevision)||input.expectedRevision<0)
@@ -486,7 +511,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
         :states.some(s=>s==='working'||s==='todo')?'CONTINUE':'WAIT_OWNER';
       return {tasks,recommendation,engine:'local-controller',codexRuntime:'not_connected',webTurnContinuation:'unsupported'};
     },
-    close(){codexSupervisor?.close();plus.stop();if(database){database.close();database=null;}}
+    close(){workerQueue?.close();workerQueue=null;codexSupervisor?.close();plus.stop();if(database){database.close();database=null;}}
   };
   return api;
 }

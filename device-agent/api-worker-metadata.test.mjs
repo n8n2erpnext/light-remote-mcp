@@ -23,6 +23,26 @@ class MetadataServer extends EventEmitter{
    if(this.failQuota){this.failQuota=false;this.stdout.write(JSON.stringify({id:msg.id,error:{message:'fixture_quota_unavailable'}})+'\n');return;}
    result={rateLimits:{limitId:'codex',primary:{usedPercent:this.used,windowDurationMins:300,resetsAt:1900000000}}};
   }else if(msg.method==='account/usage/read')result={summary:{lifetimeTokens:123},dailyUsageBuckets:[]};
+  else if(this.review&&msg.method==='config/read'){
+   result={config:this.reviewConfig??{}};
+  }else if(this.review&&msg.method==='thread/start'){
+   this.threadParams=msg.params;
+   result={thread:{id:'review-thread'},model:'fixture-model',modelProvider:'openai',approvalPolicy:'never',instructionSources:[],
+    sandbox:{type:this.wrongSandbox?'workspaceWrite':'readOnly'}};
+  }else if(this.review&&msg.method==='turn/start'){
+   this.turnParams=msg.params;
+   this.send(msg,{turn:{id:'review-turn'}});
+   if(!this.holdTurn){
+    this.notify('item/agentMessage/delta',{threadId:'review-thread',turnId:'review-turn',delta:'A useful review.'});
+    this.notify('turn/completed',{threadId:'review-thread',turn:{id:'review-turn',status:'completed'}});
+   }
+   return;
+  }else if(this.review&&msg.method==='turn/interrupt'){
+   this.interruptParams=msg.params;
+   this.send(msg,{});
+   this.notify('turn/completed',{threadId:'review-thread',turn:{id:'review-turn',status:'interrupted'}});
+   return;
+  }else if(this.review&&msg.method==='thread/unsubscribe')result={status:'unsubscribed'};
   else throw Error('Unexpected non-metadata RPC '+msg.method);
   this.send(msg,result);
  }
@@ -81,4 +101,36 @@ test('single-bucket notifications merge without discarding other buckets or unre
  at=200;view.applyRateLimits({rateLimits:{limitId:'a',primary:{usedPercent:32,windowDurationMins:300}}},{replace:false});
  const q=view.snapshot().quota;assert.equal(q.buckets.length,2);assert.equal(q.buckets[0].primary.remainingPercent,68);assert.equal(q.buckets[0].secondary.asOf,100);assert.equal(q.buckets[1].primary.asOf,100);assert.equal(q.buckets[0].primary.asOf,200);
  view.disconnected();assert.equal(view.snapshot().quota.buckets.length,0);assert.equal(view.snapshot().account.plan,null);
+});
+test('worker review carries only approved text and denies unverified provider configuration',async t=>{
+ const {client,fake}=fixture(t);fake.review=true;
+ const signal=new AbortController().signal;
+ const input={prompt:'Review this layout',context:'Verified text',model:'fixture-model',timeoutMs:10000,signal,verify:async()=>{}};
+ fake.reviewConfig={mcp_servers:{external:{}}};
+ await assert.rejects(client.runWorkerReview(input),/codex_review_policy_unverified/);
+ assert.equal(fake.calls.includes('thread/start'),false);
+ fake.reviewConfig={};fake.wrongSandbox=true;
+ await assert.rejects(client.runWorkerReview(input),/codex_review_policy_unverified/);
+ assert.equal(fake.calls.includes('turn/start'),false);
+ fake.wrongSandbox=false;
+ await assert.rejects(client.runWorkerReview({...input,verify:async()=>{throw Error('grant_revoked');}}),/grant_revoked/);
+ assert.equal(fake.calls.includes('turn/start'),false);
+ assert.deepEqual(await client.runWorkerReview(input),{text:'A useful review.',model:'fixture-model'});
+ assert.equal(fake.threadParams.config['features.shell_tool'],false);
+ assert.equal(fake.threadParams.config['features.multi_agent'],false);
+ assert.equal(fake.threadParams.ephemeral,true);
+ assert.equal(fake.turnParams.sandboxPolicy.access.type,'restricted');
+ assert.deepEqual(JSON.parse(fake.turnParams.input[0].text),{request:input.prompt,reference:input.context});
+});
+test('worker abort interrupts its own Codex thread and turn',async t=>{
+ const {client,fake}=fixture(t);fake.review=true;fake.holdTurn=true;
+ const controller=new AbortController();
+ const running=client.runWorkerReview({prompt:'Review',context:'',model:'fixture-model',
+  timeoutMs:10000,signal:controller.signal,verify:async()=>{}});
+ const refused=assert.rejects(running,/codex_review_incomplete/);
+ await wait(()=>fake.turnParams);
+ controller.abort();
+ await refused;
+ assert.deepEqual(fake.interruptParams,{threadId:'review-thread',turnId:'review-turn'});
+ assert.equal(fake.killed,false);
 });

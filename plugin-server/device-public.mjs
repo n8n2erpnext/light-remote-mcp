@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import express from 'express';
+import {workerPilotEnabled} from '../lib/api-worker-request.mjs';
 import { callOperatorJson, proxyOperatorDuplex } from './operator-client.mjs';
 import { registerDesktopWallSsoPublicRedeemV4 } from './desktop-wall-sso-public-redeem-v4.mjs';
 import { registerDesktopWallSsoPublicFamilyCurrentV4 } from './desktop-wall-sso-public-family-current-v4.mjs';
@@ -12,6 +13,7 @@ const CHANNEL = new Set([
   // Local Wall signed device-scoped Stop/Cancel control; Operator remains the authorization authority.
   'job-cancel',
   // G3: the Operator separately verifies enrollment-signed device proofs.
+  ...(workerPilotEnabled()?['worker-content-fetch','worker-content-push','worker-authorize']:[]),
   'memory-content-fetch','memory-content-push','memory-peers','memory-invites','memory-relay','memory-sync-policy','memory-account-delete','account-notifications','abv2-pending-preview','abv2-owner-approve'
 ]);
 let publicRedis=null,publicPrefix='';

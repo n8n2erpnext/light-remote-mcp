@@ -220,3 +220,7 @@ Extension0.4 uses only existing same-origin authenticated local /api/status, /ap
 ## Rename API Worker and warm account metadata with truthful quota and partial usage
 
 Local Owner GET /api-worker aliases the existing Codex UI; /codex-cli retained. Desktop#/api-worker resolves the same codex-bridge key. Existing Codex status GET accepts optional fresh=1 for manual force; codex.account native action uses force=true; codex.read asynchronously warms only enabled installed/external Codex. No new Agent grant or inference endpoint. configRevision6 records the page alias. Renderer projections allow only sanitized current account metadata, nullable usage and timestamps.
+
+## Add Owner-approved API Worker review pilot
+
+Opt-in MCP tools light_remote_api_worker_capabilities/start/status/events/result/cancel use remote:execute. Private worker operation and signed device fetch/push/authorize endpoints recheck the exact actor and current grant. Owner review/cancel uses authenticated Local Wall module endpoints and CSRF for decisions.

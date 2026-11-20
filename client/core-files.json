@@ -198,6 +198,14 @@
       "destination": "device-agent/activity-history-reader.mjs"
     },
     {
+      "source": "device-agent/api-worker-device.mjs",
+      "destination": "device-agent/api-worker-device.mjs"
+    },
+    {
+      "source": "device-agent/api-worker-queue.mjs",
+      "destination": "device-agent/api-worker-queue.mjs"
+    },
+    {
       "source": "device-agent/desktop-abv2-native-ipc-v4.mjs",
       "destination": "device-agent/desktop-abv2-native-ipc-v4.mjs"
     },
@@ -452,6 +460,10 @@
     {
       "source": "lib/api-contract.mjs",
       "destination": "lib/api-contract.mjs"
+    },
+    {
+      "source": "lib/api-worker-request.mjs",
+      "destination": "lib/api-worker-request.mjs"
     },
     {
       "source": "lib/brand.mjs",

@@ -324,6 +324,13 @@ export class AccountOperatorAdapter{
     const s=await this.sessionRaw(sessionId);
     return callOperatorJson('POST',apiPath('memoryOperationInternal'),sealOperatorPayload({action:'memory',accountId:this.identity.accountId,sessionId,agentId:this.agentId,nodeId:s.nodeId,operationId,memory}));
   }
+  async worker(sessionId,worker){
+    const s=await this.sessionRaw(sessionId);
+    const operationId=worker.action==='start'?'worker-start:'+worker.workerId:opId('worker');
+    const payload={action:'worker',accountId:this.identity.accountId,sessionId,
+      agentId:this.agentId,nodeId:s.nodeId,operationId,worker};
+    return callOperatorJson('POST',apiPath('workerOperationInternal'),sealOperatorPayload(payload));
+  }
   async memoryResult(sessionId,requestRef){await this.sessionRaw(sessionId);return callOperatorJson('POST',apiPath('memoryResultInternal'),{accountId:this.identity.accountId,sessionId,agentId:this.agentId,requestRef});}
   async desktop(sessionId,desktop,operationId=opId('desktop'),waitMs=7000){const s=await this.sessionRaw(sessionId),payload={action:'desktop',operationId,sessionId,agentId:this.agentId,nodeId:s.nodeId,desktop,waitMs};return callOperatorJson('POST','/v1/desktop',sealOperatorPayload(payload));}
   async desktopObservationRead(sessionId,ticket){await this.sessionRaw(sessionId);return callOperatorJson('POST',apiPath('desktopObservationReadInternal'),{...ticket,accountId:this.identity.accountId,sessionId,agentId:this.agentId});}

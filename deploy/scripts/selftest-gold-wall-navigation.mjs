@@ -14,6 +14,22 @@ try{
     getLocalStatus:async()=>({deviceName:'Gold QA',cloudState:'connected'})});
   await new Promise((ok,bad)=>wall.server.listening?ok():wall.server.once('listening',ok).once('error',bad));
   const base='http://127.0.0.1:'+wall.server.address().port;
+  const owner={'x-test-owner':'yes'},previousPilot=process.env.LIGHT_REMOTE_API_WORKER_PILOT;
+  try{
+    const url=base+'/api/gold/modules/api-worker/jobs';
+    delete process.env.LIGHT_REMOTE_API_WORKER_PILOT;
+    assert.equal((await fetch(url,{headers:owner})).status,404);
+    process.env.LIGHT_REMOTE_API_WORKER_PILOT='1';
+    assert.equal((await fetch(url)).status,401);
+    const response=await fetch(url,{headers:owner});
+    assert.match(response.headers.get('cache-control'),/no-store/);
+    assert.deepEqual(await response.json(),{ok:true,jobs:[]});
+    const decision=base+'/api/gold/modules/api-worker/decision';
+    assert.equal((await fetch(decision,{method:'POST',headers:owner})).status,403);
+  }finally{
+    if(previousPilot===undefined)delete process.env.LIGHT_REMOTE_API_WORKER_PILOT;
+    else process.env.LIGHT_REMOTE_API_WORKER_PILOT=previousPilot;
+  }
   for(const [route,tag] of [['/','home'],['/long-memory','memory'],['/api-worker','codex'],['/codex-cli','codex']]){
     const denied=await fetch(base+route,{redirect:'manual'});
     assert.equal(denied.status,303,route+' requires owner authentication');

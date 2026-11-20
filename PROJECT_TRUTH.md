@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory và API Worker đang triển khai.** Typed Memory đã qua CI134. Extension đã qua kiểm thử Chrome giả lập ChatGPT và Claude. Tên API Worker, metadata và hai đường dẫn Wall đã qua kiểm thử tương ứng. CI đầy đủ của bản sửa đang chờ. MCP worker, Claude/Gemini và multi-worker còn trong kế hoạch.
+**Long Memory và API Worker đang triển khai.** CI137 Core và Web đã qua cho bản sửa extension. API Worker có luồng review Codex qua MCP ở chế độ pilot, đã qua kiểm thử giả lập. Nghiệm thu runtime thật, Claude/Gemini và multi-worker còn mở.
 
-Current development source: Read plain text from simple editor paragraphs during context restore. Chromium innerText adds a visual blank line between paragraphs, which previously made a correct insert look incomplete. Verify Unicode, indentation and actual newline boundaries in both provider fixtures. The Wall regression now checks navigation to /api-worker and Owner authentication on both /api-worker and /codex-cli. Gold Lab and Owner Windows remain on dev12 source 2b65a37. Physical Chrome and provider acceptance are pending.
+Current development source: Add the API Worker pilot for text review through MCP. The calling Agent uses one UUID for a request and can read progress, retrieve the result or cancel it. Local Wall shows the exact text, model and timeout before approval. Each request is scoped to the active account, device, A/B Agent, session, grant and connection. Codex receives one review turn through the existing ChatGPT sign-in and a restricted read-only sandbox request. Hub content is transient and SQLite stores content-free receipts on the device. The pilot defaults off. Gold Lab and Owner Windows are on dev12 source 2b65a37. The dev14 pilot is a source candidate and remains disabled.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

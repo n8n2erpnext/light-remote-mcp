@@ -1,6 +1,7 @@
 import {authorizeRmVideo} from './rmv2-work-authority.mjs';
 import {apiPath} from '../lib/api-contract.mjs';
 import {memorySessionOwner} from './gold-memory-operation.mjs';
+import {workerOperation} from './api-worker-operation.mjs';
 export async function handleRuntimeRoutes(req,res,url,deps){
   const {ACCOUNT_ID,DEVICE_ID,DeviceAccessGrantError,DeviceConnectionError,EnrollmentError,FleetError,MAX_ACTIVE_SESSIONS,MAX_MEMORY_OUTPUT,NODE_ID,SESSION_GRACE_PRESETS,SESSION_IDLE_MS,SESSION_MAX_IDLE_MS,SESSION_MIN_IDLE_MS,VERSION,accessGrants,agentClients,allDeviceViews,assertDiskJobOwner,assertToolCallQuota,cancelControlJob,capabilities,clearMainIfMatches,connectionSpec,connectionViewForDevice,connections,decryptEnvelope,deviceView,devices,enrollments,fleet,flushDiskRecords,fs,fullOutputFromDisk,ingressTelemetry,jobView,jobs,goldJobs,pairingCodes,pruneRing,pushEvent,queueSignedUpdate,readJson,realRemoteLive,realRemoteVideo,realRemoteObservation,recentEvents,redact,revokeRuntimeForDevice,ring,ringBytes,sendJson,sessionStatsFromDisk,sessions,sseClients,startDesktopOperation,startFsOperation,startJob,startProcessOperation,startScpOperation,startSearchOperation,startTerminalOperation,targetRoute,waitForJob,planEntitlements,operationalAccount}=deps;
     if (req.method === 'GET' && url.pathname === '/v1/devices') {
@@ -104,6 +105,10 @@ export async function handleRuntimeRoutes(req,res,url,deps){
       if (req.method === 'POST' && action === 'hold') return sendJson(res, 200, { ok:true, session:sessions.hold(sid, aid, body?.reason || 'transport_lost') });
       if (req.method === 'POST' && action === 'close') return sendJson(res, 200, { ok:true, session:sessions.close(sid, aid) });
       if (req.method === 'POST' && action === 'touch') return sendJson(res, 200, { ok:true, session:sessions.touch(sid, aid, body?.action || 'tool') });
+    }
+    if(req.method==='POST'&&url.pathname===apiPath('workerOperationInternal')){
+      if(!deps.workerContent)return sendJson(res,404,{ok:false,error:'api_worker_pilot_disabled'});
+      return workerOperation(req,res,deps);
     }
     if(req.method==='POST'&&url.pathname===apiPath('memoryOperationInternal')){
       const {payload,requestId}=decryptEnvelope(await readJson(req));

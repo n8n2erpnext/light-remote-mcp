@@ -1,6 +1,6 @@
 // Called only after the enrolled signed channel and nonce have been verified.
 // Short authorization snapshots never extend a grant's absolute expiry.
-function authorizeRm(ctx,{sessions,accounts,requireDeviceConnection,targetRoute,accessGrants},now=Date.now(),requiredCapabilities=['desktop','desktop-input']){
+function authorizeRm(ctx,{sessions,accounts,requireDeviceConnection,targetRoute,accessGrants},now=Date.now(),requiredCapabilities=['desktop','desktop-input'],includeReference=false){
   const {sessionId,agentId}=ctx.payload??{};
   if(typeof sessionId!=='string'||typeof agentId!=='string'||!agentId)throw Error('desktop_work_actor_required');
   const session=sessions.get(sessionId,agentId);
@@ -16,9 +16,13 @@ function authorizeRm(ctx,{sessions,accounts,requireDeviceConnection,targetRoute,
   const expiry=Math.min(Number(grant.expiresAt),Number(grant.absoluteExpiresAt??grant.expiresAt),Number(connection.hardExpiresAt));
   const validForMs=Math.min(1000,expiry-now);
   if(!(validForMs>0))throw Error('desktop_work_authority_expired');
-  return {ok:true,authorized:true,sessionId,agentId,validForMs};
+  return {ok:true,authorized:true,sessionId,agentId,validForMs,
+    ...(includeReference?{grantId:grant.grantId,connectionId:connection.connectionId}:{})};
 }
 
 export function authorizeRmWork(ctx,deps,now=Date.now()){return authorizeRm(ctx,deps,now,['desktop','desktop-input']);}
 export function authorizeRmVideo(ctx,deps,now=Date.now()){return authorizeRm(ctx,deps,now,['desktop']);}
 export function authorizeMemoryWork(ctx,deps,now=Date.now()){return authorizeRm(ctx,deps,now,['filesystem']);}
+export function authorizeWorkerReview(ctx,deps,now=Date.now()){
+  return authorizeRm(ctx,deps,now,['filesystem'],true);
+}

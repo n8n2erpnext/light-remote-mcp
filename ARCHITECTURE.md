@@ -192,3 +192,7 @@ The single current Memory extension core is extensions/light-remote-lm-abv2 v0.4
 ## Rename API Worker and warm account metadata with truthful quota and partial usage
 
 API Worker is the new display/navigation name; codexBridge storage, native actions and old/codex-cli and#/codex-bridge aliases are retained. Automatic enabled/installed Codex metadata is single-flight and performs no login/install/turn. Success caches are per field with runtime/account epoch fences. Disabling the provider stops automatic metadata refresh. Partial usage remains nullable and owned-thread scoped. Additional providers and MCP reasoning contracts are future milestones, not implied by renaming.
+
+## Add Owner-approved API Worker review pilot
+
+API Worker review uses a distinct validated content plane. The shared typed dispatcher carries refs and digests. The local queue owns approval, the provider slot, scoped cancellation and receipt recovery.
