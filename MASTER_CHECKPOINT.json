@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-20T04:03:52.636Z",
+  "updatedAt": "2026-11-20T04:38:32.810Z",
   "version": "0.10.1-dev.14",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Track the exact CI140 native installer and source-bound manifest. Test extension capture, manual save, sync and restore in an isolated Chrome profile. When provider setup and usage are approved, test one bounded MCP review per configured provider and then two reviews of the same checkpoint.",
+  "nextAction": "Owner may install the verified Windows artifact and test the extension in a disposable Chrome profile. Use a test conversation and verify capture, review, save, sync and restore. For end-to-end API Worker testing, use compatible Plugin, Hub and Device versions with the pilot enabled on the selected test lane. Complete one bounded live review per authorized provider before testing the shared checkpoint group.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,11 +691,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261120-extension-artifact-verification-api-worker-baseline",
-    "status": "EXTENSION_ARTIFACT_VERIFIED_API_WORKER_BASELINE_TRACKED",
-    "summary": "Long Memory extension v0.4.0 from CI137 is byte-verified and available for an isolated Chrome install. Its 13 packaged source files match the current API Worker source lane. The typed Memory and worker pilot regressions passed, including separate provider checks and signed checkpoint reviews.",
-    "verification": "CI137 passed 15/15. GitHub artifact 14596509104 matches the reported outer ZIP SHA-256. Inner ZIP SHA-256 413bfa2ef4888c509f64fa65583f57560634eb57456cd219a5610db014c62461; manifest and all 13 files match source 851371784bd8b6bcdcb77b69d271c7e18116e719. Five additional exact-source portable checks passed: extension permissions, signed Home/Replica round trip, sync selection and revocation, restart and scope isolation, and volatile encrypted account relay. CI138 ended failure; Windows install smoke failed at text fixture startup. CI139 was superseded while pending. Exact-source Windows CI140 (run 44671022409) is in_progress. Live Chrome/provider acceptance is pending.",
-    "nextAction": "Track the exact CI140 native installer and source-bound manifest. Test extension capture, manual save, sync and restore in an isolated Chrome profile. When provider setup and usage are approved, test one bounded MCP review per configured provider and then two reviews of the same checkpoint.",
+    "taskId": "20261120-api-worker-ci140-windows-and-extension",
+    "status": "WINDOWS_AND_EXTENSION_BYTES_VERIFIED_LIVE_ACCEPTANCE_PENDING",
+    "summary": "Verified exact-source Windows and Chrome extension downloads for internal acceptance. API Worker supports independent, bounded review jobs with per-review approval and a local signed Long Memory reference.",
+    "verification": "CI140 exact source b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68: 15/15 jobs passed, overall success. Windows install/uninstall, in-place upgrade and cross-layout rollback passed on Actions. Windows artifact 14602170418 matched the outer archive digest and the inner installer SHA-256 a3b1ad71031843345cbdc3ea3d70f416bf9a4772e687ae27919b9803e1946460. Extension artifact 14600357201 matched its outer and inner SHA-256 and all 13 files at the same Git source. Local Desktop web suite passed 130/130. Long Memory and Worker portable tests passed 35/35.",
+    "nextAction": "Owner may install the verified Windows artifact and test the extension in a disposable Chrome profile. Use a test conversation and verify capture, review, save, sync and restore. For end-to-end API Worker testing, use compatible Plugin, Hub and Device versions with the pilot enabled on the selected test lane. Complete one bounded live review per authorized provider before testing the shared checkpoint group.",
     "sourceDigest": "5ea4ee8be5b539b71b900824bf63ca0f7e460efc765697c54d2947b474cfb76b",
     "sourceFileCount": 1757
   },
@@ -2018,7 +2018,7 @@
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "600e2f350b66f1ff18c6cc323867674fd0eb822a4fb5682d33db086e9296e04c",
+    "documentSha256": "9642c14e1ea5887f8121b2c32f84f659206f7cbe28ef175a028f9959cdd2b27c",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2056,7 +2056,17 @@
         "downloadedArtifactZipSha256": "91b7574a25ae64e701a4edffaabd7fd004c781672650ec5b5c1a3e4949da8f4a"
       },
       "portableTests": "10/10 VM plus package/permission guard PASS",
-      "realChromiumDomFixtures": "WINDOWS_HEADLESS_SYNTHETIC_TWO_PROVIDERS_PASS"
+      "realChromiumDomFixtures": "WINDOWS_HEADLESS_SYNTHETIC_TWO_PROVIDERS_PASS",
+      "currentZipArtifact": {
+        "sourceCommit": "b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68",
+        "runId": 44671022409,
+        "artifactId": 14600357201,
+        "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/44671022409/artifacts/14600357201",
+        "archiveSha256": "fd6d079eacf4e2ba4d01cc125e91bf9cb26f68f9f48ac283e4304a3637b45309",
+        "bytes": 2116923,
+        "sourceFilesVerified": 13,
+        "downloadedArtifactZipSha256": "46d5d8436a59c3122a4f25954f3808748eb9f0f46dc5661e181f4ac544b8a1f7"
+      }
     },
     "codex": {
       "desktopColdMetadataWarmupCurrent": true,
@@ -2129,8 +2139,11 @@
         "number": 140,
         "runId": 44671022409,
         "source": "b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68",
-        "status": "in_progress",
-        "conclusion": null
+        "status": "completed",
+        "conclusion": "success",
+        "jobsPassed": 15,
+        "jobsTotal": 15,
+        "failed": []
       },
       "deployed": false,
       "physicalChrome": "NOT_RUN",
@@ -2182,7 +2195,22 @@
         "source": "12c4861368c0242b578ae5580f3b8698951f78d5",
         "result": "CANCELLED_SUPERSEDED_WHILE_PENDING"
       },
-      "verifiedSource": "b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68"
+      "verifiedSource": "b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68",
+      "windowsTestArtifact": {
+        "sourceCommit": "b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68",
+        "sourceTree": "3a0d8537cd11e9e6b0e0b000e6ad36ff43b094a6",
+        "ciRunId": 44671022409,
+        "artifactId": 14602170418,
+        "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/44671022409/artifacts/14602170418",
+        "version": "0.10.1-dev.14",
+        "installerName": "Light-Remote-MCP-Setup-x64.exe",
+        "installerBytes": 172752882,
+        "installerSha256": "a3b1ad71031843345cbdc3ea3d70f416bf9a4772e687ae27919b9803e1946460",
+        "downloadedArchiveSha256": "40800ad329a52b591a045f806f7f82ec8df4beae169e4023e99a1eb2b12207b1",
+        "migration": "PASS",
+        "installedLifecycle": "PASS",
+        "physicalOwnerAcceptance": false
+      }
     }
   },
   "installerGoogleFollowup": {

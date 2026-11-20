@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory và API Worker.** Gói extension 0.4.0 từ CI137 đã khớp SHA-256 và 13 file trong source. API Worker review song song đã qua test giả lập. CI140 kiểm tra bản cài của commit `b892a0f`. Nghiệm thu Chrome với website thật và provider thật còn mở.
+**Long Memory và API Worker.** CI140 qua 15/15 job. Đã xác minh bộ cài Windows dev14 và extension 0.4.0 từ commit `b892a0f`. Nghiệm thu Chrome và provider thật còn mở.
 
-Current development source: Long Memory extension v0.4.0 from CI137 is byte-verified and available for an isolated Chrome install. Its 13 packaged source files match the current API Worker source lane. The typed Memory and worker pilot regressions passed, including separate provider checks and signed checkpoint reviews. Pilot defaults to off. Development stayed on work. Gold and Owner Windows have not been updated by this task.
+Current development source: Verified exact-source Windows and Chrome extension downloads for internal acceptance. API Worker supports independent, bounded review jobs with per-review approval and a local signed Long Memory reference. Gold and the Owner-installed desktop were not modified. Pilot remains disabled by default.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

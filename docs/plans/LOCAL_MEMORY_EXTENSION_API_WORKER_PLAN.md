@@ -247,3 +247,11 @@ Check the exact-source baseline and verified artifact manifests. Use a separate 
 CI137 passed 15/15. GitHub artifact 14596509104 matches the reported outer ZIP SHA-256. Inner ZIP SHA-256 413bfa2ef4888c509f64fa65583f57560634eb57456cd219a5610db014c62461; manifest and all 13 files match source 851371784bd8b6bcdcb77b69d271c7e18116e719. Five additional exact-source portable checks passed: extension permissions, signed Home/Replica round trip, sync selection and revocation, restart and scope isolation, and volatile encrypted account relay. CI138 ended failure; Windows install smoke failed at text fixture startup. CI139 was superseded while pending. Exact-source Windows CI140 (run 44671022409) is in_progress. Live Chrome/provider acceptance is pending.
 
 [Get the CI137 extension package](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/44665270596/artifacts/14596509104). Follow the package README in a disposable Chrome profile. Start with a test conversation containing Unicode and a code block, then check restored text in an empty composer before sending.
+
+## Biên nhận CI140 — 2026-11-20
+
+CI140 exact source b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68: 15/15 jobs passed, overall success. Windows install/uninstall, in-place upgrade and cross-layout rollback passed on Actions. Windows artifact 14602170418 matched the outer archive digest and the inner installer SHA-256 a3b1ad71031843345cbdc3ea3d70f416bf9a4772e687ae27919b9803e1946460. Extension artifact 14600357201 matched its outer and inner SHA-256 and all 13 files at the same Git source. Local Desktop web suite passed 130/130. Long Memory and Worker portable tests passed 35/35.
+
+[Windows x64 installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/44671022409/artifacts/14602170418) · [Chrome extension 0.4.0](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/44671022409/artifacts/14600357201)
+
+Owner may install the verified Windows artifact and test the extension in a disposable Chrome profile. Use a test conversation and verify capture, review, save, sync and restore. For end-to-end API Worker testing, use compatible Plugin, Hub and Device versions with the pilot enabled on the selected test lane. Complete one bounded live review per authorized provider before testing the shared checkpoint group.

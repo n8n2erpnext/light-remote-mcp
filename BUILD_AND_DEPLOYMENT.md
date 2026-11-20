@@ -434,3 +434,7 @@ Windows portable provider and Desktop API tests 9/9 PASS. The fake Claude proces
 ## Record verified Long Memory extension artifact and API Worker baseline
 
 CI137 passed 15/15. GitHub artifact 14596509104 matches the reported outer ZIP SHA-256. Inner ZIP SHA-256 413bfa2ef4888c509f64fa65583f57560634eb57456cd219a5610db014c62461; manifest and all 13 files match source 851371784bd8b6bcdcb77b69d271c7e18116e719. Five additional exact-source portable checks passed: extension permissions, signed Home/Replica round trip, sync selection and revocation, restart and scope isolation, and volatile encrypted account relay. CI138 ended failure; Windows install smoke failed at text fixture startup. CI139 was superseded while pending. Exact-source Windows CI140 (run 44671022409) is in_progress. Live Chrome/provider acceptance is pending.
+
+## Record CI140 Windows installer and Memory extension verification
+
+CI140 exact source b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68: 15/15 jobs passed, overall success. Windows install/uninstall, in-place upgrade and cross-layout rollback passed on Actions. Windows artifact 14602170418 matched the outer archive digest and the inner installer SHA-256 a3b1ad71031843345cbdc3ea3d70f416bf9a4772e687ae27919b9803e1946460. Extension artifact 14600357201 matched its outer and inner SHA-256 and all 13 files at the same Git source. Local Desktop web suite passed 130/130. Long Memory and Worker portable tests passed 35/35.
