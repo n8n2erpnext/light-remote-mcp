@@ -66,6 +66,7 @@ export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSy
     createdAt:number(t.createdAt),changedAt:number(t.changedAt)})),recommendation:observer.recommendation,
     runtime:{state:runtime.state,installed:runtime.installed===true,externalAvailable:runtime.externalAvailable===true,
      installing:runtime.installing===true,lastError:text(runtime.lastError,160)},
+    ...(modules.workerPilotEnabled?.()?{providers:modules.ownerWorkerProviders()}:{}),
     operation,delegations:modules.supervisorList().slice(0,100).map(d=>({taskId:d.taskId,state:d.state,decision:d.decision,
      maxRounds:d.maxRounds,rounds:d.rounds,updatedAt:d.updatedAt}))}};
   }
@@ -160,6 +161,20 @@ export function createDesktopDeviceApi({modules,localStatus,getSyncDevices,getSy
    exact(payload,['model','reasoningEffort']);
    if(typeof payload.model!=='string'||payload.model.length>160||typeof payload.reasoningEffort!=='string'||payload.reasoningEffort.length>160)throw fail('desktop_payload_invalid');
    await modules.codexPlusPreferences(payload,guard);return {saved:true,session:modules.codexPlusView()};
+  }
+  if(action==='worker.provider-select'||action==='worker.provider-check'){
+   exact(payload,action==='worker.provider-select'?['provider','enabled']:['provider']);
+   if(!['claude','gemini'].includes(payload.provider)||modules.workerPilotEnabled?.()!==true)
+    throw fail('desktop_action_denied',403);
+   guard();
+   if(action==='worker.provider-select'){
+    if(typeof payload.enabled!=='boolean')throw fail('desktop_payload_invalid');
+    modules.ownerWorkerSelect(payload);
+    return {saved:true};
+   }
+   await modules.ownerWorkerCheck(payload);
+   guard();
+   return {saved:true};
   }
   if(action==='codex.account'){
    exact(payload,[]);

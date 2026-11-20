@@ -107,7 +107,9 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
         return row ? view(row) : recovered(existing);
       }
       const provider = providers[req.provider];
-      if (typeof provider?.run !== 'function' || typeof authorize !== 'function') {
+      const providerState = provider?.status?.();
+      if (typeof provider?.run !== 'function' || typeof authorize !== 'function' ||
+          providerState?.configured === false || providerState?.enabled === false) {
         throw workerError('provider_unavailable');
       }
       if (rows.size >= maxLiveRows) throw workerError('queue_full');
@@ -172,9 +174,13 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
     deadline.unref?.();
     let checkTimer;
     const verify = async () => {
-      assertCurrent(row.actor);
+      const assertAvailable=()=>{
+        assertCurrent(row.actor);
+        if(providers[row.provider].enabled?.()===false)throw workerError('provider_disabled');
+      };
+      assertAvailable();
       if (await row.authorize(signal) !== true) throw workerError('authority_lost');
-      assertCurrent(row.actor);
+      assertAvailable();
       signal.throwIfAborted();
     };
     const monitor = async () => {

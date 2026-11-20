@@ -7,7 +7,8 @@ export type DeviceAction=DeviceSection|'device.connect'|'device.disconnect'|'mod
  'memory.restore'|'memory.delete-local'|'memory.delete-account'|'memory.sync-policy'|'memory.sync-manual'|
  'codex.task-create'|'codex.task-edit'|'codex.task-state'|'codex.task-delete'|'codex.runtime-install'|
  'codex.runtime-remove'|'codex.login'|'codex.login-cancel'|'codex.logout'|'codex.account'|'codex.observe'|
- 'codex.preferences'|'codex.delegate'|'codex.pause'|'sessions.close'|'jobs.cancel'|'logs.configure'|'logs.clean';
+ 'codex.preferences'|'codex.delegate'|'codex.pause'|'worker.provider-select'|'worker.provider-check'|
+ 'sessions.close'|'jobs.cancel'|'logs.configure'|'logs.clean';
 type Modules=Readonly<{longMemory:boolean;codexBridge:boolean;revision:number}>;
 export type LocalDevice=Readonly<{deviceName:string|null;cloudDesiredConnected:boolean;cloudState:string|null;
  version:string|null;platform:string|null;executorReady:boolean|null;policy:{profile:string|null;revision:number|null;effectiveCapabilities:string[];deniedCapabilities:string[]}}>;
@@ -19,7 +20,10 @@ export type SyncPolicy=Readonly<{enabled:boolean;revision:number;devices:Readonl
 export type MemoryView=Readonly<{localFileBytes:number|null;liveBytes:number|null;checkpointBytes:number|null;coverage:Coverage|null;
  lastConfirmedSyncAt:number|null;scopes:ReadonlyArray<MemoryScope>;sync:{state:'ready'|'unavailable';currentDeviceId?:string;devices?:ReadonlyArray<SyncDevice>;policy?:SyncPolicy}}>;
 export type CodexTask=Readonly<{id:string;title:string;state:string;createdAt:number|null;changedAt:number}>;
+type ReviewProvider=Readonly<{provider:'claude'|'gemini';configured:boolean;enabled:boolean;
+ authState:'signed_in'|'authenticated'|'sign_in_required'|'not_checked';models:string[]}>;
 export type CodexView=Readonly<{session:CodexSession|null;tasks:ReadonlyArray<CodexTask>;recommendation:string|null;coverage:Coverage|null;
+ providers?:ReadonlyArray<ReviewProvider>;
  runtime:{state:string|null;installed:boolean;externalAvailable:boolean;installing:boolean;lastError:string|null};
  operation:{state:string;error:string|null}|null;delegations:ReadonlyArray<{taskId:string;state:string;decision:string|null;maxRounds:number|null;rounds:number|null}>}>;
 export type DeviceView=Readonly<{asOf:number|null;modules:Modules|null;device:LocalDevice|null;memory:MemoryView|null;
@@ -100,7 +104,16 @@ export function projectDeviceReply(input:unknown,accountId:string,deviceId:strin
    const x=object(value);return x&&id(x.taskId)?[{taskId:x.taskId,state:string(x.state,40)||'unknown',
     decision:string(x.decision,50),maxRounds:count(x.maxRounds),rounds:count(x.rounds)}]:[];
   });
-  codex={session:projectCodexSession(c.session),tasks,recommendation:string(c.recommendation,50),coverage:coverage(c.coverage),runtime:{state:string(rt.state,40),installed:rt.installed===true,
+  const providers:ReviewProvider[]=rows(c.providers).slice(0,3).flatMap(value=>{
+   const entry=object(value),provider=entry?.provider;
+   if(!entry||(provider!=='claude'&&provider!=='gemini'))return [];
+   const state=entry.authState;
+   return [{provider,configured:entry.configured===true,enabled:entry.enabled===true,
+    authState:state==='signed_in'||state==='authenticated'||state==='sign_in_required'?state:'not_checked',
+    models:list(entry.models).slice(0,1)}];
+  });
+  codex={session:projectCodexSession(c.session),tasks,recommendation:string(c.recommendation,50),coverage:coverage(c.coverage),
+   ...(providers.length?{providers}:{}),runtime:{state:string(rt.state,40),installed:rt.installed===true,
    externalAvailable:rt.externalAvailable===true,installing:rt.installing===true,lastError:string(rt.lastError,160)},
    operation:op?{state:string(op.state,40)||'unknown',error:string(op.error,160)}:null,delegations};
  }

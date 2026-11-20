@@ -316,6 +316,8 @@
         "codex.preferences",
         "codex.delegate",
         "codex.pause",
+        "worker.provider-select",
+        "worker.provider-check",
         "sessions.close",
         "jobs.cancel",
         "logs.configure",
@@ -328,7 +330,7 @@
         "deviceId",
         "payload"
       ],
-      "response": "Bounded allowlisted local state or acknowledged operation; unknown outcome never retried automatically. Codex read projects cached account/login, runtime model catalog/selection, reported quota and tokens. codex.preferences validates the current catalog and saves only model/reasoning identifiers; it does not start work.",
+      "response": "Bounded local state and operation acknowledgments. Codex read projects cached account, model, quota and tokens. Pilot provider actions select or explicitly check device-only Claude and Gemini connections. The response carries only sanitized provider status.",
       "featureFlag": "LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4",
       "sourceStatus": "IMPLEMENTED_UI_BOUND_CANDIDATE_NOT_DEPLOYED",
       "nativeArguments": [

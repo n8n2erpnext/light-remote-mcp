@@ -119,6 +119,23 @@ export function CodexBridgeScreen({accountId}:{accountId:string|null}){
 
   </Card>
   <CodexControls session={session||null} pending={!enabled||api.pending} onSelect={(model,reasoningEffort)=>void api.run('codex.preferences',{model,reasoningEffort})} onRefresh={()=>void api.run('codex.account')}/>
+  {!!codex?.providers?.length&&<Card>
+   <CardHeading description="Choose which providers your agents can request for a review.">Review providers</CardHeading>
+   <div className="codex-setup">{codex.providers.map(item=>{
+    const title=item.provider==='claude'?'Claude Code':'Gemini API';
+    const connected=item.authState==='signed_in'||item.authState==='authenticated';
+    return <div key={item.provider}>
+     <label><input type="checkbox" checked={item.enabled} disabled={!item.configured||api.pending}
+      onChange={e=>void api.run('worker.provider-select',{provider:item.provider,enabled:e.target.checked})}/> {title}</label>
+     <p>{item.provider==='claude'?'Sign in using Claude Code on this PC.':'Uses the AI Studio API key configured on this PC.'}</p>
+     <StatusBadge value={connected?'connected':'unknown'} label={connected?'Connected':!item.configured?'Setup required':
+      item.authState==='sign_in_required'?'Sign-in required':'Ready to check'}/>
+     <Button variant="ghost" disabled={!item.configured||api.pending}
+      onClick={()=>void api.run('worker.provider-check',{provider:item.provider})}>Check {title}</Button>
+     {!!item.models.length&&<p>{item.models[0]}</p>}
+    </div>;
+   })}</div>
+  </Card>}
   <Card><div className="feature-section-title"><CardHeading description="Editing a task does not start it. You decide when to hand work to Codex.">Your tasks</CardHeading><Button disabled={!enabled||api.pending||codex?.operation?.state==='running'} onClick={()=>void ask('Ask Codex to review tasks on this PC? It can suggest changes but cannot approve them for you.').then(async yes=>{if(yes)await api.run('codex.observe',{confirmed:true});})}>Review tasks with Codex</Button></div>
    {codex?.coverage&&codex.coverage.total>codex.coverage.returned&&<p className="muted" role="status">Showing {codex.coverage.returned} of {codex.coverage.total} tasks. Open Wall to view the rest.</p>}
    <form className="native-create-form product-create-form" onSubmit={event=>void create(event)}><label className="grow-field"><span>What would you like to work on?</span><input aria-label="New Codex task title" value={title} maxLength={240} placeholder="e.g. Review the checkout flow" disabled={!enabled||api.pending} onChange={e=>setTitle(e.target.value)}/></label><Button variant="primary" type="submit" disabled={!enabled||!title.trim()||api.pending}>Add task</Button></form>

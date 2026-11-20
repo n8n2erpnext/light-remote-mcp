@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory và API Worker đang triển khai.** CI137 Core và Web đã qua cho bản sửa extension. API Worker có luồng review Codex qua MCP ở chế độ pilot, đã qua kiểm thử giả lập. Nghiệm thu runtime thật, Claude/Gemini và multi-worker còn mở.
+**Long Memory và API Worker đang triển khai.** CI137 qua đủ 15 job. API Worker có pilot review với Codex, Claude Code và Gemini API. Các adapter đã được kiểm thử giả lập. Nghiệm thu runtime thật và parallel worker còn mở.
 
-Current development source: Add the API Worker pilot for text review through MCP. The calling Agent uses one UUID for a request and can read progress, retrieve the result or cancel it. Local Wall shows the exact text, model and timeout before approval. Each request is scoped to the active account, device, A/B Agent, session, grant and connection. Codex receives one review turn through the existing ChatGPT sign-in and a restricted read-only sandbox request. Hub content is transient and SQLite stores content-free receipts on the device. The pilot defaults off. Gold Lab and Owner Windows are on dev12 source 2b65a37. The dev14 pilot is a source candidate and remains disabled.
+Current development source: Add separately selectable Claude Code and Gemini API providers to the API Worker review pilot. Desktop and Local Wall share device-local provider choices. Connection checks inspect local Claude auth or Gemini model access without inference. The queue continues to require approval of the exact text and model before each provider turn. Claude uses an Owner-installed official CLI and its sign-in. Gemini uses an explicitly configured AI Studio API key with separate quota. Provider keys and local account details are excluded from Desktop, Wall and MCP metadata. Gold Lab and Owner Windows remain on dev12. The source pilot stays off by default.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

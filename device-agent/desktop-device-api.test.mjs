@@ -6,10 +6,11 @@ import os from 'node:os';
 import {createGoldWallModules} from './gold-wall-modules.mjs';
 import {createDesktopDeviceApi} from './desktop-device-api.mjs';
 
-const setup=t=>{
+const setup=(t,options={})=>{
  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'lr-desktop-device-'));
  const file=path.join(folder,'modules.sqlite');
- const modules=createGoldWallModules({file,scopeIdentity:{accountId:'owner',deviceId:'local'},plusImpl:{stop(){},warmup(){},snapshot:()=>null}});
+ const modules=createGoldWallModules({file,scopeIdentity:{accountId:'owner',deviceId:'local'},
+  plusImpl:{stop(){},warmup(){},snapshot:()=>null},...options});
  t.after(()=>{modules.close();fs.rmSync(folder,{recursive:true,force:true});});
  const api=createDesktopDeviceApi({modules,localStatus:()=>({deviceName:'Actual device',cloudState:'connected',
   cloudDesiredConnected:true,version:'test',platformAdapter:process.platform,privateKey:'NEVER_RETURN',
@@ -27,6 +28,40 @@ test('optional modules stay OFF without creating SQLite; snapshots omit secrets'
  assert.equal(fs.existsSync(file),false);
  await assert.rejects(call('shell.run',{command:'anything'}),/desktop_action_denied/);
  await assert.rejects(call('device.read',{url:'http://elsewhere'}),/desktop_payload_invalid/);
+});
+test('native provider opt-in is local and connection check sends no inference',async t=>{
+ const env={LIGHT_REMOTE_API_WORKER_PILOT:'1',LIGHT_REMOTE_API_WORKER_GEMINI_KEY:'private_fixture_key_not_real',
+  LIGHT_REMOTE_API_WORKER_GEMINI_MODEL:'gemini-fixture'};
+ const prior=Object.fromEntries(Object.keys(env).map(k=>[k,process.env[k]]));
+ Object.assign(process.env,env);
+ t.after(()=>{for(const [k,v] of Object.entries(prior)){
+  if(v===undefined)delete process.env[k];else process.env[k]=v;
+ }});
+ let calls=0;
+ const {call}=setup(t,{
+  plusImpl:{stop(){},warmup(){},snapshot:()=>({account:{connected:false},catalog:{state:'not_checked'}}),
+   runWorkerReview:()=>assert.fail('metadata sent inference')},
+  fetchImpl:async(url,opts)=>{
+   calls++;
+   assert.match(url,/\/models\/gemini-fixture$/);
+   assert.equal(opts.method,'GET');
+   return Response.json({name:'models/gemini-fixture'});
+  }
+ });
+ await call('module.configure',{module:'codexBridge',enabled:true,expectedRevision:0});
+ const providers=async()=> (await call('codex.read')).codex.providers;
+ assert.equal((await providers()).find(x=>x.provider==='gemini').enabled,false);
+ assert.equal(calls,0);
+ await assert.rejects(call('worker.provider-select',{provider:'gemini',enabled:true,apiKey:'never'}),/desktop_payload_invalid/);
+ await call('worker.provider-select',{provider:'gemini',enabled:true});
+ await call('worker.provider-check',{provider:'gemini'});
+ const rows=await providers();
+ assert.equal(calls,1);
+ assert.equal(rows.find(x=>x.provider==='gemini').authState,'authenticated');
+ assert.equal(rows.find(x=>x.provider==='gemini').enabled,true);
+ assert.doesNotMatch(JSON.stringify(rows),/private_fixture_key/);
+ await call('worker.provider-select',{provider:'gemini',enabled:false});
+ assert.equal((await providers()).find(x=>x.provider==='gemini').enabled,false);
 });
 test('real SQLite module CAS, fresh Memory usage, scopes and archive/restore persist',async t=>{
  const {call,modules}=setup(t);

@@ -466,3 +466,7 @@ Read plain text from simple editor paragraphs during context restore. Chromium i
 ## Add Owner-approved API Worker review pilot
 
 Add the API Worker pilot for text review through MCP. The calling Agent uses one UUID for a request and can read progress, retrieve the result or cancel it. Local Wall shows the exact text, model and timeout before approval. Each request is scoped to the active account, device, A/B Agent, session, grant and connection. Codex receives one review turn through the existing ChatGPT sign-in and a restricted read-only sandbox request. Hub content is transient and SQLite stores content-free receipts on the device. The pilot defaults off.
+
+## Add optional Claude Code and Gemini API Worker providers
+
+Add separately selectable Claude Code and Gemini API providers to the API Worker review pilot. Desktop and Local Wall share device-local provider choices. Connection checks inspect local Claude auth or Gemini model access without inference. The queue continues to require approval of the exact text and model before each provider turn. Claude uses an Owner-installed official CLI and its sign-in. Gemini uses an explicitly configured AI Studio API key with separate quota. Provider keys and local account details are excluded from Desktop, Wall and MCP metadata.

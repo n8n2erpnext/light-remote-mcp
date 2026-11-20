@@ -28,6 +28,7 @@ import {receiveGoldPeerRequest,pollGoldPeer,allowGoldPeerHomeUrl,configureGoldPe
 import {executeMemoryRequest} from './gold-memory-operation.mjs';
 import {createApiWorkerQueue} from './api-worker-queue.mjs';
 import {workerPilotEnabled,workerError} from '../lib/api-worker-request.mjs';
+import {createClaudeWorker,createGeminiWorker} from './api-worker-providers.mjs';
 import {memoryActorKey,memoryDigest,memoryOperationId,normalizeMemoryRequest} from '../lib/gold-memory-operation.mjs';
 const loadBuiltin=createRequire(import.meta.url);
 
@@ -67,6 +68,7 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
   let codexSupervisor=null;
   let codexCoordinator=null;
   let workerQueue=null;
+  let workerProviders=null;
 
   const codex=createGoldCodexConnection({storageFile:file+'.codex.enc',fetchImpl});
   const managedCodex=createManagedCodexRuntime({root:path.join(path.dirname(file),'codex-runtime')});
@@ -124,13 +126,15 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     if(!flags()[feature])throw fault('gold_module_disabled',409);
     return open();
   }
-  function worker(){
+  function configuredWorkerProviders(){
     if(!workerPilotEnabled()||typeof plus.runWorkerReview!=='function')throw workerError('pilot_disabled');
     const db=enabled('codexBridge');
-    if(!workerQueue)workerQueue=createApiWorkerQueue({db,
-      identity:()=>typeof scopeIdentity==='function'?scopeIdentity():scopeIdentity,
-      enabled:()=>flags().codexBridge,
-      providers:{codex:{
+    if(workerProviders)return workerProviders;
+    db.exec(`CREATE TABLE IF NOT EXISTS api_worker_provider_choice(
+      account_id TEXT NOT NULL, device_id TEXT NOT NULL, provider TEXT NOT NULL, enabled INTEGER NOT NULL,
+      PRIMARY KEY(account_id,device_id,provider))`);
+    workerProviders={
+      codex:{
         run:input=>plus.runWorkerReview(input),
         status:()=>{
           const runtime=managedCodex.status();
@@ -139,12 +143,57 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
           return {installed:runtime.installed===true||runtime.externalAvailable===true,
             signedIn:view.account.connected,models:view.catalog.state==='ready'?view.catalog.models.map(row=>row.model):[]};
         }
-      }}});
+      },
+      claude:createClaudeWorker({
+        binary:process.env.LIGHT_REMOTE_API_WORKER_CLAUDE_BIN,
+        model:process.env.LIGHT_REMOTE_API_WORKER_CLAUDE_MODEL,cwd:path.dirname(file)
+      }),
+      gemini:createGeminiWorker({
+        apiKey:process.env.LIGHT_REMOTE_API_WORKER_GEMINI_KEY,
+        model:process.env.LIGHT_REMOTE_API_WORKER_GEMINI_MODEL,fetchImpl
+      })
+    };
+    for(const name of ['claude','gemini']){
+      const entry=workerProviders[name];
+      const status=entry.status;
+      entry.enabled=()=>providerSelected(name);
+      entry.status=()=>({...status(),enabled:entry.enabled()});
+    }
+    return workerProviders;
+  }
+  function providerSelected(provider){
+    const {accountId,deviceId}=scopedIdentity();
+    return open().prepare(`SELECT enabled FROM api_worker_provider_choice
+      WHERE account_id=? AND device_id=? AND provider=?`).get(accountId,deviceId,provider)?.enabled===1;
+  }
+  function worker(){
+    const providers=configuredWorkerProviders();
+    if(!workerQueue)workerQueue=createApiWorkerQueue({db:open(),
+      identity:()=>typeof scopeIdentity==='function'?scopeIdentity():scopeIdentity,
+      enabled:()=>flags().codexBridge,providers});
     return workerQueue;
   }
   const api={
     flags,
     workerPilotEnabled,
+    ownerWorkerProviders(){
+      return Object.entries(configuredWorkerProviders()).map(([provider,value])=>({provider,...value.status()}));
+    },
+    async ownerWorkerCheck({provider}={}){
+      if(!['claude','gemini'].includes(provider))throw workerError('provider_invalid');
+      const entry=configuredWorkerProviders()[provider];
+      return {provider,...await entry.check(AbortSignal.timeout(12000))};
+    },
+    ownerWorkerSelect({provider,enabled:selected}={}){
+      if(!['claude','gemini'].includes(provider)||typeof selected!=='boolean')throw workerError('provider_invalid');
+      const entry=configuredWorkerProviders()[provider];
+      if(selected&&!entry.status().configured)throw workerError('provider_setup_required');
+      const {accountId,deviceId}=scopedIdentity();
+      open().prepare(`INSERT INTO api_worker_provider_choice VALUES(?,?,?,?)
+        ON CONFLICT(account_id,device_id,provider) DO UPDATE SET enabled=excluded.enabled`)
+        .run(accountId,deviceId,provider,Number(selected));
+      return {provider,...entry.status()};
+    },
     remoteWorkerRequest(actor,request,authorize){return worker().request(actor,request,authorize);},
     ownerWorkerJobs(){return worker().ownerJobs();},
     ownerWorkerDecision(input){return worker().ownerDecision(input);},

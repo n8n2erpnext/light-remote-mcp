@@ -798,13 +798,68 @@ function goldCodexNativeInit(){
 function goldWorkerInbox(area){
   const make=goldMemoryNativeElement;
   const panel=make('section','sessionbox');panel.style.cssText='padding:12px;margin:0 0 12px';
-  const button=make('button','btn small','Check requests');button.type='button';
+  const button=make('button','btn small','Refresh requests');button.type='button';
   const body=make('div');
   const notice=make('p','muted');notice.setAttribute('role','status');
+  const providers=make('div');
   panel.append(make('strong','','Review requests from your agents'),
-    make('p','muted','Review what will be sent to Codex. Approved requests use the ChatGPT plan signed in on this device.'),
+    make('p','muted','Review the text and provider before sending. Each request uses that provider’s own plan or API quota.'),
+    providers,
     button,notice,body);
   area.insertBefore(panel,area.children[1]||null);
+  const providerName={codex:'Codex',claude:'Claude Code',gemini:'Gemini API'};
+  async function showProviders(){
+    try{
+      const response=await fetch('/api/gold/modules/api-worker/providers',{cache:'no-store'});
+      const payload=await response.json();
+      if(!response.ok||!payload.ok)return;
+      providers.replaceChildren();
+      for(const info of payload.providers){
+        const card=make('section','sessionbox');
+        card.append(make('strong','',providerName[info.provider]));
+        const status=make('p','muted');
+        if(info.provider==='codex'){
+          status.textContent=info.signedIn?'Signed in with ChatGPT':'Sign in below with ChatGPT';
+          card.append(status);
+        }else{
+          const text=info.provider==='claude'?
+            'Sign in through Claude Code on this device. Uses your Claude subscription.':
+            'Connect with an AI Studio API key on this device. Uses API quota.';
+          const setup=make('a','','Setup guide');
+          setup.href=info.provider==='claude'?'https://code.claude.com/docs/en/setup':'https://aistudio.google.com/docs/api-key';
+          setup.target='_blank';setup.rel='noopener noreferrer';
+          const check=make('button','btn small','Check connection');check.type='button';check.disabled=!info.configured;
+          const choice=make('label');
+          const selected=make('input');selected.type='checkbox';selected.checked=info.enabled===true;
+          selected.disabled=!info.configured;
+          choice.append(selected,document.createTextNode(' Use '+providerName[info.provider]));
+          selected.onchange=async()=>{
+            const enabled=selected.checked;
+            selected.disabled=true;
+            try{
+              const result=await wallMutation('/api/gold/modules/api-worker/provider-selection',
+                {provider:info.provider,enabled});
+              selected.checked=result.provider.enabled===true;
+            }catch{selected.checked=!enabled;status.textContent='Could not save your selection.';}
+            finally{selected.disabled=false;}
+          };
+          const show=mode=>status.textContent=!info.configured?'Setup required':
+            (['signed_in','authenticated'].includes(mode)?'Connected':mode==='sign_in_required'?'Sign-in required':'Ready to check');
+          show(info.authState);
+          check.onclick=async()=>{
+            check.disabled=true;status.textContent='Checking…';
+            try{
+              const result=await wallMutation('/api/gold/modules/api-worker/provider-check',{provider:info.provider});
+              show(result.provider.authState);
+            }catch{status.textContent='Could not verify the connection.';}
+            finally{check.disabled=false;}
+          };
+          card.append(make('p','muted',text),choice,status,setup,check);
+        }
+        providers.append(card);
+      }
+    }catch{}
+  }
   async function refresh(){
     if(button.disabled)return;
     button.disabled=true;body.replaceChildren();notice.textContent='Checking requests…';
@@ -818,7 +873,8 @@ function goldWorkerInbox(area){
         const status={awaiting_approval:'Waiting for you',authorizing:'Checking access',running:'Running',
           stopping:'Stopping',completed:'Finished',failed:'Could not finish',cancelled:'Cancelled',
           interrupted:'Interrupted',expired:'Expired'};
-        box.append(make('strong','','Codex · '+job.requestedModel),
+        const name=providerName[job.provider]||'Worker';
+        box.append(make('strong','',name+' · '+job.requestedModel),
           make('p','muted',(status[job.state]||job.state)+' · '+Math.round(job.timeoutMs/1000)+' seconds'));
         const canStop=['awaiting_approval','authorizing','running'].includes(job.state);
         if(job.state==='awaiting_approval'){
@@ -843,7 +899,7 @@ function goldWorkerInbox(area){
             }
           };
           if(job.state==='awaiting_approval'){
-            const approve=make('button','btn small','Approve and send to Codex');approve.type='button';
+            const approve=make('button','btn small','Approve and send to '+name);approve.type='button';
             approve.onclick=()=>void decide(true);controls.append(approve);
           }
           const stop=make('button','btn small','Cancel request');stop.type='button';
@@ -854,7 +910,8 @@ function goldWorkerInbox(area){
     }catch{notice.textContent='Review requests are unavailable.';}
     finally{button.disabled=false;}
   }
-  button.onclick=()=>void refresh();
+  button.onclick=()=>{void showProviders();void refresh();};
+  void showProviders();
 }
 function goldMemoryNativeInit(){
   if(location.pathname!=='/long-memory')return;
@@ -3057,6 +3114,12 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
       if(url.pathname.startsWith('/api/gold/modules/api-worker/')){
         if(!modules.workerPilotEnabled?.())return json(res,404,{ok:false,error:'api_worker_pilot_disabled'});
         res.setHeader('Cache-Control','no-store');
+        if(req.method==='GET'&&url.pathname==='/api/gold/modules/api-worker/providers')
+          return json(res,200,{ok:true,providers:modules.ownerWorkerProviders()});
+        if(req.method==='POST'&&url.pathname==='/api/gold/modules/api-worker/provider-check')
+          return json(res,200,{ok:true,provider:await modules.ownerWorkerCheck(await body(req))});
+        if(req.method==='POST'&&url.pathname==='/api/gold/modules/api-worker/provider-selection')
+          return json(res,200,{ok:true,provider:modules.ownerWorkerSelect(await body(req))});
         if(req.method==='GET'&&url.pathname==='/api/gold/modules/api-worker/jobs')
           return json(res,200,{ok:true,jobs:modules.ownerWorkerJobs()});
         if(req.method==='POST'&&url.pathname==='/api/gold/modules/api-worker/decision')

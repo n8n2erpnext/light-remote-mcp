@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-20T03:28:54.996Z",
+  "updatedAt": "2026-11-20T03:42:07.466Z",
   "version": "0.10.1-dev.14",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
-  "status": "P4_CODEX_REVIEW_PILOT_SOURCE",
+  "status": "P5_PROVIDER_PILOT_SOURCE",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Finish exact-source CI and verify the extension ZIP. Validate the signed-in Codex runtime constraints before enabling the pilot. Implement the separately selected Claude/Gemini adapters and multi-worker scheduling afterward.",
+  "nextAction": "Validate the configured providers with one bounded review each once authorized for real account usage. Finish current CI and continue the controlled parallel reader scheduler.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,13 +691,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261120-api-worker-p4-codex-review-pilot",
-    "status": "PILOT_SYNTHETIC_PASS_CI_PENDING",
-    "summary": "Add the API Worker pilot for text review through MCP. The calling Agent uses one UUID for a request and can read progress, retrieve the result or cancel it. Local Wall shows the exact text, model and timeout before approval. Each request is scoped to the active account, device, A/B Agent, session, grant and connection. Codex receives one review turn through the existing ChatGPT sign-in and a restricted read-only sandbox request. Hub content is transient and SQLite stores content-free receipts on the device. The pilot defaults off.",
-    "verification": "Synthetic verification covers the real Fleet queue, Operator route handlers, the device queue and mocked Codex app-server. Covered authorization changes, cancellation and late replies, required local approval, content-free job records, restart without replay, module and CSRF guards, and the existing Long Memory and Codex flows. Real provider compatibility and inference are pending. CI137 Core and Web passed on 8513717. Full pilot Actions checks pending. Pre-pilot checkpoint checkpoint/20261115-before-rmv2-apiworkerpilot-8513717 restored and passed fsck.",
-    "nextAction": "Finish exact-source CI and verify the extension ZIP. Validate the signed-in Codex runtime constraints before enabling the pilot. Implement the separately selected Claude/Gemini adapters and multi-worker scheduling afterward.",
-    "sourceDigest": "a0a889c31221b8319fe9f2370c748627f02b76168b5fa20c119d9c117864eb97",
-    "sourceFileCount": 1755
+    "taskId": "20261120-api-worker-p5-provider-selection",
+    "status": "PROVIDER_PILOT_SYNTHETIC_PASS_CI_PENDING",
+    "summary": "Add separately selectable Claude Code and Gemini API providers to the API Worker review pilot. Desktop and Local Wall share device-local provider choices. Connection checks inspect local Claude auth or Gemini model access without inference. The queue continues to require approval of the exact text and model before each provider turn. Claude uses an Owner-installed official CLI and its sign-in. Gemini uses an explicitly configured AI Studio API key with separate quota. Provider keys and local account details are excluded from Desktop, Wall and MCP metadata.",
+    "verification": "Windows portable provider and Desktop API tests 9/9 PASS. The fake Claude process checks stdin, fixed review flags, and exclusion of ambient credentials. The fake Gemini transport checks official endpoint, header authentication, model lookup, no tools, partial usage, and quota/truncation errors. Wall navigation, Owner/CSRF guards, Windows core import closure and the prior review queue tests PASS. Real provider executions are pending. CI137 at 8513717 passed 15/15. CI138 at fa972a1 passed Core and Web. Its Windows job failed at the RM test fixture pipe connection before typing began. No Windows pilot installer is eligible from CI138. Current source needs its own CI. Pre-change checkpoint checkpoint/20261115-before-rmv2-apiworkerproviders-fa972a1 restored and passed fsck.",
+    "nextAction": "Validate the configured providers with one bounded review each once authorized for real account usage. Finish current CI and continue the controlled parallel reader scheduler.",
+    "sourceDigest": "fe82758cce7668bf9dd143fa2d70552f073993e2ad13f7e0ffb4d5434aa24756",
+    "sourceFileCount": 1757
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -2013,12 +2013,12 @@
     }
   },
   "localMemoryApiWorkerResearch": {
-    "status": "P4_CODEX_REVIEW_PILOT_SYNTHETIC_PASS",
+    "status": "P5_PROVIDER_PILOT_SOURCE",
     "ownerScope": "IMPLEMENT_PLAN_AUTHORIZED_20261115",
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "b1a5c11fd2a1a056ecc9538c23df5b7901827649b62a36e5ae7ed5aa9b1374d9",
+    "documentSha256": "015db9a09f36c641230b891d32af570f8fb326805b448612018b1d505173c0ee",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2044,7 +2044,13 @@
       "version": "0.4.0",
       "canonicalSource": "extensions/light-remote-lm-abv2",
       "historicalZipSha256": "76a3649a4fb7704cb930f4a1912f70b80d8387128f69aff023e9a306f3fd0dcd",
-      "zipArtifact": "CI137_BUILT_BYTES_NOT_YET_VERIFIED",
+      "zipArtifact": {
+        "runId": 44665270596,
+        "artifactId": 14596509104,
+        "result": "CI_BUILT_BYTES_NOT_VERIFIED",
+        "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/44665270596/artifacts/14596509104",
+        "outerZipReportedDigest": "91b7574a25ae64e701a4edffaabd7fd004c781672650ec5b5c1a3e4949da8f4a"
+      },
       "portableTests": "10/10 VM plus package/permission guard PASS",
       "realChromiumDomFixtures": "WINDOWS_HEADLESS_SYNTHETIC_TWO_PROVIDERS_PASS"
     },
@@ -2078,11 +2084,18 @@
         "defaultEnabled": false,
         "minimumAgent": "0.10.1-dev.14",
         "providers": [
-          "codex"
+          "codex",
+          "claude",
+          "gemini"
         ],
         "ownerApproval": true,
         "maxConcurrent": 1,
-        "realProviderAcceptance": false
+        "realProviderAcceptance": false,
+        "providerAuth": {
+          "codex": "chatgpt",
+          "claude": "official_cli_subscription",
+          "gemini": "ai_studio_api_key"
+        }
       }
     },
     "implementationChanged": true,
@@ -2093,10 +2106,10 @@
     "peerReview": "PASS_WITH_HIDDEN_DOM_COVERAGE_LIMIT_EXPLICIT",
     "nativeBuildStillDeferredByOwner": false,
     "implementation": {
-      "milestone": "P4_CODEX_REVIEW_PILOT",
-      "base": "851371784bd8b6bcdcb77b69d271c7e18116e719",
+      "milestone": "P5_CLAUDE_GEMINI_PILOT",
+      "base": "fa972a12a536a6a5c93105b67585d85351543efb",
       "portableTests": "P3 sixteen tests and four existing Codex/core regression scripts PASS",
-      "fullCi": "PENDING_PILOT_SOURCE",
+      "fullCi": "PENDING_CURRENT_SOURCE",
       "deployed": false,
       "physicalChrome": "NOT_RUN",
       "providerInference": "NOT_RUN",
@@ -2132,8 +2145,14 @@
       "correctedCi": {
         "number": 137,
         "runId": 44665270596,
-        "source": "851371784bd8b6bcdcb77b69d271c7e18116e719",
-        "result": "CORE_AND_WEB_PASS"
+        "result": "PASS",
+        "jobs": 15
+      },
+      "pilotCi": {
+        "number": 138,
+        "runId": 44668017283,
+        "source": "fa972a12a536a6a5c93105b67585d85351543efb",
+        "result": "CORE_WEB_PASS_WINDOWS_FIXTURE_START_FAILED"
       }
     }
   },

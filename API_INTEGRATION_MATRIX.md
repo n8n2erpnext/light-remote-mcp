@@ -224,3 +224,7 @@ Local Owner GET /api-worker aliases the existing Codex UI; /codex-cli retained. 
 ## Add Owner-approved API Worker review pilot
 
 Opt-in MCP tools light_remote_api_worker_capabilities/start/status/events/result/cancel use remote:execute. Private worker operation and signed device fetch/push/authorize endpoints recheck the exact actor and current grant. Owner review/cancel uses authenticated Local Wall module endpoints and CSRF for decisions.
+
+## Add optional Claude Code and Gemini API Worker providers
+
+Native worker.provider-select/check and their Owner Wall equivalents manage two optional review adapters. Selections are scoped by local enrolled account/device. API Worker capabilities projects provider status and configured model IDs. All six worker tools retain exact A/B authority and Owner review.

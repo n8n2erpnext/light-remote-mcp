@@ -202,6 +202,10 @@
       "destination": "device-agent/api-worker-device.mjs"
     },
     {
+      "source": "device-agent/api-worker-providers.mjs",
+      "destination": "device-agent/api-worker-providers.mjs"
+    },
+    {
       "source": "device-agent/api-worker-queue.mjs",
       "destination": "device-agent/api-worker-queue.mjs"
     },

@@ -387,14 +387,14 @@ export function registerPluginTools(server,identity){
       const readOnly=['capabilities','status','events','result'].includes(action);
       const inputSchema=action==='capabilities'?{sessionId:id}:{sessionId:id,workerId};
       if(action==='start')Object.assign(inputSchema,{
-        provider:z.literal('codex'),model:id,prompt:z.string().min(1).max(8000),
+        provider:z.enum(['codex','claude','gemini']),model:id,prompt:z.string().min(1).max(8000),
         context:z.string().max(48000).optional(),timeoutMs:z.number().int().min(10000).max(90000)
       });
       if(action==='events')inputSchema.after=z.number().int().min(0).optional();
       const description=action==='capabilities'?
-        'Check whether the authorized device can accept review requests and which Codex models the signed-in runtime reports. This does not launch a provider turn.':
+        'Check providers and models available for text reviews on this device. This does not launch a provider turn.':
         action==='start'?
-        'Request one text-only Codex review on the authorized device. The Owner reviews the exact prompt, context, model and time limit in Local Wall before any provider turn. Generate a UUIDv4 once and poll with the same workerId.':
+        'Request one text-only review on the authorized device. Select a configured provider and model. The Owner reviews the exact text, provider, model and time limit in Local Wall before any provider turn. Generate a UUIDv4 once and poll with the same workerId.':
         'Use the workerId of an existing review on this exact A/B session. Poll status or event progress, read the final result, or cancel the review. A pending reply does not mean the review ran.';
       add(server,'light_remote_api_worker_'+action,{title:'API Worker '+action,description,
         inputSchema,securitySchemes:security(scope),annotations:annotations(readOnly,false,action==='start',true)
