@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory và API Worker đang triển khai.** CI137 qua đủ 15 job. API Worker pilot hỗ trợ hai lượt review độc lập trên cùng checkpoint Long Memory. Kiểm thử giả lập đã qua. Nghiệm thu Chrome với website thật và provider thật còn mở.
+**Long Memory và API Worker.** Gói extension 0.4.0 từ CI137 đã khớp SHA-256 và 13 file trong source. API Worker review song song đã qua test giả lập. CI140 kiểm tra bản cài của commit `b892a0f`. Nghiệm thu Chrome với website thật và provider thật còn mở.
 
-Current development source: An authorized MCP Agent can request two independent text reviews of the same snapshot on one device. Use the same optional workGroupId for both requests and a separate workerId per review. Each exact review still needs Owner approval in Local Wall. The controller runs at most two reviews concurrently, one per provider. Both the group reservation and the concurrent device budget are capped at 120 seconds. An explicit Long Memory checkpoint reference resolves on the device and is checked against the active scope and signed checkpoint before the provider call and before returning its result. Group reservations and replay fences survive restart as metadata. Cancellation and result lookup stay bound to the individual worker. Gold Lab and Owner Windows run dev12. The dev14 API Worker pilot is off by default.
+Current development source: Long Memory extension v0.4.0 from CI137 is byte-verified and available for an isolated Chrome install. Its 13 packaged source files match the current API Worker source lane. The typed Memory and worker pilot regressions passed, including separate provider checks and signed checkpoint reviews. Pilot defaults to off. Development stayed on work. Gold and Owner Windows have not been updated by this task.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

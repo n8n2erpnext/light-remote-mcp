@@ -3605,8 +3605,8 @@
       "path": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
       "shelf": "plans",
       "extension": "md",
-      "bytes": 43623,
-      "sha256": "8396c8e316e7701fa38b6de42892086b380d73645ae7043e40365975862f8537",
+      "bytes": 44670,
+      "sha256": "600e2f350b66f1ff18c6cc323867674fd0eb822a4fb5682d33db086e9296e04c",
       "title": "Long Memory, extension ngữ cảnh và API Worker nhiều nhà cung cấp"
     },
     {

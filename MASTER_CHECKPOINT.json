@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-20T03:56:01.723Z",
+  "updatedAt": "2026-11-20T04:03:52.636Z",
   "version": "0.10.1-dev.14",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Check the exact-source baseline and verified artifact manifests. Use a separate Chrome profile for real ChatGPT/Claude capture, manual save, sync to a second authorized device and restore in a new chat. Confirm one bounded review per configured provider, then two approved reviews of a single checkpoint through MCP on a test device. Use provider accounts and usage budgets selected by the Owner. The separately approved Codex workspace workflow remains the route for code changes.",
+  "nextAction": "Track the exact CI140 native installer and source-bound manifest. Test extension capture, manual save, sync and restore in an isolated Chrome profile. When provider setup and usage are approved, test one bounded MCP review per configured provider and then two reviews of the same checkpoint.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,11 +691,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261120-api-worker-p6-parallel-memory-review",
-    "status": "PARALLEL_REVIEW_SYNTHETIC_PASS_CI_PENDING",
-    "summary": "An authorized MCP Agent can request two independent text reviews of the same snapshot on one device. Use the same optional workGroupId for both requests and a separate workerId per review. Each exact review still needs Owner approval in Local Wall. The controller runs at most two reviews concurrently, one per provider. Both the group reservation and the concurrent device budget are capped at 120 seconds. An explicit Long Memory checkpoint reference resolves on the device and is checked against the active scope and signed checkpoint before the provider call and before returning its result. Group reservations and replay fences survive restart as metadata. Cancellation and result lookup stay bound to the individual worker.",
-    "verification": "35/35 Windows portable Node tests passed, covering signed checkpoint resolution, archive fencing, group limits, independent cancellation, replay prevention, metadata, typed Memory relay and synthetic MCP dispatch. Desktop TypeScript and Vite web build passed on the same frontend tree, with 130/130 Vitest tests. CI137 at 8513717 passed 15/15. Its extension artifact is published; the ZIP bytes and actual ChatGPT/Claude Chrome installation remain unverified. CI138 Core and Web passed; Windows install smoke failed connecting to its native text fixture before sending input. CI139 for 12c4861 was pending when preparing this receipt. This source needs its own baseline run. Pre-change checkpoint checkpoint/20261115-before-rmv2-apiworkerparallel-12c4861 restored and passed fsck.",
-    "nextAction": "Check the exact-source baseline and verified artifact manifests. Use a separate Chrome profile for real ChatGPT/Claude capture, manual save, sync to a second authorized device and restore in a new chat. Confirm one bounded review per configured provider, then two approved reviews of a single checkpoint through MCP on a test device. Use provider accounts and usage budgets selected by the Owner. The separately approved Codex workspace workflow remains the route for code changes.",
+    "taskId": "20261120-extension-artifact-verification-api-worker-baseline",
+    "status": "EXTENSION_ARTIFACT_VERIFIED_API_WORKER_BASELINE_TRACKED",
+    "summary": "Long Memory extension v0.4.0 from CI137 is byte-verified and available for an isolated Chrome install. Its 13 packaged source files match the current API Worker source lane. The typed Memory and worker pilot regressions passed, including separate provider checks and signed checkpoint reviews.",
+    "verification": "CI137 passed 15/15. GitHub artifact 14596509104 matches the reported outer ZIP SHA-256. Inner ZIP SHA-256 413bfa2ef4888c509f64fa65583f57560634eb57456cd219a5610db014c62461; manifest and all 13 files match source 851371784bd8b6bcdcb77b69d271c7e18116e719. Five additional exact-source portable checks passed: extension permissions, signed Home/Replica round trip, sync selection and revocation, restart and scope isolation, and volatile encrypted account relay. CI138 ended failure; Windows install smoke failed at text fixture startup. CI139 was superseded while pending. Exact-source Windows CI140 (run 44671022409) is in_progress. Live Chrome/provider acceptance is pending.",
+    "nextAction": "Track the exact CI140 native installer and source-bound manifest. Test extension capture, manual save, sync and restore in an isolated Chrome profile. When provider setup and usage are approved, test one bounded MCP review per configured provider and then two reviews of the same checkpoint.",
     "sourceDigest": "5ea4ee8be5b539b71b900824bf63ca0f7e460efc765697c54d2947b474cfb76b",
     "sourceFileCount": 1757
   },
@@ -2018,7 +2018,7 @@
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "8396c8e316e7701fa38b6de42892086b380d73645ae7043e40365975862f8537",
+    "documentSha256": "600e2f350b66f1ff18c6cc323867674fd0eb822a4fb5682d33db086e9296e04c",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2047,9 +2047,13 @@
       "zipArtifact": {
         "runId": 44665270596,
         "artifactId": 14596509104,
-        "result": "CI_BUILT_BYTES_NOT_VERIFIED",
+        "result": "BYTE_VERIFIED_13_SOURCE_FILES",
         "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/44665270596/artifacts/14596509104",
-        "outerZipReportedDigest": "91b7574a25ae64e701a4edffaabd7fd004c781672650ec5b5c1a3e4949da8f4a"
+        "outerZipReportedDigest": "91b7574a25ae64e701a4edffaabd7fd004c781672650ec5b5c1a3e4949da8f4a",
+        "archiveSha256": "413bfa2ef4888c509f64fa65583f57560634eb57456cd219a5610db014c62461",
+        "bytes": 2116924,
+        "sourceCommit": "851371784bd8b6bcdcb77b69d271c7e18116e719",
+        "downloadedArtifactZipSha256": "91b7574a25ae64e701a4edffaabd7fd004c781672650ec5b5c1a3e4949da8f4a"
       },
       "portableTests": "10/10 VM plus package/permission guard PASS",
       "realChromiumDomFixtures": "WINDOWS_HEADLESS_SYNTHETIC_TWO_PROVIDERS_PASS"
@@ -2121,7 +2125,13 @@
       "milestone": "P6_PARALLEL_REVIEW_MEMORY_REFERENCE",
       "base": "12c4861368c0242b578ae5580f3b8698951f78d5",
       "portableTests": "P3 sixteen tests and four existing Codex/core regression scripts PASS",
-      "fullCi": "PENDING_CURRENT_SOURCE",
+      "fullCi": {
+        "number": 140,
+        "runId": 44671022409,
+        "source": "b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68",
+        "status": "in_progress",
+        "conclusion": null
+      },
       "deployed": false,
       "physicalChrome": "NOT_RUN",
       "providerInference": "NOT_RUN",
@@ -2170,8 +2180,9 @@
         "number": 139,
         "runId": 44669507705,
         "source": "12c4861368c0242b578ae5580f3b8698951f78d5",
-        "result": "PENDING_AT_RECEIPT"
-      }
+        "result": "CANCELLED_SUPERSEDED_WHILE_PENDING"
+      },
+      "verifiedSource": "b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68"
     }
   },
   "installerGoogleFollowup": {
