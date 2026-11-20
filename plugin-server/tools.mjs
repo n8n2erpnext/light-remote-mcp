@@ -388,13 +388,15 @@ export function registerPluginTools(server,identity){
       const inputSchema=action==='capabilities'?{sessionId:id}:{sessionId:id,workerId};
       if(action==='start')Object.assign(inputSchema,{
         provider:z.enum(['codex','claude','gemini']),model:id,prompt:z.string().min(1).max(8000),
-        context:z.string().max(48000).optional(),timeoutMs:z.number().int().min(10000).max(90000)
+        context:z.string().max(48000).optional(),timeoutMs:z.number().int().min(10000).max(90000),
+        workGroupId:z.string().uuid().optional(),
+        memoryCheckpoint:z.object({scopeId:z.string().uuid(),checkpointId:z.string().uuid()}).strict().optional()
       });
       if(action==='events')inputSchema.after=z.number().int().min(0).optional();
       const description=action==='capabilities'?
         'Check providers and models available for text reviews on this device. This does not launch a provider turn.':
         action==='start'?
-        'Request one text-only review on the authorized device. Select a configured provider and model. The Owner reviews the exact text, provider, model and time limit in Local Wall before any provider turn. Generate a UUIDv4 once and poll with the same workerId.':
+        'Request one text-only review on the authorized device. Use either explicit context text or a verified Long Memory checkpoint reference. Link up to two requests with the same UUIDv4 workGroupId and context. Each needs Owner approval in Local Wall. Keep the same workerId when polling or retrying transport.':
         'Use the workerId of an existing review on this exact A/B session. Poll status or event progress, read the final result, or cancel the review. A pending reply does not mean the review ran.';
       add(server,'light_remote_api_worker_'+action,{title:'API Worker '+action,description,
         inputSchema,securitySchemes:security(scope),annotations:annotations(readOnly,false,action==='start',true)

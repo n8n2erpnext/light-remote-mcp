@@ -41,6 +41,14 @@ function runCli({ command, args, input, cwd, env, signal, spawnImpl }) {
     signal.throwIfAborted();
     const child = spawnImpl(command,args,{cwd,env,stdio:['pipe','pipe','ignore'],shell:false,windowsHide:true,signal});
     let exitError, bytes=0, overflow=false;
+    let stopTimer;
+    const forceStop=()=>{
+      stopTimer=setTimeout(()=>{
+        if(child.exitCode===null&&child.signalCode===null)child.kill('SIGKILL');
+      },2000);
+      stopTimer.unref?.();
+    };
+    signal.addEventListener('abort',forceStop,{once:true});
     const chunks=[];
     child.on('error',error=>{exitError=error;});
     child.stdin.on('error',()=>{});
@@ -52,6 +60,8 @@ function runCli({ command, args, input, cwd, env, signal, spawnImpl }) {
       }else chunks.push(chunk);
     });
     child.once('close',code=>{
+      signal.removeEventListener('abort',forceStop);
+      clearTimeout(stopTimer);
       if(signal.aborted) reject(signal.reason);
       else if(exitError||overflow) reject(workerError('provider_process_failed'));
       else resolve({code,text:Buffer.concat(chunks).toString('utf8')});

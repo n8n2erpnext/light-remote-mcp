@@ -5,10 +5,14 @@ const approvalWindowMs = 5 * 60 * 1000;
 const resultWindowMs = 15 * 60 * 1000;
 const maxLiveRows = 32;
 const maxReceipts = 4096;
+const maxParallel = 2;
+const maxGroupWorkers = 2;
+const maxGroupTimeMs = 120000;
+const maxActiveTimeMs = 120000;
 
 // SQLite stores a content-free receipt. The actual review text and result
 // live on this device in memory. A restart loses content and fences replays.
-export function createApiWorkerQueue({ db, identity, enabled, providers, now = Date.now }) {
+export function createApiWorkerQueue({ db, identity, enabled, providers, readCheckpoint, now = Date.now }) {
   db.exec(`CREATE TABLE IF NOT EXISTS api_worker_receipts(
     worker_id TEXT PRIMARY KEY,
     actor_key TEXT NOT NULL,
@@ -16,6 +20,13 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
     state TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     finished_at INTEGER
+  );
+  CREATE TABLE IF NOT EXISTS api_worker_groups(
+    group_id TEXT PRIMARY KEY,
+    actor_key TEXT NOT NULL,
+    snapshot_digest TEXT NOT NULL,
+    worker_count INTEGER NOT NULL,
+    reserved_ms INTEGER NOT NULL
   )`);
   db.prepare(`UPDATE api_worker_receipts SET state='interrupted',finished_at=?
     WHERE state IN ('awaiting_approval','authorizing','running','stopping')`).run(now());
@@ -23,8 +34,11 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
   const receiptCount = db.prepare('SELECT COUNT(*) AS total FROM api_worker_receipts');
   const insert = db.prepare('INSERT INTO api_worker_receipts VALUES(?,?,?,?,?,NULL)');
   const update = db.prepare('UPDATE api_worker_receipts SET state=?,finished_at=? WHERE worker_id=?');
+  const groupRecord = db.prepare('SELECT * FROM api_worker_groups WHERE group_id=?');
+  const reserveGroup = db.prepare(`INSERT INTO api_worker_groups VALUES(?,?,?,1,?)
+    ON CONFLICT(group_id) DO UPDATE SET worker_count=worker_count+1,reserved_ms=reserved_ms+excluded.reserved_ms`);
   const rows = new Map();
-  let running = null;
+  const running = new Map();
   let closed = false;
 
   function isCurrent(actor) {
@@ -39,11 +53,12 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
   function view(row) {
     return {
       workerId: row.id,
+      ...(row.workGroupId?{workGroupId:row.workGroupId}:{}),
       state: row.state,
       provider: row.provider,
       requestedModel: row.model,
       timeoutMs: row.timeoutMs,
-      contextDigest: row.digest,
+      contextDigest: row.approvalDigest,
       createdAt: row.createdAt,
       finishedAt: row.finishedAt,
       error: row.error
@@ -60,6 +75,7 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
     row.events.push({ seq: row.events.length + 1, state, at });
     if (finishedAt !== null) {
       row.input = null;
+      row.context = null;
       row.authorize = null;
     }
   }
@@ -93,7 +109,9 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
     const actorKey = workerActorKey(actor);
     const req = normalizeWorkerRequest(input);
     if (req.action === 'capabilities') {
-      return { mode:'text-review',requiresOwnerApproval:true,maxConcurrent:1,timeoutMs:{min:10000,max:90000},
+      return { mode:'text-review',requiresOwnerApproval:true,maxConcurrent:maxParallel,maxPerProvider:1,
+        maxActiveTimeMs,groupBudget:{maxWorkers:maxGroupWorkers,maxReservedMs:maxGroupTimeMs},
+        timeoutMs:{min:10000,max:90000},
         providers:Object.entries(providers).map(([provider,value])=>({provider,...value.status?.()})) };
     }
     sweep();
@@ -114,13 +132,15 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
       }
       if (rows.size >= maxLiveRows) throw workerError('queue_full');
       if (receiptCount.get().total >= maxReceipts) throw workerError('receipt_store_full');
+      const context=resolveReference(req);
       const created = {
         id: req.workerId, actor: { ...actor }, digest, provider: req.provider,
-        model: req.model, timeoutMs: req.timeoutMs, input: req, authorize,
+        approvalDigest:req.memoryCheckpoint?workerRequestDigest({digest,context}):digest,
+        model: req.model, timeoutMs: req.timeoutMs, workGroupId:req.workGroupId, input: req, context, authorize,
         createdAt: now(), finishedAt: null, state: 'awaiting_approval',
         events: [], controller: new AbortController(), error: null, result: null
       };
-      insert.run(created.id, actorKey, digest, created.state, created.createdAt);
+      persistAdmission(created,actorKey);
       created.events.push({ seq: 1, state: created.state, at: created.createdAt });
       rows.set(created.id, created);
       return view(created);
@@ -131,6 +151,41 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
     if (req.action === 'events') return { ...view(row), events: row.events.filter(e => e.seq > req.after) };
     if (req.action === 'result' && row.state === 'completed') return { ...view(row), result: structuredClone(row.result) };
     return view(row);
+  }
+
+  function resolveReference(req) {
+    if(!req.memoryCheckpoint)return req.context;
+    try{
+      const record=readCheckpoint?.(req.memoryCheckpoint);
+      if(record?.integrity!=='home_ed25519_verified'||typeof record.body!=='string'||
+        !/^[a-f0-9]{64}$/.test(record.contentHash))throw workerError('checkpoint_unavailable');
+      const context=JSON.stringify({checkpoint:req.memoryCheckpoint,title:record.title,
+        body:record.body,contentHash:record.contentHash});
+      if(Buffer.byteLength(context)>48000)throw workerError('checkpoint_unavailable');
+      return context;
+    }catch{throw workerError('checkpoint_unavailable');}
+  }
+
+  function persistAdmission(row,actorKey) {
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      if(row.workGroupId){
+        const snapshotDigest=workerRequestDigest(row.context);
+        const group=groupRecord.get(row.workGroupId);
+        if(group && (group.actor_key!==actorKey||group.snapshot_digest!==snapshotDigest)) {
+          throw workerError('group_scope_conflict');
+        }
+        if(group && (group.worker_count>=maxGroupWorkers||group.reserved_ms+row.timeoutMs>maxGroupTimeMs)) {
+          throw workerError('group_budget_exhausted');
+        }
+        reserveGroup.run(row.workGroupId,actorKey,snapshotDigest,row.timeoutMs);
+      }
+      insert.run(row.id,actorKey,row.digest,row.state,row.createdAt);
+      db.exec('COMMIT');
+    } catch(error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
   }
 
   function recovered(receipt) {
@@ -147,7 +202,7 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
       ...(row.state === 'awaiting_approval' ? {
         agentId: row.actor.agentId,
         prompt: row.input.prompt,
-        context: row.input.context
+        context: row.context
       } : {})
     }));
   }
@@ -155,16 +210,28 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
   function ownerDecision({ workerId, contextDigest, approve }) {
     sweep();
     const row = rows.get(workerId);
-    if (!row || !isCurrent(row.actor) || row.digest !== contextDigest) throw workerError('job_unavailable');
+    if (!row || !isCurrent(row.actor) || row.approvalDigest !== contextDigest) throw workerError('job_unavailable');
     if (approve === false) {
       stop(row, 'cancelled');
       return view(row);
     }
     if (approve !== true || row.state !== 'awaiting_approval') throw workerError('approval_invalid');
-    if (running) throw workerError('device_busy');
-    running = row;
+    if (running.size>=maxParallel||running.has(row.provider)) throw workerError('device_busy');
+    const reserved=[...running.values()].reduce((total,job)=>total+job.timeoutMs,0);
+    if(reserved+row.timeoutMs>maxActiveTimeMs)throw workerError('device_budget_busy');
     transition(row, 'authorizing');
-    void run(row);
+    running.set(row.provider,row);
+    void run(row).catch(()=>{
+      // A receipt-store failure after provider start leaves the effect uncertain.
+      // Discard private buffers. The durable prior receipt still prevents replay.
+      row.result=null;
+      row.input=null;
+      row.context=null;
+      row.authorize=null;
+      row.error='api_worker_receipt_unavailable';
+      row.state='interrupted';
+      row.finishedAt=now();
+    });
     return view(row);
   }
 
@@ -182,16 +249,18 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
       if (await row.authorize(signal) !== true) throw workerError('authority_lost');
       assertAvailable();
       signal.throwIfAborted();
+      if(row.input.memoryCheckpoint&&resolveReference(row.input)!==row.context)
+        throw workerError('checkpoint_changed');
     };
     const monitor = async () => {
       try {
         await verify();
-        if (!signal.aborted && running === row) {
+        if (!signal.aborted && running.get(row.provider)===row) {
           checkTimer = setTimeout(monitor, 2000);
           checkTimer.unref?.();
         }
       } catch {
-        if (running === row) stop(row, 'authority_lost');
+        if (running.get(row.provider)===row) stop(row, 'authority_lost');
       }
     };
     try {
@@ -202,7 +271,7 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
       checkTimer = setTimeout(monitor, 2000);
       checkTimer.unref?.();
       const result = await provider.run({
-        prompt: input.prompt, context: input.context, model: input.model,
+        prompt: input.prompt, context: row.context, model: input.model,
         timeoutMs: input.timeoutMs, signal, verify
       });
       signal.throwIfAborted();
@@ -232,7 +301,7 @@ export function createApiWorkerQueue({ db, identity, enabled, providers, now = D
     } finally {
       clearTimeout(deadline);
       clearTimeout(checkTimer);
-      if (running === row) running = null;
+      if (running.get(row.provider)===row) running.delete(row.provider);
     }
   }
 

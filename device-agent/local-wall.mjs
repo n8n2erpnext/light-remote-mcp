@@ -876,6 +876,8 @@ function goldWorkerInbox(area){
         const name=providerName[job.provider]||'Worker';
         box.append(make('strong','',name+' · '+job.requestedModel),
           make('p','muted',(status[job.state]||job.state)+' · '+Math.round(job.timeoutMs/1000)+' seconds'));
+        if(job.workGroupId&&payload.jobs.some(other=>other.workerId!==job.workerId&&other.workGroupId===job.workGroupId))
+          box.append(make('p','muted','Part of a shared review'));
         const canStop=['awaiting_approval','authorizing','running'].includes(job.state);
         if(job.state==='awaiting_approval'){
           for(const [label,value] of [['Request',job.prompt],['Reference material',job.context]]){

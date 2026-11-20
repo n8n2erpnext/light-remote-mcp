@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import {randomUUID} from 'node:crypto';
+import {setImmediate} from 'node:timers/promises';
 import {createGoldWallModules} from './gold-wall-modules.mjs';
 import {createDesktopDeviceApi} from './desktop-device-api.mjs';
 
@@ -62,6 +64,44 @@ test('native provider opt-in is local and connection check sends no inference',a
  assert.doesNotMatch(JSON.stringify(rows),/private_fixture_key/);
  await call('worker.provider-select',{provider:'gemini',enabled:false});
  assert.equal((await providers()).find(x=>x.provider==='gemini').enabled,false);
+});
+test('review resolves a signed Memory checkpoint locally and refuses it when the scope is archived',async t=>{
+ const key='LIGHT_REMOTE_API_WORKER_PILOT',before=process.env[key];
+ process.env[key]='1';
+ t.after(()=>{if(before===undefined)delete process.env[key];else process.env[key]=before;});
+ let work=0;
+ const {modules}=setup(t,{plusImpl:{
+  stop(){},warmup(){},snapshot:()=>({account:{connected:true},catalog:{state:'ready',models:[]}}),
+  runWorkerReview:async({context,verify})=>{
+   await verify();
+   work++;
+   assert.equal(JSON.parse(context).body,'LOCAL_SIGNED_MEMORY_SENTINEL');
+   return {text:'Review complete',model:'fixture'};
+  }
+ }});
+ modules.configure({longMemory:true,codexBridge:true,expectedRevision:0});
+ const {scopeId}=modules.createMemoryScope({displayName:'Test workspace'});
+ const receipt=modules.appendScopedCheckpoint({scopeId,title:'Checkpoint',body:'LOCAL_SIGNED_MEMORY_SENTINEL',
+  source:'synthetic Memory fixture',kind:'checkpoint'});
+ const checkpointId=receipt.checkpointId;
+ assert.ok(checkpointId);
+ const actor={accountId:'owner',deviceId:'local',agentId:'agent',sessionId:'session',
+  grantId:'grant',connectionId:'connection'};
+ const request=()=>({action:'start',workerId:randomUUID(),provider:'codex',model:'fixture',prompt:'Review summary',
+  memoryCheckpoint:{scopeId,checkpointId},timeoutMs:10000});
+ const approved=modules.remoteWorkerRequest(actor,request(),async()=>true);
+ const revoked=modules.remoteWorkerRequest(actor,request(),async()=>true);
+ assert.doesNotMatch(JSON.stringify(approved),/LOCAL_SIGNED_MEMORY_SENTINEL/);
+ assert.equal(JSON.parse(modules.ownerWorkerJobs()[0].context).body,'LOCAL_SIGNED_MEMORY_SENTINEL');
+ modules.ownerWorkerDecision({...approved,approve:true});
+ await setImmediate();
+ assert.equal(work,1);
+ modules.archiveMemoryScope({scopeId,ownerConfirmed:true});
+ modules.ownerWorkerDecision({...revoked,approve:true});
+ await setImmediate();
+ assert.equal(work,1);
+ assert.equal(modules.remoteWorkerRequest(actor,{action:'status',workerId:revoked.workerId}).error,
+  'api_worker_checkpoint_unavailable');
 });
 test('real SQLite module CAS, fresh Memory usage, scopes and archive/restore persist',async t=>{
  const {call,modules}=setup(t);

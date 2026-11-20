@@ -470,3 +470,7 @@ Add the API Worker pilot for text review through MCP. The calling Agent uses one
 ## Add optional Claude Code and Gemini API Worker providers
 
 Add separately selectable Claude Code and Gemini API providers to the API Worker review pilot. Desktop and Local Wall share device-local provider choices. Connection checks inspect local Claude auth or Gemini model access without inference. The queue continues to require approval of the exact text and model before each provider turn. Claude uses an Owner-installed official CLI and its sign-in. Gemini uses an explicitly configured AI Studio API key with separate quota. Provider keys and local account details are excluded from Desktop, Wall and MCP metadata.
+
+## Add bounded API Worker review groups with Long Memory references
+
+An authorized MCP Agent can request two independent text reviews of the same snapshot on one device. Use the same optional workGroupId for both requests and a separate workerId per review. Each exact review still needs Owner approval in Local Wall. The controller runs at most two reviews concurrently, one per provider. Both the group reservation and the concurrent device budget are capped at 120 seconds. An explicit Long Memory checkpoint reference resolves on the device and is checked against the active scope and signed checkpoint before the provider call and before returning its result. Group reservations and replay fences survive restart as metadata. Cancellation and result lookup stay bound to the individual worker.

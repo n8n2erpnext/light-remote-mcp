@@ -228,3 +228,7 @@ Opt-in MCP tools light_remote_api_worker_capabilities/start/status/events/result
 ## Add optional Claude Code and Gemini API Worker providers
 
 Native worker.provider-select/check and their Owner Wall equivalents manage two optional review adapters. Selections are scoped by local enrolled account/device. API Worker capabilities projects provider status and configured model IDs. All six worker tools retain exact A/B authority and Owner review.
+
+## Add bounded API Worker review groups with Long Memory references
+
+API Worker start accepts optional workGroupId and memoryCheckpoint. A checkpoint reference requires an active local scope and a verified signature. Use either a checkpoint reference or explicit context. Each worker uses the existing start/status/events/result/cancel MCP contract. The capabilities response reports group and device limits. Query results with each original workerId.

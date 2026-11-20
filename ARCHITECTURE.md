@@ -196,3 +196,7 @@ API Worker is the new display/navigation name; codexBridge storage, native actio
 ## Add Owner-approved API Worker review pilot
 
 API Worker review uses a distinct validated content plane. The shared typed dispatcher carries refs and digests. The local queue owns approval, the provider slot, scoped cancellation and receipt recovery.
+
+## Add bounded API Worker review groups with Long Memory references
+
+The device queue pins the group actor and snapshot digest in a transaction with each receipt and time reservation. Signed checkpoint text is resolved and previewed on the device, then sent to the selected provider only with approval. The relay carries the reference and authorized responses. Durable group and worker records contain metadata.

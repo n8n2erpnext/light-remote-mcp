@@ -10,10 +10,10 @@ const actor = { accountId:'owner', deviceId:'pc', sessionId:'session', agentId:'
 const startRequest = () => ({ action:'start', workerId:randomUUID(), provider:'codex',
   model:'test-model', prompt:'PRIVATE_PROMPT_SENTINEL', context:'PRIVATE_CONTEXT_SENTINEL', timeoutMs:10000 });
 
-function fixture(run, clock = Date.now) {
+function fixture(run, clock = Date.now, otherProviders = {}) {
   const db = new DatabaseSync(':memory:');
   let local = actor;
-  const providers = { codex:{ run } };
+  const providers = { codex:{ run }, ...otherProviders };
   const options = { db, providers, enabled:() => true, identity:() => local, now:clock };
   const queue = createApiWorkerQueue(options);
   return { queue, db, options, switchIdentity: id => local = id, close() { queue.close(); db.close(); } };
@@ -120,4 +120,62 @@ test('expired review cannot run, unsupported provider and ambient workspace fiel
     now += 15 * 60 * 1000;
     assert.equal(f.queue.request(actor,{action:'status',workerId:start.workerId}).contentAvailable,false);
   } finally { f.close(); }
+});
+
+test('two approved providers can review one pinned snapshot concurrently with independent cancellation',async()=>{
+  const pending=new Map();
+  const run=provider=>({context,signal})=>new Promise(resolve=>pending.set(provider,{context,signal,resolve}));
+  const f=fixture(run('codex'),Date.now,{gemini:{run:run('gemini')},claude:{run:run('claude')}});
+  const workGroupId=randomUUID();
+  const start=(provider='codex',extra={})=>({...startRequest(),workGroupId,provider,timeoutMs:60000,...extra});
+  try{
+    const first=start(),second=start('gemini');
+    const a=f.queue.request(actor,first,async()=>true);
+    assert.deepEqual(f.queue.request(actor,first),a);
+    assert.throws(()=>f.queue.request(actor,start('gemini',{context:'new revision'}),async()=>true),/group_scope_conflict/);
+    assert.throws(()=>f.queue.request({...actor,sessionId:'another'},start('gemini'),async()=>true),/group_scope_conflict/);
+    assert.throws(()=>f.queue.request(actor,start('gemini',{timeoutMs:70000}),async()=>true),/group_budget_exhausted/);
+    const b=f.queue.request(actor,second,async()=>true);
+    assert.throws(()=>f.queue.request(actor,start('claude',{timeoutMs:10000}),async()=>true),/group_budget_exhausted/);
+    const independent=f.queue.request(actor,start('claude',{workGroupId:randomUUID()}),async()=>true);
+    f.queue.ownerDecision({...a,approve:true});
+    f.queue.ownerDecision({...b,approve:true});
+    await setImmediate();
+    assert.equal(pending.size,2);
+    assert.equal(pending.get('codex').context,pending.get('gemini').context);
+    assert.throws(()=>f.queue.ownerDecision({...independent,approve:true}),/device_busy/);
+    f.queue.request(actor,{action:'cancel',workerId:a.workerId});
+    assert.equal(pending.get('codex').signal.aborted,true);
+    assert.equal(pending.get('gemini').signal.aborted,false);
+    pending.get('codex').resolve({text:'Late first'});
+    pending.get('gemini').resolve({text:'Review from second'});
+    await setImmediate();
+    assert.equal(f.queue.request(actor,{action:'status',workerId:a.workerId}).state,'cancelled');
+    assert.equal(f.queue.request(actor,{action:'result',workerId:b.workerId}).result.text,'Review from second');
+    const history=f.db.prepare('SELECT * FROM api_worker_groups WHERE group_id=?').get(workGroupId);
+    assert.equal(history.worker_count,2);
+    assert.equal(history.reserved_ms,120000);
+    assert.doesNotMatch(JSON.stringify(history),/PRIVATE_CONTEXT/);
+    f.queue.close();
+    const restarted=createApiWorkerQueue(f.options);
+    try{
+      assert.equal(restarted.request(actor,first).contentAvailable,false);
+      assert.throws(()=>restarted.request(actor,start('claude',{timeoutMs:10000}),async()=>true),/group_budget_exhausted/);
+    }finally{restarted.close();}
+  }finally{f.close();}
+});
+
+test('unrelated jobs still share the per-device active time budget',async()=>{
+  let finish;
+  const f=fixture(()=>new Promise(resolve=>finish=resolve),Date.now,
+    {gemini:{run:async()=>assert.fail('over-budget job started')}});
+  try{
+    const a=f.queue.request(actor,{...startRequest(),timeoutMs:90000},async()=>true);
+    const b=f.queue.request(actor,{...startRequest(),provider:'gemini',timeoutMs:40000},async()=>true);
+    f.queue.ownerDecision({...a,approve:true});
+    assert.throws(()=>f.queue.ownerDecision({...b,approve:true}),/device_budget_busy/);
+    await setImmediate();
+    finish({text:'First finished'});
+    await setImmediate();
+  }finally{f.close();}
 });

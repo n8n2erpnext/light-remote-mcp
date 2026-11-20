@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory và API Worker đang triển khai.** CI137 qua đủ 15 job. API Worker có pilot review với Codex, Claude Code và Gemini API. Các adapter đã được kiểm thử giả lập. Nghiệm thu runtime thật và parallel worker còn mở.
+**Long Memory và API Worker đang triển khai.** CI137 qua đủ 15 job. API Worker pilot hỗ trợ hai lượt review độc lập trên cùng checkpoint Long Memory. Kiểm thử giả lập đã qua. Nghiệm thu Chrome với website thật và provider thật còn mở.
 
-Current development source: Add separately selectable Claude Code and Gemini API providers to the API Worker review pilot. Desktop and Local Wall share device-local provider choices. Connection checks inspect local Claude auth or Gemini model access without inference. The queue continues to require approval of the exact text and model before each provider turn. Claude uses an Owner-installed official CLI and its sign-in. Gemini uses an explicitly configured AI Studio API key with separate quota. Provider keys and local account details are excluded from Desktop, Wall and MCP metadata. Gold Lab and Owner Windows remain on dev12. The source pilot stays off by default.
+Current development source: An authorized MCP Agent can request two independent text reviews of the same snapshot on one device. Use the same optional workGroupId for both requests and a separate workerId per review. Each exact review still needs Owner approval in Local Wall. The controller runs at most two reviews concurrently, one per provider. Both the group reservation and the concurrent device budget are capped at 120 seconds. An explicit Long Memory checkpoint reference resolves on the device and is checked against the active scope and signed checkpoint before the provider call and before returning its result. Group reservations and replay fences survive restart as metadata. Cancellation and result lookup stay bound to the individual worker. Gold Lab and Owner Windows run dev12. The dev14 API Worker pilot is off by default.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

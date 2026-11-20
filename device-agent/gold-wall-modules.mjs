@@ -170,7 +170,14 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     const providers=configuredWorkerProviders();
     if(!workerQueue)workerQueue=createApiWorkerQueue({db:open(),
       identity:()=>typeof scopeIdentity==='function'?scopeIdentity():scopeIdentity,
-      enabled:()=>flags().codexBridge,providers});
+      enabled:()=>flags().codexBridge,providers,readCheckpoint:input=>{
+        const db=enabled('longMemory'),{accountId}=scopedIdentity();
+        const record=readGoldScopedCheckpoint(db,{...input,accountId});
+        const scope=db.prepare("SELECT 1 AS active FROM lm_scopes WHERE account_id=? AND scope_id=? AND status='active'")
+          .get(accountId,input.scopeId);
+        if(!scope)throw workerError('checkpoint_unavailable');
+        return record;
+      }});
     return workerQueue;
   }
   const api={

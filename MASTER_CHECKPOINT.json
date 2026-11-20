@@ -1,9 +1,9 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-20T03:42:07.466Z",
+  "updatedAt": "2026-11-20T03:56:01.723Z",
   "version": "0.10.1-dev.14",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
-  "status": "P5_PROVIDER_PILOT_SOURCE",
+  "status": "P6_PARALLEL_REVIEW_SOURCE",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
   "workspace": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/conversion-20261108/publication/light-remote-mcp",
   "sourceAuthority": "New GitHub n8n2erpnext/light-remote-mcp, repository ID 1450214328; preserved ARM source/snapshots are comparison and recovery references",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Validate the configured providers with one bounded review each once authorized for real account usage. Finish current CI and continue the controlled parallel reader scheduler.",
+  "nextAction": "Check the exact-source baseline and verified artifact manifests. Use a separate Chrome profile for real ChatGPT/Claude capture, manual save, sync to a second authorized device and restore in a new chat. Confirm one bounded review per configured provider, then two approved reviews of a single checkpoint through MCP on a test device. Use provider accounts and usage budgets selected by the Owner. The separately approved Codex workspace workflow remains the route for code changes.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,12 +691,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261120-api-worker-p5-provider-selection",
-    "status": "PROVIDER_PILOT_SYNTHETIC_PASS_CI_PENDING",
-    "summary": "Add separately selectable Claude Code and Gemini API providers to the API Worker review pilot. Desktop and Local Wall share device-local provider choices. Connection checks inspect local Claude auth or Gemini model access without inference. The queue continues to require approval of the exact text and model before each provider turn. Claude uses an Owner-installed official CLI and its sign-in. Gemini uses an explicitly configured AI Studio API key with separate quota. Provider keys and local account details are excluded from Desktop, Wall and MCP metadata.",
-    "verification": "Windows portable provider and Desktop API tests 9/9 PASS. The fake Claude process checks stdin, fixed review flags, and exclusion of ambient credentials. The fake Gemini transport checks official endpoint, header authentication, model lookup, no tools, partial usage, and quota/truncation errors. Wall navigation, Owner/CSRF guards, Windows core import closure and the prior review queue tests PASS. Real provider executions are pending. CI137 at 8513717 passed 15/15. CI138 at fa972a1 passed Core and Web. Its Windows job failed at the RM test fixture pipe connection before typing began. No Windows pilot installer is eligible from CI138. Current source needs its own CI. Pre-change checkpoint checkpoint/20261115-before-rmv2-apiworkerproviders-fa972a1 restored and passed fsck.",
-    "nextAction": "Validate the configured providers with one bounded review each once authorized for real account usage. Finish current CI and continue the controlled parallel reader scheduler.",
-    "sourceDigest": "fe82758cce7668bf9dd143fa2d70552f073993e2ad13f7e0ffb4d5434aa24756",
+    "taskId": "20261120-api-worker-p6-parallel-memory-review",
+    "status": "PARALLEL_REVIEW_SYNTHETIC_PASS_CI_PENDING",
+    "summary": "An authorized MCP Agent can request two independent text reviews of the same snapshot on one device. Use the same optional workGroupId for both requests and a separate workerId per review. Each exact review still needs Owner approval in Local Wall. The controller runs at most two reviews concurrently, one per provider. Both the group reservation and the concurrent device budget are capped at 120 seconds. An explicit Long Memory checkpoint reference resolves on the device and is checked against the active scope and signed checkpoint before the provider call and before returning its result. Group reservations and replay fences survive restart as metadata. Cancellation and result lookup stay bound to the individual worker.",
+    "verification": "35/35 Windows portable Node tests passed, covering signed checkpoint resolution, archive fencing, group limits, independent cancellation, replay prevention, metadata, typed Memory relay and synthetic MCP dispatch. Desktop TypeScript and Vite web build passed on the same frontend tree, with 130/130 Vitest tests. CI137 at 8513717 passed 15/15. Its extension artifact is published; the ZIP bytes and actual ChatGPT/Claude Chrome installation remain unverified. CI138 Core and Web passed; Windows install smoke failed connecting to its native text fixture before sending input. CI139 for 12c4861 was pending when preparing this receipt. This source needs its own baseline run. Pre-change checkpoint checkpoint/20261115-before-rmv2-apiworkerparallel-12c4861 restored and passed fsck.",
+    "nextAction": "Check the exact-source baseline and verified artifact manifests. Use a separate Chrome profile for real ChatGPT/Claude capture, manual save, sync to a second authorized device and restore in a new chat. Confirm one bounded review per configured provider, then two approved reviews of a single checkpoint through MCP on a test device. Use provider accounts and usage budgets selected by the Owner. The separately approved Codex workspace workflow remains the route for code changes.",
+    "sourceDigest": "5ea4ee8be5b539b71b900824bf63ca0f7e460efc765697c54d2947b474cfb76b",
     "sourceFileCount": 1757
   },
   "legacyFilesystemCleanup": {
@@ -2013,12 +2013,12 @@
     }
   },
   "localMemoryApiWorkerResearch": {
-    "status": "P5_PROVIDER_PILOT_SOURCE",
+    "status": "P6_PARALLEL_REVIEW_SOURCE",
     "ownerScope": "IMPLEMENT_PLAN_AUTHORIZED_20261115",
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "015db9a09f36c641230b891d32af570f8fb326805b448612018b1d505173c0ee",
+    "documentSha256": "8396c8e316e7701fa38b6de42892086b380d73645ae7043e40365975862f8537",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2095,6 +2095,18 @@
           "codex": "chatgpt",
           "claude": "official_cli_subscription",
           "gemini": "ai_studio_api_key"
+        },
+        "parallelReview": {
+          "maxConcurrentOnDevice": 2,
+          "maxPerProvider": 1,
+          "maxActiveTimeMs": 120000,
+          "maxPerGroup": 2,
+          "maxReservedGroupTimeMs": 120000,
+          "requiresSeparateOwnerApproval": true,
+          "groupSnapshotPinned": true,
+          "checkpointResolvedOnDevice": true,
+          "supportsWorkspaceWrites": false,
+          "verification": "WINDOWS_PORTABLE_SYNTHETIC_PASS"
         }
       }
     },
@@ -2106,8 +2118,8 @@
     "peerReview": "PASS_WITH_HIDDEN_DOM_COVERAGE_LIMIT_EXPLICIT",
     "nativeBuildStillDeferredByOwner": false,
     "implementation": {
-      "milestone": "P5_CLAUDE_GEMINI_PILOT",
-      "base": "fa972a12a536a6a5c93105b67585d85351543efb",
+      "milestone": "P6_PARALLEL_REVIEW_MEMORY_REFERENCE",
+      "base": "12c4861368c0242b578ae5580f3b8698951f78d5",
       "portableTests": "P3 sixteen tests and four existing Codex/core regression scripts PASS",
       "fullCi": "PENDING_CURRENT_SOURCE",
       "deployed": false,
@@ -2153,6 +2165,12 @@
         "runId": 44668017283,
         "source": "fa972a12a536a6a5c93105b67585d85351543efb",
         "result": "CORE_WEB_PASS_WINDOWS_FIXTURE_START_FAILED"
+      },
+      "providerCi": {
+        "number": 139,
+        "runId": 44669507705,
+        "source": "12c4861368c0242b578ae5580f3b8698951f78d5",
+        "result": "PENDING_AT_RECEIPT"
       }
     }
   },

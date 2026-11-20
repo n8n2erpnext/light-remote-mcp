@@ -24,8 +24,14 @@ test('MCP operation dispatch uses actual Fleet, signed-control handlers and cont
   fleet.touch(member);
   const actor={...enrollment,sessionId:session.id,agentId:session.agentId};
   const grant={...actor,grantId:'grant',purpose:'device',expiresAt:Date.now()+60000};
+  const workGroupId=randomUUID();
+  const memoryCheckpoint={scopeId:randomUUID(),checkpointId:randomUUID()};
   let connection='connection',inferences=0;
   const queue=createApiWorkerQueue({db,identity:()=>enrollment,enabled:()=>true,
+    readCheckpoint:reference=>{
+      assert.deepEqual(reference,memoryCheckpoint);
+      return {integrity:'home_ed25519_verified',contentHash:'a'.repeat(64),body:'PRIVATE_CONTEXT'};
+    },
     providers:{codex:{run:async({prompt,context})=>{
       inferences++;
       assert.match(prompt,/PRIVATE_PROMPT/);
@@ -71,8 +77,9 @@ test('MCP operation dispatch uses actual Fleet, signed-control handlers and cont
   assert.equal((await handleRuntimeRoutes({method:'POST',body:{}},response,
     new URL('http://fixture'+apiPath('workerOperationInternal')),{...deps,workerContent:null})).httpStatus,404);
   const submitted=await request({action:'start',provider:'codex',model:'fixture',
-    prompt:'PRIVATE_PROMPT',context:'PRIVATE_CONTEXT',timeoutMs:10000});
+    prompt:'PRIVATE_PROMPT',memoryCheckpoint,workGroupId,timeoutMs:10000});
   assert.equal(submitted.result.state,'awaiting_approval');
+  assert.equal(submitted.result.workGroupId,workGroupId);
   assert.equal(inferences,0);
   queue.ownerDecision({...submitted.result,approve:true});
   await setImmediate();
