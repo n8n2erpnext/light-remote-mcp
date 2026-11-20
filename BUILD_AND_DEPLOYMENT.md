@@ -414,3 +414,7 @@ Core CI now packages the canonical extension0.4 into a separate light-remote-mem
 ## Rename API Worker and warm account metadata with truthful quota and partial usage
 
 P1 source0e4df88 has full CI13415PASS but artifact bytes remain unverified. P2 sourcecad2c4f CI135 failed web DOM Unicode assertion; synthetic fixture now declares UTF8 and retains capture diagnostics in P3. Current full-source CI/extension ZIP/native verification pending; do not offer a source-only metadata change as an installed or physically accepted build.
+
+## Fix Memory composer readback and verify API Worker route aliases
+
+Isolated Windows Chrome headless fixtures PASS for ChatGPT and Claude. Existing ten extension unit tests and the Wall navigation regression PASS. CI136 at 3b052d1 failed the old navigation expectation in Core and Windows and the editor readback in Web. Corrected source needs its own CI and artifact verification. Full checkpoint checkpoint/20261115-before-rmv2-apiworkerreasoning-3b052d1 restored and passed fsck.

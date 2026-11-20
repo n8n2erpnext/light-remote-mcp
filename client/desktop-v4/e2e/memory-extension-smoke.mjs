@@ -15,7 +15,7 @@ try{
  const page=await context.newPage();
  for(const provider of ['chatgpt','claude']){
   const chat=provider==='chatgpt',url=chat?'https://chatgpt.com/c/memory-fixture':'https://claude.ai/chat/memory-fixture';
-  fixture='<!doctype html><meta charset="utf-8"><main>'+(chat?'<div data-message-author-role="user">Question</div><div data-message-author-role="assistant">':'<div data-testid="user-message">Question</div><div data-is-streaming="false">')+
+  fixture='<!doctype html><meta charset="utf-8"><style>[contenteditable]{white-space:pre-wrap}</style><main>'+(chat?'<div data-message-author-role="user">Question</div><div data-message-author-role="assistant">':'<div data-testid="user-message">Question</div><div data-is-streaming="false">')+
    '<div class="markdown">First block<pre>    code 😀\n\tsecond line</pre></div><div class="markdown">Second block</div></div>'+
    '<div hidden>'+(chat?'<div data-message-author-role="assistant">':'<div data-testid="assistant-message">')+'HIDDEN_SECRET</div></div>'+
    (chat?'<div id="prompt-textarea" contenteditable="true" role="textbox"><p>Owner unsent draft</p></div>':'<div class="ProseMirror" contenteditable="true" role="textbox"><p>Owner unsent draft</p></div>')+'</main>';
@@ -29,7 +29,8 @@ try{
   assert.equal(await page.locator(selector).innerText(),'Owner unsent draft');
   await page.locator(selector).fill('');
   const stage=await page.evaluate(url=>lightRemoteLmStageComposer('New context 😀\n    code',url),url);
-  assert.equal(stage.ok,true);assert.equal(stage.submitted,false);assert.equal(await page.locator(selector).innerText(),'New context 😀\n    code');
+  await fs.writeFile(path.join(output,provider+'-stage-result.json'),JSON.stringify({stage,readback:await page.locator(selector).innerText(),html:await page.locator(selector).innerHTML()},null,2)+'\n');
+  assert.equal(stage.ok,true);assert.equal(stage.submitted,false);assert.equal(await page.locator(selector).locator('p').allTextContents().then(p=>p.join('\n')),'New context 😀\n    code');
   await page.screenshot({path:path.join(output,provider+'-restored-draft.png')});results.push({provider,capture:'PASS',hiddenAncestor:'EXCLUDED',multipleBlocks:'PRESERVED',draft:'PRESERVED',inserted:'PASS',autoSubmit:false});
  }
  await context.close();

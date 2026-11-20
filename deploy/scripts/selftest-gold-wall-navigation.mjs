@@ -14,7 +14,7 @@ try{
     getLocalStatus:async()=>({deviceName:'Gold QA',cloudState:'connected'})});
   await new Promise((ok,bad)=>wall.server.listening?ok():wall.server.once('listening',ok).once('error',bad));
   const base='http://127.0.0.1:'+wall.server.address().port;
-  for(const [route,tag] of [['/','home'],['/long-memory','memory'],['/codex-cli','codex']]){
+  for(const [route,tag] of [['/','home'],['/long-memory','memory'],['/api-worker','codex'],['/codex-cli','codex']]){
     const denied=await fetch(base+route,{redirect:'manual'});
     assert.equal(denied.status,303,route+' requires owner authentication');
     const response=await fetch(base+route,{headers:{'x-test-owner':'yes'}});
@@ -22,7 +22,7 @@ try{
     const html=await response.text();
     assert.ok(html.includes('class="wall-view-'+tag+'"'));
     assert.ok(html.includes('href="/long-memory"'));
-    assert.ok(html.includes('href="/codex-cli"'));
+    assert.ok(html.includes('href="/api-worker"'));
     assert.ok(html.includes('id="navMemoryState"'));
     assert.ok(html.includes('id="navCodexState"'));
     assert.ok(html.includes('href="/permissions"'),route);

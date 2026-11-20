@@ -458,3 +458,7 @@ Extension ownership: shared.js endpoint/provider/hash limits; capture.js self-co
 ## Rename API Worker and warm account metadata with truthful quota and partial usage
 
 API Worker P3: gold-codex-plus.mjs metadata-only warmup, per-field success TTL/force/generation; gold-codex-session-view.mjs partial token counts and merged per-window quota timestamps; gold-wall-modules.mjs enabled guard; desktop-device-api.mjs codex.read warmup and forced codex.account; wall-codex-controls/local-wall.mjs mirror the refresh and quota UI. Desktop CodexControls.tsx/codex-session.ts preserve partial fields and show remaining+used; routes/WorkspaceShell/native module screen use API Worker display with old aliases intact. api-worker-metadata.test.mjs uses only fake app-server traffic. P2 Chromium fixture UTF8 correction preserves strict code/Unicode checks.
+
+## Fix Memory composer readback and verify API Worker route aliases
+
+Read plain text from simple editor paragraphs during context restore. Chromium innerText adds a visual blank line between paragraphs, which previously made a correct insert look incomplete. Verify Unicode, indentation and actual newline boundaries in both provider fixtures. The Wall regression now checks navigation to /api-worker and Owner authentication on both /api-worker and /codex-cli.

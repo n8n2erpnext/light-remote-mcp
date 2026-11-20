@@ -1,6 +1,6 @@
 # Long Memory, extension ngữ cảnh và API Worker nhiều nhà cung cấp
 
-Status: IMPLEMENTATION_IN_PROGRESS / P1_CI_PASS_P2_P3_PORTABLE_PASS / CURRENT_CI_PENDING
+Status: IMPLEMENTATION_IN_PROGRESS / P1_CI_PASS_P2_P3_LOCAL_RETEST_PASS / CORRECTED_CI_PENDING
 Edition: 2026-11-15, Asia/Saigon; research audit preserved from 2026-11-11
 Scope: Long Memory local-first, Chrome extension ChatGPT/Claude, Codex metadata và API Worker
 Research source: `work` `ad3db2f6ffaae0f9de639716e5657dd11bb40da4`; product source digest `537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516`
@@ -205,3 +205,11 @@ ARM isolated Node metadata/session/native API suite16/16 PASS plus4 existing off
 Official API checked2026-11-15: [Codex app-server](https://learn.chatgpt.com/docs/app-server) reports usedPercent, actual windowDurationMins and Unix-second resetsAt, with multi-bucket read and single-bucket updates. Remaining is displayed as100-used, with per-window receive timestamps; no fixed5h/7day assumption. Partial token fields stay nullable. This source/format correction is not independent acceptance of a real provider quota against ChatGPT Web.
 
 No runtime/Gold/production update, Owner Windows/Chrome installation, provider login/inference, historical log cleanup, DB migration, main/feed/domain/Google callback change. Deployed Gold/installed Owner helper remain2b65a37/dev12; dev13 current source awaits full exact CI and artifact verification.
+
+## Kiểm tra lại extension và điều hướng — 2026-11-20
+
+Read plain text from simple editor paragraphs during context restore. Chromium innerText adds a visual blank line between paragraphs, which previously made a correct insert look incomplete. Verify Unicode, indentation and actual newline boundaries in both provider fixtures. The Wall regression now checks navigation to /api-worker and Owner authentication on both /api-worker and /codex-cli.
+
+Isolated Windows Chrome headless fixtures PASS for ChatGPT and Claude. Existing ten extension unit tests and the Wall navigation regression PASS. CI136 at 3b052d1 failed the old navigation expectation in Core and Windows and the editor readback in Web. Corrected source needs its own CI and artifact verification. Full checkpoint checkpoint/20261115-before-rmv2-apiworkerreasoning-3b052d1 restored and passed fsck.
+
+Gold Lab and Owner Windows remain on dev12 source 2b65a37. Physical Chrome and provider acceptance are pending.
