@@ -1,6 +1,6 @@
 # Project handoff — additive Agent GPU observation
 
-Current resume point: Load extension 0.4.1, enter the Wall address, select Pair this Wall and Allow and pair, then confirm Paired with. Use Open Wall to sign in if needed. Verify the corrected extension on the actual device and confirm exact-source web CI.
+Current resume point: Load 0.4.1 and pair the selected Wall using the new setup tab. Accept Chrome access, sign in if prompted, and confirm Paired with before capturing a conversation.
 
 **RM v2 chưa đạt nghiệm thu live trên dev12.** Đã xác minh helper đang cài đúng source CI131 và đọc lại hash fixture:4.096 đúng;8.192 chỉ có6.816; bài300từ1391units chỉ có49. Năm ca262K qua paste không nghiệm thu API nhập trực tiếp. Job exit0 đang là xác nhận nhận lệnh; receipt ban đầu còn preparing, chưa có terminal writeId để xác định nguyên nhân. Server đã đăng ký schema262K/sourcePath/status/cancel và GPU/video; catalog của lượt đang chạy vẫn cũ sau thông báo refresh. Không coi GDI screenshot là bài test đường GPU mới. Bỏ mục dựng Windows VM theo yêu cầu Owner.
 
@@ -899,3 +899,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: Chrome 158 on Windows installed the MV3 extension in a fresh profile and completed the login redirect, persisted the fixture account/device after the popup closed, reused an existing Wall and showed success on reopening. Host access was seeded only on the disposable fixture manifest. The emitted package keeps optional host permissions. Portable tests 12/12 and package permission guard passed. The user profile and native Chrome consent still require manual acceptance. Full pre-change checkpoint was restored and fsck passed on ARM at checkpoint/20261115-before-rmv2-memorypair-f532afe.
 - Next: Load extension 0.4.1, enter the Wall address, select Pair this Wall and Allow and pair, then confirm Paired with. Use Open Wall to sign in if needed. Verify the corrected extension on the actual device and confirm exact-source web CI.
 - Runtime: Gold and Windows runtime remain on the prior installer. The pairing fix is delivered in the extension package.
+
+## Task Receipt: 20261126-memory-pairing-artifact-verification
+- Status: PAIRING_PACKAGE_VERIFIED_OWNER_TEST_PENDING. Extension 0.4.1 is available for Owner testing. The separate pairing screen keeps Chrome permission and Wall sign-in progress visible.
+- Source: permanent work after `d7db2547e69776d68920818fa5c77af8838d8c1a`; exact staged source digest stamped in this same commit.
+- Verification: CI143 Web passed on d7db2547e69776d68920818fa5c77af8838d8c1a, including the installed-extension pairing fixture. Downloaded CI artifact 15100014924 matched GitHub digest sha256:7d7441a398399979f1da92f620832f53928fa29e5e2510bddc49b703caecf73c; the inner ZIP and its 15 files verified. The local ZIP verified all 15 source files against the published commit and has SHA-256 00ba67037a39b3d0e2ac79ed585a4bbd311a6c0f427f41d9d5335110b8b94ff5. The Chrome fixture seeds the test origin only. Actual Owner consent and live Wall pairing remain pending. The separate native RM job in CI143 failed NU1004 after the hosted .NET SDK resolved ILLink.Tasks 8.0.34 while the lock pins 8.0.33.
+- Next: Load 0.4.1 and pair the selected Wall using the new setup tab. Accept Chrome access, sign in if prompted, and confirm Paired with before capturing a conversation.
+- Runtime: The extension repair can be tested against the already-installed Local Wall.

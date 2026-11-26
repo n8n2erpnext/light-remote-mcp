@@ -442,3 +442,7 @@ CI140 exact source b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68: 15/15 jobs passed, 
 ## Fix Long Memory Wall pairing in installed Chrome extension
 
 Chrome 158 on Windows installed the MV3 extension in a fresh profile and completed the login redirect, persisted the fixture account/device after the popup closed, reused an existing Wall and showed success on reopening. Host access was seeded only on the disposable fixture manifest. The emitted package keeps optional host permissions. Portable tests 12/12 and package permission guard passed. The user profile and native Chrome consent still require manual acceptance. Full pre-change checkpoint was restored and fsck passed on ARM at checkpoint/20261115-before-rmv2-memorypair-f532afe.
+
+## Record Long Memory 0.4.1 pairing verification
+
+CI143 Web passed on d7db2547e69776d68920818fa5c77af8838d8c1a, including the installed-extension pairing fixture. Downloaded CI artifact 15100014924 matched GitHub digest sha256:7d7441a398399979f1da92f620832f53928fa29e5e2510bddc49b703caecf73c; the inner ZIP and its 15 files verified. The local ZIP verified all 15 source files against the published commit and has SHA-256 00ba67037a39b3d0e2ac79ed585a4bbd311a6c0f427f41d9d5335110b8b94ff5. The Chrome fixture seeds the test origin only. Actual Owner consent and live Wall pairing remain pending. The separate native RM job in CI143 failed NU1004 after the hosted .NET SDK resolved ILLink.Tasks 8.0.34 while the lock pins 8.0.33.

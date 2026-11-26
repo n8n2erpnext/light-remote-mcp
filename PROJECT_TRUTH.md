@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory extension 0.4.1 sửa ghép nối Chrome.** Bản sửa đã qua kiểm thử extension cài thật trong Chrome với Wall giả lập. API Worker và bộ cài Windows dev14 đã qua CI140. Nghiệm thu extension trên thiết bị Owner và provider thật còn mở.
+**Long Memory extension 0.4.1 sẵn sàng để Owner thử ghép nối.** Bài test cài extension và ghép Wall giả lập đã qua Chrome trên Windows và CI143 Web. Bộ cài Windows và API Worker có biên nhận riêng ở CI140.
 
-Current development source: Long Memory extension 0.4.1 opens a persistent pairing tab for the optional Chrome permission request. The selected Wall stays bound to the exact address and authenticated enrolled account/device. The service worker records pending pairing before navigating, resumes after owner sign-in and reuses an already open Wall. Pairing progress, login and errors are visible beside the action. Extension and Windows client versions are independent. Gold and Windows runtime remain on the prior installer. The pairing fix is delivered in the extension package.
+Current development source: Extension 0.4.1 is available for Owner testing. The separate pairing screen keeps Chrome permission and Wall sign-in progress visible. The extension repair can be tested against the already-installed Local Wall.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

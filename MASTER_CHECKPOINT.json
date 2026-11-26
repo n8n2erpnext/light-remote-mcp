@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-26T08:50:37.683Z",
+  "updatedAt": "2026-11-26T08:57:00.295Z",
   "version": "0.10.1-dev.14",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Load extension 0.4.1, enter the Wall address, select Pair this Wall and Allow and pair, then confirm Paired with. Use Open Wall to sign in if needed. Verify the corrected extension on the actual device and confirm exact-source web CI.",
+  "nextAction": "Load 0.4.1 and pair the selected Wall using the new setup tab. Accept Chrome access, sign in if prompted, and confirm Paired with before capturing a conversation.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,11 +691,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261126-long-memory-extension-wall-pairing",
-    "status": "PAIRING_FIXED_INSTALLED_CHROME_FIXTURE_PASS",
-    "summary": "Long Memory extension 0.4.1 opens a persistent pairing tab for the optional Chrome permission request. The selected Wall stays bound to the exact address and authenticated enrolled account/device. The service worker records pending pairing before navigating, resumes after owner sign-in and reuses an already open Wall. Pairing progress, login and errors are visible beside the action. Extension and Windows client versions are independent.",
-    "verification": "Chrome 158 on Windows installed the MV3 extension in a fresh profile and completed the login redirect, persisted the fixture account/device after the popup closed, reused an existing Wall and showed success on reopening. Host access was seeded only on the disposable fixture manifest. The emitted package keeps optional host permissions. Portable tests 12/12 and package permission guard passed. The user profile and native Chrome consent still require manual acceptance. Full pre-change checkpoint was restored and fsck passed on ARM at checkpoint/20261115-before-rmv2-memorypair-f532afe.",
-    "nextAction": "Load extension 0.4.1, enter the Wall address, select Pair this Wall and Allow and pair, then confirm Paired with. Use Open Wall to sign in if needed. Verify the corrected extension on the actual device and confirm exact-source web CI.",
+    "taskId": "20261126-memory-pairing-artifact-verification",
+    "status": "PAIRING_PACKAGE_VERIFIED_OWNER_TEST_PENDING",
+    "summary": "Extension 0.4.1 is available for Owner testing. The separate pairing screen keeps Chrome permission and Wall sign-in progress visible.",
+    "verification": "CI143 Web passed on d7db2547e69776d68920818fa5c77af8838d8c1a, including the installed-extension pairing fixture. Downloaded CI artifact 15100014924 matched GitHub digest sha256:7d7441a398399979f1da92f620832f53928fa29e5e2510bddc49b703caecf73c; the inner ZIP and its 15 files verified. The local ZIP verified all 15 source files against the published commit and has SHA-256 00ba67037a39b3d0e2ac79ed585a4bbd311a6c0f427f41d9d5335110b8b94ff5. The Chrome fixture seeds the test origin only. Actual Owner consent and live Wall pairing remain pending. The separate native RM job in CI143 failed NU1004 after the hosted .NET SDK resolved ILLink.Tasks 8.0.34 while the lock pins 8.0.33.",
+    "nextAction": "Load 0.4.1 and pair the selected Wall using the new setup tab. Accept Chrome access, sign in if prompted, and confirm Paired with before capturing a conversation.",
     "sourceDigest": "3ea5564b718df332e8ee717473a86c1854fdd11677177a121236191469d51a85",
     "sourceFileCount": 1760
   },
@@ -2018,7 +2018,7 @@
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "ce33daa867a90adcf6990e635b7013ff8fa4ff879e279ed525371d53dcf90005",
+    "documentSha256": "d264285ee1edb3311400378ee81ceb93fb6a94b7589503b2c5d8f931926251cf",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2073,7 +2073,17 @@
         "browserFixture": "INSTALLED_MV3_CHROME_PASS",
         "ownerAcceptance": "PENDING",
         "optionalHostConsent": true,
-        "checkpointTag": "checkpoint/20261115-before-rmv2-memorypair-f532afe"
+        "checkpointTag": "checkpoint/20261115-before-rmv2-memorypair-f532afe",
+        "sourceCommit": "d7db2547e69776d68920818fa5c77af8838d8c1a",
+        "runId": 45786614275,
+        "webCi": "PASS",
+        "artifactId": 15100014924,
+        "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/45786614275/artifacts/15100014924",
+        "githubArtifactDigest": "sha256:7d7441a398399979f1da92f620832f53928fa29e5e2510bddc49b703caecf73c",
+        "archiveSha256": "00ba67037a39b3d0e2ac79ed585a4bbd311a6c0f427f41d9d5335110b8b94ff5",
+        "ciInnerArchiveSha256": "077ad87271e4c01918eca7a1d4834764ac242a344a21ad9713d8a268306dbffe",
+        "sourceFilesVerified": 15,
+        "nativeBaseline": "NU1004_SDK_ILLINK_LOCK_DRIFT"
       }
     },
     "codex": {

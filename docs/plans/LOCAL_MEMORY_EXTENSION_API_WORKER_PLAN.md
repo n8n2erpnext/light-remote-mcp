@@ -263,3 +263,11 @@ Long Memory extension 0.4.1 opens a persistent pairing tab for the optional Chro
 Chrome 158 on Windows installed the MV3 extension in a fresh profile and completed the login redirect, persisted the fixture account/device after the popup closed, reused an existing Wall and showed success on reopening. Host access was seeded only on the disposable fixture manifest. The emitted package keeps optional host permissions. Portable tests 12/12 and package permission guard passed. The user profile and native Chrome consent still require manual acceptance. Full pre-change checkpoint was restored and fsck passed on ARM at checkpoint/20261115-before-rmv2-memorypair-f532afe.
 
 Load extension 0.4.1, enter the Wall address, select Pair this Wall and Allow and pair, then confirm Paired with. Use Open Wall to sign in if needed. Verify the corrected extension on the actual device and confirm exact-source web CI.
+
+## Kiểm thử bản ghép nối 0.4.1 — 2026-11-26
+
+CI143 Web passed on d7db2547e69776d68920818fa5c77af8838d8c1a, including the installed-extension pairing fixture. Downloaded CI artifact 15100014924 matched GitHub digest sha256:7d7441a398399979f1da92f620832f53928fa29e5e2510bddc49b703caecf73c; the inner ZIP and its 15 files verified. The local ZIP verified all 15 source files against the published commit and has SHA-256 00ba67037a39b3d0e2ac79ed585a4bbd311a6c0f427f41d9d5335110b8b94ff5. The Chrome fixture seeds the test origin only. Actual Owner consent and live Wall pairing remain pending. The separate native RM job in CI143 failed NU1004 after the hosted .NET SDK resolved ILLink.Tasks 8.0.34 while the lock pins 8.0.33.
+
+[Get extension 0.4.1](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/45786614275/artifacts/15100014924)
+
+Load 0.4.1 and pair the selected Wall using the new setup tab. Accept Chrome access, sign in if prompted, and confirm Paired with before capturing a conversation.
