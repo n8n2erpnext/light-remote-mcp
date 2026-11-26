@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Web Gold đã cập nhật Home, Account và Admin cho A/B v2 và Pro Share (Family).** Chrome mô phỏng đã qua hai kích thước. Trạng thái chia sẻ trên Account lấy từ cổng tính năng hiện có.
+**Gold A/B v2 đã chạy bản web Home, Account và Admin mới.** HTTPS công khai đã xác minh luồng A/B v2, Pro Share (Family), ba tài nguyên và tuyến đăng nhập Admin.
 
-Current development source: Home and Account use the A/B v2 connection flow in Gold, Pro Share (Family) is the sharing destination, and Account/Admin use shared portal styling. The changes are committed web source and isolated previews. Gold and production services have separate deployment state.
+Current development source: The web production review is deployed to Gold A/B v2 as 27 verified Plugin files from 03d4c486abf262ca9546215c87a2d7c2a2e703ec on the existing Gold backend baseline.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

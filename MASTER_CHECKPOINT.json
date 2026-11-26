@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-26T14:00:42.994Z",
+  "updatedAt": "2026-11-26T14:13:51.013Z",
   "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Verify exact-source CI for the sign-in return follow-up. Validate a Gold web deployment before approving a production host change.",
+  "nextAction": "Owner can review the live Account and Admin pages when signed in. The Gold Pro Share guest feature follows its existing disabled configuration. Production role switch remains a separate owner action.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,11 +691,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261126-web-sharing-login-return",
-    "status": "PORTAL_FIXTURES_PASS_DEPLOYMENT_PENDING",
-    "summary": "Preserve the intended sharing page when a signed-out visitor follows a previous Team invitation or opens Pro Share. The legacy page remains available to recipients and the account login return uses the precise sharing path.",
-    "verification": "The published portal base a0406d8f6d840d93acfefec02a99611ef124bea7 passed GitHub CI151 Core; Web status success. The actual registered Account handlers returned the Family route, legacy invitation fallback and shared stylesheet. The final isolated Chrome run covered 46 views, a migrated legacy invitation fragment, both sign-in return routes, B approval and two mock notification publishes. No actual account actions were submitted.",
-    "nextAction": "Verify exact-source CI for the sign-in return follow-up. Validate a Gold web deployment before approving a production host change.",
+    "taskId": "20261126-gold-live-web-production-review",
+    "status": "GOLD_HTTPS_VERIFIED_OWNER_UI_REVIEW_AVAILABLE",
+    "summary": "Deploy the verified Home, Account, Admin and Pro Share (Family) web changes to Gold A/B v2. Systemd starts only the Gold Plugin from the isolated web source copy. Gold Local Wall follows via its existing PartOf dependency.",
+    "verification": "Public HTTPS verified 16 routes, including Home and the A/B v2 guide, Account and Billing, the Team redirect and invitation fallback, the Pro Share page, anonymous Admin redirect, login and Google Sans. Three served asset SHA-256 values matched the deployed source. The Plugin and Wall returned active; the Operator, Supervisor and mTLS sidecar kept their process IDs and source paths. The initial guarded attempt reverted when the Wall PID changed. A read-only systemd check confirmed the expected dependency before redeploying successfully.",
+    "nextAction": "Owner can review the live Account and Admin pages when signed in. The Gold Pro Share guest feature follows its existing disabled configuration. Production role switch remains a separate owner action.",
     "sourceDigest": "684bd4312b3baed543e19104760124071932a81a00008f3959a230bba50faea0",
     "sourceFileCount": 1765
   },
@@ -3636,9 +3636,9 @@
       390
     ],
     "adminViewsPerSize": 10,
-    "physicalAcceptance": "PENDING",
+    "physicalAcceptance": "OWNER_SIGNED_IN_REVIEW_PENDING",
     "billing": "EXISTING_GATES",
-    "goldDeployment": "NOT_DEPLOYED",
+    "goldDeployment": "DEPLOYED_HTTPS_VERIFIED",
     "productionDeployment": "NOT_DEPLOYED",
     "implementationCommit": "a0406d8f6d840d93acfefec02a99611ef124bea7",
     "implementationCiRun": 45833846599,
@@ -3647,6 +3647,62 @@
     "registeredAccountRoutes": "PASS",
     "legacyInvite": "PASS",
     "sharingLoginReturn": "PASS",
-    "notificationPublishFixtureCount": 2
+    "notificationPublishFixtureCount": 2,
+    "goldDeploymentReceipt": {
+      "status": "DEPLOYED",
+      "source": "03d4c486abf262ca9546215c87a2d7c2a2e703ec",
+      "container": "light-remote-abv2-lab-20261101",
+      "prior": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/backend-runtime/2b65a379e1fd5b3f05c101354495dcd4f6c64397/code",
+      "stage": "/home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/backend-runtime/goldabv2-web-03d4c48/code",
+      "files": 27,
+      "checks": {
+        "loopback": {
+          "/healthz": 200,
+          "/": 200,
+          "/ai-guide": 200,
+          "/account": 200,
+          "/account/billing": 200,
+          "/account/team": 302,
+          "/account/pro-share": 200,
+          "/account/team?legacy=1": 200,
+          "/admin": 303,
+          "/account/assets/visual-system-v4.css": 200,
+          "/assets/fonts/GoogleSans-Variable.ttf": 200,
+          "/account/api?action=me": 401,
+          "/mcp": 405
+        },
+        "public": {
+          "/healthz": 200,
+          "/": 200,
+          "/ai-guide": 200,
+          "/account": 200,
+          "/account/billing": 200,
+          "/account/team": 302,
+          "/account/pro-share": 200,
+          "/account/team?legacy=1": 200,
+          "/admin": 303,
+          "/account/assets/visual-system-v4.css": 200,
+          "/assets/fonts/GoogleSans-Variable.ttf": 200,
+          "/account/api?action=me": 401,
+          "/mcp": 405,
+          "/admin/assets/notification-center.js": 200,
+          "/account/assets/home-demo.js": 200,
+          "/account/login": 200
+        }
+      },
+      "rollbackDropIn": "/etc/systemd/system/light-remote-gold-plugin.service.d/~~goldabv2-web-03d4c48.conf",
+      "shareAvailable": false,
+      "dependentServicesRestarted": [
+        "light-remote-gold-wall.service"
+      ],
+      "otherServiceSourcePathsPreserved": true,
+      "publicAssetSha256Verified": [
+        "/admin/assets/notification-center.js",
+        "/account/assets/home-demo.js",
+        "/account/assets/visual-system-v4.css"
+      ],
+      "origin": "https://goldabv2.light-remote.thaiduy.digital"
+    },
+    "wallDependency": "PART_OF_PLUGIN"
   }
 }

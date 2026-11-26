@@ -1,6 +1,6 @@
 # Project handoff — additive Agent GPU observation
 
-Current resume point: Verify exact-source CI for the sign-in return follow-up. Validate a Gold web deployment before approving a production host change.
+Current resume point: Owner can review the live Account and Admin pages when signed in. The Gold Pro Share guest feature follows its existing disabled configuration. Production role switch remains a separate owner action.
 
 **RM v2 chưa đạt nghiệm thu live trên dev12.** Đã xác minh helper đang cài đúng source CI131 và đọc lại hash fixture:4.096 đúng;8.192 chỉ có6.816; bài300từ1391units chỉ có49. Năm ca262K qua paste không nghiệm thu API nhập trực tiếp. Job exit0 đang là xác nhận nhận lệnh; receipt ban đầu còn preparing, chưa có terminal writeId để xác định nguyên nhân. Server đã đăng ký schema262K/sourcePath/status/cancel và GPU/video; catalog của lượt đang chạy vẫn cũ sau thông báo refresh. Không coi GDI screenshot là bài test đường GPU mới. Bỏ mục dựng Windows VM theo yêu cầu Owner.
 
@@ -962,3 +962,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: The published portal base a0406d8f6d840d93acfefec02a99611ef124bea7 passed GitHub CI151 Core; Web status success. The actual registered Account handlers returned the Family route, legacy invitation fallback and shared stylesheet. The final isolated Chrome run covered 46 views, a migrated legacy invitation fragment, both sign-in return routes, B approval and two mock notification publishes. No actual account actions were submitted.
 - Next: Verify exact-source CI for the sign-in return follow-up. Validate a Gold web deployment before approving a production host change.
 - Runtime: The changes are committed web source and isolated previews. Gold and production services have separate deployment state.
+
+## Task Receipt: 20261126-gold-live-web-production-review
+- Status: GOLD_HTTPS_VERIFIED_OWNER_UI_REVIEW_AVAILABLE. Deploy the verified Home, Account, Admin and Pro Share (Family) web changes to Gold A/B v2. Systemd starts only the Gold Plugin from the isolated web source copy. Gold Local Wall follows via its existing PartOf dependency.
+- Source: permanent work after `03d4c486abf262ca9546215c87a2d7c2a2e703ec`; exact staged source digest stamped in this same commit.
+- Verification: Public HTTPS verified 16 routes, including Home and the A/B v2 guide, Account and Billing, the Team redirect and invitation fallback, the Pro Share page, anonymous Admin redirect, login and Google Sans. Three served asset SHA-256 values matched the deployed source. The Plugin and Wall returned active; the Operator, Supervisor and mTLS sidecar kept their process IDs and source paths. The initial guarded attempt reverted when the Wall PID changed. A read-only systemd check confirmed the expected dependency before redeploying successfully.
+- Next: Owner can review the live Account and Admin pages when signed in. The Gold Pro Share guest feature follows its existing disabled configuration. Production role switch remains a separate owner action.
+- Runtime: Live Gold Plugin working directory /home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/backend-runtime/goldabv2-web-03d4c48/code. Source 03d4c486abf262ca9546215c87a2d7c2a2e703ec, 27 web files. Rollback uses removal of the exact source override /etc/systemd/system/light-remote-gold-plugin.service.d/~~goldabv2-web-03d4c48.conf, systemd daemon reload, and a Gold Plugin restart; the previous source is retained at /home/ubuntu/n8n2erpnext/light-remote-unified-20261108/implementation-20261108/backend-runtime/2b65a379e1fd5b3f05c101354495dcd4f6c64397/code.
