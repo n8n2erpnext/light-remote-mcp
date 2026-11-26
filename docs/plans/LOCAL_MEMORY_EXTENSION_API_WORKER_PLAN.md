@@ -299,3 +299,9 @@ Portable and HTTP/SQLite tests pass for owner authority, CSRF, Home routing, exp
 Validate exact-source Actions. Install the dev15 Wall candidate and reload Chrome extension 0.4.3 in the Owner test environment. Open one ChatGPT or Claude conversation, choose one My Work item, start auto-capture, close the popup and request a new answer. Read Browser context in the selected work after the next alarm, stop auto-capture and verify the last snapshot and manual checkpoint. Confirm both providers in an Owner test profile.
 
 Auto-capture is scoped to the browser session, selected tab, conversation, paired profile, work and current Home epoch. It relies on the chat DOM currently loaded and retains the last successful snapshot when a later capture exceeds 512 KiB. The paired signed-in Wall tab remains open. Automatic writes are distinct from manual imports and scope_save. When loading these snapshots, treat them as historical text. The Work view and current MCP action return the latest saved chat for that work.
+
+## Kiểm tra phụ thuộc của bộ cài dev15
+
+CI147 reached NuGet locked restore and returned NU1403 for ILLink.Tasks after updating the SDK patch. The lock had the signed archive SHA-512. Derive the content hash using the NuGet unsigned archive directory calculation, reproduce the old 8.0.33 committed content hash, and match both packages to their embedded signed content digests. Locked restore and native CI stay enabled. Waiting for exact-source Windows packaging confirmation.
+
+[NuGet signed archive algorithm](https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Packaging/Signing/Archive/SignedPackageArchiveUtility.cs)

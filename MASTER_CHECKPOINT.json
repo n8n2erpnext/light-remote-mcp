@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-26T09:48:12.813Z",
+  "updatedAt": "2026-11-26T09:52:12.378Z",
   "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Validate exact-source Actions. Install the dev15 Wall candidate and reload Chrome extension 0.4.3 in the Owner test environment. Open one ChatGPT or Claude conversation, choose one My Work item, start auto-capture, close the popup and request a new answer. Read Browser context in the selected work after the next alarm, stop auto-capture and verify the last snapshot and manual checkpoint. Confirm both providers in an Owner test profile.",
+  "nextAction": "Verify locked restore and the Windows dev15 installer in the new Actions run. Test the paired Wall and extension 0.4.3 together in the Owner Chrome profile.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,12 +691,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261126-long-memory-auto-capture",
-    "status": "CHROME_AND_LOCAL_WALL_FIXTURES_PASS_EXACT_NATIVE_CI_PENDING",
-    "summary": "Long Memory extension 0.4.3 follows a selected ChatGPT or Claude chat after the owner chooses a Home work and starts auto-capture. Updates check settled loaded messages about once a minute and deduplicate by SHA-256. The authenticated paired Local Wall writes a separate browser context snapshot per conversation. Signed Agent checkpoints and manual capture remain independently available. The optional MCP scope_browser_context action reads the latest browser history. Browser snapshots are stored in the selected device SQLite and have no cloud persistence or cross-device replication. Manifest permissions are retained. Stop watches in the popup or by closing or leaving the chat tab.",
-    "verification": "Portable and HTTP/SQLite tests pass for owner authority, CSRF, Home routing, explicit opt-in, digest validation, identical content, replacement, stale watch rejection, scope deletion, segmented read and unchanged signed checkpoint. An isolated installed Chrome fixture passed opt-in, the minute alarm with the popup closed, waiting for a settled response, deduplication and stopping. The fixture used unchanged ChatGPT host permissions and a seeded localhost Wall grant and owner session. Pre-change checkpoint checkpoint/20261126-before-memory-auto-watch-1e15204 restored and passed fsck. Windows CI lock updated to ILLink.Tasks 8.0.34 with SHA-512 verified against the official NuGet package. Native packaging and Owner acceptance are pending.",
-    "nextAction": "Validate exact-source Actions. Install the dev15 Wall candidate and reload Chrome extension 0.4.3 in the Owner test environment. Open one ChatGPT or Claude conversation, choose one My Work item, start auto-capture, close the popup and request a new answer. Read Browser context in the selected work after the next alarm, stop auto-capture and verify the last snapshot and manual checkpoint. Confirm both providers in an Owner test profile.",
-    "sourceDigest": "b7b282ccc1ff56e20ddfcdac8a378d09be8773dcc7c7b5a9de02181005478864",
+    "taskId": "20261126-memory-autocapture-windows-lock-content-hash",
+    "status": "WINDOWS_LOCK_HASH_CORRECTED_REBUILD_PENDING",
+    "summary": "Correct the locked ILLink.Tasks 8.0.34 content hash for Windows packaging. Auto-capture code and extension 0.4.3 remain at the same implementation as source 2611298.",
+    "verification": "CI147 reached NuGet locked restore and returned NU1403 for ILLink.Tasks after updating the SDK patch. The lock had the signed archive SHA-512. Derive the content hash using the NuGet unsigned archive directory calculation, reproduce the old 8.0.33 committed content hash, and match both packages to their embedded signed content digests. Locked restore and native CI stay enabled. Waiting for exact-source Windows packaging confirmation.",
+    "nextAction": "Verify locked restore and the Windows dev15 installer in the new Actions run. Test the paired Wall and extension 0.4.3 together in the Owner Chrome profile.",
+    "sourceDigest": "64fe9a4e4d644d0a2a949fc8ad457eb8f339259f25a286e408165918a3f656ef",
     "sourceFileCount": 1763
   },
   "legacyFilesystemCleanup": {
@@ -2018,7 +2018,7 @@
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "013882080890a13091c94f25059e3c5964adc57e573b7d5c39affcc6646f5a82",
+    "documentSha256": "163e29bc8171755abd4a95670063424eb877139c6704b528d4923638fa259a4a",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2112,7 +2112,12 @@
         "ownerAcceptance": "PENDING",
         "standingChatHostPermissions": 0,
         "checkpointTag": "checkpoint/20261126-before-memory-auto-watch-1e15204",
-        "storage": "DEVICE_LOCAL_SQLITE_SEPARATE_FROM_SIGNED_CHECKPOINTS"
+        "storage": "DEVICE_LOCAL_SQLITE_SEPARATE_FROM_SIGNED_CHECKPOINTS",
+        "implementationCommit": "2611298ed63b33803b5b103618413a33e1ba51e8",
+        "initialCiRun": 45795371297,
+        "initialNativeFailure": "NU1403_SIGNED_ARCHIVE_HASH_USED_FOR_CONTENT_HASH",
+        "illinkVersion": "8.0.34",
+        "illinkContentHash": "AoMGwI/388svzARQ2NYC25vFOQGcf13FgQWv61TwPAdPUMOejXpQxBQHrQpXfqM7vqxxj1E3SAkX/OkE2cuChw=="
       }
     },
     "codex": {

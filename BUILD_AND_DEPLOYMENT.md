@@ -458,3 +458,7 @@ CI145 Web passed on 13b854baac243ec8b937f9145ca52cc73ff5f663. Downloaded CI arti
 ## Auto-capture selected conversations to device-local Long Memory
 
 Portable and HTTP/SQLite tests pass for owner authority, CSRF, Home routing, explicit opt-in, digest validation, identical content, replacement, stale watch rejection, scope deletion, segmented read and unchanged signed checkpoint. An isolated installed Chrome fixture passed opt-in, the minute alarm with the popup closed, waiting for a settled response, deduplication and stopping. The fixture used unchanged ChatGPT host permissions and a seeded localhost Wall grant and owner session. Pre-change checkpoint checkpoint/20261126-before-memory-auto-watch-1e15204 restored and passed fsck. Windows CI lock updated to ILLink.Tasks 8.0.34 with SHA-512 verified against the official NuGet package. Native packaging and Owner acceptance are pending.
+
+## Use NuGet content hash for locked ILLink 8.0.34
+
+CI147 reached NuGet locked restore and returned NU1403 for ILLink.Tasks after updating the SDK patch. The lock had the signed archive SHA-512. Derive the content hash using the NuGet unsigned archive directory calculation, reproduce the old 8.0.33 committed content hash, and match both packages to their embedded signed content digests. Locked restore and native CI stay enabled. Waiting for exact-source Windows packaging confirmation.
