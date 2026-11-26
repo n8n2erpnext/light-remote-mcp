@@ -1,7 +1,7 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-26T09:20:28.181Z",
-  "version": "0.10.1-dev.14",
+  "updatedAt": "2026-11-26T09:48:12.813Z",
+  "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
   "officialRepository": "n8n2erpnext/light-remote-mcp",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Replace the files in the currently loaded extension folder, reload the extension and capture from the ChatGPT or Claude conversation. Review the text in the popup before opening the paired Wall.",
+  "nextAction": "Validate exact-source Actions. Install the dev15 Wall candidate and reload Chrome extension 0.4.3 in the Owner test environment. Open one ChatGPT or Claude conversation, choose one My Work item, start auto-capture, close the popup and request a new answer. Read Browser context in the selected work after the next alarm, stop auto-capture and verify the last snapshot and manual checkpoint. Confirm both providers in an Owner test profile.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,13 +691,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261126-memory-capture-artifact-verification",
-    "status": "CAPTURE_PACKAGE_VERIFIED_OWNER_TEST_PENDING",
-    "summary": "Extension 0.4.2 is available and reads newer ChatGPT message markup in the installed Chrome toolbar workflow.",
-    "verification": "CI145 Web passed on 13b854baac243ec8b937f9145ca52cc73ff5f663. Downloaded CI artifact 15102527626 and all 15 packaged files matched the source manifests. The local exact-source ZIP has SHA-256 2b599d807dcd2d37692c7d6f4bf5282c33497ec0a32dbf4d0aa975f1aadb8134. In isolated Chrome, a same-folder update retained the 0.4.1 fixture pairing. The installed, downloaded CI ZIP passed Capture with both message roles and the review action available. The Owner chat still requires acceptance. The separate native RM job failed NuGet locked verification after the SDK changed the ILLink.Tasks patch.",
-    "nextAction": "Replace the files in the currently loaded extension folder, reload the extension and capture from the ChatGPT or Claude conversation. Review the text in the popup before opening the paired Wall.",
-    "sourceDigest": "035627b8e098340847b65d5faa256c0bb84e08e224ab342590dee29943d2598e",
-    "sourceFileCount": 1760
+    "taskId": "20261126-long-memory-auto-capture",
+    "status": "CHROME_AND_LOCAL_WALL_FIXTURES_PASS_EXACT_NATIVE_CI_PENDING",
+    "summary": "Long Memory extension 0.4.3 follows a selected ChatGPT or Claude chat after the owner chooses a Home work and starts auto-capture. Updates check settled loaded messages about once a minute and deduplicate by SHA-256. The authenticated paired Local Wall writes a separate browser context snapshot per conversation. Signed Agent checkpoints and manual capture remain independently available. The optional MCP scope_browser_context action reads the latest browser history. Browser snapshots are stored in the selected device SQLite and have no cloud persistence or cross-device replication. Manifest permissions are retained. Stop watches in the popup or by closing or leaving the chat tab.",
+    "verification": "Portable and HTTP/SQLite tests pass for owner authority, CSRF, Home routing, explicit opt-in, digest validation, identical content, replacement, stale watch rejection, scope deletion, segmented read and unchanged signed checkpoint. An isolated installed Chrome fixture passed opt-in, the minute alarm with the popup closed, waiting for a settled response, deduplication and stopping. The fixture used unchanged ChatGPT host permissions and a seeded localhost Wall grant and owner session. Pre-change checkpoint checkpoint/20261126-before-memory-auto-watch-1e15204 restored and passed fsck. Windows CI lock updated to ILLink.Tasks 8.0.34 with SHA-512 verified against the official NuGet package. Native packaging and Owner acceptance are pending.",
+    "nextAction": "Validate exact-source Actions. Install the dev15 Wall candidate and reload Chrome extension 0.4.3 in the Owner test environment. Open one ChatGPT or Claude conversation, choose one My Work item, start auto-capture, close the popup and request a new answer. Read Browser context in the selected work after the next alarm, stop auto-capture and verify the last snapshot and manual checkpoint. Confirm both providers in an Owner test profile.",
+    "sourceDigest": "b7b282ccc1ff56e20ddfcdac8a378d09be8773dcc7c7b5a9de02181005478864",
+    "sourceFileCount": 1763
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -2018,7 +2018,7 @@
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "1f2b9f2c80545aea630d7cb736f21673a4c7516a6c0fda42f5f9def9eb05b711",
+    "documentSha256": "013882080890a13091c94f25059e3c5964adc57e573b7d5c39affcc6646f5a82",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2089,7 +2089,7 @@
         "version": "0.4.2",
         "base": "8d75586bebac2d17239c4b66fbcac2495b643e35",
         "fixture": "OLD_ERROR_AND_NEW_INSTALLED_POPUP_PASS",
-        "ownerAcceptance": "PENDING",
+        "ownerAcceptance": "PAIR_AND_MANUAL_CAPTURE_CONFIRMED",
         "standingChatHostPermissions": 0,
         "checkpointTag": "checkpoint/20261126-before-memory-capture-8d75586",
         "sourceCommit": "13b854baac243ec8b937f9145ca52cc73ff5f663",
@@ -2103,6 +2103,16 @@
         "sourceFilesVerified": 15,
         "sameFolderPairingFixture": "PASS",
         "nativeBaseline": "NU1004_SDK_ILLINK_LOCK_DRIFT"
+      },
+      "browserWatch": {
+        "version": "0.4.3",
+        "minimumWall": "0.10.1-dev.15",
+        "base": "1e152041b53c3edd65dc72f9739c10e7e8820a26",
+        "fixture": "INSTALLED_CHROME_ALARM_AND_WALL_FIXTURE_PASS",
+        "ownerAcceptance": "PENDING",
+        "standingChatHostPermissions": 0,
+        "checkpointTag": "checkpoint/20261126-before-memory-auto-watch-1e15204",
+        "storage": "DEVICE_LOCAL_SQLITE_SEPARATE_FROM_SIGNED_CHECKPOINTS"
       }
     },
     "codex": {

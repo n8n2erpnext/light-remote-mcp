@@ -3,8 +3,8 @@
   "minimum_chrome_version": "116",
   "name": "Light Remote Memory",
   "short_name": "LR Memory",
-  "version": "0.4.2",
-  "description": "Review and save loaded ChatGPT/Claude context to your selected Light Remote device, then manually restore it to a new chat.",
+  "version": "0.4.3",
+  "description": "Manually capture or follow a selected ChatGPT or Claude conversation and save its context to your Light Remote Wall.",
   "permissions": [
     "activeTab",
     "scripting",

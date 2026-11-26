@@ -4,7 +4,7 @@ const MEMORY_TABLES_IN_DEPENDENCY_ORDER=Object.freeze([
   'lm_evidence_manual_release','lm_evidence_outbox','lm_evidence_inbox',
   'lm_peer_seen_nonce','lm_peer_routes','lm_events','lm_event_batches',
   'lm_sync_outbox','lm_sync_inbox','lm_replica_ack','lm_sync_recipient_keys',
-  'lm_scope_members','lm_work_bindings','lm_checkpoint_v2','lm_heads',
+  'lm_scope_members','lm_work_bindings','lm_browser_context','lm_checkpoint_v2','lm_heads',
   'lm_legacy_map','lm_quarantine','lm_scopes',
   'lm_sync_device_selection','gold_checkpoints','owner_notes'
 ]);

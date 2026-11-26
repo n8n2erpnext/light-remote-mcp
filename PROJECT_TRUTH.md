@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory 0.4.2 sẵn sàng để Owner thử Capture.** Chrome cách ly và CI145 Web đã qua. Gói tải khớp đủ 15 file và giữ được ghép nối đã lưu khi cập nhật trong thư mục cũ ở ca kiểm thử.
+**Long Memory 0.4.3 tự lưu ngữ cảnh cuộc chat đã chọn vào Wall dev15.** Luồng Chrome mô phỏng và kiểm thử HTTP/SQLite đã qua. Chờ xác minh bộ cài Windows và nghiệm thu Owner.
 
-Current development source: Extension 0.4.2 is available and reads newer ChatGPT message markup in the installed Chrome toolbar workflow. This extension update uses the paired Local Wall.
+Current development source: Long Memory extension 0.4.3 follows a selected ChatGPT or Claude chat after the owner chooses a Home work and starts auto-capture. Updates check settled loaded messages about once a minute and deduplicate by SHA-256. The authenticated paired Local Wall writes a separate browser context snapshot per conversation. Signed Agent checkpoints and manual capture remain independently available. The optional MCP scope_browser_context action reads the latest browser history. Browser snapshots are stored in the selected device SQLite and have no cloud persistence or cross-device replication. Manifest permissions are retained. Stop watches in the popup or by closing or leaving the chat tab. The new path requires the dev15 Wall candidate and extension 0.4.3. Source publication does not update the Owner device or a deployed server.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

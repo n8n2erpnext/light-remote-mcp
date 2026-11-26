@@ -3,7 +3,19 @@
 <body><header><img src="icon.png" width="36" height="36" alt=""><div><strong>Light Remote</strong><small>Carry your work into the next chat</small></div></header><main>
 <details id="connection"><summary>Your Memory device</summary><label for="wallUrl">Wall address</label><input id="wallUrl" type="url" placeholder="http://127.0.0.1:5491/long-memory"><button id="pair" type="button">Pair this Wall</button><p id="device">Choose and sign in to your own device.</p></details>
 <p id="status" role="status" aria-live="polite"></p>
+<section aria-labelledby="watchHeading">
+ <h2 id="watchHeading">Auto-capture this chat</h2>
+ <p>Send changed context from this open tab to a work in your paired Wall. Includes loaded messages only.</p>
+ <button id="watchSetup" type="button" class="secondary">Choose a work</button>
+ <div id="watchForm" hidden>
+  <label for="watchScope">Save to My Work</label><select id="watchScope"></select>
+  <button id="watchStart" type="button" disabled>Start auto-capture</button>
+ </div>
+ <button id="watchStop" type="button" class="secondary" hidden>Stop auto-capture</button>
+ <button id="watchOpenWall" type="button" class="secondary" hidden>Open Wall</button>
+ <p id="watchStatus" role="status" aria-live="polite"></p>
+</section>
 <section><h1>Save this conversation</h1><p>Read the messages loaded in your ChatGPT or Claude tab, then review them before saving.</p><button id="capture" type="button">Capture conversation</button><p id="info" class="muted">Nothing captured yet.</p><label for="review">Review or remove anything private</label><textarea id="review" rows="6" spellcheck="false" placeholder="Your capture will appear here."></textarea><button id="send" type="button" disabled>Review in my Wall</button></section>
-<section><h2>Continue in a new chat</h2><p>Open your Wall, select a work, then load its saved context here.</p><label for="restoreKind">What to bring</label><select id="restoreKind"><option value="history">Recent saved checkpoints</option><option value="context">Saved conversation context</option></select><button id="load" type="button" class="secondary">Load from selected work</button><label for="restoreReview">Review context to bring</label><textarea id="restoreReview" rows="5" spellcheck="false"></textarea><button id="insert" type="button" disabled>Insert into this chat</button><button id="copy" type="button" class="secondary" disabled>Copy context</button><p class="muted">An existing draft is always kept. Review the inserted text and send it yourself.</p></section>
-<footer>Only explicit actions read or prepare text. Captures cover loaded messages; attachments and older messages may be absent.</footer>
+<section><h2>Continue in a new chat</h2><p>Open your Wall, select a work, then load its saved context here.</p><label for="restoreKind">What to bring</label><select id="restoreKind"><option value="history">Recent saved checkpoints</option><option value="context">Saved conversation context</option><option value="browser">Auto-captured browser context</option></select><button id="load" type="button" class="secondary">Load from selected work</button><label for="restoreReview">Review context to bring</label><textarea id="restoreReview" rows="5" spellcheck="false"></textarea><button id="insert" type="button" disabled>Insert into this chat</button><button id="copy" type="button" class="secondary" disabled>Copy context</button><p class="muted">An existing draft is always kept. Review the inserted text and send it yourself.</p></section>
+<footer>Captures cover loaded messages. Attachments and older messages may be absent.</footer>
 </main></body></html>

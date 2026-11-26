@@ -1,5 +1,5 @@
 'use strict';
-importScripts('shared.js','wall.js');
+importScripts('shared.js','wall.js','capture.js','watch.js');
 const memory=LightRemoteMemory,inFlight=new Map(),recheck=new Set();
 async function tellPair(p,state,message){
  await chrome.storage.session.set({pairProgress:{url:p.url,tabId:p.tabId,state,message},lastStatus:message});
@@ -13,12 +13,18 @@ async function expire(){
 }
 chrome.storage.session.setAccessLevel?.({accessLevel:'TRUSTED_CONTEXTS'});
 chrome.alarms.create('memory-content-expiry',{periodInMinutes:1});
-chrome.alarms.onAlarm.addListener(alarm=>{if(alarm.name==='memory-content-expiry')void expire();});
+chrome.alarms.onAlarm.addListener(alarm=>{
+ if(alarm.name==='memory-content-expiry'){void expire();void browserWatch.sweep();}
+});
 chrome.runtime.onStartup?.addListener(()=>void expire());
 chrome.runtime.onMessage.addListener((request,sender,respond)=>{
  const pair=request?.type==='LRLM_PAIR_WALL';
  const expected=chrome.runtime.getURL(pair?'pair.html':'popup.html');
  if(sender.id!==chrome.runtime.id||sender.url?.split('?')[0]!==expected)return false;
+ if(browserWatch.types.has(request?.type)){
+  browserWatch.handle(request).then(value=>respond({ok:true,...value}),error=>respond({ok:false,error:error.message}));
+  return true;
+ }
  (async()=>{
   await expire();
   if(!['LRLM_PAIR_WALL','LRLM_PREPARE_WALL'].includes(request?.type))throw Error('unsupported_action');
@@ -41,11 +47,13 @@ chrome.runtime.onMessage.addListener((request,sender,respond)=>{
  return true;
 });
 chrome.tabs.onUpdated.addListener((id,change)=>{
+ void browserWatch.tabUpdated(id,change);
  if(change.status!=='complete')return;
  if(inFlight.has(id))recheck.add(id);
  else void maybePrepare(id);
 });
 chrome.tabs.onRemoved.addListener(async id=>{
+ void browserWatch.stop(id);
  const {pendingWall}=await chrome.storage.session.get('pendingWall');
  if(pendingWall?.tabId===id){
   await chrome.storage.session.remove('pendingWall');

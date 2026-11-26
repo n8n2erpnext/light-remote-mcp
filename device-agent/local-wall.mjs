@@ -1092,7 +1092,7 @@ function goldMemoryNativeInit(){
   detail.append(reader);
   const context=document.getElementById('goldContextCapture');
   context.querySelector('strong').textContent='Save or read session context';
-  context.querySelector('p').textContent='Paste a handoff or choose a file. Gold cannot silently read ChatGPT browser conversations. Accepted context is signed on its Home device.';
+  context.querySelector('p').textContent='Paste a handoff or choose a file to save signed context on this work’s Home device.';
   document.getElementById('goldContextRead').textContent='Read saved context';
   document.getElementById('goldContextSave').textContent='Save context';
   const contextDetails=goldMemoryNativeElement('details');
@@ -1100,6 +1100,35 @@ function goldMemoryNativeInit(){
   contextDetails.style.cssText='margin:10px 0';
   contextDetails.append(goldMemoryNativeElement('summary','','Saved context · read or add session notes'));
   context.replaceWith(contextDetails);contextDetails.append(context);
+  const browserDetails=goldMemoryNativeElement('details');
+  browserDetails.id='goldBrowserContextDetails';
+  browserDetails.style.cssText='margin:10px 0';
+  const browserStatus=goldMemoryNativeElement('p','muted','Start auto-capture in the browser extension and choose this work.');
+  browserStatus.setAttribute('role','status');
+  const browserText=goldMemoryNativeElement('textarea');
+  browserText.id='goldBrowserContextText';browserText.readOnly=true;browserText.hidden=true;
+  browserText.setAttribute('aria-label','Captured browser context');
+  browserText.style.cssText='width:100%;min-height:160px';
+  const browserRead=goldMemoryNativeElement('button','btn','Read browser context');browserRead.type='button';
+  let requestEpoch=0;
+  select.addEventListener('change',()=>{
+    requestEpoch++;browserText.value='';browserText.hidden=true;
+    browserStatus.textContent='Start auto-capture in the browser extension and choose this work.';
+  });
+  browserRead.onclick=async()=>{
+    const scopeId=select.value,epoch=++requestEpoch;
+    browserStatus.textContent='Loading browser context…';browserText.hidden=true;browserText.value='';
+    try{
+      const r=await fetch('/api/gold/modules/scope/browser-context?scopeId='+encodeURIComponent(scopeId),{cache:'no-store'}),j=await r.json();
+      if(epoch!==requestEpoch||scopeId!==select.value)return;
+      if(!r.ok||!j.ok)throw Error('Browser context could not be loaded.');
+      if(!j.context.available){browserStatus.textContent='No browser context has been captured for this work.';return;}
+      browserStatus.textContent=j.context.title+' · '+new Date(j.context.savedAt).toLocaleString();
+      browserText.value=j.context.text;browserText.hidden=false;
+    }catch{if(epoch===requestEpoch)browserStatus.textContent='Browser context could not be loaded. Try again.';}
+  };
+  browserDetails.append(goldMemoryNativeElement('summary','','Browser context · auto-captured chat'),browserRead,browserStatus,browserText);
+  contextDetails.after(browserDetails);
   const usage=document.getElementById('goldReaderUsage');
   const usageDetails=goldMemoryNativeElement('details');
   usageDetails.id='goldMemoryUsageDetails';
@@ -1207,6 +1236,7 @@ function goldMemoryNativeOpenWork(id){
   document.getElementById('goldReaderStatus').textContent='Select Read memory to load the verified history.';
   document.getElementById('goldReaderManagePanel').hidden=false;
   document.getElementById('goldMemoryContextDetails').open=false;
+  document.getElementById('goldBrowserContextDetails').open=false;
   document.getElementById('goldMemoryExportDetails').open=false;
   document.getElementById('goldMemoryUsageDetails').open=false;
 }
@@ -3204,6 +3234,16 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
         return json(res,200,{ok:true,snapshot:modules.saveFullContext(await body(req,4*1024*1024))});
       if(req.method==='GET'&&url.pathname==='/api/gold/modules/scope/context/read')
         return json(res,200,{ok:true,context:modules.readFullContext({scopeId:url.searchParams.get('scopeId')||''})});
+      if(req.method==='GET'&&url.pathname==='/api/gold/modules/browser-context/targets'){
+        res.setHeader('Cache-Control','no-store');
+        return json(res,200,{ok:true,...modules.browserContextTargets(),csrf:auth.csrfForRequest(req)});
+      }
+      if(req.method==='POST'&&url.pathname==='/api/gold/modules/browser-context')
+        return json(res,200,{ok:true,...modules.updateBrowserContext(await body(req,4*1024*1024))});
+      if(req.method==='GET'&&url.pathname==='/api/gold/modules/scope/browser-context'){
+        res.setHeader('Cache-Control','no-store');
+        return json(res,200,{ok:true,context:modules.readBrowserContext({scopeId:url.searchParams.get('scopeId')||''})});
+      }
       if(req.method==='GET'&&url.pathname==='/api/gold/modules/auto/pending')
         return json(res,200,{ok:true,pending:modules.autoPending()});
       if(req.method==='GET'&&url.pathname==='/api/gold/modules/sync/account-policy'){

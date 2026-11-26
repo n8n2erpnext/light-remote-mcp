@@ -454,3 +454,7 @@ On Windows Chrome 158, the installed 0.4.1 action reproduced the reported no-sup
 ## Record Long Memory 0.4.2 capture verification
 
 CI145 Web passed on 13b854baac243ec8b937f9145ca52cc73ff5f663. Downloaded CI artifact 15102527626 and all 15 packaged files matched the source manifests. The local exact-source ZIP has SHA-256 2b599d807dcd2d37692c7d6f4bf5282c33497ec0a32dbf4d0aa975f1aadb8134. In isolated Chrome, a same-folder update retained the 0.4.1 fixture pairing. The installed, downloaded CI ZIP passed Capture with both message roles and the review action available. The Owner chat still requires acceptance. The separate native RM job failed NuGet locked verification after the SDK changed the ILLink.Tasks patch.
+
+## Auto-capture selected conversations to device-local Long Memory
+
+Portable and HTTP/SQLite tests pass for owner authority, CSRF, Home routing, explicit opt-in, digest validation, identical content, replacement, stale watch rejection, scope deletion, segmented read and unchanged signed checkpoint. An isolated installed Chrome fixture passed opt-in, the minute alarm with the popup closed, waiting for a settled response, deduplication and stopping. The fixture used unchanged ChatGPT host permissions and a seeded localhost Wall grant and owner session. Pre-change checkpoint checkpoint/20261126-before-memory-auto-watch-1e15204 restored and passed fsck. Windows CI lock updated to ILLink.Tasks 8.0.34 with SHA-512 verified against the official NuGet package. Native packaging and Owner acceptance are pending.

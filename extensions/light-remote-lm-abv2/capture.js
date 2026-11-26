@@ -8,7 +8,7 @@
  *
  * No Browsentic code copied. The cursor/digest concept informed this design.
  */
-async function lightRemoteLmCaptureSegment({offset = 0, expectedSha256 = null, maxBytes = 65536} = {}) {
+async function lightRemoteLmCaptureSegment({offset = 0, expectedSha256 = null, maxBytes = 65536, onlySettled = false} = {}) {
   try {
     const url = new URL(location.href);
     const provider=({'chatgpt.com':'chatgpt','claude.ai':'claude'})[url.hostname];
@@ -36,6 +36,9 @@ async function lightRemoteLmCaptureSegment({offset = 0, expectedSha256 = null, m
       }
       return true;
     };
+    if(onlySettled&&[...document.querySelectorAll('[data-is-streaming="true"],button[data-testid="stop-button"],button[data-testid="stop-streaming"]')].some(visible)){
+      return {ok:false,error:'conversation_still_generating'};
+    }
 
     function roleOf(node){
       if(!chatgpt)return node.getAttribute('data-testid')==='user-message'?'user':'assistant';

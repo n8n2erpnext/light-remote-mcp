@@ -80,7 +80,7 @@ export function memoryScopeLocalDelete(db,{accountId,scopeId,confirmName,ownerCo
   const order=['lm_evidence_manual_release','lm_event_batches','lm_events',
     'lm_evidence_inbox','lm_evidence_outbox','lm_peer_seen_nonce','lm_peer_routes',
     'lm_sync_outbox','lm_sync_inbox','lm_replica_ack','lm_sync_recipient_keys',
-    'lm_scope_members','lm_work_bindings','lm_scope_context_settings','lm_checkpoint_v2'];
+    'lm_scope_members','lm_work_bindings','lm_scope_context_settings','lm_browser_context','lm_checkpoint_v2'];
   const count=db.prepare('SELECT count(*) AS n FROM lm_checkpoint_v2 WHERE scope_id=?').get(scopeId).n;
   const bytes=db.prepare('SELECT coalesce(sum(length(cast(body AS blob))),0) AS n FROM lm_checkpoint_v2 WHERE scope_id=?')
     .get(scopeId).n;

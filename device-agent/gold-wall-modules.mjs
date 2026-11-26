@@ -14,6 +14,7 @@ import {createGoldCodexCoordinator} from './gold-codex-coordinator.mjs';
 import {createManagedCodexRuntime} from './gold-codex-runtime-manager.mjs';
 import {localMemoryDeletePreview,clearLocalMemory as clearLocalMemoryData} from './gold-memory-delete.mjs';
 import {signAccountScopeDelete,applyAccountScopeDelete} from './gold-memory-account-delete.mjs';
+import {readBrowserContext,updateBrowserContext} from './gold-memory-browser-context.mjs';
 import {memoryScopeArchive,memoryScopeRestore,memoryScopeLocalDelete,memoryScopeAccountDeleteGate,
   memoryLocalUsage,getMemoryScopeContextPreference,setMemoryScopeContextPreference,
   saveOwnerFullContext,readOwnerFullContext} from './gold-memory-scope-admin.mjs';
@@ -263,6 +264,14 @@ export function createGoldWallModules({file,fetchImpl,plusImpl,scopeIdentity=nul
     setFullContextPreference(input={}){const x=scopedIdentity();return setMemoryScopeContextPreference(enabled('longMemory'),{...input,accountId:x.accountId});},
     saveFullContext(input={}){const x=scopedIdentity();return saveOwnerFullContext(enabled('longMemory'),scopeKeyFile,{...input,accountId:x.accountId,deviceId:x.deviceId});},
     readFullContext(input={}){const x=scopedIdentity();return readOwnerFullContext(enabled('longMemory'),{...input,accountId:x.accountId});},
+    browserContextTargets(){
+      const x=scopedIdentity();
+      const scopes=listGoldScopes(enabled('longMemory'),{accountId:x.accountId})
+        .filter(scope=>scope.homeDeviceId===x.deviceId).map(({scopeId,displayName})=>({scopeId,displayName}));
+      return {accountId:x.accountId,deviceId:x.deviceId,scopes};
+    },
+    updateBrowserContext(input){return updateBrowserContext(enabled('longMemory'),scopedIdentity(),input);},
+    readBrowserContext({scopeId}={}){return readBrowserContext(enabled('longMemory'),{accountId:scopedIdentity().accountId,scopeId});},
     changeScopeCapture(input={}){const x=scopedIdentity();return changeGoldScopeCapture(enabled('longMemory'),{...input,accountId:x.accountId});},
     changeScopeSyncPolicy(input={}){const x=scopedIdentity();return changeGoldScopeSyncPolicy(enabled('longMemory'),{...input,accountId:x.accountId,deviceId:x.deviceId});},
     syncIdentity(){const x=scopedIdentity();enabled('longMemory');return goldSyncIdentity(scopeKeyFile,scopeEncryptKeyFile,x);},

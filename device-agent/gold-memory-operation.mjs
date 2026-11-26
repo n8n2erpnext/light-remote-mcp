@@ -13,10 +13,14 @@ export function executeMemoryRequest(modules,input,{transactionManaged=false}={}
   case 'scope_get':return modules.readScopedCheckpoint({scopeId:x.scopeId,checkpointId:x.id});
   case 'scope_save':return modules.appendScopedCheckpoint(x,{transactionManaged});
   case 'scope_usage':return modules.localMemoryUsage();
-  case 'scope_full_context':{
-   const found=modules.readFullContext({scopeId:x.scopeId});if(!found.available)return found;
+  case 'scope_full_context':
+  case 'scope_browser_context':{
+   const browser=x.action==='scope_browser_context';
+   const found=browser?modules.readBrowserContext({scopeId:x.scopeId}):modules.readFullContext({scopeId:x.scopeId});if(!found.available)return found;
    const offset=Math.min(x.offset,found.text.length),text=found.text.slice(offset,offset+x.maxChars);
-   return {scopeId:found.scopeId,available:true,title:found.title,bytes:found.bytes,sha256:found.sha256,integrity:found.integrity,checkpointRevision:found.checkpointRevision,totalChars:found.text.length,offset,text,nextOffset:offset+text.length,hasMore:offset+text.length<found.text.length};
+   return {scopeId:found.scopeId,available:true,title:found.title,bytes:found.bytes,sha256:found.sha256,integrity:found.integrity,
+    ...(browser?{source:'auto_captured_browser_history',savedAt:found.savedAt}:{checkpointRevision:found.checkpointRevision}),
+    totalChars:found.text.length,offset,text,nextOffset:offset+text.length,hasMore:offset+text.length<found.text.length};
   }
  }
 }

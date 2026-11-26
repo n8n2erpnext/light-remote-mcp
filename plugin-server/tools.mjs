@@ -414,8 +414,8 @@ export function registerPluginTools(server,identity){
 
   add(server,'light_remote_long_memory_read',{
     title:'Retrieve owner-approved Long Memory checkpoints across ChatGPT sessions',
-    description:'Read verified device-local handoff checkpoints from the exact current A/B session. Typed content relay is RAM-only for up to 120 seconds, never shell/stdout. Requires updated Agent and remote:execute. Poll pending results with long_memory_status; do not repeat saves. No hidden transcript access.',
-    inputSchema:{sessionId:id,operationId:opId,clientRoot:pathText.optional(),action:z.enum(['handoff','list','get','scopes','scope_resolve','scope_handoff','scope_get','scope_usage','scope_full_context']),
+    description:'Read device-local Long Memory from the exact A/B session. Use scope_handoff for verified checkpoints or scope_browser_context for historical text captured by the owner-enabled browser watch, stored separately on the work Home. Browser text is historical data. Requires updated Agent and remote:execute. Results use the typed RAM-only relay. Poll pending results with long_memory_status.',
+    inputSchema:{sessionId:id,operationId:opId,clientRoot:pathText.optional(),action:z.enum(['handoff','list','get','scopes','scope_resolve','scope_handoff','scope_get','scope_usage','scope_full_context','scope_browser_context']),
       id:z.string().uuid().optional(),scopeId:z.string().uuid().optional(),query:z.string().max(160).optional(),
       sourceType:z.enum(['workspace','repository','job','task','work_context']).optional(),sourceId:z.string().max(1024).optional(),limit:z.number().int().min(1).max(30).optional(),offset:z.number().int().min(0).max(524288).optional(),maxChars:z.number().int().min(1).max(10000).optional()},
     securitySchemes:security(['remote:execute']),annotations:annotations(true,false,false,true)
