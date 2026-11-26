@@ -418,7 +418,7 @@ jobs:
             }
             Write-Host 'windows-goldabv2-bundled-agent-production-origin-rejected=PASS'
           }
-          foreach ($memoryModule in @('gold-memory-ledger.mjs','gold-memory-scope.mjs','gold-memory-scope-admin.mjs','gold-memory-auto.mjs','gold-memory-sync.mjs','gold-memory-evidence.mjs','gold-memory-manual-evidence.mjs','gold-memory-key-permissions.mjs')) {
+          foreach ($memoryModule in @('gold-memory-ledger.mjs','gold-memory-scope.mjs','gold-memory-scope-admin.mjs','gold-memory-auto.mjs','gold-memory-sync.mjs','gold-memory-evidence.mjs','gold-memory-manual-evidence.mjs','gold-memory-key-permissions.mjs','gold-memory-browser-context.mjs')) {
             if (-not (Test-Path (Join-Path $agentRoot ('device-agent\'+$memoryModule)))) { throw "Gold Windows Memory module missing: $memoryModule" }
           }
           Write-Host 'gold-windows-memory-g3-package-modules=PASS'

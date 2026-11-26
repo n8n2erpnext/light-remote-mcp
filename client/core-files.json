@@ -322,6 +322,10 @@
       "destination": "device-agent/gold-memory-key-permissions.mjs"
     },
     {
+      "source": "device-agent/gold-memory-browser-context.mjs",
+      "destination": "device-agent/gold-memory-browser-context.mjs"
+    },
+    {
       "source": "device-agent/gold-memory-ledger.mjs",
       "destination": "device-agent/gold-memory-ledger.mjs"
     },

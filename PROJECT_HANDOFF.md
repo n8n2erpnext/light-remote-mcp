@@ -1,6 +1,6 @@
 # Project handoff — additive Agent GPU observation
 
-Current resume point: Verify locked restore and the Windows dev15 installer in the new Actions run. Test the paired Wall and extension 0.4.3 together in the Owner Chrome profile.
+Current resume point: Check exact-source Core, Web and Windows packaging. After proof is available, use the dev15 installer and 0.4.3 ZIP for Owner acceptance.
 
 **RM v2 chưa đạt nghiệm thu live trên dev12.** Đã xác minh helper đang cài đúng source CI131 và đọc lại hash fixture:4.096 đúng;8.192 chỉ có6.816; bài300từ1391units chỉ có49. Năm ca262K qua paste không nghiệm thu API nhập trực tiếp. Job exit0 đang là xác nhận nhận lệnh; receipt ban đầu còn preparing, chưa có terminal writeId để xác định nguyên nhân. Server đã đăng ký schema262K/sourcePath/status/cancel và GPU/video; catalog của lượt đang chạy vẫn cũ sau thông báo refresh. Không coi GDI screenshot là bài test đường GPU mới. Bỏ mục dựng Windows VM theo yêu cầu Owner.
 
@@ -934,3 +934,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: CI147 reached NuGet locked restore and returned NU1403 for ILLink.Tasks after updating the SDK patch. The lock had the signed archive SHA-512. Derive the content hash using the NuGet unsigned archive directory calculation, reproduce the old 8.0.33 committed content hash, and match both packages to their embedded signed content digests. Locked restore and native CI stay enabled. Waiting for exact-source Windows packaging confirmation.
 - Next: Verify locked restore and the Windows dev15 installer in the new Actions run. Test the paired Wall and extension 0.4.3 together in the Owner Chrome profile.
 - Runtime: The new auto-capture path requires the dev15 Wall and Chrome extension 0.4.3.
+
+## Task Receipt: 20261126-memory-autocapture-windows-browser-context-payload
+- Status: PAYLOAD_ALLOWLIST_FIXED_CI_PENDING. Include the browser context module in the client payload manifest and require it in the packaged Windows Long Memory smoke check.
+- Source: permanent work after `0ce3642215859bf096bc62efce072d7ce6f2d40e`; exact staged source digest stamped in this same commit.
+- Verification: CI147 caught a missing static import in the Windows Client Core allowlist. The package allowlist now includes the new module. The packaging step explicitly checks for it. The complete Chrome watch flow passed with ChatGPT and Claude fixture pages, including running after popup closure, streaming detection and stopping without altering the manual checkpoint. The Claude test used the hash-verified 0.4.3 ZIP.
+- Next: Check exact-source Core, Web and Windows packaging. After proof is available, use the dev15 installer and 0.4.3 ZIP for Owner acceptance.
+- Runtime: Auto-capture requires the dev15 Wall and Chrome extension 0.4.3.

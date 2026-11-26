@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory 0.4.3 tự lưu ngữ cảnh cuộc chat đã chọn vào Wall dev15.** Đã qua Chrome mô phỏng và kiểm thử HTTP/SQLite. Đã chỉnh content hash sau lỗi NU1403 của CI147. Chờ CI Windows mới.
+**Long Memory 0.4.3 đã qua Chrome mô phỏng với ChatGPT và Claude.** Bộ cài Wall dev15 đang qua CI sau khi bổ sung module vào manifest đóng gói và sửa NuGet content hash.
 
-Current development source: Correct the locked ILLink.Tasks 8.0.34 content hash for Windows packaging. Auto-capture code and extension 0.4.3 remain at the same implementation as source 2611298. The new auto-capture path requires the dev15 Wall and Chrome extension 0.4.3.
+Current development source: Include the browser context module in the client payload manifest and require it in the packaged Windows Long Memory smoke check. Auto-capture requires the dev15 Wall and Chrome extension 0.4.3.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

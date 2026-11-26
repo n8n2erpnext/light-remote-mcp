@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-26T09:52:12.378Z",
+  "updatedAt": "2026-11-26T09:53:51.804Z",
   "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Verify locked restore and the Windows dev15 installer in the new Actions run. Test the paired Wall and extension 0.4.3 together in the Owner Chrome profile.",
+  "nextAction": "Check exact-source Core, Web and Windows packaging. After proof is available, use the dev15 installer and 0.4.3 ZIP for Owner acceptance.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,12 +691,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261126-memory-autocapture-windows-lock-content-hash",
-    "status": "WINDOWS_LOCK_HASH_CORRECTED_REBUILD_PENDING",
-    "summary": "Correct the locked ILLink.Tasks 8.0.34 content hash for Windows packaging. Auto-capture code and extension 0.4.3 remain at the same implementation as source 2611298.",
-    "verification": "CI147 reached NuGet locked restore and returned NU1403 for ILLink.Tasks after updating the SDK patch. The lock had the signed archive SHA-512. Derive the content hash using the NuGet unsigned archive directory calculation, reproduce the old 8.0.33 committed content hash, and match both packages to their embedded signed content digests. Locked restore and native CI stay enabled. Waiting for exact-source Windows packaging confirmation.",
-    "nextAction": "Verify locked restore and the Windows dev15 installer in the new Actions run. Test the paired Wall and extension 0.4.3 together in the Owner Chrome profile.",
-    "sourceDigest": "64fe9a4e4d644d0a2a949fc8ad457eb8f339259f25a286e408165918a3f656ef",
+    "taskId": "20261126-memory-autocapture-windows-browser-context-payload",
+    "status": "PAYLOAD_ALLOWLIST_FIXED_CI_PENDING",
+    "summary": "Include the browser context module in the client payload manifest and require it in the packaged Windows Long Memory smoke check.",
+    "verification": "CI147 caught a missing static import in the Windows Client Core allowlist. The package allowlist now includes the new module. The packaging step explicitly checks for it. The complete Chrome watch flow passed with ChatGPT and Claude fixture pages, including running after popup closure, streaming detection and stopping without altering the manual checkpoint. The Claude test used the hash-verified 0.4.3 ZIP.",
+    "nextAction": "Check exact-source Core, Web and Windows packaging. After proof is available, use the dev15 installer and 0.4.3 ZIP for Owner acceptance.",
+    "sourceDigest": "7e41bc3d5a3dc26bbdf0da5c0770b82f7408b2395b833241d07784ce73a7d6ae",
     "sourceFileCount": 1763
   },
   "legacyFilesystemCleanup": {
@@ -2018,7 +2018,7 @@
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "163e29bc8171755abd4a95670063424eb877139c6704b528d4923638fa259a4a",
+    "documentSha256": "cb2b00c0e416c7736f560f6c73a3260e844c0ea1adc9fed80ead276e90e5c4fa",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2117,7 +2117,9 @@
         "initialCiRun": 45795371297,
         "initialNativeFailure": "NU1403_SIGNED_ARCHIVE_HASH_USED_FOR_CONTENT_HASH",
         "illinkVersion": "8.0.34",
-        "illinkContentHash": "AoMGwI/388svzARQ2NYC25vFOQGcf13FgQWv61TwPAdPUMOejXpQxBQHrQpXfqM7vqxxj1E3SAkX/OkE2cuChw=="
+        "illinkContentHash": "AoMGwI/388svzARQ2NYC25vFOQGcf13FgQWv61TwPAdPUMOejXpQxBQHrQpXfqM7vqxxj1E3SAkX/OkE2cuChw==",
+        "claudePackagedFixture": "PASS",
+        "windowsPayloadModule": "MANIFEST_AND_SMOKE_CHECK"
       }
     },
     "codex": {

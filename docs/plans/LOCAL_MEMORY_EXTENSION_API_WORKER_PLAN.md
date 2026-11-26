@@ -305,3 +305,7 @@ Auto-capture is scoped to the browser session, selected tab, conversation, paire
 CI147 reached NuGet locked restore and returned NU1403 for ILLink.Tasks after updating the SDK patch. The lock had the signed archive SHA-512. Derive the content hash using the NuGet unsigned archive directory calculation, reproduce the old 8.0.33 committed content hash, and match both packages to their embedded signed content digests. Locked restore and native CI stay enabled. Waiting for exact-source Windows packaging confirmation.
 
 [NuGet signed archive algorithm](https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.Packaging/Signing/Archive/SignedPackageArchiveUtility.cs)
+
+## Kiểm tra module trong bộ cài
+
+CI147 caught a missing static import in the Windows Client Core allowlist. The package allowlist now includes the new module. The packaging step explicitly checks for it. The complete Chrome watch flow passed with ChatGPT and Claude fixture pages, including running after popup closure, streaming detection and stopping without altering the manual checkpoint. The Claude test used the hash-verified 0.4.3 ZIP.

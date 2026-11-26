@@ -811,3 +811,9 @@ Long Memory extension 0.4.3 follows a selected ChatGPT or Claude chat after the 
 Receipt: 20261126-memory-autocapture-windows-lock-content-hash
 
 Correct the locked ILLink.Tasks 8.0.34 content hash for Windows packaging. Auto-capture code and extension 0.4.3 remain at the same implementation as source 2611298. CI147 reached NuGet locked restore and returned NU1403 for ILLink.Tasks after updating the SDK patch. The lock had the signed archive SHA-512. Derive the content hash using the NuGet unsigned archive directory calculation, reproduce the old 8.0.33 committed content hash, and match both packages to their embedded signed content digests. Locked restore and native CI stay enabled. Waiting for exact-source Windows packaging confirmation. Runtime: The new auto-capture path requires the dev15 Wall and Chrome extension 0.4.3. Next: Verify locked restore and the Windows dev15 installer in the new Actions run. Test the paired Wall and extension 0.4.3 together in the Owner Chrome profile.
+
+## 2026-11-26 — Bundle Long Memory browser context in the Windows client
+
+Receipt: 20261126-memory-autocapture-windows-browser-context-payload
+
+Include the browser context module in the client payload manifest and require it in the packaged Windows Long Memory smoke check. CI147 caught a missing static import in the Windows Client Core allowlist. The package allowlist now includes the new module. The packaging step explicitly checks for it. The complete Chrome watch flow passed with ChatGPT and Claude fixture pages, including running after popup closure, streaming detection and stopping without altering the manual checkpoint. The Claude test used the hash-verified 0.4.3 ZIP. Runtime: Auto-capture requires the dev15 Wall and Chrome extension 0.4.3. Next: Check exact-source Core, Web and Windows packaging. After proof is available, use the dev15 installer and 0.4.3 ZIP for Owner acceptance.

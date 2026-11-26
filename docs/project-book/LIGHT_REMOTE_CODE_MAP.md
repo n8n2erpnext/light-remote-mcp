@@ -486,3 +486,7 @@ The capture adapter recognizes ChatGPT search units, user bubbles and assistant 
 ## Auto-capture selected conversations to device-local Long Memory
 
 Long Memory extension 0.4.3 follows a selected ChatGPT or Claude chat after the owner chooses a Home work and starts auto-capture. Updates check settled loaded messages about once a minute and deduplicate by SHA-256. The authenticated paired Local Wall writes a separate browser context snapshot per conversation. Signed Agent checkpoints and manual capture remain independently available. The optional MCP scope_browser_context action reads the latest browser history. Browser snapshots are stored in the selected device SQLite and have no cloud persistence or cross-device replication. Manifest permissions are retained. Stop watches in the popup or by closing or leaving the chat tab.
+
+## Bundle Long Memory browser context in the Windows client
+
+Include the browser context module in the client payload manifest and require it in the packaged Windows Long Memory smoke check.
