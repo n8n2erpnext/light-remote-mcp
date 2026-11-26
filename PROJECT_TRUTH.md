@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory 0.4.3 và Wall dev15 đã qua CI149 15/15.** Đã kiểm tra đúng commit cho hai gói và luồng Chrome mô phỏng đến My Work. Chờ nghiệm thu trên máy Owner.
+**Web Gold đã cập nhật Home, Account và Admin cho A/B v2 và Pro Share (Family).** Chrome mô phỏng đã qua hai kích thước. Trạng thái chia sẻ trên Account lấy từ cổng tính năng hiện có.
 
-Current development source: Light Remote Long Memory 0.4.3 and the paired Wall dev15 installer are ready for Owner acceptance. A one-time opt-in per chat sends new loaded context to the selected work. Browser context is device-local and Agent checkpoints remain independent. The build is for Owner testing. The work branch and artifact publication leave deployed services and existing Windows installations at their prior versions.
+Current development source: Polish the public site, Account and Admin for the A/B v2 rollout. Home, onboarding and guides show the agent-first flow with a six-character device Short ID, an agent-provided B code and explicit owner approval. Share one guest through the Pro Share (Family) account path; commercial and guest execution policy follows the existing feature gates. The previous Team screen remains reachable from previous invitation links. Reuse Google Sans, brand assets and shared portal styles for forms, notifications, approval cards and responsive layouts. Source and isolated web previews only. Existing Gold staging and production services retain their deployment.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

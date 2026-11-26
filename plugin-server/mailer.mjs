@@ -52,8 +52,8 @@ export async function sendTeamInvitation({to,inviteCode,expiresAt}={}){
   if(!to||!inviteCode||!Number.isFinite(Number(expiresAt)))throw new Error('invalid_team_invitation');
   // The fragment is client-only: the invite code is never sent to the web server
   // during navigation and does not enter query-string access logs.
-  const joinUrl=PUBLIC_ORIGIN+'/account/team#invite='+encodeURIComponent(inviteCode);
-  const registerUrl=PUBLIC_ORIGIN+'/account/register?next='+encodeURIComponent('/account/team');
+  const joinUrl=PUBLIC_ORIGIN+'/account/team?legacy=1#invite='+encodeURIComponent(inviteCode);
+  const registerUrl=PUBLIC_ORIGIN+'/account/register?next='+encodeURIComponent('/account/team?legacy=1');
   const expires=new Date(Number(expiresAt)).toISOString().replace('T',' ').slice(0,16)+' UTC';
   return send({to,subject:'Light Remote Pro Team invitation',
     text:'You have been invited to a Light Remote Pro Team.\n'

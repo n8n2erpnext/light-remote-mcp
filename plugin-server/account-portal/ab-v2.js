@@ -93,45 +93,47 @@
    const data=await request('abv2-pending',{deviceId});
    if(turn!==generation)return;
    const rows=Array.isArray(data.pending)?data.pending:[];
-   if(!rows.length){msg('No Agent-initiated pending requests. Existing manual pairing on the device remains available.');return;}
+   if(!rows.length){msg('No pending requests for this device. Ask your AI to connect to see its request here.');return;}
    msg(rows.length+' pending request'+(rows.length===1?'':'s')+
-    ' · B code is shown only to the requesting Agent.');
+    ' · Enter the B code from your AI.');
    for(const row of rows){
-    const card=item('div','', 'device-card');
-    const meta=item('div','Agent: '+(row.requester||'Authorized Agent')+
-      ' · expires '+new Date(Number(row.expiresAt)).toLocaleTimeString());
-    const code=item('code',String(row.aCode||''));
-    const buttons=item('div','','row');
-    const rotate=item('button','Refresh this request','btn');
+    const card=item('article','','connection-request');
+    const meta=item('div','','connection-request-meta');
+    meta.append(item('strong',row.requester||'AI agent'),
+      item('span','Expires at '+new Date(Number(row.expiresAt)).toLocaleTimeString(),'muted'));
+    const details=item('details','','connection-request-details');
+    details.append(item('summary','Request details'),item('code',String(row.aCode||'')));
+    const buttons=item('div','','connection-request-actions');
+    const rotate=item('button','Refresh codes','btn');
     const deny=item('button','Deny','btn danger');
     rotate.type='button';deny.type='button';
     rotate.addEventListener('click',()=>mutate('abv2-refresh',row.requestId,row.attempt));
     deny.addEventListener('click',()=>mutate('abv2-deny',row.requestId));
-    buttons.append(rotate,deny);
     if(data.ownerApproveEnabled===true){
      const input=document.createElement('input');
      input.type='password';input.autocomplete='off';input.maxLength=9;
      input.placeholder='B code from Agent';
      input.setAttribute('aria-label','Agent B approval code');
-     const action=item('button','Approve Agent','btn');action.type='button';
+     const action=item('button','Approve agent','btn primary');action.type='button';
      action.addEventListener('click',()=>approve(row,input,action));
      buttons.append(input,action);
     }
+    buttons.append(rotate,deny);
     if(data.wallConsentEnabled===true){
      const codeView=item('code','No one-time consent issued');
      const issue=item('button','Generate Local Wall consent','btn');
      issue.type='button';
      issue.addEventListener('click',()=>generateWallConsent(row,codeView,issue));
      buttons.append(issue);
-     card.append(codeView);
+     details.append(codeView);
     }
-    card.append(meta,code,buttons);
+    card.append(meta,buttons,details);
     list.append(card);
    }
   }catch(error){
    if(turn!==generation)return;
    if(error.status===404){panel.hidden=true;panel.style.display='none';return;}
-   msg('Pending requests unavailable: '+error.message);
+   msg('Connection requests could not be loaded. Try refreshing.');
   }
  }
  async function boot(){

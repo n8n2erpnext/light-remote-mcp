@@ -851,3 +851,229 @@ html[data-theme] .admin-main #accountPageSize:focus-visible{
 .admin-analytics-grid .panel-head>div{display:grid;gap:5px}
 .admin-analytics-grid .panel-head .muted{font-size:12px;font-weight:450;line-height:1.4}
 @media(max-width:980px){.admin-device-os-layout{grid-template-columns:1fr}}
+/* Account and Admin controls use the same treatment as the distribution site. */
+html[data-portal] [hidden] {display:none!important}
+html[data-portal] :where(.main, .panel, .panel-head > div, .settings-body) {
+  min-width:0;
+}
+html[data-portal] :where(.panel-head, .settings-body) {
+  padding:clamp(16px,2.2vw,26px);
+}
+html[data-portal] .panel-head h2,
+html[data-portal] .settings-body h2 {
+  margin:0;
+  font-size:18px;
+  line-height:1.35;
+}
+html[data-portal] .panel-head p,
+html[data-portal] .panel-head h2 + .muted {
+  margin:5px 0 0;
+  line-height:1.55;
+}
+html[data-portal] .panel + .panel,
+html[data-portal] .panel + .share-grid {
+  margin-top:20px;
+}
+html[data-portal] :where(button,input,select,textarea) {
+  font-family:inherit;
+}
+html[data-portal] :where(.main,.auth-card) :where(
+  input:not([type="checkbox"],[type="radio"],[type="hidden"]),
+  select,textarea
+) {
+  min-width:0;
+  max-width:100%;
+  min-height:42px;
+  padding:9px 12px;
+  border:1px solid var(--v-line);
+  border-radius:9px;
+  background:var(--v-sunken);
+  color:var(--v-ink);
+  font:inherit;
+  line-height:1.45;
+}
+html[data-portal] textarea {resize:vertical}
+html[data-portal] :where(input[type="checkbox"],input[type="radio"]) {accent-color:var(--v-brand)}
+html[data-portal] :where(input,select,textarea,button,summary,a):focus-visible {
+  outline:2px solid var(--v-focus);
+  outline-offset:3px;
+}
+html[data-portal] :where(.device-name,.device-sub,.where-sub,.account-email,.setting-value) {
+  overflow-wrap:anywhere;
+}
+.portal-field {
+  display:grid;
+  gap:7px;
+  align-content:start;
+  min-width:0;
+  color:var(--v-ink);
+  font-weight:620;
+}
+.portal-field :where(input,select,textarea) {
+  width:100%;
+  font-weight:400;
+}
+.portal-field small {
+  margin-left:5px;
+  color:var(--v-secondary);
+  font-weight:400;
+}
+.connection-body > .portal-field {max-width:420px}
+.connection-status {margin:16px 0 0;line-height:1.55}
+.connection-requests:not(:empty) {display:grid;gap:12px;margin-top:14px}
+.connection-request {
+  display:grid;
+  gap:12px;
+  padding:16px;
+  border:1px solid var(--v-line);
+  border-radius:12px;
+  background:var(--v-raised);
+}
+.connection-request-meta,.connection-request-actions {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.connection-request-actions input {flex:1 1 135px;max-width:215px}
+.connection-request-details {color:var(--v-secondary);font-size:13px}
+.connection-request-details code {display:block;margin-top:6px;overflow-wrap:anywhere}
+.account-device-details {margin-top:5px;font-size:12px;color:var(--v-secondary)}
+.account-device-details span {display:block;margin-top:5px;line-height:1.5}
+.account-bell-container {position:relative;flex:none;width:max-content;margin-left:auto}
+.account-bell-button {
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:42px;
+  height:42px;
+  border:1px solid var(--v-line);
+  border-radius:10px;
+  color:var(--v-ink);
+  background:var(--v-surface);
+  cursor:pointer;
+}
+.account-bell-button:hover {background:var(--v-highlight)}
+.account-bell-count {
+  position:absolute;
+  top:-5px;
+  right:-5px;
+  padding:2px 5px;
+  border-radius:99px;
+  background:var(--v-brand);
+  color:var(--v-brand-ink);
+  font-size:10px;
+  font-weight:750;
+}
+.account-bell-panel {
+  position:absolute;
+  z-index:30;
+  inset:calc(100% + 9px) 0 auto auto;
+  width:min(345px,calc(100vw - 32px));
+  padding:14px;
+  border:1px solid var(--v-line);
+  border-radius:13px;
+  background:var(--v-overlay);
+  box-shadow:var(--v-shadow);
+}
+.account-bell-heading {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.account-bell-heading a {font-size:12px;color:var(--v-link)}
+.account-bell-items {margin-top:10px}
+.account-bell-item {
+  display:grid;
+  gap:4px;
+  padding:10px 4px;
+  border-top:1px solid var(--v-line-soft);
+  color:var(--v-ink);
+  text-decoration:none;
+  overflow-wrap:anywhere;
+}
+.account-bell-item small,.account-bell-empty {font-size:12px;color:var(--v-secondary)}
+.account-bell-new {width:max-content;color:var(--v-secondary);font-size:11px}
+.share-intro p {max-width:65ch;line-height:1.6}
+.share-intro .share-status {padding-top:12px;border-top:1px solid var(--v-line-soft)}
+.share-grid {align-items:start}
+.share-grid .share-panel {margin:0;background:var(--v-surface);border-color:var(--v-line)}
+.share-panel h2 + .share-subtle {margin-top:6px}
+.share-panel .share-row {border-color:var(--v-line-soft);flex-wrap:wrap}
+.share-panel form {margin-block:16px}
+.share-panel label {display:block;color:var(--v-ink);font-size:14px}
+.share-panel .share-code:not(:empty) {padding:12px;background:var(--v-sunken);border-radius:8px}
+.share-legacy {margin-top:24px;color:var(--v-secondary);font-size:14px}
+.share-legacy .link {display:inline-block;margin-top:8px}
+
+.admin-main .admin-view > .panel + .panel {margin-top:20px}
+.admin-main :where(.admin-head-actions,.admin-group-toolbar,.admin-account-actions) > * {min-width:0}
+.admin-main :where(.admin-row,.device-row) > * {min-width:0;overflow-wrap:anywhere}
+.admin-main .nav-count {font-variant-numeric:tabular-nums}
+.admin-main .job-recovery-toolbar {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:end;
+  gap:12px;
+}
+.admin-main .job-recovery-toolbar .portal-field {flex:1 1 240px;max-width:420px}
+.notification-editor {
+  display:grid;
+  grid-template-columns:minmax(0,1.55fr) minmax(230px,1fr);
+  gap:20px 24px;
+}
+.notification-fields {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-content:start;
+  gap:16px;
+}
+.notification-wide,.notification-form-actions,.notification-editor .admin-checkbox,
+.notification-editor .setting-note {grid-column:1/-1}
+.notification-editor .admin-checkbox label {
+  display:flex;
+  align-items:start;
+  gap:9px;
+  color:var(--v-secondary);
+  line-height:1.55;
+}
+.notification-editor .admin-checkbox input {width:17px;height:17px;margin:2px 0 0;flex:none}
+.notification-preview-pane {
+  align-self:start;
+  min-width:0;
+  padding:16px;
+  background:var(--v-raised);
+  border:1px solid var(--v-line);
+  border-radius:12px;
+}
+.notification-preview-pane h3 {font-size:14px;margin:0 0 12px}
+.notification-preview {
+  padding:15px;
+  background:var(--v-surface);
+  border:1px solid var(--v-line-soft);
+  border-left:3px solid var(--v-brand);
+  border-radius:9px;
+  overflow-wrap:anywhere;
+}
+.notification-preview h4 {margin:7px 0;font-size:16px}
+.notification-preview p,.notification-history-text p {white-space:pre-wrap;line-height:1.55;margin:8px 0}
+.notification-form-actions,.notification-history-actions {display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.notification-editor .setting-note {margin:0}
+.notification-editor .setting-note:empty {display:none}
+.notification-history-row {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;
+  gap:14px;
+  padding-block:16px;
+  overflow-wrap:anywhere;
+}
+.notification-history-row:first-child {padding-top:0}
+.notification-history-row + .notification-history-row {border-top:1px solid var(--v-line-soft)}
+.notification-history-text h3 {font-size:16px;margin:0 0 5px}
+.notification-history-text details {color:var(--v-secondary);font-size:12px;margin-top:8px}
+
+@media(max-width:1140px) {
+  .notification-editor {grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:620px) {
+  html[data-portal] .panel-head {flex-wrap:wrap;gap:10px}
+  .notification-fields,.notification-history-row {grid-template-columns:minmax(0,1fr)}
+  .account-bell-panel {position:fixed;inset:12px 12px auto auto;max-height:calc(100dvh - 24px);overflow:auto}
+}

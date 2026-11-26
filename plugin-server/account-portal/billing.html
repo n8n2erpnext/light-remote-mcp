@@ -1,17 +1,18 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html data-portal="account" lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
   <title>Light Remote — Plan & billing</title>
   <link rel="icon" href="/account/assets/light-remote.ico" sizes="any"><link rel="icon" type="image/svg+xml" href="/account/assets/light-remote-mark.svg">
   <script src="/account/assets/theme.js"></script><link rel="stylesheet" href="/account/assets/portal.css">
+<link rel="stylesheet" href="/account/assets/visual-system-v4.css">
 </head>
 <body><div class="app billing-app">
 <aside class="sidebar">
   <div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
   <nav class="nav">
     <a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/devices.svg" alt=""></span>Devices</a>
-    <a href="/account/team"><span class="icon"><img class="material-icon" src="/assets/icons/material/groups.svg" alt=""></span>Pro Team</a><a href="/account/inbox"><span class="icon"><img class="material-icon" src="/assets/icons/material/mark_email_unread.svg" alt=""></span>Inbox</a><a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a>
+    <a href="__WEB_SHARE_LINK__"><span class="icon"><img class="material-icon" src="/assets/icons/material/groups.svg" alt=""></span>__WEB_SHARE_LABEL__</a><a href="/account/inbox"><span class="icon"><img class="material-icon" src="/assets/icons/material/mark_email_unread.svg" alt=""></span>Inbox</a><a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a>
     <a class="active" href="/account/billing"><span class="icon"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt=""></span>Plan & billing</a>
     <a href="/account/settings"><span class="icon"><img class="material-icon" src="/assets/icons/material/settings.svg" alt=""></span>Settings</a>
   </nav>
@@ -41,7 +42,7 @@
       <div id="upgradeHelp" class="tax-note">No license key required. Approved upgrades attach directly to this account.</div>
       <div id="paddleMode" class="tax-note hide">Paddle Sandbox · test payments only · no real charge.</div><div id="upgradeNote" class="setting-note"></div>
     </section>
-    <section id="proTeamCard" class="plan-card">
+    <!-- profile:legacy-team --><section id="proTeamCard" class="plan-card">
       <div class="plan-card-head"><div><h2>Pro Team</h2><div class="price"><span id="proTeamPriceValue">$55</span> <span id="proTeamPriceUnit">/ month</span></div></div><span class="badge">Team subscription</span></div>
       <div class="tax-note">Owner + 4 invited members · 5 seats total</div><div id="proTeamYearlySavings" class="billing-plan-saving hide">Save $110/year · 2 months free</div>
       <ul>
@@ -51,11 +52,15 @@
         <li>Member calls use the owner's separate, metered Team quota</li>
       </ul>
       <div class="tax-note">Commercial Team call allowance is being tested (20,000–25,000/month). It is not a finalized billed limit.</div>
-      <a href="/account/team" class="btn wide">View Pro Team</a>
+      <a href="__WEB_SHARE_LINK__" class="btn wide">View __WEB_SHARE_LABEL__</a>
       <div class="tax-note">Team checkout is not enabled on rc.50 staging yet. No payment will be collected through this card.</div>
-    </section>
+    </section><!-- /profile:legacy-team --><!-- profile:family --><section class="plan-card" id="proShareCard">
+      <div class="plan-card-head"><div><h2>Pro Share (Family)</h2><p class="muted">Share selected computers with one invited guest.</p></div></div>
+      <ul><li>The guest uses their own Light Remote account.</li><li>You choose the computers and approve each AI agent's request.</li></ul>
+      <a href="/account/pro-share" class="btn wide">Manage Pro Share</a>
+    </section><!-- /profile:family -->
   </div>
-  <div id="billingCycleNotice" class="billing-cycle-footnote" role="status" aria-live="polite">Team checkout is not enabled on this staging release.</div>
+  <div id="billingCycleNotice" class="billing-cycle-footnote" role="status" aria-live="polite"></div>
 
   <section id="paddleBillingPanel" class="panel billing-details hide">
     <div class="panel-head"><div><h2>Subscription & invoices</h2><div class="muted">Payments, invoices and subscription management are provided by Paddle.</div></div><span id="billingStatusBadge" class="badge">—</span></div>
@@ -206,10 +211,12 @@ function updateBillingCycleUI(){
   freePriceValue.textContent=prices.free;
   freePriceUnit.textContent=prices.unit;
   proPriceUnit.textContent=prices.unit;
-  proTeamPriceValue.textContent=prices.team;
-  proTeamPriceUnit.textContent=prices.unit;
+  if(document.getElementById('proTeamCard')){
+    proTeamPriceValue.textContent=prices.team;
+    proTeamPriceUnit.textContent=prices.unit;
+  }
   proYearlySavings.classList.toggle('hide',!annual);
-  proTeamYearlySavings.classList.toggle('hide',!annual);
+  document.getElementById('proTeamYearlySavings')?.classList.toggle('hide',!annual);
   billingMonthlyTab.classList.toggle('active',!annual);
   billingYearlyTab.classList.toggle('active',annual);
   billingMonthlyTab.setAttribute('aria-selected',String(!annual));
@@ -222,7 +229,7 @@ function updateBillingCycleUI(){
     :'Paid plans renew monthly until canceled; Free remains free.';
   billingCycleNotice.textContent=annual
     ?'Annual pricing is a staging preview. Annual Paddle checkout is not configured; choosing Yearly does not change your current subscription.'
-    :'Monthly Pro checkout follows the existing Paddle configuration. Pro Team checkout remains unavailable in rc.50 staging.';
+    :'Monthly Pro is billed through Paddle.';
   if(annual){
     proPriceValue.textContent=prices.pro;
     proPriceMeta.textContent='Planned annual rate · $200 per year · save $40 versus 12 monthly payments. Annual checkout is not enabled.';

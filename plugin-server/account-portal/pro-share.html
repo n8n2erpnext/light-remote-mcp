@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html data-portal="account" data-share-enabled="__WEB_SHARE_ENABLED__" lang="en" data-theme="dark">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
-<title>Pro Share · Light Remote</title><link rel="icon" href="/account/assets/light-remote.ico">
+<title>Pro Share (Family) · Light Remote</title><link rel="icon" href="/account/assets/light-remote.ico">
 <link rel="stylesheet" href="/account/assets/portal.css">
 <script src="/account/assets/theme.js"></script>
 <style>
@@ -15,46 +15,49 @@
 .share-status{min-height:26px;overflow-wrap:anywhere}.share-code{overflow-wrap:anywhere;font-family:monospace}
 @media(max-width:760px){.share-grid{grid-template-columns:1fr}}
 </style>
+<link rel="stylesheet" href="/account/assets/visual-system-v4.css">
 </head><body><div class="app"><aside class="sidebar">
 <div class="brand"><img src="/account/assets/light-remote-mark.svg" alt="">
 <span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
 <nav class="nav">
-<a href="/account">Devices</a><a href="/account/usage">Usage</a>
-<a href="/account/billing">Plan &amp; billing</a>
-<a class="active" href="/account/pro-share">Pro Share</a>
-<a href="/account/settings">Settings</a>
+<a href="/account"><img class="material-icon" src="/assets/icons/material/devices.svg" alt="">Devices</a>
+<a class="active" href="/account/pro-share" aria-current="page"><img class="material-icon" src="/assets/icons/material/groups.svg" alt="">Pro Share (Family)</a>
+<a href="/account/inbox"><img class="material-icon" src="/assets/icons/material/mark_email_unread.svg" alt="">Inbox</a>
+<a href="/account/usage"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt="">Usage</a>
+<a href="/account/billing"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt="">Plan &amp; billing</a>
+<a href="/account/settings"><img class="material-icon" src="/assets/icons/material/settings.svg" alt="">Settings</a>
 </nav></aside><main class="main">
-<div class="page-head"><div><h1>Pro Share</h1><p>One invited Guest. Share only the devices you choose.</p></div></div>
-<section class="share-panel">
-<strong>UAT preview — no charges or remote Guest access enabled</strong>
-<p class="share-subtle">The optional $5/month Guest add-on is a proposal, not an active subscription.
-Guest pairing and command execution remain unavailable until the integrated Gold release is approved.</p>
-<div id="notice" class="share-status" role="status" aria-live="polite">Checking account permissions…</div>
-</section>
-<div class="share-grid">
-<section class="share-panel" id="ownerPanel" hidden>
-<h2>Owner — my sharing</h2>
+<div class="page-head">
+  <div><h1>Pro Share (Family)</h1><p>Share selected computers with one guest. You approve each agent's connection.</p></div>
+  <button class="btn" id="refresh" type="button" hidden>Refresh</button>
+</div>
+<section class="panel"><div class="settings-body share-intro">
+  <h2>Share a device with someone you trust</h2>
+  <p class="muted">Your guest signs in with their own Light Remote account. You choose which devices to share and can remove access here.</p>
+  <div id="notice" class="share-status muted" role="status" aria-live="polite">Checking device sharing…</div>
+</div></section>
+<div class="share-grid" id="shareControls" hidden>
+<section class="share-panel panel" id="ownerPanel" hidden>
+<h2>Your guest</h2>
 <div id="entitlement" class="share-subtle">Loading…</div>
 <div id="seat" class="share-subtle"></div>
 <form id="inviteForm">
 <label for="guestEmail">Invite a verified Free account by email</label>
 <input class="share-input" id="guestEmail" type="email" maxlength="254" autocomplete="email" required>
-<button class="btn" id="inviteButton" type="submit">Create one-time invitation</button>
+<button class="btn primary" id="inviteButton" type="submit">Create invitation</button>
 </form>
 <div id="inviteCode" class="share-code" aria-live="polite"></div>
-<p class="share-subtle">Invitations last 24 hours. Email delivery is not connected in this source preview.
-Send the code to your intended Guest through a trusted channel; it appears here only once.</p>
-<button class="btn" id="removeGuest" type="button">Remove Guest</button>
+<p class="share-subtle">Share the invitation code directly with your guest. It appears once and expires after 24 hours.</p>
+<button class="btn danger" id="removeGuest" type="button">Remove guest</button>
 <h2 style="margin-top:20px">Selected devices</h2>
 <div id="devices" class="share-subtle">No devices loaded</div>
-<h2 style="margin-top:20px">Guest Agent B approvals</h2>
-<p class="share-subtle">Only a verified, separately signed-in owner can approve the Guest's exact Agent request. The Guest supplies B; no approval occurs automatically.</p>
+<h2 style="margin-top:20px">Guest connection requests</h2>
+<p class="share-subtle">Match the request to the guest and device, then enter the B code they received.</p>
 <div id="guestRequests" class="share-subtle">Choose a shared device to view pending requests.</div>
 </section>
-<section class="share-panel">
-<h2>Guest — accept invitation</h2>
-<p class="share-subtle">Sign in with the exact verified Free account invited by the owner.
-Invitation acceptance never grants A/B or device access by itself.</p>
+<section class="share-panel panel">
+<h2>Accept an invitation</h2>
+<p class="share-subtle">Use the invited account and the invitation details from the device owner.</p>
 <form id="acceptForm">
 <label for="ownerId">Owner account ID</label>
 <input class="share-input" id="ownerId" maxlength="160" autocomplete="off" required>
@@ -64,7 +67,7 @@ Invitation acceptance never grants A/B or device access by itself.</p>
 </form>
 </section>
 </div>
-<button class="btn" id="refresh" type="button">Refresh</button>
+<details class="share-legacy"><summary>Already have a Pro Team invitation?</summary><a class="link" href="/account/team?legacy=1">Open previous Team invitations</a></details>
 </main></div>
 <script>
 const $=id=>document.getElementById(id);
@@ -88,18 +91,22 @@ async function refresh(){
  $('devices').replaceChildren();$('inviteCode').textContent='';
  $('guestRequests').replaceChildren();
  try{
+  if(document.documentElement.dataset.shareEnabled!=='true'){
+   await api('me');
+   note('Device sharing is currently unavailable. You can still manage your own computers in Devices.');
+   return;
+  }
   const security=await api('pro-share-csrf');csrf=security.csrf;
   if(!/^[A-Za-z0-9_-]{43}$/.test(csrf))throw Error('account_csrf_unavailable');
+  $('shareControls').hidden=false;$('refresh').hidden=false;
   $('ownerPanel').hidden=true;
   try{
    const data=await api('pro-share-overview');
    $('ownerPanel').hidden=false;shareActive=data.addOnActive===true;
    $('entitlement').textContent=shareActive?
-    'Owner add-on: UAT trial active · valid until '+new Date(Number(data.validUntil)).toLocaleString():
-    'Owner add-on: not enabled. No guest device access or payments are active.';
-   $('seat').textContent='Guest: '+String(data.seat?.status||'empty')+
-    (data.seat?.guestAccountId?' · '+data.seat.guestAccountId:'')+
-    (data.seat?.invitedEmail?' · '+data.seat.invitedEmail:'');
+    'Sharing enabled until '+new Date(Number(data.validUntil)).toLocaleString():
+    'Sharing is unavailable for this account.';
+   $('seat').textContent=data.seat?.invitedEmail?'Guest: '+data.seat.invitedEmail:'Guest status: '+String(data.seat?.status||'No invitation');
    $('inviteButton').disabled=!shareActive;
    $('removeGuest').disabled=data.seat?.status==='empty';
    for(const device of data.devices||[]){
@@ -123,16 +130,16 @@ async function refresh(){
     if(device.shared){
      const pendingButton=document.createElement('button');
      pendingButton.className='btn';pendingButton.type='button';
-     pendingButton.textContent='View Guest B requests for '+device.device_id;
+     pendingButton.textContent='Requests for '+(device.display_name||device.device_id);
      pendingButton.addEventListener('click',()=>loadGuestRequests(device.device_id));
      $('guestRequests').append(pendingButton);
     }
    }
-   note('Owner sharing settings loaded. Guest execution and checkout remain disabled.');
+   note('Your sharing settings are up to date.');
   }catch(error){
    shareActive=false;
    if(error.message==='login_required')throw error;
-   note('Guest acceptance available. Owner sharing requires an eligible Pro account and an explicit UAT add-on.');
+   note('You can accept an invitation here. Sharing your own devices requires an eligible plan.');
   }
  }catch(error){note(error.message)}
 }
@@ -205,5 +212,7 @@ $('removeGuest').addEventListener('click',async()=>{
  }catch(error){note(error.message)}
 });
 $('refresh').addEventListener('click',refresh);
-refresh();
-</script></body></html>
+if(/^#invite=[A-Za-z0-9_-]{20,160}$/.test(location.hash)){
+ location.replace('/account/team?legacy=1'+location.hash);
+}else refresh();
+</script><script src="/account/assets/notifications.js" defer></script></body></html>

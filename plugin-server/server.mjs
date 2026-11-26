@@ -21,6 +21,7 @@ import {WALL_SSO_FAMILY_PUBLIC_PATH_V4} from './desktop-wall-sso-public-family-c
 import { initializeGoldGoogleAuth, initializeGoogleRedis } from './google-auth.mjs';
 import { registerDistributionPortal } from './distribution-portal.mjs';
 import { registerAdminPortal } from './admin-portal.mjs';
+import { getWebProfile, renderWebProfile } from './web-profile.mjs';
 import { installAnnouncements, registerClientAnnouncementFeed, initializeSiteAnnouncements } from './site-announcements.mjs';
 import { installSiteAnalytics, flushSiteAnalytics, initializeSiteAnalytics } from './site-analytics.mjs';
 import {connectGoldStorage} from '../lib/gold-db.mjs';
@@ -169,11 +170,16 @@ registerAdminPortal(app);
 registerPublicDeviceRoutes(app);
 const pruner=setInterval(()=>prunePublicRateState(),60_000);pruner.unref?.();
 
-app.get('/',(_q,r)=>r.type('html').send(fs.readFileSync(new URL('./public-home.html',import.meta.url),'utf8').replaceAll('__LIGHT_REMOTE_VERSION__',VERSION)));
-app.get('/ai-guide',(_q,r)=>r.type('html').send(renderAiGuidePage(fs.readFileSync(new URL('./ai-guide.md',import.meta.url),'utf8'),{origin:PUBLIC_ORIGIN,version:VERSION})));
-app.get('/ai-guide.md',(_q,r)=>r.type('text/markdown').send(fs.readFileSync(new URL('./ai-guide.md',import.meta.url),'utf8')));
+function readGuide(){
+  const profile=getWebProfile();
+  const markdown=renderWebProfile(fs.readFileSync(new URL('./ai-guide.md',import.meta.url),'utf8'),profile);
+  return profile.agentRequests?markdown.replaceAll('https://light-remote.thaiduy.digital',PUBLIC_ORIGIN):markdown;
+}
+app.get('/',(_q,r)=>r.type('html').send(renderWebProfile(fs.readFileSync(new URL('./public-home.html',import.meta.url),'utf8')).replaceAll('__LIGHT_REMOTE_VERSION__',VERSION)));
+app.get('/ai-guide',(_q,r)=>r.type('html').send(renderAiGuidePage(readGuide(),{origin:PUBLIC_ORIGIN,version:VERSION})));
+app.get('/ai-guide.md',(_q,r)=>r.type('text/markdown').send(readGuide()));
 app.get('/llms.txt',(_q,r)=>r.type('text/plain').send(renderLlmsIndex(PUBLIC_ORIGIN)));
-app.get('/llms-full.txt',(_q,r)=>r.type('text/plain').send(fs.readFileSync(new URL('./ai-guide.md',import.meta.url),'utf8')));
+app.get('/llms-full.txt',(_q,r)=>r.type('text/plain').send(readGuide()));
 app.get('/support',(_q,r)=>r.type('html').send(renderSupportPage({origin:PUBLIC_ORIGIN,version:VERSION})));
 app.get('/privacy',(_q,r)=>r.type('html').send(renderLegalPage({active:'privacy',origin:PUBLIC_ORIGIN,...LEGAL_PAGES.privacy})));
 app.get('/terms',(_q,r)=>r.type('html').send(renderLegalPage({active:'terms',origin:PUBLIC_ORIGIN,...LEGAL_PAGES.terms})));

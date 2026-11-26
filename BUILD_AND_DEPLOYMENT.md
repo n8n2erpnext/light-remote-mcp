@@ -470,3 +470,7 @@ CI147 caught a missing static import in the Windows Client Core allowlist. The p
 ## Record Long Memory auto-capture CI149 and artifact verification
 
 CI149 45796258787 completed 15/15 jobs from c2ca46c5d697458638ad9ae22e5f43e2d2947ff4. The Windows packaging smoke included the browser context module. Windows artifact 15105404628 is available from GitHub. Hosted F16 intake confirmed the inner installer; the local mirror is incomplete. Installer SHA-256 8741798ba2c81b31b361b54f39fce5ddc62318e52ef866c438c774c504d5dfdc. Downloaded Chrome artifact 15105057852 matched its outer digest and all 16 source file hashes. Exact-source extension installed in isolated Chrome passed the popup opt-in, background alarm, streaming pause, digest deduplication, Stop, unchanged signed checkpoint and the Wall My Work reader. Synthetic Claude also passed the watch flow. Physical Owner acceptance is pending.
+
+## Polish Gold web portals for A/B v2 and Pro Share
+
+Live Gold HTTP inspection before the change found the legacy Team page at /account/team and a 404 at /account/pro-share. Isolated Windows Chrome verified 46 rendered views at 1440 and 390px, covering all ten Admin sections, Google Sans assets, agent request approval with synthetic B, notification preview and history, Family navigation, enabled and unavailable fixtures. Web profile unit tests and targeted account approval and admin recovery regressions passed. Pre-change full bundle and restored fsck passed at checkpoint/20261126-before-web-production-review-c140f33.

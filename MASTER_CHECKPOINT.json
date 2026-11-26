@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-26T13:25:25.514Z",
+  "updatedAt": "2026-11-26T13:55:15.860Z",
   "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Install the dev15 candidate, reload Chrome extension 0.4.3 in its existing folder, and keep the paired authenticated Wall tab open. In the desired chat choose the My Work item and select Start auto-capture. Request another reply, close the popup and check the work’s Browser context after the next watch cycle. Then stop the watch and confirm that the manual Agent checkpoint history is available separately.",
+  "nextAction": "Run exact GitHub baseline checks for this source. Review the Home/Account/Admin build in the Gold environment before the production host role switch. Physical service validation and the separate Pro Share rollout require the target environment and its existing feature configuration.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,13 +691,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261126-memory-autocapture-ci149-artifact-receipt",
-    "status": "CI_AND_ARTIFACTS_PASS_OWNER_ACCEPTANCE_PENDING",
-    "summary": "Light Remote Long Memory 0.4.3 and the paired Wall dev15 installer are ready for Owner acceptance. A one-time opt-in per chat sends new loaded context to the selected work. Browser context is device-local and Agent checkpoints remain independent.",
-    "verification": "CI149 45796258787 completed 15/15 jobs from c2ca46c5d697458638ad9ae22e5f43e2d2947ff4. The Windows packaging smoke included the browser context module. Windows artifact 15105404628 is available from GitHub. Hosted F16 intake confirmed the inner installer; the local mirror is incomplete. Installer SHA-256 8741798ba2c81b31b361b54f39fce5ddc62318e52ef866c438c774c504d5dfdc. Downloaded Chrome artifact 15105057852 matched its outer digest and all 16 source file hashes. Exact-source extension installed in isolated Chrome passed the popup opt-in, background alarm, streaming pause, digest deduplication, Stop, unchanged signed checkpoint and the Wall My Work reader. Synthetic Claude also passed the watch flow. Physical Owner acceptance is pending.",
-    "nextAction": "Install the dev15 candidate, reload Chrome extension 0.4.3 in its existing folder, and keep the paired authenticated Wall tab open. In the desired chat choose the My Work item and select Start auto-capture. Request another reply, close the popup and check the work’s Browser context after the next watch cycle. Then stop the watch and confirm that the manual Agent checkpoint history is available separately.",
-    "sourceDigest": "7e41bc3d5a3dc26bbdf0da5c0770b82f7408b2395b833241d07784ce73a7d6ae",
-    "sourceFileCount": 1763
+    "taskId": "20261126-web-production-review-abv2-family-admin",
+    "status": "ISOLATED_CHROME_WEB_PASS_DEPLOYMENT_PENDING",
+    "summary": "Polish the public site, Account and Admin for the A/B v2 rollout. Home, onboarding and guides show the agent-first flow with a six-character device Short ID, an agent-provided B code and explicit owner approval. Share one guest through the Pro Share (Family) account path; commercial and guest execution policy follows the existing feature gates. The previous Team screen remains reachable from previous invitation links. Reuse Google Sans, brand assets and shared portal styles for forms, notifications, approval cards and responsive layouts.",
+    "verification": "Live Gold HTTP inspection before the change found the legacy Team page at /account/team and a 404 at /account/pro-share. Isolated Windows Chrome verified 46 rendered views at 1440 and 390px, covering all ten Admin sections, Google Sans assets, agent request approval with synthetic B, notification preview and history, Family navigation, enabled and unavailable fixtures. Web profile unit tests and targeted account approval and admin recovery regressions passed. Pre-change full bundle and restored fsck passed at checkpoint/20261126-before-web-production-review-c140f33.",
+    "nextAction": "Run exact GitHub baseline checks for this source. Review the Home/Account/Admin build in the Gold environment before the production host role switch. Physical service validation and the separate Pro Share rollout require the target environment and its existing feature configuration.",
+    "sourceDigest": "3bde8964d67bb26db0ef0236dfb6f221fed74a8419d9fb665471e623a79028bc",
+    "sourceFileCount": 1765
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -3619,5 +3619,26 @@
       "installedHelperHashMatchesCI131": true
     },
     "ownerDev12LiveAudit": "docs/evidence/rmv2/owner-dev12-live-text-audit-20261115.json"
+  },
+  "webProductionReview": {
+    "base": "c140f33ca008a97fdbd1fc487ab9277255454570",
+    "checkpoint": {
+      "source": "c140f33ca008a97fdbd1fc487ab9277255454570",
+      "tag": "checkpoint/20261126-before-web-production-review-c140f33",
+      "bundleSha256": "21a6b1f5d9b96153d542ccc99053ab50d048e40af31f7ce49d1e7d687792d1c5",
+      "archiveSha256": "4496385091887f4fca8e84c4f9922943322d8af33b4132c3c3c53ebe3c6cfb93",
+      "restore": "PASS"
+    },
+    "status": "IMPLEMENTED",
+    "browserViews": 46,
+    "browserSizes": [
+      1440,
+      390
+    ],
+    "adminViewsPerSize": 10,
+    "physicalAcceptance": "PENDING",
+    "billing": "EXISTING_GATES",
+    "goldDeployment": "NOT_DEPLOYED",
+    "productionDeployment": "NOT_DEPLOYED"
   }
 }

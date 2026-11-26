@@ -15,9 +15,10 @@ const preset={
   warning:{background:'#FFF4C9',color:'#6D4A08',linkColor:'#785012'},
   danger:{background:'#FFE2E4',color:'#821B2C',linkColor:'#932035'},
 };
+const previousDefaultMessage='Connect your devices securely with local A/B approval';
 const defaultAnnouncement={
  id:'6ad1f5d2-b087-4b52-8ea3-3fa4a89b3095',enabled:true,
- title:'LIGHT REMOTE',message:'Connect your devices securely with local A/B approval',
+ title:'LIGHT REMOTE',message:'Connect your devices and approve each AI agent',
  theme:'brand',background:'#FFCC00',color:'#111418',linkColor:'#111418',
  linkLabel:'Download Light Remote →',linkUrl:'/downloads',
  pages:['/','/downloads','/support'],audience:'site',kind:'feature',platforms:['windows','macos','linux'],priority:0,dismissible:true,startAt:'',endAt:'',updatedAt:new Date().toISOString()
@@ -110,10 +111,12 @@ function choose(page,now=Date.now()){
 }
 export function announcementHtml(page){
  const entry=choose(page);if(!entry)return '';
+ const message=entry.id===defaultAnnouncement.id&&entry.message===previousDefaultMessage
+  ?defaultAnnouncement.message:entry.message;
  const link=entry.linkUrl?'<a class="lr-site-announcement-link" href="'+h(entry.linkUrl)+'"'+(entry.linkUrl.startsWith('https:')?' target="_blank" rel="noopener noreferrer"':'')+'>'+h(entry.linkLabel||'Learn more')+'</a>':'';
  const close=entry.dismissible?'<button type="button" class="lr-site-announcement-close" aria-label="Dismiss announcement">×</button>':'';
  return '<div class="lr-site-announcement" data-announcement-id="'+h(entry.id)+'" role="status" style="--lr-notice-bg:'+entry.background+';--lr-notice-color:'+entry.color+';--lr-notice-link:'+entry.linkColor+'">'+
- '<span><strong>'+h(entry.title)+'</strong>'+(entry.title&&entry.message?' · ':'')+h(entry.message)+'</span>'+link+close+'</div>';
+ '<span><strong>'+h(entry.title)+'</strong>'+(entry.title&&message?' · ':'')+h(message)+'</span>'+link+close+'</div>';
 }
 export function installAnnouncements(app){
  app.use((req,res,next)=>{

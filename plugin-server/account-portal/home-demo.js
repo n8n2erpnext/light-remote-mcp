@@ -106,11 +106,14 @@
   }
 
   async function runPairing() {
-    const aCode = code(4) + '-' + code(4);
-    const bCode = code(4);
-    $('[data-a-code]').textContent = aCode;
-    $('[data-b-code]').textContent = bCode;
-    $('[data-b-approve]').textContent = bCode;
+    if (root.dataset.pairing === 'agent-request') {
+      $('[data-b-code]').textContent = code(4) + '-' + code(4);
+    } else {
+      const bCode = code(4);
+      $('[data-a-code]').textContent = code(4) + '-' + code(4);
+      $('[data-b-code]').textContent = bCode;
+      $('[data-b-approve]').textContent = bCode;
+    }
 
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     const cadence = reduced ? 0 : 430;

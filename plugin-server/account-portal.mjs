@@ -5,6 +5,7 @@ import { callOperatorJson } from './operator-client.mjs';
 import {createGoldAbV2AccountPortalProxy,isGoldAbV2PortalAction} from './account-ab-v2.mjs';
 import {createGoldSessionNameAccountProxy} from './account-session-names.mjs';
 import {createGoldProShareAccountProxy,isProShareAccountAction} from './account-pro-share.mjs';
+import {getWebProfile,renderWebProfile} from './web-profile.mjs';
 import { PUBLIC_ORIGIN } from './config.mjs';
 import { mailConfig, sendDormancyWarning, sendDormantNotice, sendMagicLogin, sendPasswordReset, sendTeamInvitation, sendUpgradeRequested, sendWelcomeVerification } from './mailer.mjs';
 import { beginGoogleAuth, finishGoogleAuth, googleAuthStatus } from './google-auth.mjs';
@@ -28,9 +29,7 @@ const goldSessionNameAccountProxy=createGoldSessionNameAccountProxy({
  origin:PUBLIC_ORIGIN,sessionToken,callOperatorJson
 });
 const goldProShareAccountProxy=createGoldProShareAccountProxy({
- enabled:process.env.LR_GOLD_PRO_SHARE_CORE==='1'&&
-  process.env.LR_GOLD_PRO_SHARE_ACCOUNT_HTTP==='1'&&
-  process.env.LR_GOLD_PRO_SHARE_PORTAL_UI==='1',
+ enabled:getWebProfile().shareEnabled,
  origin:PUBLIC_ORIGIN,sessionToken,callOperatorJson
 });
 const DORMANCY_SCAN_INTERVAL_MS=6*60*60*1000;
@@ -96,16 +95,15 @@ function fail(res,error){
 }
 function sendPortal(res,name,type='html'){
   const file=fs.readFileSync(portalFile(name));
+  if(type!=='html')return res.type(type).send(file);
+  let html=renderWebProfile(file.toString('utf8'));
   if(process.env.LIGHT_REMOTE_GOLD_DEMO==='1'&&name==='index.html'){
-    const goldUrl='https://gold.light-remote.thaiduy.digital/mcp';
-    const html=file.toString('utf8')
+    html=html
       .replaceAll('https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e','https://chatgpt.com/plugins')
-      .replaceAll('Open official plugin','Add Gold test MCP')
-      .replaceAll('Open ChatGPT plugin','Add Gold test MCP')
-      .replace('Official Light Remote Plugin connects directly to this account plane.','Gold UAT uses a separate custom MCP server: '+goldUrl+'. Local Wall: http://100.94.184.141:5591 (NetBird only). The official Light Remote plugin connects to production.');
-    return res.type('html').send(html);
+      .replaceAll('Open official plugin','Open ChatGPT connections')
+      .replaceAll('Open ChatGPT plugin','Open ChatGPT connections');
   }
-  return res.type(type).send(file);
+  return res.type('html').send(html);
 }
 function esc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function recoveryRecord(token){
@@ -468,15 +466,14 @@ export function registerAccountPortal(app){
   const dormancyTimer=setInterval(()=>void runDormancyScan(),DORMANCY_SCAN_INTERVAL_MS);dormancyTimer.unref?.();
   app.get('/enroll',(_q,r)=>sendPortal(r,'enroll.html'));
   app.get(['/account','/account/'],(_q,r)=>sendPortal(r,'index.html'));
-  app.get(['/account/team','/account/team/'],(_q,r)=>sendPortal(r,'team.html'));
+  app.get(['/account/team','/account/team/'],(q,r)=>getWebProfile().family&&q.query?.legacy!=='1'
+    ?r.redirect(302,'/account/pro-share'):sendPortal(r,'team.html'));
   app.get(['/account/inbox','/account/inbox/'],(_q,r)=>sendPortal(r,'inbox.html'));
   app.get(['/account/usage','/account/usage/'],(_q,r)=>sendPortal(r,'usage.html'));
   app.get(['/account/billing','/account/billing/'],(_q,r)=>sendPortal(r,'billing.html'));
   app.get(['/account/settings','/account/settings/'],(_q,r)=>sendPortal(r,'settings.html'));
   app.get(['/account/pro-share','/account/pro-share/'],(_q,r)=>
-    process.env.LR_GOLD_PRO_SHARE_CORE==='1'&&
-    process.env.LR_GOLD_PRO_SHARE_ACCOUNT_HTTP==='1'&&
-    process.env.LR_GOLD_PRO_SHARE_PORTAL_UI==='1'?
+    getWebProfile().family?
       sendPortal(r,'pro-share.html'):r.status(404).type('text').send('Not found'));
   app.get(['/account/sessions','/account/sessions/'],(_q,r)=>
     process.env.LR_GOLD_SESSION_OWNER_RENAME==='1'?

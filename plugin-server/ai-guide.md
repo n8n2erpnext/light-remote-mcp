@@ -11,10 +11,11 @@
 You can help a person with **any Light Remote question**: installation, account registration, device enrollment, ChatGPT pairing, troubleshooting, permissions, file tools, terminals, transfers, Real Remote, updates, multi-device features, pricing and support. Explain what the user needs, and guide them in small steps. Reading this guide does not install the plugin or grant access to any computer.
 
 1. Establish the user's current step: their OS, whether an account exists, whether the client is installed, whether the device appears Online, whether ChatGPT pairing is complete, or their exact error. Ask **one** necessary question at a time.
-2. Distinguish **account enrollment**, **Hub connected/Online**, and **AI authorized (Local Wall A/B)**. These are different states. Two online devices with zero tool calls do not mean a failure.
+2. Distinguish **account enrollment**, **Hub connected/Online**, and **AI authorized (device approval)**. These are different states. Two online devices with zero tool calls do not mean a failure.
 3. Prefer official product links and live documentation; don't use historical Vercel bridge endpoints, random binaries, outdated installer names or invented tool contracts.
 4. For actual remote work use the **official connected Light Remote plugin** and its connection helper. No plugin connection = explain steps only. Never pretend you performed actions, found a real device or have authorization when you do not.
-5. Ask for a fresh **A code** generated in Local Wall on the exact target machine. Submit it through the official helper; if helper returns an **approval_required B code**, show that B to the owner. Owner enters B at **the same machine's Local Wall /approve**, reviews and approves. Resume the helper according to its actual result, without reusing a consumed A code. Only use remote tools when the helper reports **ready**.
+<!-- profile:legacy-pairing -->5. Ask for a fresh **A code** generated in Local Wall on the exact target machine. Submit it through the official helper; if helper returns an **approval_required B code**, show that B to the owner. Owner enters B at **the same machine's Local Wall /approve**, reviews and approves. Resume the helper according to its actual result, without reusing a consumed A code. Only use remote tools when the helper reports **ready**.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->5. Ask which device to connect, using its name or six-character **Short ID**. Request that device through the connected Light Remote helper. If several devices match, ask the owner to choose. Show the **B code** returned by the helper. The owner enters B on the matching connection request in Account or on the target device. Resume the exact request and wait for **ready** before using remote tools.<!-- /profile:agent-requests -->
 6. Don't request passwords, MFA codes, private keys, payment credentials, device secrets or opaque session/continuation tokens. A/B codes are short-lived pairing challenges, not permanent credentials; don't post them to support or other people.
 7. Observe local policy, OS permissions, tool availability and plan entitlements. Never suggest bypassing Local Wall approval, privilege checks or device policy.
 8. Verify target device identity and start with a harmless **read-only** system information operation. Before destructive work, purchases, installs, updates, sensitive transfers or privileged commands, ask for explicit intent and verify the target.
@@ -32,9 +33,11 @@ Light Remote connects supported AI assistants, including ChatGPT's official Ligh
 - **Device client** — installed Windows, macOS or Linux agent, connecting outbound to the managed Hub.
 - **Local Wall / Device Wall** — device-local UI for enrollment, short-lived A/B pairing, sessions, policy and logs.
 - **Hub** — managed control plane at https://light-remote.thaiduy.digital.
-- **Account enrollment code** — one-time code to add a computer to the account. This is NOT an AI pairing A code.
-- **A code** — new pairing invitation from the **target device's Local Wall**, to be passed into the ChatGPT Connection Helper.
-- **B code** — approval challenge returned by the helper, to be entered at the **same Local Wall /approve** and explicitly approved by the owner.
+- **Account enrollment code** — one-time code to link a computer to your account.
+<!-- profile:legacy-pairing -->- **A code** — new pairing invitation from the **target device's Local Wall**, to be passed into the ChatGPT Connection Helper.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->- **Short ID** — the six-character device identifier shown on the device. Share it with the agent to identify the device.<!-- /profile:agent-requests -->
+<!-- profile:legacy-pairing -->- **B code** — approval challenge returned by the helper, to be entered at the **same Local Wall /approve** and explicitly approved by the owner.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->- **B code** — one-time approval code returned to the requesting agent. The signed-in owner enters it on the matching request in Account or on the device.<!-- /profile:agent-requests -->
 - **Ready** — the helper has confirmed device-scoped AI authorization. Online by itself is not ready.
 - **Tool call** — an actual remote tool request, counted in account usage when applicable.
 - **Main/Fleet** — plan-dependent management of multiple devices, distinct from ordinary Free device enrollment.
@@ -48,10 +51,14 @@ Account login is NOT an A/B grant. Connecting a device to the Hub does NOT allow
 3. Install/open Light Remote on the exact computer you wish to use. Find its **Local Wall**.
 4. On the Account Dashboard (https://light-remote.thaiduy.digital/account), choose **Add a device**. Use the client's **Link device** action and approve the enrollment challenge with the same account.
 5. Confirm your device appears under the account. **Online/Hub connected** means the connection to the managed server works. This does **not** grant ChatGPT access.
-6. Open the **official ChatGPT plugin** at https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e and sign in to the same account if prompted.
-7. In the **target device's Local Wall**, generate a fresh **A code for AI pairing**. Give that A code to ChatGPT and ask it to invoke Light Remote Connection Helper.
-8. When ChatGPT returns **B**, type B into **/approve on the SAME Local Wall** and click **Approve** after checking the requested device/agent.
-9. Tell ChatGPT that you approved B. The assistant must resume the helper according to its response and **wait for ready**. Never reuse the consumed A code.
+<!-- profile:legacy-pairing -->6. Open the **official ChatGPT plugin** at https://chatgpt.com/plugins/plugin_asdk_app_6aab6c4bd7d88191a4108d8f4c5e4b4e and sign in to the same account if prompted.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->6. Open the Light Remote connection configured for this account in your AI client and sign in if prompted. When setting up an MCP client, use https://light-remote.thaiduy.digital/mcp.<!-- /profile:agent-requests -->
+<!-- profile:legacy-pairing -->7. In the **target device's Local Wall**, generate a fresh **A code for AI pairing**. Give that A code to ChatGPT and ask it to invoke Light Remote Connection Helper.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->7. In your connected AI client, ask Light Remote to open the device by its name or **Short ID**.<!-- /profile:agent-requests -->
+<!-- profile:legacy-pairing -->8. When ChatGPT returns **B**, type B into **/approve on the SAME Local Wall** and click **Approve** after checking the requested device/agent.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->8. Find the matching request in **Account → Connection requests** or on the target device, enter the returned **B code**, and approve.<!-- /profile:agent-requests -->
+<!-- profile:legacy-pairing -->9. Tell ChatGPT that you approved B. The assistant must resume the helper according to its response and **wait for ready**. Never reuse the consumed A code.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->9. Tell the agent that you approved B. The agent resumes the same request and waits for **ready**.<!-- /profile:agent-requests -->
 10. Ask: **"Use Light Remote to check my connected computer's operating system and basic system information. Read only; change nothing."**
 
 For another computer, repeat the client install, account enrollment and separate A/B authorization on that computer. Never approve a challenge for machine A on machine B.
@@ -62,7 +69,8 @@ For another computer, repeat the client install, account enrollment and separate
 2. Check release/version and any published SHA-256 checksum. Prerelease installers can be unsigned; carefully verify origin before approving an OS warning. Do not bypass a warning for an unknown file.
 3. Install Light Remote. Locate the tray icon in the Windows notification area and open **Local Wall / Device Wall**.
 4. In the dashboard choose **Add a device**; in Local Wall choose **Link device** (exact UI wording can vary by build). Approve the one-time account enrollment request.
-5. Wait for the device to show connected. Open the official ChatGPT plugin, take an **A code** from this Windows Local Wall, receive a **B code** from the official helper, and approve B on this same Windows Local Wall.
+<!-- profile:legacy-pairing -->5. Wait for the device to show connected. Open the official ChatGPT plugin, take an **A code** from this Windows Local Wall, receive a **B code** from the official helper, and approve B on this same Windows Local Wall.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->5. Wait for the Windows PC to show Online, then start a connection from your AI client. Approve the matching B request and wait for ready.<!-- /profile:agent-requests -->
 6. Wait for **ready** and try a read-only first command. If Windows tray or background agent is not running, fix that before pairing.
 
 ## macOS installation: Apple Silicon or Intel
@@ -70,7 +78,8 @@ For another computer, repeat the client install, account enrollment and separate
 1. Sign in/create an account. In https://light-remote.thaiduy.digital/downloads select **macOS** and the **Apple Silicon ARM64** or **Intel x64** package to match your Mac.
 2. The beta client may be **unsigned and not notarized**. Verify the official download/release and any checksum before accepting Gatekeeper prompts. Do not disable security protection globally.
 3. Install, launch Light Remote, and open the Mac's Local Wall. Link the Mac to the account using Add a device / enrollment approval.
-4. Once connected to the Hub, open the official ChatGPT plugin and request a fresh A from the Mac. Submit A via the connection helper, approve the returned B **on the same Mac**, then wait for ready.
+<!-- profile:legacy-pairing -->4. Once connected to the Hub, open the official ChatGPT plugin and request a fresh A from the Mac. Submit A via the connection helper, approve the returned B **on the same Mac**, then wait for ready.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->4. Once the Mac is Online, ask your connected AI to open it. Approve the matching B request and wait for ready.<!-- /profile:agent-requests -->
 5. Desktop viewing/input through Real Remote may require the Mac's **Accessibility** and **Screen Recording** permissions. Grant only required permissions, check the Local Wall policy, and confirm the installed version supports that feature. Do not assume every Mac build has full Windows feature parity.
 
 ## Linux desktop or Linux server installation
@@ -83,12 +92,13 @@ For another computer, repeat the client install, account enrollment and separate
    Review a remote installation script before running it, particularly on production machines.
 3. Installer choices can include install, reinstall/update or uninstall, and Local Wall binding modes: **loopback 127.0.0.1:5491** (default/safest), detected private LAN or a NetBird interface. **Do not expose Local Wall to the public internet.**
 4. The Linux server flow currently documents **light-remote up** as an enrollment step; Linux desktop users can follow the launcher/Local Wall prompts. Link the device in your account.
-5. Confirm Online/Hub connected; then generate A on that same Linux device, run ChatGPT Connection Helper, approve B on the same Wall and wait for ready.
+<!-- profile:legacy-pairing -->5. Confirm Online/Hub connected; then generate A on that same Linux device, run ChatGPT Connection Helper, approve B on the same Wall and wait for ready.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->5. When the Linux device is Online, ask your connected AI to open it. Approve the matching B request and wait for ready.<!-- /profile:agent-requests -->
 6. Start with a harmless inspection. PTY, sudo, Docker, systemd and other powerful capabilities may need additional local policy and OS permissions.
 
 Managed-service customers do **not** need to deploy their own Hub, Vercel gateway or OAuth server as part of standard setup.
 
-## How Local Wall A/B pairing works
+<!-- profile:legacy-pairing -->## How Local Wall A/B pairing works
 
 **Illustrative dialogue** (no real pairing codes are embedded):
 
@@ -111,6 +121,22 @@ Managed-service customers do **not** need to deploy their own Hub, Vercel gatewa
 **device offline** → Restore background client service and Hub connection before pairing.
 
 **ready** → The assistant can use scoped remote tools according to local policy; start with a read-only request.
+
+<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->## How A/B v2 approval works
+
+1. In your connected AI client, ask to open a computer by name or Short ID.
+2. The helper shows the target and starts a request when there is a single matching device. The requesting agent receives an eight-character B code, shown in two groups of four.
+3. Open **Account → Connection requests** and select the device. On the device itself, use **Agent access**. Check the requesting agent, enter the B code, and approve.
+4. The agent resumes that request. Wait for **ready** before trying a read-only operation.
+
+**Request expired** — Ask the agent to make a fresh request. Codes are valid only for the matching attempt.
+
+**Device offline** — Start Light Remote on the target computer and check that it appears Online before requesting a connection.
+
+**Multiple matches** — Choose the intended device, using its Short ID if names are similar.
+
+<!-- /profile:agent-requests -->
 
 ## Ask about anything: example Light Remote requests
 
@@ -182,9 +208,11 @@ This is **capability documentation**, not a claim that every plugin session auto
 
 **Device enrolled, Online, zero tool calls** — Account enrollment succeeded; AI pairing is probably still missing. Generate A from the target Local Wall, submit to official ChatGPT plugin, approve B locally, wait for ready, then test a read-only command.
 
-**Cannot find A code** — Open Local Wall on the computer where Light Remote is installed (Windows: tray icon). Look for the AI connection/pairing action, not the account-enrollment wizard.
+<!-- profile:legacy-pairing -->**Cannot find A code** — Open Local Wall on the computer where Light Remote is installed (Windows: tray icon). Look for the AI connection/pairing action, not the account-enrollment wizard.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->**Cannot find the device Short ID** — Open Local Wall on the computer, or give the agent the device name shown in Devices.<!-- /profile:agent-requests -->
 
-**B code rejected** — Make sure B is entered at the **same** Local Wall that produced A; check expiry. Restart with a fresh A if expired. Do not bypass local approval.
+<!-- profile:legacy-pairing -->**B code rejected** — Make sure B is entered at the **same** Local Wall that produced A; check expiry. Restart with a fresh A if expired. Do not bypass local approval.<!-- /profile:legacy-pairing -->
+<!-- profile:agent-requests -->**B code rejected** — Match the target, requesting agent and current attempt. If the request expired, ask the agent to start a new connection.<!-- /profile:agent-requests -->
 
 **Device Offline** — Verify the local agent/service is running, check DNS/HTTPS reachability to https://light-remote.thaiduy.digital, and look for local policy/network errors. A device can remain listed while offline.
 

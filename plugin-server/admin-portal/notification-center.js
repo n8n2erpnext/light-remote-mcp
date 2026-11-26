@@ -36,12 +36,14 @@ function renderTarget(){
   :scope==='group'?groups.map(x=>[x.groupId,x.name+' ('+(x.accountCount??0)+')']):[];
  refs.target.innerHTML=options.map(([value,label])=>'<option value="'+esc(value)+'">'+esc(label)+'</option>').join('');
  const names={account:'Recipient email',plan:'Subscription plan',group:'Account group'};
- refs.targetWrap.firstChild.textContent=names[scope]||'Recipient';
+ refs.targetWrap.querySelector('span').textContent=names[scope]||'Recipient';
  renderPreview();
 }
 function renderPreview(){
  const title=refs.title.value.trim()||'Preview title',body=refs.body.value.trim()||'Your notification will appear here.',scope=refs.audience.value;
- refs.preview.innerHTML='<small class="muted">'+esc(types[refs.type.value]||'Notification')+' · '+esc(scope==='all'?'All accounts':scope==='account'?'One email':scope==='plan'?'Plan '+audienceValue():'Group '+audienceValue())+'</small><h3>'+esc(title)+'</h3><p>'+esc(body)+'</p><small class="muted">In-app only · No email sent</small>';
+ const recipient=scope==='all'?'All accounts':scope==='account'?(audienceValue()||'One account'):
+   refs.target.selectedOptions[0]?.textContent||'Select the audience';
+ refs.preview.innerHTML='<small class="muted">'+esc(types[refs.type.value]||'Notification')+' · '+esc(recipient)+'</small><h4>'+esc(title)+'</h4><p>'+esc(body)+'</p><small class="muted">Account inbox</small>';
 }
 function when(value){if(!value)return null;const x=new Date(value).getTime();if(!Number.isFinite(x))throw Error('Invalid start or expiry date');return x}
 function payload(){
@@ -53,18 +55,19 @@ function payload(){
   link:refs.link.value.trim()||'/account/inbox',audienceType:scope,audienceValue:value,scheduledAt:start,expiresAt:end};
 }
 function renderHistory(){
- refs.total.textContent=history.length+' records';
+ refs.total.textContent=history.length+' '+(history.length===1?'notice':'notices');
  refs.rows.innerHTML=history.length?history.map(n=>{
   const state=n.status||'active',recipient=n.audienceType==='account'
    ?accounts.find(a=>a.account.accountId===(n.audienceValue||n.targetAccountId))?.account.email||'Specific account'
    :n.audienceType==='plan'?'Plan '+(n.audienceValue||'')
    :n.audienceType==='group'?'Group '+(groups.find(x=>x.groupId===n.audienceValue)?.name||'')
    :'All accounts';
-  return '<div class="notification-history-row"><div class="notification-history-text"><strong>'+esc(n.title)+'</strong><small>'+esc(types[n.type]||n.type)+' · '+esc(recipient)+' · start '+esc(new Date(n.scheduledAt||n.createdAt).toLocaleString())+'</small>'
-   +'<small>'+esc(n.body)+'</small><small>'+Number(n.readCount||0)+' account(s) marked read · '+esc(n.notificationId)+'</small></div>'
-   +'<div class="notification-history-actions"><span class="badge">'+esc(state)+'</span>'
+  const stateText={active:'Published',scheduled:'Scheduled',expired:'Expired',canceled:'Canceled',cancelled:'Canceled'}[state]||state;
+  return '<article class="notification-history-row"><div class="notification-history-text"><h3>'+esc(n.title)+'</h3><small class="muted">'+esc(types[n.type]||n.type)+' · '+esc(recipient)+' · '+esc(new Date(n.scheduledAt||n.createdAt).toLocaleString())+'</small>'
+   +'<p>'+esc(n.body)+'</p><small class="muted">Read by '+Number(n.readCount||0)+'</small><details><summary>Notification ID</summary><code>'+esc(n.notificationId)+'</code></details></div>'
+   +'<div class="notification-history-actions"><span class="badge">'+esc(stateText)+'</span>'
    +(['active','scheduled'].includes(state)?'<button type="button" class="btn danger" data-cancel-notice="'+esc(n.notificationId)+'">Cancel</button>':'')
-   +'</div></div>';
+   +'</div></article>';
  }).join(''):'<div class="empty">No messages published yet.</div>';
 }
 async function load(){

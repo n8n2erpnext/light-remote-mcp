@@ -490,3 +490,7 @@ Long Memory extension 0.4.3 follows a selected ChatGPT or Claude chat after the 
 ## Bundle Long Memory browser context in the Windows client
 
 Include the browser context module in the client payload manifest and require it in the packaged Windows Long Memory smoke check.
+
+## Polish Gold web portals for A/B v2 and Pro Share
+
+Polish the public site, Account and Admin for the A/B v2 rollout. Home, onboarding and guides show the agent-first flow with a six-character device Short ID, an agent-provided B code and explicit owner approval. Share one guest through the Pro Share (Family) account path; commercial and guest execution policy follows the existing feature gates. The previous Team screen remains reachable from previous invitation links. Reuse Google Sans, brand assets and shared portal styles for forms, notifications, approval cards and responsive layouts.

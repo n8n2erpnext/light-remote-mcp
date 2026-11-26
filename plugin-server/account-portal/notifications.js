@@ -6,7 +6,11 @@ const icon='/assets/icons/material/';
 const root=document.createElement('div');
 root.className='account-bell-container';
 root.innerHTML='<button type="button" id="accountBell" class="account-bell-button" aria-label="Notifications" aria-expanded="false"><img class="material-icon" src="'+icon+'notifications.svg" alt=""><span id="accountBellCount" class="account-bell-count" hidden></span></button><section id="accountBellPanel" class="account-bell-panel" aria-label="Recent notifications" hidden><div class="account-bell-heading"><strong>Notifications</strong><a href="/account/inbox">Open inbox</a></div><div id="accountBellItems" class="account-bell-items">Loading…</div></section>';
-main.insertBefore(root,main.firstChild);
+const pageHead=main.querySelector(':scope > .page-head');
+if(pageHead){
+ const toolbar=pageHead.querySelector('.device-actions,.admin-head-actions');
+ (toolbar||pageHead).append(root);
+}else main.prepend(root);
 const $=id=>document.getElementById(id);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let loading=false;
