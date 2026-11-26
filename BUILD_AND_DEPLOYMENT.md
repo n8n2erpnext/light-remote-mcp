@@ -446,3 +446,7 @@ Chrome 158 on Windows installed the MV3 extension in a fresh profile and complet
 ## Record Long Memory 0.4.1 pairing verification
 
 CI143 Web passed on d7db2547e69776d68920818fa5c77af8838d8c1a, including the installed-extension pairing fixture. Downloaded CI artifact 15100014924 matched GitHub digest sha256:7d7441a398399979f1da92f620832f53928fa29e5e2510bddc49b703caecf73c; the inner ZIP and its 15 files verified. The local ZIP verified all 15 source files against the published commit and has SHA-256 00ba67037a39b3d0e2ac79ed585a4bbd311a6c0f427f41d9d5335110b8b94ff5. The Chrome fixture seeds the test origin only. Actual Owner consent and live Wall pairing remain pending. The separate native RM job in CI143 failed NU1004 after the hosted .NET SDK resolved ILLink.Tasks 8.0.34 while the lock pins 8.0.33.
+
+## Capture newer ChatGPT conversation markup in Long Memory 0.4.2
+
+On Windows Chrome 158, the installed 0.4.1 action reproduced the reported no-supported-messages error on a modern synthetic chat. The installed 0.4.2 action captured the same user and assistant messages into the review box using activeTab with zero standing host permissions. Browser fixtures passed for legacy ChatGPT, mixed modern/legacy ChatGPT and Claude. Tests cover UTF-8/code indentation, order, duplicates, hidden controls, draft exclusion and changed snapshot rejection. Portable 12/12 and package permission checks passed. The Owner browser session was unavailable for direct inspection. Full restore/fsck passed on ARM at checkpoint/20261126-before-memory-capture-8d75586.

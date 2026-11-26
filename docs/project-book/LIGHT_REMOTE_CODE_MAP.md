@@ -478,3 +478,7 @@ An authorized MCP Agent can request two independent text reviews of the same sna
 ## Fix Long Memory Wall pairing in installed Chrome extension
 
 Long Memory extension 0.4.1 opens a persistent pairing tab for the optional Chrome permission request. The selected Wall stays bound to the exact address and authenticated enrolled account/device. The service worker records pending pairing before navigating, resumes after owner sign-in and reuses an already open Wall. Pairing progress, login and errors are visible beside the action. Extension and Windows client versions are independent.
+
+## Capture newer ChatGPT conversation markup in Long Memory 0.4.2
+
+The capture adapter recognizes ChatGPT search units, user bubbles and assistant text blocks within the conversation. It reads older role-marked turns and Claude responses too. Nested content is counted once, ordered by the loaded DOM. It excludes hidden elements, editor drafts, controls, inactive status text and marked tool content. Capture uses the installed action popup and its activeTab grant without changing host permissions or the pairing schema.

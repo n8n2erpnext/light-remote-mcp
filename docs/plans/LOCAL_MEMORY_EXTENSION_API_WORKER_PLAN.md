@@ -271,3 +271,13 @@ CI143 Web passed on d7db2547e69776d68920818fa5c77af8838d8c1a, including the inst
 [Get extension 0.4.1](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/45786614275/artifacts/15100014924)
 
 Load 0.4.1 and pair the selected Wall using the new setup tab. Accept Chrome access, sign in if prompted, and confirm Paired with before capturing a conversation.
+
+## Capture conversation cho bố cục ChatGPT mới — 2026-11-26
+
+The capture adapter recognizes ChatGPT search units, user bubbles and assistant text blocks within the conversation. It reads older role-marked turns and Claude responses too. Nested content is counted once, ordered by the loaded DOM. It excludes hidden elements, editor drafts, controls, inactive status text and marked tool content. Capture uses the installed action popup and its activeTab grant without changing host permissions or the pairing schema.
+
+On Windows Chrome 158, the installed 0.4.1 action reproduced the reported no-supported-messages error on a modern synthetic chat. The installed 0.4.2 action captured the same user and assistant messages into the review box using activeTab with zero standing host permissions. Browser fixtures passed for legacy ChatGPT, mixed modern/legacy ChatGPT and Claude. Tests cover UTF-8/code indentation, order, duplicates, hidden controls, draft exclusion and changed snapshot rejection. Portable 12/12 and package permission checks passed. The Owner browser session was unavailable for direct inspection. Full restore/fsck passed on ARM at checkpoint/20261126-before-memory-capture-8d75586.
+
+Extract extension 0.4.2 over the currently loaded extension folder, use Reload on chrome://extensions and capture from the target chat. Review the captured text before opening the paired Wall. Confirm the Owner chat variant and exact-source Web CI.
+
+The new structural markers were reproduced with data-free test content. [Firsthand DOM report](https://github.com/nowledge-co/community/issues/942).

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const root=new URL('../../extensions/light-remote-lm-abv2/',import.meta.url);
 const read=name=>fs.readFileSync(new URL(name,root),'utf8');
 const m=JSON.parse(read('manifest.json'));
-assert.equal(m.manifest_version,3);assert.equal(m.version,'0.4.1');assert.deepEqual(m.host_permissions,[]);
+assert.equal(m.manifest_version,3);assert.equal(m.version,'0.4.2');assert.deepEqual(m.host_permissions,[]);
 assert.deepEqual(m.optional_host_permissions,['http://127.0.0.1/*','http://localhost/*','http://100.94.184.141/*']);
 for(const permission of ['cookies','debugger','webRequest','tabs','<all_urls>'])assert.ok(!m.permissions.includes(permission));
 assert.ok(m.permissions.includes('activeTab'));assert.ok(m.permissions.includes('alarms'));

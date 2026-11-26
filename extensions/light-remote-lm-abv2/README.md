@@ -1,4 +1,4 @@
-# Light Remote Memory v0.4.1
+# Light Remote Memory v0.4.2
 
 This is the single current extension source for local Windows/macOS/Linux Wall or the explicitly paired NetBird Lab Wall. The older0.2 and0.3 folders/ZIP remain historical, not a second active implementation. No Owner browser profile is installed or changed automatically.
 
@@ -8,7 +8,7 @@ This is the single current extension source for local Windows/macOS/Linux Wall o
 4. To restore, open the paired Wall and select the intended work. From the extension choose recent checkpoints or saved full context, then Load. Readback uses the existing signature-checked local Memory routes and rechecks the account/device/scope. Review/redact the returned text.
 5. Open the destination ChatGPT/Claude chat yourself, reopen the extension and Insert. It only stages into a uniquely identified empty composer. An existing draft remains unchanged; Copy context is the alternative. It never submits or sends a message.
 
-Capture SHA256 checks every UTF8 segment and the final review, preserving code whitespace and multiple content blocks. Hidden ancestors are excluded. The512KiB maximum fails without truncating. LoadedDOM coverage excludes unloaded messages, attachments, images and hidden reasoning; provider DOM layouts can change. A changed conversation/hash aborts capture. Prior content is untrusted history, not fresh instructions or authorization.
+Capture checks each UTF-8 segment and the final review by SHA-256. It reads user bubbles and assistant responses from the loaded conversation, including the newer ChatGPT search-unit layout and older role-marked turns. Hidden blocks, controls and tertiary status text are filtered. The 512 KiB maximum fails without truncating. Loaded DOM coverage excludes unloaded messages, attachments, images and hidden reasoning. A changed conversation or digest aborts capture. The prepared transcript remains historical context for review.
 
 Plaintext pending imports/restores use trusted-context-only Chrome storage.session, absolute10minute expiry and an MV3 alarm. Successful staging removes its pending copy; tab closure removes its import. Account/device pairing metadata alone uses storage.local. No cookies/debugger/all_urls/persistent ChatGPT/Claude host permission, background capture, telemetry, remote code or automatic backend save. A one-time explicit optional Wall origin permission is required; there is no cross-endpoint fallback. Google Sans is packaged from the app asset with its OFL license.
 
