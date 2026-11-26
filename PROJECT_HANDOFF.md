@@ -1,6 +1,6 @@
 # Project handoff — additive Agent GPU observation
 
-Current resume point: Run exact GitHub baseline checks for this source. Review the Home/Account/Admin build in the Gold environment before the production host role switch. Physical service validation and the separate Pro Share rollout require the target environment and its existing feature configuration.
+Current resume point: Verify exact-source CI for the sign-in return follow-up. Validate a Gold web deployment before approving a production host change.
 
 **RM v2 chưa đạt nghiệm thu live trên dev12.** Đã xác minh helper đang cài đúng source CI131 và đọc lại hash fixture:4.096 đúng;8.192 chỉ có6.816; bài300từ1391units chỉ có49. Năm ca262K qua paste không nghiệm thu API nhập trực tiếp. Job exit0 đang là xác nhận nhận lệnh; receipt ban đầu còn preparing, chưa có terminal writeId để xác định nguyên nhân. Server đã đăng ký schema262K/sourcePath/status/cancel và GPU/video; catalog của lượt đang chạy vẫn cũ sau thông báo refresh. Không coi GDI screenshot là bài test đường GPU mới. Bỏ mục dựng Windows VM theo yêu cầu Owner.
 
@@ -955,3 +955,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: Live Gold HTTP inspection before the change found the legacy Team page at /account/team and a 404 at /account/pro-share. Isolated Windows Chrome verified 46 rendered views at 1440 and 390px, covering all ten Admin sections, Google Sans assets, agent request approval with synthetic B, notification preview and history, Family navigation, enabled and unavailable fixtures. Web profile unit tests and targeted account approval and admin recovery regressions passed. Pre-change full bundle and restored fsck passed at checkpoint/20261126-before-web-production-review-c140f33.
 - Next: Run exact GitHub baseline checks for this source. Review the Home/Account/Admin build in the Gold environment before the production host role switch. Physical service validation and the separate Pro Share rollout require the target environment and its existing feature configuration.
 - Runtime: Source and isolated web previews only. Existing Gold staging and production services retain their deployment.
+
+## Task Receipt: 20261126-web-sharing-login-return
+- Status: PORTAL_FIXTURES_PASS_DEPLOYMENT_PENDING. Preserve the intended sharing page when a signed-out visitor follows a previous Team invitation or opens Pro Share. The legacy page remains available to recipients and the account login return uses the precise sharing path.
+- Source: permanent work after `a0406d8f6d840d93acfefec02a99611ef124bea7`; exact staged source digest stamped in this same commit.
+- Verification: The published portal base a0406d8f6d840d93acfefec02a99611ef124bea7 passed GitHub CI151 Core; Web status success. The actual registered Account handlers returned the Family route, legacy invitation fallback and shared stylesheet. The final isolated Chrome run covered 46 views, a migrated legacy invitation fragment, both sign-in return routes, B approval and two mock notification publishes. No actual account actions were submitted.
+- Next: Verify exact-source CI for the sign-in return follow-up. Validate a Gold web deployment before approving a production host change.
+- Runtime: The changes are committed web source and isolated previews. Gold and production services have separate deployment state.

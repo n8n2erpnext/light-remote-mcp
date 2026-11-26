@@ -2,7 +2,7 @@
 
 **Web Gold đã cập nhật Home, Account và Admin cho A/B v2 và Pro Share (Family).** Chrome mô phỏng đã qua hai kích thước. Trạng thái chia sẻ trên Account lấy từ cổng tính năng hiện có.
 
-Current development source: Polish the public site, Account and Admin for the A/B v2 rollout. Home, onboarding and guides show the agent-first flow with a six-character device Short ID, an agent-provided B code and explicit owner approval. Share one guest through the Pro Share (Family) account path; commercial and guest execution policy follows the existing feature gates. The previous Team screen remains reachable from previous invitation links. Reuse Google Sans, brand assets and shared portal styles for forms, notifications, approval cards and responsive layouts. Source and isolated web previews only. Existing Gold staging and production services retain their deployment.
+Current development source: Home and Account use the A/B v2 connection flow in Gold, Pro Share (Family) is the sharing destination, and Account/Admin use shared portal styling. The changes are committed web source and isolated previews. Gold and production services have separate deployment state.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

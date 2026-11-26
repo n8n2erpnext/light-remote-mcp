@@ -22,7 +22,7 @@
 <div class="brand"><img src="/account/assets/light-remote-mark.svg" alt=""><span><strong>Light Remote</strong><small>Remote MCP</small></span></div>
 <nav class="nav">
 <a href="/account"><span class="icon"><img class="material-icon" src="/assets/icons/material/devices.svg" alt=""></span>Devices</a>
-<a class="active" href="/account/team"><span class="icon"><img class="material-icon" src="/assets/icons/material/groups.svg" alt=""></span>Pro Team</a>
+<a class="active" href="/account/team?legacy=1"><span class="icon"><img class="material-icon" src="/assets/icons/material/groups.svg" alt=""></span>Pro Team</a>
 <a href="/account/inbox"><span class="icon"><img class="material-icon" src="/assets/icons/material/mark_email_unread.svg" alt=""></span> Inbox</a><a href="/account/usage"><span class="icon"><img class="material-icon" src="/assets/icons/material/bar_chart.svg" alt=""></span>Usage</a>
 <a href="/account/billing"><span class="icon"><img class="material-icon" src="/assets/icons/material/credit_card.svg" alt=""></span>Billing</a>
 <a href="/account/settings"><span class="icon"><img class="material-icon" src="/assets/icons/material/settings.svg" alt=""></span>Settings</a>
@@ -83,7 +83,7 @@ async function api(action,{method='GET',payload=null}={}){
  const options={method,credentials:'same-origin',cache:'no-store',headers:{'accept':'application/json'}};
  if(payload!==null){options.headers['content-type']='application/json';options.body=JSON.stringify(payload)}
  const response=await fetch('/account/api?action='+encodeURIComponent(action),options);
- if(response.status===401){location.href='/account/login?next=%2Faccount%2Fteam';throw Error('login_required')}
+ if(response.status===401){location.href='/account/login?next='+encodeURIComponent('/account/team?legacy=1');throw Error('login_required')}
  const data=await response.json().catch(()=>({}));
  if(!response.ok)throw Error(data.error||'request_failed');return data;
 }

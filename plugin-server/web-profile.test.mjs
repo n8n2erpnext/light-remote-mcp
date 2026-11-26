@@ -37,6 +37,8 @@ test('Family links follow the selected account profile without enabling the add-
   assert.match(family,/data-share-enabled="false"/);
   assert.match(family,/id="shareControls" hidden/);
   assert.match(family,/\/account\/team\?legacy=1/);
+  assert.match(family,/encodeURIComponent\('\/account\/pro-share'\)/);
+  assert.match(read('./account-portal/team.html'),/encodeURIComponent\('\/account\/team\?legacy=1'\)/);
   const enabled=getWebProfile({
     LR_GOLD_PRO_SHARE_CORE:'1',LR_GOLD_PRO_SHARE_ACCOUNT_HTTP:'1',LR_GOLD_PRO_SHARE_PORTAL_UI:'1'
   });

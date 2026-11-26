@@ -83,7 +83,7 @@ async function api(action,body,query=null){
   ...(body?{body:JSON.stringify(body)}:{})
  });
  const data=await response.json().catch(()=>({}));
- if(response.status===401){location.href='/account/login';throw Error('login_required')}
+ if(response.status===401){location.href='/account/login?next='+encodeURIComponent('/account/pro-share');throw Error('login_required')}
  if(!response.ok)throw Error(data.error||'HTTP '+response.status);
  return data;
 }

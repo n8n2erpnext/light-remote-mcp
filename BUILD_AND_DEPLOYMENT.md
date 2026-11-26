@@ -474,3 +474,7 @@ CI149 45796258787 completed 15/15 jobs from c2ca46c5d697458638ad9ae22e5f43e2d294
 ## Polish Gold web portals for A/B v2 and Pro Share
 
 Live Gold HTTP inspection before the change found the legacy Team page at /account/team and a 404 at /account/pro-share. Isolated Windows Chrome verified 46 rendered views at 1440 and 390px, covering all ten Admin sections, Google Sans assets, agent request approval with synthetic B, notification preview and history, Family navigation, enabled and unavailable fixtures. Web profile unit tests and targeted account approval and admin recovery regressions passed. Pre-change full bundle and restored fsck passed at checkpoint/20261126-before-web-production-review-c140f33.
+
+## Keep the sharing destination through account sign-in
+
+The published portal base a0406d8f6d840d93acfefec02a99611ef124bea7 passed GitHub CI151 Core; Web status success. The actual registered Account handlers returned the Family route, legacy invitation fallback and shared stylesheet. The final isolated Chrome run covered 46 views, a migrated legacy invitation fragment, both sign-in return routes, B approval and two mock notification publishes. No actual account actions were submitted.

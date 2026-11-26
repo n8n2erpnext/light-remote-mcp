@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-26T13:55:15.860Z",
+  "updatedAt": "2026-11-26T14:00:42.994Z",
   "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Run exact GitHub baseline checks for this source. Review the Home/Account/Admin build in the Gold environment before the production host role switch. Physical service validation and the separate Pro Share rollout require the target environment and its existing feature configuration.",
+  "nextAction": "Verify exact-source CI for the sign-in return follow-up. Validate a Gold web deployment before approving a production host change.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,12 +691,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261126-web-production-review-abv2-family-admin",
-    "status": "ISOLATED_CHROME_WEB_PASS_DEPLOYMENT_PENDING",
-    "summary": "Polish the public site, Account and Admin for the A/B v2 rollout. Home, onboarding and guides show the agent-first flow with a six-character device Short ID, an agent-provided B code and explicit owner approval. Share one guest through the Pro Share (Family) account path; commercial and guest execution policy follows the existing feature gates. The previous Team screen remains reachable from previous invitation links. Reuse Google Sans, brand assets and shared portal styles for forms, notifications, approval cards and responsive layouts.",
-    "verification": "Live Gold HTTP inspection before the change found the legacy Team page at /account/team and a 404 at /account/pro-share. Isolated Windows Chrome verified 46 rendered views at 1440 and 390px, covering all ten Admin sections, Google Sans assets, agent request approval with synthetic B, notification preview and history, Family navigation, enabled and unavailable fixtures. Web profile unit tests and targeted account approval and admin recovery regressions passed. Pre-change full bundle and restored fsck passed at checkpoint/20261126-before-web-production-review-c140f33.",
-    "nextAction": "Run exact GitHub baseline checks for this source. Review the Home/Account/Admin build in the Gold environment before the production host role switch. Physical service validation and the separate Pro Share rollout require the target environment and its existing feature configuration.",
-    "sourceDigest": "3bde8964d67bb26db0ef0236dfb6f221fed74a8419d9fb665471e623a79028bc",
+    "taskId": "20261126-web-sharing-login-return",
+    "status": "PORTAL_FIXTURES_PASS_DEPLOYMENT_PENDING",
+    "summary": "Preserve the intended sharing page when a signed-out visitor follows a previous Team invitation or opens Pro Share. The legacy page remains available to recipients and the account login return uses the precise sharing path.",
+    "verification": "The published portal base a0406d8f6d840d93acfefec02a99611ef124bea7 passed GitHub CI151 Core; Web status success. The actual registered Account handlers returned the Family route, legacy invitation fallback and shared stylesheet. The final isolated Chrome run covered 46 views, a migrated legacy invitation fragment, both sign-in return routes, B approval and two mock notification publishes. No actual account actions were submitted.",
+    "nextAction": "Verify exact-source CI for the sign-in return follow-up. Validate a Gold web deployment before approving a production host change.",
+    "sourceDigest": "684bd4312b3baed543e19104760124071932a81a00008f3959a230bba50faea0",
     "sourceFileCount": 1765
   },
   "legacyFilesystemCleanup": {
@@ -3639,6 +3639,14 @@
     "physicalAcceptance": "PENDING",
     "billing": "EXISTING_GATES",
     "goldDeployment": "NOT_DEPLOYED",
-    "productionDeployment": "NOT_DEPLOYED"
+    "productionDeployment": "NOT_DEPLOYED",
+    "implementationCommit": "a0406d8f6d840d93acfefec02a99611ef124bea7",
+    "implementationCiRun": 45833846599,
+    "implementationCore": "PASS",
+    "implementationWeb": "SUCCESS",
+    "registeredAccountRoutes": "PASS",
+    "legacyInvite": "PASS",
+    "sharingLoginReturn": "PASS",
+    "notificationPublishFixtureCount": 2
   }
 }
