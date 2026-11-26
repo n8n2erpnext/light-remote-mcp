@@ -474,3 +474,7 @@ Add separately selectable Claude Code and Gemini API providers to the API Worker
 ## Add bounded API Worker review groups with Long Memory references
 
 An authorized MCP Agent can request two independent text reviews of the same snapshot on one device. Use the same optional workGroupId for both requests and a separate workerId per review. Each exact review still needs Owner approval in Local Wall. The controller runs at most two reviews concurrently, one per provider. Both the group reservation and the concurrent device budget are capped at 120 seconds. An explicit Long Memory checkpoint reference resolves on the device and is checked against the active scope and signed checkpoint before the provider call and before returning its result. Group reservations and replay fences survive restart as metadata. Cancellation and result lookup stay bound to the individual worker.
+
+## Fix Long Memory Wall pairing in installed Chrome extension
+
+Long Memory extension 0.4.1 opens a persistent pairing tab for the optional Chrome permission request. The selected Wall stays bound to the exact address and authenticated enrolled account/device. The service worker records pending pairing before navigating, resumes after owner sign-in and reuses an already open Wall. Pairing progress, login and errors are visible beside the action. Extension and Windows client versions are independent.

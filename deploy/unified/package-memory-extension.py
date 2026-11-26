@@ -5,7 +5,7 @@ source=root/'extensions/light-remote-lm-abv2'
 out=root/(sys.argv[1] if len(sys.argv)>1 else 'build-output/memory-extension')
 assert out.resolve().is_relative_to(root.resolve());out.mkdir(parents=True,exist_ok=True)
 manifest=json.loads((source/'manifest.json').read_text())
-names=['manifest.json','popup.html','popup.css','popup.js','background.js','shared.js','capture.js','wall.js','restore.js','icon.png','GoogleSans-Variable.ttf','GoogleSans-OFL-1.1.txt','README.md']
+names=['manifest.json','popup.html','popup.css','popup.js','pair.html','pair.js','background.js','shared.js','capture.js','wall.js','restore.js','icon.png','GoogleSans-Variable.ttf','GoogleSans-OFL-1.1.txt','README.md']
 assert set(names)=={p.name for p in source.iterdir() if p.is_file()},'Review new extension package files explicitly'
 def git(*args):return subprocess.check_output(['git',*args],cwd=root,text=True).strip()
 receipt={'sourceCommit':git('rev-parse','HEAD'),'sourceTree':git('rev-parse','HEAD^{tree}'),'extensionVersion':manifest['version'],'productVersion':(root/'VERSION').read_text().strip(),'physicalChromeAcceptance':False,'files':{n:hashlib.sha256((source/n).read_bytes()).hexdigest() for n in names}}

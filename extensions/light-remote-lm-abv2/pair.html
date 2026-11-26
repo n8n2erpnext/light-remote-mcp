@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pair Light Remote Memory</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="shared.js" defer></script>
+  <script src="pair.js" defer></script>
+</head>
+<body class="pair-page">
+  <header><img src="icon.png" width="36" height="36" alt=""><strong>Light Remote</strong></header>
+  <main>
+    <section>
+      <h1>Pair your Memory device</h1>
+      <p id="wall-address"></p>
+      <p>Allow Chrome to reach this Wall. Sign in to the Wall if prompted.</p>
+      <button id="allow" type="button" disabled>Allow and pair</button>
+      <button id="open-wall" class="secondary" type="button" hidden>Open Wall</button>
+      <p id="status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+</body>
+</html>

@@ -255,3 +255,11 @@ CI140 exact source b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68: 15/15 jobs passed, 
 [Windows x64 installer](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/44671022409/artifacts/14602170418) · [Chrome extension 0.4.0](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/44671022409/artifacts/14600357201)
 
 Owner may install the verified Windows artifact and test the extension in a disposable Chrome profile. Use a test conversation and verify capture, review, save, sync and restore. For end-to-end API Worker testing, use compatible Plugin, Hub and Device versions with the pilot enabled on the selected test lane. Complete one bounded live review per authorized provider before testing the shared checkpoint group.
+
+## Ghép nối extension 0.4.1 — 2026-11-26
+
+Long Memory extension 0.4.1 opens a persistent pairing tab for the optional Chrome permission request. The selected Wall stays bound to the exact address and authenticated enrolled account/device. The service worker records pending pairing before navigating, resumes after owner sign-in and reuses an already open Wall. Pairing progress, login and errors are visible beside the action. Extension and Windows client versions are independent.
+
+Chrome 158 on Windows installed the MV3 extension in a fresh profile and completed the login redirect, persisted the fixture account/device after the popup closed, reused an existing Wall and showed success on reopening. Host access was seeded only on the disposable fixture manifest. The emitted package keeps optional host permissions. Portable tests 12/12 and package permission guard passed. The user profile and native Chrome consent still require manual acceptance. Full pre-change checkpoint was restored and fsck passed on ARM at checkpoint/20261115-before-rmv2-memorypair-f532afe.
+
+Load extension 0.4.1, enter the Wall address, select Pair this Wall and Allow and pair, then confirm Paired with. Use Open Wall to sign in if needed. Verify the corrected extension on the actual device and confirm exact-source web CI.

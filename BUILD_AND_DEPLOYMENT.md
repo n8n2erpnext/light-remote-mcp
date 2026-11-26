@@ -438,3 +438,7 @@ CI137 passed 15/15. GitHub artifact 14596509104 matches the reported outer ZIP S
 ## Record CI140 Windows installer and Memory extension verification
 
 CI140 exact source b892a0fa1d8d71ad9d8a0e1d646ab83928b78f68: 15/15 jobs passed, overall success. Windows install/uninstall, in-place upgrade and cross-layout rollback passed on Actions. Windows artifact 14602170418 matched the outer archive digest and the inner installer SHA-256 a3b1ad71031843345cbdc3ea3d70f416bf9a4772e687ae27919b9803e1946460. Extension artifact 14600357201 matched its outer and inner SHA-256 and all 13 files at the same Git source. Local Desktop web suite passed 130/130. Long Memory and Worker portable tests passed 35/35.
+
+## Fix Long Memory Wall pairing in installed Chrome extension
+
+Chrome 158 on Windows installed the MV3 extension in a fresh profile and completed the login redirect, persisted the fixture account/device after the popup closed, reused an existing Wall and showed success on reopening. Host access was seeded only on the disposable fixture manifest. The emitted package keeps optional host permissions. Portable tests 12/12 and package permission guard passed. The user profile and native Chrome consent still require manual acceptance. Full pre-change checkpoint was restored and fsck passed on ARM at checkpoint/20261115-before-rmv2-memorypair-f532afe.

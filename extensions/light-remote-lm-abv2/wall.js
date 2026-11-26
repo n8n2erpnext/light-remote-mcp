@@ -3,12 +3,16 @@
 async function lightRemoteLmWallIdentity(expectedUrl){
  if(location.href.split(/[?#]/)[0]!==expectedUrl)return {ok:false,error:'wrong_wall'};
  try{
-  const r=await fetch('/api/status',{credentials:'same-origin',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(5000)}),j=await r.json();
-  const flags=await fetch('/api/gold/modules',{credentials:'same-origin',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(5000)}).then(x=>x.json());
+  const options={credentials:'same-origin',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(5000)};
+  const [r,modules]=await Promise.all([fetch('/api/status',options),fetch('/api/gold/modules',options)]);
+  if(r.status===401||modules.status===401||modules.status===403)return {ok:false,error:'wall_owner_sign_in_required'};
+  if(!r.ok||!modules.ok)return {ok:false,error:'wall_unavailable'};
+  const [j,flags]=await Promise.all([r.json(),modules.json()]);
   const local=j.local;
-  if(!r.ok||!j.ok||!local?.accountId||!local.deviceId||!flags.ok)return {ok:false,error:'wall_owner_sign_in_required'};
+  if(!j.ok||!flags.ok)return {ok:false,error:'wall_unavailable'};
+  if(!local?.accountId||!local.deviceId)return {ok:false,error:'wall_not_enrolled'};
   return {ok:true,accountId:local.accountId,deviceId:local.deviceId,name:local.deviceName??local.deviceId,memoryEnabled:flags.modules?.longMemory===true||flags.flags?.longMemory===true};
- }catch{return {ok:false,error:'wall_owner_sign_in_required'};}
+ }catch{return {ok:false,error:'wall_unavailable'};}
 }
 async function lightRemoteLmStageWall(profile,snapshot,generation,expiresAt){
  if(location.href.split(/[?#]/)[0]!==profile.url)return {ok:false,error:'wrong_wall'};

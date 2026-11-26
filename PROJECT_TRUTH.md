@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory và API Worker.** CI140 qua 15/15 job. Đã xác minh bộ cài Windows dev14 và extension 0.4.0 từ commit `b892a0f`. Nghiệm thu Chrome và provider thật còn mở.
+**Long Memory extension 0.4.1 sửa ghép nối Chrome.** Bản sửa đã qua kiểm thử extension cài thật trong Chrome với Wall giả lập. API Worker và bộ cài Windows dev14 đã qua CI140. Nghiệm thu extension trên thiết bị Owner và provider thật còn mở.
 
-Current development source: Verified exact-source Windows and Chrome extension downloads for internal acceptance. API Worker supports independent, bounded review jobs with per-review approval and a local signed Long Memory reference. Gold and the Owner-installed desktop were not modified. Pilot remains disabled by default.
+Current development source: Long Memory extension 0.4.1 opens a persistent pairing tab for the optional Chrome permission request. The selected Wall stays bound to the exact address and authenticated enrolled account/device. The service worker records pending pairing before navigating, resumes after owner sign-in and reuses an already open Wall. Pairing progress, login and errors are visible beside the action. Extension and Windows client versions are independent. Gold and Windows runtime remain on the prior installer. The pairing fix is delivered in the extension package.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

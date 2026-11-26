@@ -19,11 +19,9 @@ async function boot(){
 }
 action('pair',async()=>{
  const target=memory.wall($('wallUrl').value);
- // This request is issued only inside the user's Pair click.
- if(!await chrome.permissions.request({origins:[target.permission]}))throw Error('Wall permission was not granted.');
- const reply=await chrome.runtime.sendMessage({type:'LRLM_PAIR_WALL',url:target.url});
- if(!reply?.ok)throw Error(reply?.error??'Pairing could not begin.');
- status('Sign in to your selected Wall. Reopen this popup after it is paired.');
+ const setup=new URL(chrome.runtime.getURL('pair.html'));
+ setup.searchParams.set('wall',target.url);
+ await chrome.tabs.create({url:setup.href});
 });
 action('capture',async()=>{
  snapshot=null;$('send').disabled=true;$('review').value='';
