@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-26T09:13:48.780Z",
+  "updatedAt": "2026-11-26T09:20:28.181Z",
   "version": "0.10.1-dev.14",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Extract extension 0.4.2 over the currently loaded extension folder, use Reload on chrome://extensions and capture from the target chat. Review the captured text before opening the paired Wall. Confirm the Owner chat variant and exact-source Web CI.",
+  "nextAction": "Replace the files in the currently loaded extension folder, reload the extension and capture from the ChatGPT or Claude conversation. Review the text in the popup before opening the paired Wall.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,11 +691,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261126-long-memory-modern-chat-capture",
-    "status": "CAPTURE_FIXED_INSTALLED_CHROME_FIXTURE_PASS",
-    "summary": "The capture adapter recognizes ChatGPT search units, user bubbles and assistant text blocks within the conversation. It reads older role-marked turns and Claude responses too. Nested content is counted once, ordered by the loaded DOM. It excludes hidden elements, editor drafts, controls, inactive status text and marked tool content. Capture uses the installed action popup and its activeTab grant without changing host permissions or the pairing schema.",
-    "verification": "On Windows Chrome 158, the installed 0.4.1 action reproduced the reported no-supported-messages error on a modern synthetic chat. The installed 0.4.2 action captured the same user and assistant messages into the review box using activeTab with zero standing host permissions. Browser fixtures passed for legacy ChatGPT, mixed modern/legacy ChatGPT and Claude. Tests cover UTF-8/code indentation, order, duplicates, hidden controls, draft exclusion and changed snapshot rejection. Portable 12/12 and package permission checks passed. The Owner browser session was unavailable for direct inspection. Full restore/fsck passed on ARM at checkpoint/20261126-before-memory-capture-8d75586.",
-    "nextAction": "Extract extension 0.4.2 over the currently loaded extension folder, use Reload on chrome://extensions and capture from the target chat. Review the captured text before opening the paired Wall. Confirm the Owner chat variant and exact-source Web CI.",
+    "taskId": "20261126-memory-capture-artifact-verification",
+    "status": "CAPTURE_PACKAGE_VERIFIED_OWNER_TEST_PENDING",
+    "summary": "Extension 0.4.2 is available and reads newer ChatGPT message markup in the installed Chrome toolbar workflow.",
+    "verification": "CI145 Web passed on 13b854baac243ec8b937f9145ca52cc73ff5f663. Downloaded CI artifact 15102527626 and all 15 packaged files matched the source manifests. The local exact-source ZIP has SHA-256 2b599d807dcd2d37692c7d6f4bf5282c33497ec0a32dbf4d0aa975f1aadb8134. In isolated Chrome, a same-folder update retained the 0.4.1 fixture pairing. The installed, downloaded CI ZIP passed Capture with both message roles and the review action available. The Owner chat still requires acceptance. The separate native RM job failed NuGet locked verification after the SDK changed the ILLink.Tasks patch.",
+    "nextAction": "Replace the files in the currently loaded extension folder, reload the extension and capture from the ChatGPT or Claude conversation. Review the text in the popup before opening the paired Wall.",
     "sourceDigest": "035627b8e098340847b65d5faa256c0bb84e08e224ab342590dee29943d2598e",
     "sourceFileCount": 1760
   },
@@ -2018,7 +2018,7 @@
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "21e5e2e0d7838c6a4e22bb20f05109056dc248d93277e49622fcf1d0df14d55f",
+    "documentSha256": "1f2b9f2c80545aea630d7cb736f21673a4c7516a6c0fda42f5f9def9eb05b711",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2091,7 +2091,18 @@
         "fixture": "OLD_ERROR_AND_NEW_INSTALLED_POPUP_PASS",
         "ownerAcceptance": "PENDING",
         "standingChatHostPermissions": 0,
-        "checkpointTag": "checkpoint/20261126-before-memory-capture-8d75586"
+        "checkpointTag": "checkpoint/20261126-before-memory-capture-8d75586",
+        "sourceCommit": "13b854baac243ec8b937f9145ca52cc73ff5f663",
+        "runId": 45790043960,
+        "webCi": "PASS",
+        "artifactId": 15102527626,
+        "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/45790043960/artifacts/15102527626",
+        "githubArtifactDigest": "sha256:8c4b7f535cca54d9a65f8dca7b6fe896f3afe0b3d1eadcc6dba2c57bac1df5f5",
+        "localArchiveSha256": "2b599d807dcd2d37692c7d6f4bf5282c33497ec0a32dbf4d0aa975f1aadb8134",
+        "ciInnerArchiveSha256": "1eda4c34e75f5a09a723430e202b631d08ada2eecb39794241c46ad2fba7e8b5",
+        "sourceFilesVerified": 15,
+        "sameFolderPairingFixture": "PASS",
+        "nativeBaseline": "NU1004_SDK_ILLINK_LOCK_DRIFT"
       }
     },
     "codex": {

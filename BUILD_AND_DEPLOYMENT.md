@@ -450,3 +450,7 @@ CI143 Web passed on d7db2547e69776d68920818fa5c77af8838d8c1a, including the inst
 ## Capture newer ChatGPT conversation markup in Long Memory 0.4.2
 
 On Windows Chrome 158, the installed 0.4.1 action reproduced the reported no-supported-messages error on a modern synthetic chat. The installed 0.4.2 action captured the same user and assistant messages into the review box using activeTab with zero standing host permissions. Browser fixtures passed for legacy ChatGPT, mixed modern/legacy ChatGPT and Claude. Tests cover UTF-8/code indentation, order, duplicates, hidden controls, draft exclusion and changed snapshot rejection. Portable 12/12 and package permission checks passed. The Owner browser session was unavailable for direct inspection. Full restore/fsck passed on ARM at checkpoint/20261126-before-memory-capture-8d75586.
+
+## Record Long Memory 0.4.2 capture verification
+
+CI145 Web passed on 13b854baac243ec8b937f9145ca52cc73ff5f663. Downloaded CI artifact 15102527626 and all 15 packaged files matched the source manifests. The local exact-source ZIP has SHA-256 2b599d807dcd2d37692c7d6f4bf5282c33497ec0a32dbf4d0aa975f1aadb8134. In isolated Chrome, a same-folder update retained the 0.4.1 fixture pairing. The installed, downloaded CI ZIP passed Capture with both message roles and the review action available. The Owner chat still requires acceptance. The separate native RM job failed NuGet locked verification after the SDK changed the ILLink.Tasks patch.

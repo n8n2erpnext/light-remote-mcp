@@ -1,6 +1,6 @@
 # Project handoff — additive Agent GPU observation
 
-Current resume point: Extract extension 0.4.2 over the currently loaded extension folder, use Reload on chrome://extensions and capture from the target chat. Review the captured text before opening the paired Wall. Confirm the Owner chat variant and exact-source Web CI.
+Current resume point: Replace the files in the currently loaded extension folder, reload the extension and capture from the ChatGPT or Claude conversation. Review the text in the popup before opening the paired Wall.
 
 **RM v2 chưa đạt nghiệm thu live trên dev12.** Đã xác minh helper đang cài đúng source CI131 và đọc lại hash fixture:4.096 đúng;8.192 chỉ có6.816; bài300từ1391units chỉ có49. Năm ca262K qua paste không nghiệm thu API nhập trực tiếp. Job exit0 đang là xác nhận nhận lệnh; receipt ban đầu còn preparing, chưa có terminal writeId để xác định nguyên nhân. Server đã đăng ký schema262K/sourcePath/status/cancel và GPU/video; catalog của lượt đang chạy vẫn cũ sau thông báo refresh. Không coi GDI screenshot là bài test đường GPU mới. Bỏ mục dựng Windows VM theo yêu cầu Owner.
 
@@ -913,3 +913,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: On Windows Chrome 158, the installed 0.4.1 action reproduced the reported no-supported-messages error on a modern synthetic chat. The installed 0.4.2 action captured the same user and assistant messages into the review box using activeTab with zero standing host permissions. Browser fixtures passed for legacy ChatGPT, mixed modern/legacy ChatGPT and Claude. Tests cover UTF-8/code indentation, order, duplicates, hidden controls, draft exclusion and changed snapshot rejection. Portable 12/12 and package permission checks passed. The Owner browser session was unavailable for direct inspection. Full restore/fsck passed on ARM at checkpoint/20261126-before-memory-capture-8d75586.
 - Next: Extract extension 0.4.2 over the currently loaded extension folder, use Reload on chrome://extensions and capture from the target chat. Review the captured text before opening the paired Wall. Confirm the Owner chat variant and exact-source Web CI.
 - Runtime: This update ships in the Chrome extension and works with the paired Local Wall.
+
+## Task Receipt: 20261126-memory-capture-artifact-verification
+- Status: CAPTURE_PACKAGE_VERIFIED_OWNER_TEST_PENDING. Extension 0.4.2 is available and reads newer ChatGPT message markup in the installed Chrome toolbar workflow.
+- Source: permanent work after `13b854baac243ec8b937f9145ca52cc73ff5f663`; exact staged source digest stamped in this same commit.
+- Verification: CI145 Web passed on 13b854baac243ec8b937f9145ca52cc73ff5f663. Downloaded CI artifact 15102527626 and all 15 packaged files matched the source manifests. The local exact-source ZIP has SHA-256 2b599d807dcd2d37692c7d6f4bf5282c33497ec0a32dbf4d0aa975f1aadb8134. In isolated Chrome, a same-folder update retained the 0.4.1 fixture pairing. The installed, downloaded CI ZIP passed Capture with both message roles and the review action available. The Owner chat still requires acceptance. The separate native RM job failed NuGet locked verification after the SDK changed the ILLink.Tasks patch.
+- Next: Replace the files in the currently loaded extension folder, reload the extension and capture from the ChatGPT or Claude conversation. Review the text in the popup before opening the paired Wall.
+- Runtime: This extension update uses the paired Local Wall.

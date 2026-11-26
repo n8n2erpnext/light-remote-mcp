@@ -281,3 +281,11 @@ On Windows Chrome 158, the installed 0.4.1 action reproduced the reported no-sup
 Extract extension 0.4.2 over the currently loaded extension folder, use Reload on chrome://extensions and capture from the target chat. Review the captured text before opening the paired Wall. Confirm the Owner chat variant and exact-source Web CI.
 
 The new structural markers were reproduced with data-free test content. [Firsthand DOM report](https://github.com/nowledge-co/community/issues/942).
+
+## Gói kiểm thử Capture 0.4.2 — 2026-11-26
+
+CI145 Web passed on 13b854baac243ec8b937f9145ca52cc73ff5f663. Downloaded CI artifact 15102527626 and all 15 packaged files matched the source manifests. The local exact-source ZIP has SHA-256 2b599d807dcd2d37692c7d6f4bf5282c33497ec0a32dbf4d0aa975f1aadb8134. In isolated Chrome, a same-folder update retained the 0.4.1 fixture pairing. The installed, downloaded CI ZIP passed Capture with both message roles and the review action available. The Owner chat still requires acceptance. The separate native RM job failed NuGet locked verification after the SDK changed the ILLink.Tasks patch.
+
+[Get extension 0.4.2](https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/45790043960/artifacts/15102527626)
+
+Replace the files in the currently loaded extension folder, reload the extension and capture from the ChatGPT or Claude conversation. Review the text in the popup before opening the paired Wall.

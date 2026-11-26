@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory extension 0.4.2 cập nhật nhận diện tin nhắn ChatGPT.** Bài test popup Chrome tái hiện lỗi trên 0.4.1 và điền nội dung review trên 0.4.2 với dữ liệu mô phỏng. Nghiệm thu trên chat Owner còn mở.
+**Long Memory 0.4.2 sẵn sàng để Owner thử Capture.** Chrome cách ly và CI145 Web đã qua. Gói tải khớp đủ 15 file và giữ được ghép nối đã lưu khi cập nhật trong thư mục cũ ở ca kiểm thử.
 
-Current development source: The capture adapter recognizes ChatGPT search units, user bubbles and assistant text blocks within the conversation. It reads older role-marked turns and Claude responses too. Nested content is counted once, ordered by the loaded DOM. It excludes hidden elements, editor drafts, controls, inactive status text and marked tool content. Capture uses the installed action popup and its activeTab grant without changing host permissions or the pairing schema. This update ships in the Chrome extension and works with the paired Local Wall.
+Current development source: Extension 0.4.2 is available and reads newer ChatGPT message markup in the installed Chrome toolbar workflow. This extension update uses the paired Local Wall.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 
