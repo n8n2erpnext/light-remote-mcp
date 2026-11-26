@@ -1,8 +1,8 @@
 # Light Remote MCP — Project Truth
 
-**Long Memory 0.4.3 đã qua Chrome mô phỏng với ChatGPT và Claude.** Bộ cài Wall dev15 đang qua CI sau khi bổ sung module vào manifest đóng gói và sửa NuGet content hash.
+**Long Memory 0.4.3 và Wall dev15 đã qua CI149 15/15.** Đã kiểm tra đúng commit cho hai gói và luồng Chrome mô phỏng đến My Work. Chờ nghiệm thu trên máy Owner.
 
-Current development source: Include the browser context module in the client payload manifest and require it in the packaged Windows Long Memory smoke check. Auto-capture requires the dev15 Wall and Chrome extension 0.4.3.
+Current development source: Light Remote Long Memory 0.4.3 and the paired Wall dev15 installer are ready for Owner acceptance. A one-time opt-in per chat sends new loaded context to the selected work. Browser context is device-local and Agent checkpoints remain independent. The build is for Owner testing. The work branch and artifact publication leave deployed services and existing Windows installations at their prior versions.
 
 Các receipt bên dưới giữ bằng chứng và trạng thái tại thời điểm trước; mục tiêu hiện tại ở phần đầu và Master Checkpoint.
 

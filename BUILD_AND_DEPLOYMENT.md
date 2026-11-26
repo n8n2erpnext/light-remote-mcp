@@ -466,3 +466,7 @@ CI147 reached NuGet locked restore and returned NU1403 for ILLink.Tasks after up
 ## Bundle Long Memory browser context in the Windows client
 
 CI147 caught a missing static import in the Windows Client Core allowlist. The package allowlist now includes the new module. The packaging step explicitly checks for it. The complete Chrome watch flow passed with ChatGPT and Claude fixture pages, including running after popup closure, streaming detection and stopping without altering the manual checkpoint. The Claude test used the hash-verified 0.4.3 ZIP.
+
+## Record Long Memory auto-capture CI149 and artifact verification
+
+CI149 45796258787 completed 15/15 jobs from c2ca46c5d697458638ad9ae22e5f43e2d2947ff4. The Windows packaging smoke included the browser context module. Windows artifact 15105404628 is available from GitHub. Hosted F16 intake confirmed the inner installer; the local mirror is incomplete. Installer SHA-256 8741798ba2c81b31b361b54f39fce5ddc62318e52ef866c438c774c504d5dfdc. Downloaded Chrome artifact 15105057852 matched its outer digest and all 16 source file hashes. Exact-source extension installed in isolated Chrome passed the popup opt-in, background alarm, streaming pause, digest deduplication, Stop, unchanged signed checkpoint and the Wall My Work reader. Synthetic Claude also passed the watch flow. Physical Owner acceptance is pending.

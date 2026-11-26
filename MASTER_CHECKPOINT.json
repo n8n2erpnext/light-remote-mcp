@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-26T09:53:51.804Z",
+  "updatedAt": "2026-11-26T13:25:25.514Z",
   "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Check exact-source Core, Web and Windows packaging. After proof is available, use the dev15 installer and 0.4.3 ZIP for Owner acceptance.",
+  "nextAction": "Install the dev15 candidate, reload Chrome extension 0.4.3 in its existing folder, and keep the paired authenticated Wall tab open. In the desired chat choose the My Work item and select Start auto-capture. Request another reply, close the popup and check the work’s Browser context after the next watch cycle. Then stop the watch and confirm that the manual Agent checkpoint history is available separately.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,11 +691,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261126-memory-autocapture-windows-browser-context-payload",
-    "status": "PAYLOAD_ALLOWLIST_FIXED_CI_PENDING",
-    "summary": "Include the browser context module in the client payload manifest and require it in the packaged Windows Long Memory smoke check.",
-    "verification": "CI147 caught a missing static import in the Windows Client Core allowlist. The package allowlist now includes the new module. The packaging step explicitly checks for it. The complete Chrome watch flow passed with ChatGPT and Claude fixture pages, including running after popup closure, streaming detection and stopping without altering the manual checkpoint. The Claude test used the hash-verified 0.4.3 ZIP.",
-    "nextAction": "Check exact-source Core, Web and Windows packaging. After proof is available, use the dev15 installer and 0.4.3 ZIP for Owner acceptance.",
+    "taskId": "20261126-memory-autocapture-ci149-artifact-receipt",
+    "status": "CI_AND_ARTIFACTS_PASS_OWNER_ACCEPTANCE_PENDING",
+    "summary": "Light Remote Long Memory 0.4.3 and the paired Wall dev15 installer are ready for Owner acceptance. A one-time opt-in per chat sends new loaded context to the selected work. Browser context is device-local and Agent checkpoints remain independent.",
+    "verification": "CI149 45796258787 completed 15/15 jobs from c2ca46c5d697458638ad9ae22e5f43e2d2947ff4. The Windows packaging smoke included the browser context module. Windows artifact 15105404628 is available from GitHub. Hosted F16 intake confirmed the inner installer; the local mirror is incomplete. Installer SHA-256 8741798ba2c81b31b361b54f39fce5ddc62318e52ef866c438c774c504d5dfdc. Downloaded Chrome artifact 15105057852 matched its outer digest and all 16 source file hashes. Exact-source extension installed in isolated Chrome passed the popup opt-in, background alarm, streaming pause, digest deduplication, Stop, unchanged signed checkpoint and the Wall My Work reader. Synthetic Claude also passed the watch flow. Physical Owner acceptance is pending.",
+    "nextAction": "Install the dev15 candidate, reload Chrome extension 0.4.3 in its existing folder, and keep the paired authenticated Wall tab open. In the desired chat choose the My Work item and select Start auto-capture. Request another reply, close the popup and check the work’s Browser context after the next watch cycle. Then stop the watch and confirm that the manual Agent checkpoint history is available separately.",
     "sourceDigest": "7e41bc3d5a3dc26bbdf0da5c0770b82f7408b2395b833241d07784ce73a7d6ae",
     "sourceFileCount": 1763
   },
@@ -2018,7 +2018,7 @@
     "sourceCommit": "ad3db2f6ffaae0f9de639716e5657dd11bb40da4",
     "productSourceDigest": "537a0a47ba37a0a9a7a3624cb9264961de0ebcc02cd16605543948a7a73d9516",
     "document": "docs/plans/LOCAL_MEMORY_EXTENSION_API_WORKER_PLAN.md",
-    "documentSha256": "cb2b00c0e416c7736f560f6c73a3260e844c0ea1adc9fed80ead276e90e5c4fa",
+    "documentSha256": "4b49e271759e99de7a89cc649f6f7cba3cfd65daacd890ff25503f1de7c6edfd",
     "memory": {
       "ownerReportedLocalSaveAndSyncWorking": true,
       "dedicatedRelay": "E2EE_RAM_TTL120S_IN_SOURCE",
@@ -2119,7 +2119,43 @@
         "illinkVersion": "8.0.34",
         "illinkContentHash": "AoMGwI/388svzARQ2NYC25vFOQGcf13FgQWv61TwPAdPUMOejXpQxBQHrQpXfqM7vqxxj1E3SAkX/OkE2cuChw==",
         "claudePackagedFixture": "PASS",
-        "windowsPayloadModule": "MANIFEST_AND_SMOKE_CHECK"
+        "windowsPayloadModule": "MANIFEST_AND_SMOKE_CHECK",
+        "sourceCommit": "c2ca46c5d697458638ad9ae22e5f43e2d2947ff4",
+        "sourceTree": "2cbe4160b4ee0236ddcd63e6f72738559ee34715",
+        "ciRunId": 45796258787,
+        "ci": "15/15_PASS",
+        "wallReaderFixture": "PASS",
+        "chromeArtifact": {
+          "sourceCommit": "c2ca46c5d697458638ad9ae22e5f43e2d2947ff4",
+          "sourceTree": "2cbe4160b4ee0236ddcd63e6f72738559ee34715",
+          "version": "0.10.1-dev.15",
+          "runId": 45796258787,
+          "artifactId": 15105057852,
+          "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/45796258787/artifacts/15105057852",
+          "outerSha256": "8d7f8bcc99ef5461e49d6fe051be23582c5c911b80d00201f881fd29943d39e4",
+          "artifactType": "chrome",
+          "extensionVersion": "0.4.3",
+          "filesVerified": 16,
+          "archiveSha256": "42b917d62e7654d7fc04bcb8b45dd86a00431679f19b923298214e1ceb3756c6",
+          "localArchiveSha256": "194ba9b3bb3c665bcc61d3a2efce8d6ac7bf5be6390a21c68e3f1148f5816434"
+        },
+        "windowsArtifact": {
+          "sourceCommit": "c2ca46c5d697458638ad9ae22e5f43e2d2947ff4",
+          "sourceTree": "2cbe4160b4ee0236ddcd63e6f72738559ee34715",
+          "version": "0.10.1-dev.15",
+          "runId": 45796258787,
+          "artifactId": 15105404628,
+          "artifactUrl": "https://github.com/n8n2erpnext/light-remote-mcp/actions/runs/45796258787/artifacts/15105404628",
+          "outerSha256": "3519595c8f19e2c9adba21017bcb1d39d3830e5c6b05b75ba7b584dd862668cf",
+          "outerBytes": 172209908,
+          "artifactType": "windows",
+          "installer": "Light-Remote-MCP-Setup-x64.exe",
+          "installerSha256": "8741798ba2c81b31b361b54f39fce5ddc62318e52ef866c438c774c504d5dfdc",
+          "installedLifecycle": "PASS",
+          "migration": "PASS",
+          "physicalOwnerAcceptance": false,
+          "verification": "GITHUB_ACTIONS_WINDOWS_PACKAGING_AND_F16_INTAKE"
+        }
       }
     },
     "codex": {
