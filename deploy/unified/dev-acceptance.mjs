@@ -82,6 +82,23 @@ try{
   await new Promise(r=>setTimeout(r,1000));
  }
  assert.ok(healthy,'Plugin and Operator startup with real PG/Redis');record('real Plugin health/version header',{statusCode:200});
+ if(env.LR_UNIFIED_PRODUCTION_ORIGIN_TEST==='1'){
+  const authorization=await request('/.well-known/oauth-authorization-server');
+  const resource=await request('/.well-known/oauth-protected-resource/mcp');
+  assert.equal(authorization.status,200);
+  assert.equal(authorization.json.issuer,origin);
+  assert.equal(resource.status,200);
+  assert.equal(resource.json.resource,origin+'/mcp');
+  assert.deepEqual(resource.json.authorization_servers,[origin]);
+  record('production MCP issuer and resource on isolated network',{statusCode:200});
+  const google=await request('/account/google');
+  assert.equal(google.status,302);
+  const target=new URL(google.headers.location);
+  assert.equal(target.origin,'https://accounts.google.com');
+  assert.equal(target.searchParams.get('redirect_uri'),origin+'/account/google/callback');
+  assert.equal(target.searchParams.get('code_challenge_method'),'S256');
+  record('Google authorization advertises the existing production callback; redirect not followed',{statusCode:302});
+ }
  const cross=await request('/account/api?action=login',{method:'POST',body:credentials.owner,headers:{origin:'https://foreign.invalid'}});assert.equal(cross.status,403);record('cross-origin Portal mutation denied',{statusCode:cross.status});
  const unauth=await request(apiPath('ownerSnapshot'),{method:'POST',body:{}});assert.equal(unauth.status,401);record('snapshot route enabled and unauthenticated caller denied',{statusCode:unauth.status});
  const cookie=await login('owner');const foreign=await login('foreign');

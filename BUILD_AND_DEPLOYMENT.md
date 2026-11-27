@@ -504,3 +504,7 @@ The R2 importer accepts --stage VERSION ABSOLUTE_MANIFEST_PATH for a verified Gi
 ## Restore native packaging workflow contracts
 
 The candidate workflow calls the reusable linux-client-build.yml and macos-client-build.yml workflows. The product package excludes optional macOS development canaries.
+
+## Add isolated Gold production-origin rehearsal
+
+Use python3 deploy/unified/dev.py test --production-origin from an exact clean checkout to exercise the production hostname inside the disposable private network. PostgreSQL, Redis, CA and credentials are fixture-local. The Google test checks the redirect URI and PKCE at the server response. It never follows the Google redirect or uses production credentials.

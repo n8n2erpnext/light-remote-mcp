@@ -17,5 +17,10 @@ try{
  registry.registerHosted(credentials.foreign,{issueSession:false});
  registry._persist();
  await persistence.flush();
+ if(process.env.LR_UNIFIED_PRODUCTION_ORIGIN_TEST==='1'){
+  const callback='https://light-remote.thaiduy.digital/account/google/callback';
+  await storage.pool.query(`INSERT INTO lr_gold_google_oauth_config(singleton_id,client_id,client_secret,redirect_uri)
+   VALUES(1,$1,$2,$3)`,['light-remote-fixture-only.apps.googleusercontent.com','fixture-only-google-client-secret',callback]);
+ }
  console.log('fixture_accounts_seeded=2; synthetic_only=true');
 }finally{await storage.close()}

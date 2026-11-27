@@ -108,9 +108,11 @@ def launch(args):
         write(app/'redis-url',f'redis://:{redispw}@{names["redis"]}:6379/0')
         write(bootstrap/'migrator-url',f'postgresql://lr_gold_migrator:{migratorpw}@{names["pg"]}:5432/light_remote_gold_dev')
         endpoint=json.loads((SOURCE/'config/endpoints.json').read_text())
-        # The canonical profile is pinned; runtime DNS is private to this network.
+        # The build profile stays pinned. The opt-in production-origin test
+        # uses a private network alias and disposable CA for that host.
         profile=endpoint['profiles'][endpoint['selectedProfile']]
-        host=urllib.parse.urlparse(profile['cloudOrigins']['owner']).hostname
+        host=('light-remote.thaiduy.digital' if args.production_origin else
+              urllib.parse.urlparse(profile['cloudOrigins']['owner']).hostname)
         pin=pki(app,bootstrap,host)
         flags={
           'LR_UNIFIED_DISPOSABLE_DEV':'1','LR_UNIFIED_SOURCE_COMMIT':sha,
@@ -142,6 +144,8 @@ def launch(args):
           'LR_GOLD_ABV2_DESKTOP_WALL_SSO_MTLS_CLIENT_CA_PATH_V4':'/state/pki/edge-ca.crt',
           'LR_GOLD_ABV2_DESKTOP_WALL_SSO_MTLS_CLIENT_SHA256_V4':pin
         }
+        if args.production_origin:
+            flags['LR_UNIFIED_PRODUCTION_ORIGIN_TEST']='1'
         write(app/'runtime-env.json',flags)
         for name in ['ab-key','abv2-seal-key','abv2-helper-key']:
             (app/name).write_bytes(secrets.token_bytes(32));(app/name).chmod(0o600)
@@ -180,7 +184,11 @@ def launch(args):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command',choices=['test','start','status','stop'])
+    parser.add_argument('--production-origin',action='store_true',
+                        help='run the disposable fixture with a private production hostname')
     args=parser.parse_args()
+    if args.production_origin and args.command!='test':
+        parser.error('--production-origin requires the disposable test command')
     if args.command in ['test','start']:return launch(args)
     latest=json.loads((SOURCE/'.unified/latest.json').read_text());base=pathlib.Path(latest['path']).resolve()
     allowed=(SOURCE/'.unified').resolve()

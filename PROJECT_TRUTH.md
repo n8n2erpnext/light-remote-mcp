@@ -400,3 +400,7 @@ The work branch now contains the exact-commit native distribution candidate and 
 ## Restore native packaging workflow contracts
 
 Candidate CI run 45976881827 passed the synthetic R2/assembly contract and failed native jobs on missing workflow paths. This commit reinstates those paths and checks macOS development-only artifacts against the historical workflow without packaging them for users. Native retry pending.
+
+## Add isolated Gold production-origin rehearsal
+
+Native release candidate CI run 45977302007 passed 5/5 for source 52dea03, including Windows-independent R2 contract and Linux/macOS packages on x64 and ARM64. Saved verified public rc.47 distribution rollback manifests and bootstrap. Rehearsal source syntax validated and actual test pending.
