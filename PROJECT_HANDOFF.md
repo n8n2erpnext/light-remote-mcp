@@ -1,6 +1,6 @@
 # Project handoff — additive Agent GPU observation
 
-Current resume point: Reinstate the tag-driven GitHub release and R2 sync for the official repository and stage the Gold production distribution feed. Verify build provenance, supported platform packages and the signed update path. Finish authenticated canaries and rehearse ingress and feed rollback before the maintenance window.
+Current resume point: Validate the new native distribution candidate CI. Complete a build-bound production endpoint profile across Agent, Desktop, Tray and Wall proof, prepare an isolated Gold production runtime and verify a complete release before any domain change.
 
 **RM v2 chưa đạt nghiệm thu live trên dev12.** Đã xác minh helper đang cài đúng source CI131 và đọc lại hash fixture:4.096 đúng;8.192 chỉ có6.816; bài300từ1391units chỉ có49. Năm ca262K qua paste không nghiệm thu API nhập trực tiếp. Job exit0 đang là xác nhận nhận lệnh; receipt ban đầu còn preparing, chưa có terminal writeId để xác định nguyên nhân. Server đã đăng ký schema262K/sourcePath/status/cancel và GPU/video; catalog của lượt đang chạy vẫn cũ sau thông báo refresh. Không coi GDI screenshot là bài test đường GPU mới. Bỏ mục dựng Windows VM theo yêu cầu Owner.
 
@@ -983,3 +983,10 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Verification: Archived rc.47 tag workflow and GitHub prerelease inspected. Production Downloads redirect and versioned/current R2 manifests verified. The active VPS timer still searches the current repo for v0.9 releases and its journal shows selection failure. The configured Gold staging and production Google client IDs, secrets and callback URI match; the production-origin round trip remains pending.
 - Next: Reinstate the tag-driven GitHub release and R2 sync for the official repository and stage the Gold production distribution feed. Verify build provenance, supported platform packages and the signed update path. Finish authenticated canaries and rehearse ingress and feed rollback before the maintenance window.
 - Runtime: Production still serves rc.47 Downloads from the existing LXD manifest and versioned R2 objects. Gold still has its development origin and fallback Downloads manifest. Audit and documentation only.
+
+## Task Receipt: 20261127-production-release-preparation
+- Status: SOURCE_READY_CI_AND_PRODUCTION_PROFILE_PENDING. Restore release candidate builds for Linux and macOS x64/arm64. Add tag publication from verified, exact-commit Windows and POSIX artifacts and add a versioned R2 staging mode with checksum and production endpoint provenance checks.
+- Source: permanent work after `c04e20293b3081eae823b3452f6dc6eb56f0d9c7`; exact staged source digest stamped in this same commit.
+- Verification: Bash and YAML parsing and synthetic exact-artifact/R2 rehearsal on the development host. Covered rerun reuse, tampering detection, version-key conflict rejection, no LXD or shared pointer changes and rejection of the lab endpoint. Native candidate CI and authenticated Gold production-origin checks remain pending.
+- Next: Validate the new native distribution candidate CI. Complete a build-bound production endpoint profile across Agent, Desktop, Tray and Wall proof, prepare an isolated Gold production runtime and verify a complete release before any domain change.
+- Runtime: Full checkpoint c04e202 bundle verified with SHA-256 8092a430e9b763e68683f389a131a2ee188be18dff7cf39a83237f62632d3d62. Source preparation on work only. Published release, shared R2 pointer, VPS timer, deployed services, and production route remain at their prior versions.

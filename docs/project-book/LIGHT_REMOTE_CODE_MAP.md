@@ -494,3 +494,7 @@ Include the browser context module in the client payload manifest and require it
 ## Polish Gold web portals for A/B v2 and Pro Share
 
 Polish the public site, Account and Admin for the A/B v2 rollout. Home, onboarding and guides show the agent-first flow with a six-character device Short ID, an agent-provided B code and explicit owner approval. Share one guest through the Pro Share (Family) account path; commercial and guest execution policy follows the existing feature gates. The previous Team screen remains reachable from previous invitation links. Reuse Google Sans, brand assets and shared portal styles for forms, notifications, approval cards and responsive layouts.
+
+## Prepare exact-source production release and isolated R2 staging
+
+Public downloads are assembled by the CI candidate and production release workflows. deploy/distribution/assemble-production-release.py validates exact tagged-source package inputs. sync-release-to-r2.sh stages signed-off versioned object bytes and a candidate manifest. The Plugin distribution portal serves its configured manifest and redirects supported package requests to the artifact URL.

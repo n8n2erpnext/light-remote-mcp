@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-27T09:36:53.595Z",
+  "updatedAt": "2026-11-27T09:49:07.772Z",
   "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Reinstate the tag-driven GitHub release and R2 sync for the official repository and stage the Gold production distribution feed. Verify build provenance, supported platform packages and the signed update path. Finish authenticated canaries and rehearse ingress and feed rollback before the maintenance window.",
+  "nextAction": "Validate the new native distribution candidate CI. Complete a build-bound production endpoint profile across Agent, Desktop, Tray and Wall proof, prepare an isolated Gold production runtime and verify a complete release before any domain change.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,13 +691,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261127-gold-abv2-production-release-chain-audit",
-    "status": "RELEASE_CHAIN_AUDITED_READINESS_PENDING",
-    "summary": "Trace the live rc.47 tag-to-release, GitHub-to-R2 and LXD Downloads pipeline. Record the release automation gaps in the current repository and the staged production Google OAuth configuration for the role switch.",
-    "verification": "Archived rc.47 tag workflow and GitHub prerelease inspected. Production Downloads redirect and versioned/current R2 manifests verified. The active VPS timer still searches the current repo for v0.9 releases and its journal shows selection failure. The configured Gold staging and production Google client IDs, secrets and callback URI match; the production-origin round trip remains pending.",
-    "nextAction": "Reinstate the tag-driven GitHub release and R2 sync for the official repository and stage the Gold production distribution feed. Verify build provenance, supported platform packages and the signed update path. Finish authenticated canaries and rehearse ingress and feed rollback before the maintenance window.",
-    "sourceDigest": "684bd4312b3baed543e19104760124071932a81a00008f3959a230bba50faea0",
-    "sourceFileCount": 1765
+    "taskId": "20261127-production-release-preparation",
+    "status": "SOURCE_READY_CI_AND_PRODUCTION_PROFILE_PENDING",
+    "summary": "Restore release candidate builds for Linux and macOS x64/arm64. Add tag publication from verified, exact-commit Windows and POSIX artifacts and add a versioned R2 staging mode with checksum and production endpoint provenance checks.",
+    "verification": "Bash and YAML parsing and synthetic exact-artifact/R2 rehearsal on the development host. Covered rerun reuse, tampering detection, version-key conflict rejection, no LXD or shared pointer changes and rejection of the lab endpoint. Native candidate CI and authenticated Gold production-origin checks remain pending.",
+    "nextAction": "Validate the new native distribution candidate CI. Complete a build-bound production endpoint profile across Agent, Desktop, Tray and Wall proof, prepare an isolated Gold production runtime and verify a complete release before any domain change.",
+    "sourceDigest": "3ada65de23171aeb8fad40e43acbe7966bbdbdcf08949ab3504f405df14ef1a6",
+    "sourceFileCount": 1769
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -3707,7 +3707,7 @@
   },
   "productionRoleCutover": {
     "auditDate": "2026-11-27",
-    "status": "RELEASE_CHAIN_AUDITED_READINESS_PENDING",
+    "status": "SOURCE_READY_CI_AND_PRODUCTION_PROFILE_PENDING",
     "productionBackend": "legacy LXD with file persistence and NetBird Reverse Proxy",
     "goldBackend": "Gold LXD with PostgreSQL/Redis and Traefik mTLS",
     "candidateCiRunId": 45833846599,
@@ -3727,6 +3727,14 @@
       "goldFeedStaged": false
     },
     "productionGoogleConfigMatchInGoldStaging": true,
-    "productionOriginGoogleCanary": "PENDING"
+    "productionOriginGoogleCanary": "PENDING",
+    "releasePreparation": {
+      "releaseWorkflows": "IMPLEMENTED_CI_PENDING",
+      "r2Stage": "SYNTHETIC_PASS",
+      "productionEndpointProfile": "PENDING",
+      "tagPublished": false,
+      "cutoverExecuted": false,
+      "checkpointCommit": "c04e20293b3081eae823b3452f6dc6eb56f0d9c7"
+    }
   }
 }

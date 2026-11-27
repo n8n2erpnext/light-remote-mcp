@@ -12,7 +12,20 @@ LXD_DIST_DIR="${LIGHT_REMOTE_DISTRIBUTION_DIR:-/var/lib/light-remote-direct/dist
 LXD_REQUIRED="${LIGHT_REMOTE_DISTRIBUTION_LXD_REQUIRED:-0}"
 LXD_RETRIES="${LIGHT_REMOTE_DISTRIBUTION_LXD_RETRIES:-5}"
 LXD_RETRY_DELAY="${LIGHT_REMOTE_DISTRIBUTION_LXD_RETRY_DELAY:-2}"
+STAGE_FILE=''
+if [[ "${1:-}" == --stage ]]; then
+  [[ "$#" == 3 && -n "$2" && "$3" == /* && -d "$(dirname "$3")" ]] || { echo 'usage: sync-release-to-r2.sh --stage <version> <manifest path in an existing absolute directory>' >&2; exit 2; }
+  STAGE_FILE="$3"
+  shift
+elif [[ "$#" -gt 1 ]]; then
+  echo 'usage: sync-release-to-r2.sh [version]' >&2
+  exit 2
+fi
 VERSION_ARG="${1:-}"
+if [[ -n "$VERSION_ARG" && ! "$VERSION_ARG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9]+(\.[A-Za-z0-9]+)*)?$ ]]; then
+  echo 'invalid release version' >&2
+  exit 2
+fi
 
 [[ -f "$ENV_FILE" ]] || { echo "R2 environment file not found: $ENV_FILE" >&2; exit 2; }
 set -a
@@ -59,20 +72,32 @@ PY
 )"
 fi
 
-mkdir -p "$(dirname "$STATE_FILE")"
-if [[ -z "$VERSION_ARG" && -f "$STATE_FILE" && "$(cat "$STATE_FILE")" == "$VERSION" ]]; then
-  echo "light-remote-r2-sync=NOOP version=$VERSION"
-  exit 0
+if [[ -z "$STAGE_FILE" ]]; then
+  mkdir -p "$(dirname "$STATE_FILE")"
+  if [[ -z "$VERSION_ARG" && -f "$STATE_FILE" && "$(cat "$STATE_FILE")" == "$VERSION" ]]; then
+    echo "light-remote-r2-sync=NOOP version=$VERSION"
+    exit 0
+  fi
 fi
 
-python3 - "$TMP/release.json" > "$TMP/assets.tsv" <<'PY'
-import json,re,sys
+python3 - "$TMP/release.json" "$REPO" "$VERSION" > "$TMP/assets.tsv" <<'PY'
+import json,re,sys,urllib.parse
 r=json.load(open(sys.argv[1],encoding='utf-8'))
-wanted=re.compile(r'^(?:Light-Remote-MCP-Setup-x64-|Light-Remote-MCP-Compact-Setup-x64-|Light-Remote-MCP-Client-Linux-(?:x64|arm64)-|light-remote_.+_(?:amd64|arm64)\.deb|Light-Remote-Client-macOS-|Light-Remote-.+\.pkg$|install-linux-client\.sh$|SHA256SUMS\.txt$)')
+repo,version=sys.argv[2:]
+tag='v'+version
+if r.get('draft') or r.get('tag_name') != tag:
+    raise SystemExit('release must be published for the requested tag')
+wanted=re.compile(r'^(?:Light-Remote-MCP-Setup-x64-|Light-Remote-MCP-Compact-Setup-x64-|Light-Remote-MCP-Client-Linux-(?:x64|arm64)-|light-remote_.+_(?:amd64|arm64)\.deb|Light-Remote-Client-macOS-|Light-Remote-.+\.pkg$|install-linux-client\.sh$|downloads-install\.sh$|release-provenance\.json$|SHA256SUMS\.txt$)')
+seen=set()
 for a in r.get('assets',[]):
     name=str(a.get('name',''))
     if wanted.search(name):
-        print(name+'\t'+str(a.get('browser_download_url','')))
+        url=str(a.get('browser_download_url',''))
+        allowed=f'https://github.com/{repo}/releases/download/{tag}/'+urllib.parse.quote(name)
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*',name) or name in seen or url != allowed:
+            raise SystemExit('invalid or duplicated GitHub release asset')
+        seen.add(name)
+        print(name+'\t'+url)
 PY
 
 [[ -s "$TMP/assets.tsv" ]] || { echo "release has no distribution assets: $VERSION" >&2; exit 3; }
@@ -88,9 +113,49 @@ required=(
   "Light-Remote-MCP-Client-Linux-arm64-$VERSION.tar.gz"
   "install-linux-client.sh"
 )
+if [[ -n "$STAGE_FILE" ]]; then
+  required+=(
+    "Light-Remote-${VERSION}-x86_64.pkg" "Light-Remote-${VERSION}-arm64.pkg"
+    "Light-Remote-Client-macOS-x64-${VERSION}.tar.gz" "Light-Remote-Client-macOS-arm64-${VERSION}.tar.gz"
+    "light-remote_${VERSION}_amd64.deb" "light-remote_${VERSION}_arm64.deb"
+    'downloads-install.sh' 'release-provenance.json' 'SHA256SUMS.txt'
+  )
+fi
 for name in "${required[@]}"; do
   [[ -s "$TMP/$name" ]] || { echo "required release asset missing: $name" >&2; exit 4; }
 done
+
+if [[ -n "$STAGE_FILE" || -s "$TMP/SHA256SUMS.txt" ]]; then
+  python3 - "$TMP" "$VERSION" "$STAGE_FILE" <<'PY'
+import hashlib,json,re,sys
+from pathlib import Path
+
+root,version,stage=Path(sys.argv[1]),sys.argv[2],sys.argv[3]
+expected={}
+for line in (root/'SHA256SUMS.txt').read_text(encoding='ascii').splitlines():
+    entry=re.fullmatch(r'([0-9a-fA-F]{64}) [ *]([A-Za-z0-9][A-Za-z0-9._-]*)',line)
+    if not entry or entry[2] in expected:
+        raise SystemExit('malformed or duplicated release checksum')
+    expected[entry[2]]=entry[1].lower()
+
+for row in (root/'assets.tsv').read_text().splitlines():
+    name=row.split('\t',1)[0]
+    if name=='SHA256SUMS.txt':
+        continue
+    with (root/name).open('rb') as stream:
+        digest=hashlib.file_digest(stream,'sha256').hexdigest()
+    if expected.get(name)!=digest:
+        raise SystemExit(f'release checksum mismatch: {name}')
+
+if stage:
+    provenance=json.loads((root/'release-provenance.json').read_text())
+    if (provenance.get('version')!=version or
+        not re.fullmatch(r'[0-9a-f]{40}',str(provenance.get('gitSha',''))) or
+        provenance.get('endpointProfile')!='goldabv2-production' or
+        provenance.get('publicOrigin')!='https://light-remote.thaiduy.digital'):
+        raise SystemExit('release is missing production profile provenance')
+PY
+fi
 
 content_type(){
   case "$1" in
@@ -111,14 +176,35 @@ put(){
   [[ "$code" =~ ^2 ]] || { echo "R2 PUT failed key=$key http=$code" >&2; exit 5; }
 }
 
+put_versioned(){
+  local file="$1" key="$2" url code
+  if [[ -z "$STAGE_FILE" ]]; then
+    put "$file" "$key" 'public, max-age=31536000, immutable'
+    return
+  fi
+  url="$ENDPOINT/$BUCKET/$key"
+  code="$(curl -sS -o /dev/null -w '%{http_code}' \
+    --aws-sigv4 'aws:amz:auto:s3' --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+    -X PUT --data-binary @"$file" -H 'If-None-Match: *' \
+    -H "content-type: $(content_type "$file")" -H 'cache-control: public, max-age=31536000, immutable' "$url")"
+  if [[ "$code" == 412 ]]; then
+    curl -fsS --aws-sigv4 'aws:amz:auto:s3' --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+      "$url" -o "$TMP/r2-existing"
+    cmp -s "$file" "$TMP/r2-existing" || { echo "different bytes already exist for $key" >&2; exit 5; }
+  elif [[ ! "$code" =~ ^2 ]]; then
+    echo "R2 PUT failed key=$key http=$code" >&2
+    exit 5
+  fi
+}
+
 VERSION_KEY="$OBJECT_PREFIX/$VERSION"
 while IFS=$'\t' read -r name _; do
-  put "$TMP/$name" "$VERSION_KEY/$name" 'public, max-age=31536000, immutable'
+  put_versioned "$TMP/$name" "$VERSION_KEY/$name"
 done < "$TMP/assets.tsv"
 
-python3 - "$TMP" "$VERSION" "$PUBLIC_ROOT/$VERSION_KEY" "$REPO" > "$TMP/manifest.json" <<'PY'
+python3 - "$TMP" "$VERSION" "$PUBLIC_ROOT/$VERSION_KEY" "$REPO" "$STAGE_FILE" > "$TMP/manifest.json" <<'PY'
 import hashlib,json,os,sys,datetime
-root,version,base,repo=sys.argv[1:5]
+root,version,base,repo,stage=sys.argv[1:]
 release_page=f'https://github.com/{repo}/releases/tag/v{version}'
 def info(name):
     p=os.path.join(root,name)
@@ -185,10 +271,23 @@ m={
   'installScriptUrl':base.rsplit('/',1)[0]+'/install.sh',
   'releases':releases
 }
+if stage:
+    release=json.load(open(os.path.join(root,'release.json'),encoding='utf-8'))
+    m['generatedAt']=release['published_at']
+    m['installScriptUrl']=base+'/downloads-install.sh'
 print(json.dumps(m,indent=2))
 PY
 
-put "$TMP/manifest.json" "$VERSION_KEY/manifest.json" 'public, max-age=31536000, immutable'
+put_versioned "$TMP/manifest.json" "$VERSION_KEY/manifest.json"
+if [[ -n "$STAGE_FILE" ]]; then
+  # Stage a local candidate receipt atomically. Shared pointers and LXD
+  # manifests are left to the production promotion step.
+  pending="$(mktemp "$STAGE_FILE.XXXXXXXX")"
+  install -m 0600 "$TMP/manifest.json" "$pending"
+  mv -fT "$pending" "$STAGE_FILE"
+  echo "light-remote-r2-sync=STAGED version=$VERSION prefix=$VERSION_KEY"
+  exit 0
+fi
 # Fail closed: update the LXD distribution before publishing the moving R2 latest pointer.
 LXD_READY=0
 if command -v lxc >/dev/null 2>&1; then
