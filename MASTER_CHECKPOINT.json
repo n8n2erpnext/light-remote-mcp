@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-27T09:49:07.772Z",
+  "updatedAt": "2026-11-27T09:52:10.403Z",
   "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -691,13 +691,13 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261127-production-release-preparation",
+    "taskId": "20261127-production-release-native-workflow-paths",
     "status": "SOURCE_READY_CI_AND_PRODUCTION_PROFILE_PENDING",
-    "summary": "Restore release candidate builds for Linux and macOS x64/arm64. Add tag publication from verified, exact-commit Windows and POSIX artifacts and add a versioned R2 staging mode with checksum and production endpoint provenance checks.",
-    "verification": "Bash and YAML parsing and synthetic exact-artifact/R2 rehearsal on the development host. Covered rerun reuse, tampering detection, version-key conflict rejection, no LXD or shared pointer changes and rejection of the lab endpoint. Native candidate CI and authenticated Gold production-origin checks remain pending.",
+    "summary": "Restore Linux and macOS packaging jobs at the canonical paths expected by source contract tests. The distribution candidate workflow calls them as reusable workflows and retains the exact-commit artifact names.",
+    "verification": "Candidate CI run 45976881827 passed the synthetic R2/assembly contract and failed native jobs on missing workflow paths. This commit reinstates those paths and checks macOS development-only artifacts against the historical workflow without packaging them for users. Native retry pending.",
     "nextAction": "Validate the new native distribution candidate CI. Complete a build-bound production endpoint profile across Agent, Desktop, Tray and Wall proof, prepare an isolated Gold production runtime and verify a complete release before any domain change.",
-    "sourceDigest": "3ada65de23171aeb8fad40e43acbe7966bbdbdcf08949ab3504f405df14ef1a6",
-    "sourceFileCount": 1769
+    "sourceDigest": "901cdabb1176f768f8984859b18d47c76facd92a94bca62e58d7f22017eb9101",
+    "sourceFileCount": 1771
   },
   "legacyFilesystemCleanup": {
     "taskId": "20261108-legacy-fs-cleanup-v1",
@@ -3729,12 +3729,13 @@
     "productionGoogleConfigMatchInGoldStaging": true,
     "productionOriginGoogleCanary": "PENDING",
     "releasePreparation": {
-      "releaseWorkflows": "IMPLEMENTED_CI_PENDING",
+      "releaseWorkflows": "NATIVE_CONTRACT_FIXED_CI_RETRY_PENDING",
       "r2Stage": "SYNTHETIC_PASS",
       "productionEndpointProfile": "PENDING",
       "tagPublished": false,
       "cutoverExecuted": false,
-      "checkpointCommit": "c04e20293b3081eae823b3452f6dc6eb56f0d9c7"
+      "checkpointCommit": "c04e20293b3081eae823b3452f6dc6eb56f0d9c7",
+      "firstNativeRunId": 45976881827
     }
   }
 }

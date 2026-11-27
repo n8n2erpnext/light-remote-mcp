@@ -396,3 +396,7 @@ Close the encoded-video relay race: native close already releases control, but a
 ## Production release preparation — 2026-11-27
 
 The work branch now contains the exact-commit native distribution candidate and tag publication workflows, and isolated R2 versioned staging. Synthetic release and stage verification passed. Native distribution CI, the production endpoint profile, the Gold runtime and authenticated canaries still require completion. Production continues to serve rc.47.
+
+## Restore native packaging workflow contracts
+
+Candidate CI run 45976881827 passed the synthetic R2/assembly contract and failed native jobs on missing workflow paths. This commit reinstates those paths and checks macOS development-only artifacts against the historical workflow without packaging them for users. Native retry pending.

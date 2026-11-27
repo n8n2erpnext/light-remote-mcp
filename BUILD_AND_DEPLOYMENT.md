@@ -500,3 +500,7 @@ Reuse the production Google OAuth configuration and exact existing callback for 
 The candidate workflow packages Linux and macOS on matching build architectures. The production tag workflow requires the tagged commit to be reachable from protected main, a successful full baseline with the exact Windows installer and successful POSIX package artifacts for that commit. Release assembly requires production endpoint provenance and checks all artifact hashes. Sign the verified client-update manifest with the separate release authority before promoting automatic updates.
 
 The R2 importer accepts --stage VERSION ABSOLUTE_MANIFEST_PATH for a verified GitHub release. It creates immutable versioned objects using conditional writes. A rerun accepts identical existing bytes. The returned candidate manifest points to a versioned bootstrap. Staging leaves shared latest/bootstrap, LXD distributions and the legacy timer untouched. Deploy the candidate feed first and rehearse the approved publication and reversal procedures before the role switch.
+
+## Restore native packaging workflow contracts
+
+The candidate workflow calls the reusable linux-client-build.yml and macos-client-build.yml workflows. The product package excludes optional macOS development canaries.
