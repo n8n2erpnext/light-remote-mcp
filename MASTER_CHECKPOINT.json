@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-27T09:05:56.100Z",
+  "updatedAt": "2026-11-27T09:36:53.595Z",
   "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Prepare the approved production profile of Gold, the verified NetBird target and rollback mapping, the existing Google callback, release artifacts and update paths, and billing reconciliation. Rehearse normal operation and rollback with canary accounts/devices before selecting the maintenance date and requesting Owner cutover approval.",
+  "nextAction": "Reinstate the tag-driven GitHub release and R2 sync for the official repository and stage the Gold production distribution feed. Verify build provenance, supported platform packages and the signed update path. Finish authenticated canaries and rehearse ingress and feed rollback before the maintenance window.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,11 +691,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261127-gold-abv2-production-cutover-audit",
-    "status": "AUDITED_PLAN_READY_CUTOVER_PENDING",
-    "summary": "Audit both LXD service roles and document a staged cutover while retaining the existing production URL for the official MCP connector. The account plan uses verified sign-up and local re-enrollment with individual entitlement and billing reconciliation.",
-    "verification": "Read-only public HTTPS probes, LXD runtime and persistence inspection, NetBird service and backend mapping, aggregate legacy account and device inventory, Gold PostgreSQL inspection, Paddle Live price check, distribution manifest availability, and exact-source CI run 151 results. Live production-origin user flows and cutover rehearsal remain pending.",
-    "nextAction": "Prepare the approved production profile of Gold, the verified NetBird target and rollback mapping, the existing Google callback, release artifacts and update paths, and billing reconciliation. Rehearse normal operation and rollback with canary accounts/devices before selecting the maintenance date and requesting Owner cutover approval.",
+    "taskId": "20261127-gold-abv2-production-release-chain-audit",
+    "status": "RELEASE_CHAIN_AUDITED_READINESS_PENDING",
+    "summary": "Trace the live rc.47 tag-to-release, GitHub-to-R2 and LXD Downloads pipeline. Record the release automation gaps in the current repository and the staged production Google OAuth configuration for the role switch.",
+    "verification": "Archived rc.47 tag workflow and GitHub prerelease inspected. Production Downloads redirect and versioned/current R2 manifests verified. The active VPS timer still searches the current repo for v0.9 releases and its journal shows selection failure. The configured Gold staging and production Google client IDs, secrets and callback URI match; the production-origin round trip remains pending.",
+    "nextAction": "Reinstate the tag-driven GitHub release and R2 sync for the official repository and stage the Gold production distribution feed. Verify build provenance, supported platform packages and the signed update path. Finish authenticated canaries and rehearse ingress and feed rollback before the maintenance window.",
     "sourceDigest": "684bd4312b3baed543e19104760124071932a81a00008f3959a230bba50faea0",
     "sourceFileCount": 1765
   },
@@ -3707,7 +3707,7 @@
   },
   "productionRoleCutover": {
     "auditDate": "2026-11-27",
-    "status": "AUDITED_PLAN_READY_CUTOVER_PENDING",
+    "status": "RELEASE_CHAIN_AUDITED_READINESS_PENDING",
     "productionBackend": "legacy LXD with file persistence and NetBird Reverse Proxy",
     "goldBackend": "Gold LXD with PostgreSQL/Redis and Traefik mTLS",
     "candidateCiRunId": 45833846599,
@@ -3716,6 +3716,17 @@
     "billingReconciled": false,
     "releaseFeedReady": false,
     "productionOriginCanary": "PENDING",
-    "rollbackRehearsal": "PENDING"
+    "rollbackRehearsal": "PENDING",
+    "releaseChainAudit": {
+      "auditDate": "2026-11-27",
+      "publicRelease": "v0.9.0-rc.47",
+      "archiveSourceSha": "218fd3aa45ece9ed04b30ee341c3499945483f47",
+      "publicR2ManifestVerified": true,
+      "officialRepoTagWorkflowReady": false,
+      "productionSyncSelectorReady": false,
+      "goldFeedStaged": false
+    },
+    "productionGoogleConfigMatchInGoldStaging": true,
+    "productionOriginGoogleCanary": "PENDING"
   }
 }
