@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-26T14:13:51.013Z",
+  "updatedAt": "2026-11-27T09:05:56.100Z",
   "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Owner can review the live Account and Admin pages when signed in. The Gold Pro Share guest feature follows its existing disabled configuration. Production role switch remains a separate owner action.",
+  "nextAction": "Prepare the approved production profile of Gold, the verified NetBird target and rollback mapping, the existing Google callback, release artifacts and update paths, and billing reconciliation. Rehearse normal operation and rollback with canary accounts/devices before selecting the maintenance date and requesting Owner cutover approval.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,11 +691,11 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261126-gold-live-web-production-review",
-    "status": "GOLD_HTTPS_VERIFIED_OWNER_UI_REVIEW_AVAILABLE",
-    "summary": "Deploy the verified Home, Account, Admin and Pro Share (Family) web changes to Gold A/B v2. Systemd starts only the Gold Plugin from the isolated web source copy. Gold Local Wall follows via its existing PartOf dependency.",
-    "verification": "Public HTTPS verified 16 routes, including Home and the A/B v2 guide, Account and Billing, the Team redirect and invitation fallback, the Pro Share page, anonymous Admin redirect, login and Google Sans. Three served asset SHA-256 values matched the deployed source. The Plugin and Wall returned active; the Operator, Supervisor and mTLS sidecar kept their process IDs and source paths. The initial guarded attempt reverted when the Wall PID changed. A read-only systemd check confirmed the expected dependency before redeploying successfully.",
-    "nextAction": "Owner can review the live Account and Admin pages when signed in. The Gold Pro Share guest feature follows its existing disabled configuration. Production role switch remains a separate owner action.",
+    "taskId": "20261127-gold-abv2-production-cutover-audit",
+    "status": "AUDITED_PLAN_READY_CUTOVER_PENDING",
+    "summary": "Audit both LXD service roles and document a staged cutover while retaining the existing production URL for the official MCP connector. The account plan uses verified sign-up and local re-enrollment with individual entitlement and billing reconciliation.",
+    "verification": "Read-only public HTTPS probes, LXD runtime and persistence inspection, NetBird service and backend mapping, aggregate legacy account and device inventory, Gold PostgreSQL inspection, Paddle Live price check, distribution manifest availability, and exact-source CI run 151 results. Live production-origin user flows and cutover rehearsal remain pending.",
+    "nextAction": "Prepare the approved production profile of Gold, the verified NetBird target and rollback mapping, the existing Google callback, release artifacts and update paths, and billing reconciliation. Rehearse normal operation and rollback with canary accounts/devices before selecting the maintenance date and requesting Owner cutover approval.",
     "sourceDigest": "684bd4312b3baed543e19104760124071932a81a00008f3959a230bba50faea0",
     "sourceFileCount": 1765
   },
@@ -3704,5 +3704,18 @@
       "origin": "https://goldabv2.light-remote.thaiduy.digital"
     },
     "wallDependency": "PART_OF_PLUGIN"
+  },
+  "productionRoleCutover": {
+    "auditDate": "2026-11-27",
+    "status": "AUDITED_PLAN_READY_CUTOVER_PENDING",
+    "productionBackend": "legacy LXD with file persistence and NetBird Reverse Proxy",
+    "goldBackend": "Gold LXD with PostgreSQL/Redis and Traefik mTLS",
+    "candidateCiRunId": 45833846599,
+    "candidateSource": "a0406d8f6d840d93acfefec02a99611ef124bea7",
+    "cutoverExecuted": false,
+    "billingReconciled": false,
+    "releaseFeedReady": false,
+    "productionOriginCanary": "PENDING",
+    "rollbackRehearsal": "PENDING"
   }
 }
