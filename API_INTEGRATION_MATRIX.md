@@ -232,3 +232,7 @@ Native worker.provider-select/check and their Owner Wall equivalents manage two 
 ## Add bounded API Worker review groups with Long Memory references
 
 API Worker start accepts optional workGroupId and memoryCheckpoint. A checkpoint reference requires an active local scope and a verified signature. Use either a checkpoint reference or explicit context. Each worker uses the existing start/status/events/result/cancel MCP contract. The capabilities response reports group and device limits. Query results with each original workerId.
+
+## Gold production profile in isolated backend rehearsal
+
+The production profile pins Owner, Operator, MCP and device channel to the existing production HTTPS authority. The packaged Agent scopes state and Wall instance proof to the selected build profile. OAuth routes, A/B approvals and endpoint access checks remain in their existing server boundaries. The disposable test uses private DNS and a fixture CA. Native Desktop, Tray and updater publication checks remain pending.

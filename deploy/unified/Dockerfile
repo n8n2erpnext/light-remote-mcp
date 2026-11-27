@@ -7,6 +7,7 @@ RUN npm ci --ignore-scripts && npm rebuild node-pty
 COPY plugin-server/package.json plugin-server/package-lock.json ./plugin-server/
 RUN cd plugin-server && npm ci --ignore-scripts
 COPY . .
-RUN node deploy/unified/stage-dev-profile.mjs
+ARG LR_FIXTURE_PRODUCTION_PROFILE=0
+RUN node deploy/unified/stage-dev-profile.mjs "$LR_FIXTURE_PRODUCTION_PROFILE"
 ENV HOME=/state/home NODE_ENV=development
 CMD ["node","deploy/unified/dev-runtime.mjs"]

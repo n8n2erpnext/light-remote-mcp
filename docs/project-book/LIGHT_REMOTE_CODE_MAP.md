@@ -498,3 +498,7 @@ Polish the public site, Account and Admin for the A/B v2 rollout. Home, onboardi
 ## Prepare exact-source production release and isolated R2 staging
 
 Public downloads are assembled by the CI candidate and production release workflows. deploy/distribution/assemble-production-release.py validates exact tagged-source package inputs. sync-release-to-r2.sh stages signed-off versioned object bytes and a candidate manifest. The Plugin distribution portal serves its configured manifest and redirects supported package requests to the artifact URL.
+
+## Bind the Gold Agent to a separate production endpoint profile
+
+The canonical endpoint catalog now defines isolated lab and production identities. The JS Agent pins marked package authority and selects its own profile state directory. Local Wall signs the selected profile and revision. Native release consumers must validate the same profile before package promotion.

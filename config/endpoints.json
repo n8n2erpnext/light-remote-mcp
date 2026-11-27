@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "configRevision": 6,
+  "configRevision": 7,
   "selectedProfile": "goldabv2-lab",
   "profiles": {
     "goldabv2-lab": {
@@ -36,6 +36,35 @@
       ],
       "legacyAliases": [],
       "endpointProfile": "lab",
+      "activation": "UNSIGNED_SOURCE_CANDIDATE_ONLY"
+    },
+    "goldabv2-production": {
+      "productId": "goldabv2-desktop-v4",
+      "cloudOrigins": {
+        "owner": "https://light-remote.thaiduy.digital",
+        "deviceChannel": "https://light-remote.thaiduy.digital",
+        "mcp": "https://light-remote.thaiduy.digital",
+        "operator": "https://light-remote.thaiduy.digital"
+      },
+      "localServices": {
+        "wall": { "host": "127.0.0.1", "port": 5491 },
+        "fleet": { "host": "127.0.0.1", "port": 5492 }
+      },
+      "updates": {
+        "productId": "goldabv2-desktop-v4",
+        "channel": "goldabv2-production",
+        "manifestUrl": null,
+        "signatureUrl": null,
+        "activationStatus": "HOLD_UNTIL_APPROVED_PRODUCT_FEED_EXISTS"
+      },
+      "credentialBinding": [
+        "productId",
+        "selectedProfile",
+        "cloudOrigins.owner",
+        "cloudOrigins.deviceChannel"
+      ],
+      "legacyAliases": [],
+      "endpointProfile": "production",
       "activation": "UNSIGNED_SOURCE_CANDIDATE_ONLY"
     }
   },

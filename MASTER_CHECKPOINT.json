@@ -1,6 +1,6 @@
 {
   "schemaVersion": "light-remote.master-checkpoint.v1",
-  "updatedAt": "2026-11-27T09:58:01.041Z",
+  "updatedAt": "2026-11-27T10:03:19.850Z",
   "version": "0.10.1-dev.15",
   "phase": "LOCAL_MEMORY_API_WORKER_IMPLEMENTATION",
   "status": "P6_PARALLEL_REVIEW_SOURCE",
@@ -600,7 +600,7 @@
     "ARM": "all project source per Owner",
     "AMD": "OUT_OF_SCOPE per Owner"
   },
-  "nextAction": "Run the production-origin rehearsal on the exact clean commit with private Docker DNS. Continue the build-bound production endpoint profile across Agent, Desktop, Tray and Wall proof before any production release tag.",
+  "nextAction": "Run the production-origin rehearsal with its new Agent profile. Complete native Desktop, Tray, installer and updater profile binding and signed-feed verification before selecting the production build profile for a release.",
   "receiptNote": "Artifact compiled source is8e0d932; documentation commit is a later receipt. No Owner physical PASS, runtime deployment or public release is inferred.",
   "originAuditedSnapshot": "b25090856991da04f1c2fb1d43760700f9d79e08",
   "originVerifiedBuild": "eb6b2e6eee45213a385cd7ef0d0c1ef2aaa77ba8",
@@ -691,12 +691,12 @@
   },
   "commitSyncGate": {
     "schemaVersion": "light-remote.commit-sync.v1",
-    "taskId": "20261127-gold-private-production-origin-rehearsal",
+    "taskId": "20261127-gold-production-agent-endpoint-profile",
     "status": "SOURCE_READY_CI_AND_PRODUCTION_PROFILE_PENDING",
-    "summary": "Add a disposable production-hostname mode to the existing Gold PostgreSQL/Redis/mTLS fixture. Verify OAuth metadata and the existing Google callback with synthetic configuration before public routing is changed.",
-    "verification": "Native release candidate CI run 45977302007 passed 5/5 for source 52dea03, including Windows-independent R2 contract and Linux/macOS packages on x64 and ARM64. Saved verified public rc.47 distribution rollback manifests and bootstrap. Rehearsal source syntax validated and actual test pending.",
-    "nextAction": "Run the production-origin rehearsal on the exact clean commit with private Docker DNS. Continue the build-bound production endpoint profile across Agent, Desktop, Tray and Wall proof before any production release tag.",
-    "sourceDigest": "2c1d4fc9de21d5ebc3fd1244114878bb4662a6b9e2c0e6b2314f7239df5233c3",
+    "summary": "Define the canonical Gold production profile. The packaged JS Agent binds the approved origin and uses a separate device-state directory and Local Wall proof. The isolated production-origin fixture selects this profile inside its image; development artifacts still select Gold Lab.",
+    "verification": "The first isolated server rehearsal passed HTTPS, MCP metadata, Google redirect/PKCE and authorization-denial checks. The lab Agent correctly rejected the production endpoint. Added a distinct allowlisted profile and coverage for a wrong-origin or mixed-profile catalog. Re-run the private production-origin rehearsal for authenticated Agent flows.",
+    "nextAction": "Run the production-origin rehearsal with its new Agent profile. Complete native Desktop, Tray, installer and updater profile binding and signed-feed verification before selecting the production build profile for a release.",
+    "sourceDigest": "63f722fbb9dbab3f66db2314083227c6b015e385db13da77cc12aff1b2f9ee49",
     "sourceFileCount": 1771
   },
   "legacyFilesystemCleanup": {
@@ -3731,7 +3731,7 @@
     "releasePreparation": {
       "releaseWorkflows": "NATIVE_PACKAGING_CI_PASS",
       "r2Stage": "SYNTHETIC_PASS",
-      "productionEndpointProfile": "PENDING",
+      "productionEndpointProfile": "JS_AGENT_IMPLEMENTED_NATIVE_PENDING",
       "tagPublished": false,
       "cutoverExecuted": false,
       "checkpointCommit": "c04e20293b3081eae823b3452f6dc6eb56f0d9c7",
@@ -3739,6 +3739,6 @@
       "nativeRunId": 45977302007,
       "nativeSource": "52dea03ea4d462da006c1ad4a0bd096a8610c890"
     },
-    "isolatedProductionOrigin": "IMPLEMENTED_TEST_PENDING"
+    "isolatedProductionOrigin": "SERVER_DISCOVERY_PASS_AGENT_REHEARSAL_RETRY_PENDING"
   }
 }

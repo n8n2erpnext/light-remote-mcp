@@ -24,7 +24,7 @@ export function loadOrCreateWallInstanceKey(file){
 
 export function wallInstanceMessage({nonce,pid,productId,profile,revision}){
   if(!NONCE_RE.test(String(nonce))||!Number.isSafeInteger(pid)||pid<1||
-    productId!=='goldabv2-desktop-v4'||profile!=='goldabv2-lab'||
+    productId!=='goldabv2-desktop-v4'||!['goldabv2-lab','goldabv2-production'].includes(profile)||
     !Number.isSafeInteger(revision)||revision<1)
     throw Error('wall_instance_request_invalid');
   return [DOMAIN,nonce,String(pid),productId,profile,String(revision)].join('\n');

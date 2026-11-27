@@ -19,6 +19,15 @@ assert.equal(canonicalRoute(profile,'wallStatus'),
 assert.equal(profile.updates.manifestUrl,null);
 assert.equal(profile.updates.signatureUrl,null);
 const clone=()=>JSON.parse(JSON.stringify(config));
+const production=clone();
+production.selectedProfile='goldabv2-production';
+const productionProfile=validateCanonicalEndpoints(production);
+assert.equal(productionProfile.cloudOrigins.owner,'https://light-remote.thaiduy.digital');
+assert.equal(productionProfile.updates.channel,'goldabv2-production');
+assert.notEqual(productionProfile.stateDirectory,profile.stateDirectory);
+assert.throws(()=>validateCanonicalEndpoints(production,{expectedProfile:'goldabv2-lab'}),/profile_mismatch/);
+production.profiles['goldabv2-production'].cloudOrigins.deviceChannel=profile.cloudOrigins.deviceChannel;
+assert.throws(()=>validateCanonicalEndpoints(production),/invalid_https_origin_deviceChannel/);
 const bad=(change,pattern)=>{
  const t=clone();change(t);assert.throws(()=>validateCanonicalEndpoints(t),pattern);
 };

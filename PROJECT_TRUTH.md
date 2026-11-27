@@ -404,3 +404,7 @@ Candidate CI run 45976881827 passed the synthetic R2/assembly contract and faile
 ## Add isolated Gold production-origin rehearsal
 
 Native release candidate CI run 45977302007 passed 5/5 for source 52dea03, including Windows-independent R2 contract and Linux/macOS packages on x64 and ARM64. Saved verified public rc.47 distribution rollback manifests and bootstrap. Rehearsal source syntax validated and actual test pending.
+
+## Bind the Gold Agent to a separate production endpoint profile
+
+The first isolated server rehearsal passed HTTPS, MCP metadata, Google redirect/PKCE and authorization-denial checks. The lab Agent correctly rejected the production endpoint. Added a distinct allowlisted profile and coverage for a wrong-origin or mixed-profile catalog. Re-run the private production-origin rehearsal for authenticated Agent flows.

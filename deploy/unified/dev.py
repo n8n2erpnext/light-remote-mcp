@@ -87,8 +87,10 @@ def launch(args):
             if not value or '@sha256:' not in value:raise RuntimeError('immutable image missing: '+name)
             return value
         archive=run(['git','archive','--format=tar',sha]).stdout
-        image_name='light-remote-unified:'+sha
-        build=docker('build','--label',LABEL+'='+ident,'--build-arg','NODE_IMAGE='+image('node'),'-t',image_name,'-f','deploy/unified/Dockerfile','-',data=archive)
+        image_name='light-remote-unified:'+sha+('-production-origin' if args.production_origin else '')
+        build=docker('build','--label',LABEL+'='+ident,'--build-arg','NODE_IMAGE='+image('node'),
+                     '--build-arg',f'LR_FIXTURE_PRODUCTION_PROFILE={int(args.production_origin)}',
+                     '-t',image_name,'-f','deploy/unified/Dockerfile','-',data=archive)
         write(base/'image-build.log',build.stdout.decode(errors='replace'))
         state['image']=json.loads(docker('image','inspect',image_name).stdout)[0]['Id']
         docker('network','create','--internal','--label',LABEL+'='+ident,names['net'])

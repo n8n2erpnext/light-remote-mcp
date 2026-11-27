@@ -3,10 +3,12 @@ import http from 'node:http';
 import https from 'node:https';
 import {spawn} from 'node:child_process';
 import {apiPath} from '../../lib/api-contract.mjs';
+import {loadCanonicalEndpoints} from '../../lib/canonical-endpoints.mjs';
 const config=JSON.parse(fs.readFileSync('/state/runtime-env.json','utf8'));
 if(config.LR_UNIFIED_DISPOSABLE_DEV!=='1'||!/^[a-f0-9]{40}$/.test(config.LR_UNIFIED_SOURCE_COMMIT))throw Error('isolated_candidate_required');
 for(const name of ['home','run','operator-state','operator-logs','agent-state'])fs.mkdirSync('/state/'+name,{recursive:true,mode:0o700});
 Object.assign(process.env,config);
+const endpointProfile=loadCanonicalEndpoints(new URL('../../config/endpoints.json',import.meta.url));
 const logs=[];const children=[];
 function start(name,file,args=[]){
  const log=fs.openSync(`/state/${name}.private.log`,'a',0o600);logs.push(log);
@@ -22,7 +24,7 @@ start('plugin','plugin-server/server.mjs');
 // signed Agent only after its own CLI has connected its new private identity.
 const agentWatch=setInterval(()=>{
  try{
-  const state=JSON.parse(fs.readFileSync('/state/home/.config/gpt-operator-agent-goldabv2/device.json','utf8'));
+  const state=JSON.parse(fs.readFileSync(`/state/home/.config/${endpointProfile.stateDirectory}/device.json`,'utf8'));
   if(state.enrollment?.deviceId&&state.cloud?.desiredConnected===true){
    clearInterval(agentWatch);start('agent','device-agent/operator-agent.mjs',['daemon']);
   }

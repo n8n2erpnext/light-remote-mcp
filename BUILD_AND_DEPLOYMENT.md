@@ -508,3 +508,7 @@ The candidate workflow calls the reusable linux-client-build.yml and macos-clien
 ## Add isolated Gold production-origin rehearsal
 
 Use python3 deploy/unified/dev.py test --production-origin from an exact clean checkout to exercise the production hostname inside the disposable private network. PostgreSQL, Redis, CA and credentials are fixture-local. The Google test checks the redirect URI and PKCE at the server response. It never follows the Google redirect or uses production credentials.
+
+## Bind the Gold Agent to a separate production endpoint profile
+
+The isolated production-hostname test selects goldabv2-production inside its disposable image. The tracked canonical package config still selects the lab. Private fixture data and credentials are scoped to each run. Physical and native production package acceptance still belongs to the complete release profile.

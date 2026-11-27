@@ -1,7 +1,8 @@
 import {wallVideoPage,WALL_VIDEO_SCRIPT} from './wall-video-viewer.mjs';
 import http from 'node:http';
 import {loadCanonicalEndpoints} from '../lib/canonical-endpoints.mjs';
-const WALL_CATALOG=loadCanonicalEndpoints(new URL('../config/endpoints.json',import.meta.url)).routeCatalog;
+const WALL_ENDPOINTS=loadCanonicalEndpoints(new URL('../config/endpoints.json',import.meta.url));
+const WALL_CATALOG=WALL_ENDPOINTS.routeCatalog;
 const VIDEO_PAGE_PATH=WALL_CATALOG.wallVideoPage.path,VIDEO_SCRIPT_PATH=WALL_CATALOG.wallVideoScript.path,VIDEO_LATEST_PATH=WALL_CATALOG.wallVideoLatest.path;
 const CODEX_STATUS_PATH=WALL_CATALOG.wallCodexStatus.path,CODEX_PREFERENCES_PATH=WALL_CATALOG.wallCodexPreferences.path,ACTIVITY_HISTORY_PATH=WALL_CATALOG.wallActivityHistory.path;
 import {WALL_PTY_READER_SCRIPT} from './wall-pty-reader.mjs';
@@ -3108,7 +3109,7 @@ export function startLocalWall({instanceProof=null,modules=null,host='127.0.0.1'
       const base=approvePage(brandSvg,auth?.enabled?auth.csrfForRequest(req)||'':'');
       const fragment=serverMode==='abv2_only'?wallAbV2PreviewFragment
         .replace('href="https://light-remote.thaiduy.digital/account"',
-          'href="https://goldabv2.light-remote.thaiduy.digital/account"'):'';
+          'href="'+WALL_ENDPOINTS.cloudOrigins.owner+'/account"'):'';
       // Do not ship a hidden V1 form or its JavaScript to GoldABV2 clients.
       // The regular Gold product is the ONLY remaining legacy_allowed renderer.
       const legacy='<div class="card"><label for="code">';

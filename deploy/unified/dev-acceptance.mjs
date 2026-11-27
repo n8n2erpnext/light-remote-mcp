@@ -7,10 +7,13 @@ import {spawnSync} from 'node:child_process';
 import {apiPath,API_CONTRACT_VERSION} from '../../lib/api-contract.mjs';
 import {DESKTOP_OWNER_CLIENT_ID,DESKTOP_OWNER_RESOURCE,DESKTOP_OWNER_SCOPE} from '../../plugin-server/desktop-auth-v4-contract.mjs';
 import {verifyDeviceFlows} from './dev-device-acceptance.mjs';
+import {loadCanonicalEndpoints} from '../../lib/canonical-endpoints.mjs';
 
 const env=JSON.parse(fs.readFileSync('/state/runtime-env.json','utf8'));
 if(env.LR_UNIFIED_DISPOSABLE_DEV!=='1')throw Error('disposable_dev_required');
 const origin=env.LIGHT_REMOTE_PLUGIN_ORIGIN;
+const endpointProfile=loadCanonicalEndpoints(new URL('../../config/endpoints.json',import.meta.url));
+assert.equal(endpointProfile.cloudOrigins.owner,origin);
 const ca=fs.readFileSync('/state/pki/public-ca.crt');
 const credentials=JSON.parse(fs.readFileSync('/state/fixture-credentials.json','utf8'));
 const report={sourceCommit:env.LR_UNIFIED_SOURCE_COMMIT,apiContractVersion:API_CONTRACT_VERSION,layer:'real-private-dev-integration',physicalAcceptance:false,checks:[],notVerified:['Windows native IPC/vault/tray on new artifact','Live signed B approval and remote command on new candidate','Positive device-signed Wall SSO redemption/browser relay','Reboot/rollback on Windows','macOS/Linux full installer']};
@@ -38,7 +41,7 @@ function agent(command,args=[]){
  const out=spawnSync(process.execPath,['device-agent/operator-agent.mjs',command,...args],{env:process.env,encoding:'utf8',timeout:25000});
  fs.writeFileSync('/state/agent-cli-'+command+'.private.log',(out.stdout||'')+(out.stderr||''),{mode:0o600});
  assert.equal(out.status,0,'actual Agent CLI '+command+'; see private log');
- return JSON.parse(fs.readFileSync('/state/home/.config/gpt-operator-agent-goldabv2/device.json','utf8'));
+ return JSON.parse(fs.readFileSync(`/state/home/.config/${endpointProfile.stateDirectory}/device.json`,'utf8'));
 }
 async function enrollAgent(cookie){
  let state=agent('login',['--no-wait']);assert.ok(state.pendingEnrollment?.enrollmentId);

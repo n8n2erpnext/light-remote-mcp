@@ -1,6 +1,6 @@
 # Project handoff — additive Agent GPU observation
 
-Current resume point: Run the production-origin rehearsal on the exact clean commit with private Docker DNS. Continue the build-bound production endpoint profile across Agent, Desktop, Tray and Wall proof before any production release tag.
+Current resume point: Run the production-origin rehearsal with its new Agent profile. Complete native Desktop, Tray, installer and updater profile binding and signed-feed verification before selecting the production build profile for a release.
 
 **RM v2 chưa đạt nghiệm thu live trên dev12.** Đã xác minh helper đang cài đúng source CI131 và đọc lại hash fixture:4.096 đúng;8.192 chỉ có6.816; bài300từ1391units chỉ có49. Năm ca262K qua paste không nghiệm thu API nhập trực tiếp. Job exit0 đang là xác nhận nhận lệnh; receipt ban đầu còn preparing, chưa có terminal writeId để xác định nguyên nhân. Server đã đăng ký schema262K/sourcePath/status/cancel và GPU/video; catalog của lượt đang chạy vẫn cũ sau thông báo refresh. Không coi GDI screenshot là bài test đường GPU mới. Bỏ mục dựng Windows VM theo yêu cầu Owner.
 
@@ -1003,4 +1003,11 @@ All11 targeted tests PASS on ARM, including the unchanged A/B IPC authority chec
 - Source: permanent work after `52dea03ea4d462da006c1ad4a0bd096a8610c890`; exact staged source digest stamped in this same commit.
 - Verification: Native release candidate CI run 45977302007 passed 5/5 for source 52dea03, including Windows-independent R2 contract and Linux/macOS packages on x64 and ARM64. Saved verified public rc.47 distribution rollback manifests and bootstrap. Rehearsal source syntax validated and actual test pending.
 - Next: Run the production-origin rehearsal on the exact clean commit with private Docker DNS. Continue the build-bound production endpoint profile across Agent, Desktop, Tray and Wall proof before any production release tag.
+- Runtime: Full checkpoint c04e202 bundle verified with SHA-256 8092a430e9b763e68683f389a131a2ee188be18dff7cf39a83237f62632d3d62. Source preparation on work only. Published release, shared R2 pointer, VPS timer, deployed services, and production route remain at their prior versions.
+
+## Task Receipt: 20261127-gold-production-agent-endpoint-profile
+- Status: SOURCE_READY_CI_AND_PRODUCTION_PROFILE_PENDING. Define the canonical Gold production profile. The packaged JS Agent binds the approved origin and uses a separate device-state directory and Local Wall proof. The isolated production-origin fixture selects this profile inside its image; development artifacts still select Gold Lab.
+- Source: permanent work after `f65dab68c55d8d0fae30d15651be478b070ff0bb`; exact staged source digest stamped in this same commit.
+- Verification: The first isolated server rehearsal passed HTTPS, MCP metadata, Google redirect/PKCE and authorization-denial checks. The lab Agent correctly rejected the production endpoint. Added a distinct allowlisted profile and coverage for a wrong-origin or mixed-profile catalog. Re-run the private production-origin rehearsal for authenticated Agent flows.
+- Next: Run the production-origin rehearsal with its new Agent profile. Complete native Desktop, Tray, installer and updater profile binding and signed-feed verification before selecting the production build profile for a release.
 - Runtime: Full checkpoint c04e202 bundle verified with SHA-256 8092a430e9b763e68683f389a131a2ee188be18dff7cf39a83237f62632d3d62. Source preparation on work only. Published release, shared R2 pointer, VPS timer, deployed services, and production route remain at their prior versions.

@@ -80,9 +80,8 @@ const REAL_REMOTE_AVAILABLE=realRemoteAvailable();
 const NATIVE_DESKTOP=new NativeDesktopBridge();
 const {normalizeDesktopInput}=realRemoteInputPolicy;
 const LIGHT_SCP=new LightScpRegistry({policy:()=>effectiveFilesystemPolicy(readState())});
-// Only the isolated GoldABV2 V4 installer carries this profile marker.
- // An Agent launched directly (without the Windows Tray) must still NEVER
- // select a production or legacy server once bundled for GoldABV2.
+// A packaged Agent binds to the marked authority, including when it is
+// launched directly without the Windows Tray.
 const GOLDABV2_PACKAGE_MARKER=path.join(path.dirname(fileURLToPath(import.meta.url)),'goldabv2-package-profile.json');
 const GOLDABV2_PACKAGE=fs.existsSync(GOLDABV2_PACKAGE_MARKER)
   ?JSON.parse(fs.readFileSync(GOLDABV2_PACKAGE_MARKER,'utf8')):null;
@@ -111,7 +110,7 @@ function effectiveEndpoint(value,{kind='base'}={}){
 }
 const DEFAULT_BASE=effectiveEndpoint(process.env.OPERATOR_AGENT_BASE_URL,{kind:'base'});
 const DEFAULT_HUB=effectiveEndpoint(process.env.OPERATOR_AGENT_HUB_URL,{kind:'hub'});
-const GOLDABV2_STATE_FILE=path.join(os.homedir(),'.config','gpt-operator-agent-goldabv2','device.json');
+const GOLDABV2_STATE_FILE=GOLDABV2_ENDPOINTS&&path.join(os.homedir(),'.config',GOLDABV2_ENDPOINTS.stateDirectory,'device.json');
 if(GOLDABV2_PACKAGE&&process.env.OPERATOR_AGENT_STATE&&
    path.resolve(process.env.OPERATOR_AGENT_STATE).toLowerCase()!==path.resolve(GOLDABV2_STATE_FILE).toLowerCase())
   throw new Error('goldabv2_build_state_profile_mismatch');
@@ -1755,10 +1754,10 @@ async function daemon(args){
   // route and not a new cloud endpoint. No feature flag => no listener.
   // The current Windows Gold client remains unchanged until a separate
   // GoldABV2-enrolled Agent candidate is explicitly installed and tested.
+  const desktopOwnerOrigin=GOLDABV2_ENDPOINTS?.cloudOrigins.owner||'https://goldabv2.light-remote.thaiduy.digital';
   const desktopAbv2NativeEnabled=
     process.env.LR_GOLD_ABV2_DESKTOP_ABV2_NATIVE_V4==='1'&&
-    hub==='https://goldabv2.light-remote.thaiduy.digital'&&
-    base==='https://goldabv2.light-remote.thaiduy.digital'&&
+    hub===desktopOwnerOrigin&&base===desktopOwnerOrigin&&
     LOCAL_WALL_HOST==='127.0.0.1'&&
     wallAuth?.enabled===true&&
     Boolean(readState()?.enrollment?.deviceId);
@@ -1766,7 +1765,7 @@ async function daemon(args){
     const nativeEnrollment=()=>readState()?.enrollment||null;
     const nativeOwner=async access=>{
       if(!/^[A-Za-z0-9_-]{43}$/.test(String(access||'')))throw Error('desktop_owner_invalid');
-      const response=await fetch('https://goldabv2.light-remote.thaiduy.digital/account/desktop/v4/session',{
+      const response=await fetch(desktopOwnerOrigin+'/account/desktop/v4/session',{
         method:'GET',headers:{authorization:'Bearer '+access,accept:'application/json'},
         credentials:'omit',redirect:'error',cache:'no-store',
         signal:AbortSignal.timeout(7000)
